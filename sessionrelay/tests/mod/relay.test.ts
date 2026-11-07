@@ -20,12 +20,12 @@ test('/relay status with no task: mode full and how to start, within 8 lines x 4
   for (const l of lines) expect(l.length).toBeLessThanOrEqual(40)
 })
 
-test('/relay status reads the task state through $.fs', async ($, on) => {
+test("/relay status reads another session's task state through $.fs (its stored reading)", async ($, on) => {
   const h = memHost(on, { HOME: '/home/t' })
   const dir = `${ROOT}/projects/${await sha16('nogit|/work/proj')}/tasks/t_20261107_k3m9qa`
   h.files.set(`${dir}/state.json`, JSON.stringify({
     schemaVersion: 1, taskId: 't_20261107_k3m9qa', projectId: 'p', status: 'MONITORING', reason: null, mode: 'full', taskRevision: 1,
-    sessionSequence: 1, activeSessionId: 'sess-test', rotation: null, lastValidatedHandover: null, rotationCount: 0, consecutiveFailures: 0,
+    sessionSequence: 1, activeSessionId: 'sess-other', rotation: null, lastValidatedHandover: null, rotationCount: 0, consecutiveFailures: 0,
     thresholdPercent: 50, lastContext: { window: 1000000, percent: 18, at: '2026-11-07T08:00:00Z' }, armedFired: false, warnedSessionId: null,
     heldPrompts: [], taskStartHead: null, lastErrorCode: null, updatedAt: '2026-11-07T08:00:00Z',
   }))

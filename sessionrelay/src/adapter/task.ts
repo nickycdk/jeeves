@@ -145,3 +145,9 @@ export async function readTask(rt: Runtime, dir: string, state: State): Promise<
   }
   return { view: foldTask(revs), errors }
 }
+
+/** `session.measure` with a context change: the main conversation's `usage().context` (FR-02). Missing percent stays unknown. */
+export async function measure(rt: Runtime, c: { percent?: number; tokens?: number; window: number }): Promise<Applied | null> {
+  const sessionId = await rt.port.sessionId()
+  return applyOwn(rt, { type: 'MEASURE', window: c.window, sessionId, ...(c.percent !== undefined ? { percent: c.percent } : {}), ...(c.tokens !== undefined ? { tokens: c.tokens } : {}) })
+}

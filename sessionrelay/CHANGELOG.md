@@ -9,3 +9,4 @@
 - `/relay off` stops the task and releases its lock; no file is deleted.
 - A task belongs to one session at a time: another running session gets `LOCK_HELD`. Only commands you type yourself can change a task.
 - `/relay dod <text>` and `/relay check <command>` add a task revision (a new `task-rev-NNN.md`, never an edit). Verification commands are stored as text; SessionRelay never runs them. `/relay task` shows the original prompt, every change since and the current Definition of Done. Text from Claude, other plugins or other sessions never changes the task.
+- While a task is on, SessionRelay reads the main conversation's context fill (the status line's figure). A missing figure shows as "unknown", never 0%, and triggers nothing. Rate-limit changes never count as context.

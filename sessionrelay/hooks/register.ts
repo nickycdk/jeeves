@@ -2,7 +2,7 @@
 import type { CommandRunInput, EngineInterface, Register, Timer } from 'claude-code'
 import { chooseCommandName, FALLBACK, PRIMARY, relay } from '../src/adapter/commands.ts'
 import { runtime, type Options } from '../src/adapter/runtime.ts'
-import { captureFirstPrompt, heartbeat } from '../src/adapter/task.ts'
+import { captureFirstPrompt, heartbeat, measure } from '../src/adapter/task.ts'
 import { HEARTBEAT_MS } from '../src/core/lock.ts'
 
 const why = (err: unknown) => (err instanceof Error ? err.message : String(err)).slice(0, 200)
@@ -45,7 +45,11 @@ export const register: Register = (on, options) => {
     .catch(($, e, next) => (next.called ? next(e) : { text: 'SessionRelay could not answer (internal error).' }))
 
   // Subscribed now, forwarded unchanged until the stories that use them (M2-M5).
-  on('session.measure', ($, e, next) => next(e))
+  // ST-2.3: only a context change counts; rate-limit or cost changes never move the reading (AC-04).
+  on('session.measure', async ($, e, next) => {
+    if (e.changed.includes('context')) await quietly($, opts, 'measure', rt => measure(rt, e.context))
+    return next(e)
+  })
   on('tool.call', ($, e, next) => next(e))
   on('turn.complete', ($, e, next) => next(e))
   on('session.end', ($, e, next) => next(e))

@@ -34,7 +34,6 @@ test('after N edits there are N+1 write-once revisions, and /relay task shows or
 test('model or plugin text never creates a revision', async ($, on) => {
   const h = memHost(on)
   bottom(on)
-  on('classic.Stop', () => ({}))
   await start($)
   await relay($, 'on')
   await submit($, PROMPT)

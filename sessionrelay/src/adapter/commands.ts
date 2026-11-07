@@ -31,7 +31,10 @@ export async function relay(rt: Runtime, args: string, caller: Caller): Promise<
   const sub = m[1]!.toLowerCase(), rest = m[2]!
   if (sub === '' || sub === 'status') {
     const { tasks, errors } = await projectTasks(rt)
-    const task = pickTask(tasks, await rt.port.sessionId())
+    const me = await rt.port.sessionId()
+    const picked = pickTask(tasks, me)
+    // In the owning session show the live reading (never a stale one); another session's task shows its last stored reading.
+    const task = picked?.state.activeSessionId === me ? { ...picked, state: { ...picked.state, lastContext: { ...(await rt.port.usage()), at: new Date(await rt.port.now()).toISOString() } } } : picked
     return statusText({ probe: rt.probe, stateRoot: rt.stateRoot, stateRootError: rt.stateRootError, task, taskError: task ? null : errors[0] ?? null })
   }
   if (sub === 'help') return HELP

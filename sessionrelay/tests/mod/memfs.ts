@@ -16,6 +16,8 @@ export type MemHost = {
   failWrite: ((path: string) => boolean) | null
   sessionId: string
   clock: MockClock
+  /** What `$.session.usage().context` answers. */
+  usage: { window: number; percent?: number; tokens?: number }
 }
 
 const parent = (p: string) => p.replace(/\/[^/]+$/, '') || '/'
@@ -27,12 +29,14 @@ export const T0 = Date.parse('2026-11-07T08:00:00.000Z')
 export function memHost(on: On, env: Record<string, string> = { HOME: '/home/t' }): MemHost {
   const h: MemHost = {
     commands: [], registered: [], toasts: [], status: [], version: '2.1.319', failProcess: false, files: new Map(), dirs: new Set(['/']), env, argv: [], failWrite: null,
-    sessionId: 'sess-test', clock: mock.clock(on, { now: T0 }),
+    sessionId: 'sess-test', clock: mock.clock(on, { now: T0 }), usage: { window: 1_000_000 },
   }
   mock.store(on)
   on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('session.measure', (_, e) => ({ changed: e.changed }))
+  on('classic.Stop', () => ({}))
   on('session.version', () => ({ value: { version: h.version } }))
-  on('session.usage', () => ({ value: { startedAt: 0, context: { window: 1_000_000 }, rateLimits: [] } }))
+  on('session.usage', () => ({ value: { startedAt: 0, context: { ...h.usage }, rateLimits: [] } }))
   on('session.cwd', () => ({ value: '/work/proj' }))
   on('session.id', () => ({ value: h.sessionId }))
   on('ui.toast', (_, e) => { h.toasts.push(e.text); return { value: undefined } })
