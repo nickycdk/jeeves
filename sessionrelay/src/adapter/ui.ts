@@ -1,6 +1,6 @@
 // User-facing strings (FR-14, NFR-08): plain ASCII, text labels, <= 40 columns, <= 8 lines for status.
 import type { Probe } from '../core/probe.ts'
-import type { State } from '../core/types.ts'
+import { INERT, type ReasonCode, type State } from '../core/types.ts'
 
 export const WIDTH = 40
 
@@ -35,6 +35,7 @@ export function statusText(v: StatusView): string {
       `Context: ${pct === undefined ? 'unknown' : `${pct}%`}  Threshold: ${v.thresholdOverride ?? s.thresholdPercent}%`,
       ...(v.thresholdOverride ? [`TEST OVERRIDE (task setting ${s.thresholdPercent}%)`] : []),
       `Rotations: ${s.rotationCount}  Session: ${s.sessionSequence}`,
+      ...(s.reason && INERT.includes(s.status) ? [REASON_TEXT[s.reason]] : []),
       `Last: ${s.lastValidatedHandover ? s.lastValidatedHandover.split('#')[0]!.replace(/^history\//, '') : 'no handover yet'}${s.lastErrorCode ? `, error ${s.lastErrorCode}` : ''}`,
     )
   }
@@ -86,3 +87,38 @@ export const MSG = {
   turnedOff: (taskId: string, dir: string) => `SessionRelay off. Task ${taskId} is kept, nothing was deleted: ${dir}`,
   submitFailed: (err: unknown) => `SessionRelay could not send your goal (${short(String(err))}). Type it as your next prompt.`,
 }
+
+/** One line (<= 40 columns) per reason code, shown in status beside the code (AC-23). Every code has one. */
+export const REASON_TEXT: Record<ReasonCode, string> = {
+  THRESHOLD: 'Context reached the threshold.',
+  MANUAL: 'You asked for a handover.',
+  COMPACTED: 'Context was compacted; handing over.',
+  UNSAFE_BOUNDARY: 'No safe point to hand over.',
+  USER_INTERRUPT: 'You interrupted the handover.',
+  USER_CLEAR: 'You cleared the conversation.',
+  USER_PAUSE: 'Paused by you. /relay resume',
+  HANDOVER_INVALID: 'Handover invalid; nothing cleared.',
+  ROTATE_UNAVAILABLE: 'Run /clear, then /relay continue.',
+  POSSIBLE_LOOP: 'Fresh session too full: loop stopped.',
+  MAX_ROTATIONS: 'Rotation limit for this task reached.',
+  RATE_LIMIT: 'Rate limit hit. Resume when it lifts.',
+  AUTH: 'Login problem. /login, then resume.',
+  BILLING: 'Billing problem: check your account.',
+  OVERLOADED: 'API overloaded. Resume in a while.',
+  API_ERROR: 'API error. /relay resume to retry.',
+  DISK: 'Could not write task files (disk).',
+  LOCK_HELD: 'Another session owns this task.',
+  STALE_LOCK: 'Its owning session stopped.',
+  SCHEMA_TOO_NEW: 'Files are from a newer SessionRelay.',
+  REPO_MISMATCH: 'Repository differs from the task.',
+  DOD_UNMET: 'Not done: checks are missing.',
+  COMPLETED: 'Task completed.',
+  STATE_CORRUPT: 'state.json unreadable; kept as is.',
+}
+
+/** Shown once per machine, on the first successful `/relay on` (ST-7.3). */
+export const firstActivationText = (stateRoot: string) => [
+  `SessionRelay keeps task state on this machine only: ${stateRoot}`,
+  'When context fills up, it starts a fresh conversation by itself and continues the task there.',
+  '/relay pause stops that at any time; /relay off ends the task (nothing is deleted).',
+]

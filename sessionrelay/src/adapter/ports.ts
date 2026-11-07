@@ -40,4 +40,6 @@ export interface EnginePort extends FsPort {
   toast(text: string): void
   log(text: string): void
   now(): Promise<number>
+  /** True only the first time it is asked on this machine (a `$.store` flag), so a notice shows once. */
+  firstActivation(): Promise<boolean>
 }

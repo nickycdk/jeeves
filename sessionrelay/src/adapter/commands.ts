@@ -4,7 +4,7 @@ import { taskText } from '../core/task.ts'
 import type { State } from '../core/types.ts'
 import type { Runtime } from './runtime.ts'
 import { addRevision, apply, claim, heldByOther, liveTask, ownTask, projectTasks, readTask, startTask, type Task } from './task.ts'
-import { HELP, MSG, statusText } from './ui.ts'
+import { firstActivationText, HELP, MSG, statusText } from './ui.ts'
 
 export const PLUGIN = 'sessionrelay'
 export const PRIMARY = 'relay'
@@ -121,7 +121,7 @@ async function revise(rt: Runtime, tasks: Task[], me: string, kind: 'dod' | 'che
   return n === null ? MSG.waitingForPrompt : MSG.revised(n, kind)
 }
 
-/** First `/relay on` on this machine: the notice of ST-7.3. Hook point; the text and the once-only flag land there. */
-async function firstActivationNotice(_rt: Runtime): Promise<string[]> {
-  return []
+/** First `/relay on` on this machine (spec §4.1): where state lives, that a fresh conversation starts by itself, how to pause. */
+async function firstActivationNotice(rt: Runtime): Promise<string[]> {
+  return (await rt.port.firstActivation()) ? firstActivationText(rt.stateRoot ?? '') : []
 }

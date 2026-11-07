@@ -66,3 +66,21 @@ test('pickTask prefers this session, then the latest non-disabled task', () => {
   assert.equal(pickTask([a, c], 'me')?.state.taskId, 'a')
   assert.equal(pickTask([c], 'me'), null)
 })
+
+test('ST-7.3: every reason code has a plain one-line message that fits the status width', async () => {
+  const { REASON_TEXT } = await import('../../src/adapter/ui.ts')
+  const { REASON_CODES } = await import('../../src/core/types.ts')
+  assert.deepEqual(Object.keys(REASON_TEXT).sort(), [...REASON_CODES].sort())
+  for (const code of REASON_CODES) {
+    const t = REASON_TEXT[code]
+    assert.ok(t.length > 0 && t.length <= WIDTH && /^[\x20-\x7e]+$/.test(t), `${code}: "${t}"`)
+  }
+})
+
+test('status of a stopped task names the reason code and explains it', () => {
+  const state = validState({ status: 'PAUSED', reason: 'USER_PAUSE' })
+  const t = statusText(view({ task: { state, dir: '/x' } }))
+  shape(t)
+  assert.ok(t.includes('State: PAUSED (USER_PAUSE)'))
+  assert.ok(t.includes('Paused by you. /relay resume'))
+})
