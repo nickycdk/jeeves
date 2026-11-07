@@ -11,11 +11,11 @@ import { COMPLETION_STATES, HELD_STATES, isSafe, reduce, type Input } from '../c
 import { newRotationId, newTaskId } from '../core/ids.ts'
 import { join } from '../core/paths.ts'
 import { foldTask, newTaskState, parseRevision, renderChange, revFile, type ChangeKind, type TaskView } from '../core/task.ts'
-import { DEFAULT_CONFIG, INERT, type ReasonCode, type State } from '../core/types.ts'
+import { DEFAULT_CONFIG, INERT, SCHEMA_VERSION, type ReasonCode, type State } from '../core/types.ts'
 import { runEffects, type EffectResult } from './effects.ts'
 import { gitFacts } from './git.ts'
 import type { Runtime } from './runtime.ts'
-import { sha256Hex } from './storage.ts'
+import { sha256Hex, StorageError } from './storage.ts'
 
 export type Task = { state: State; dir: string }
 
@@ -62,14 +62,36 @@ async function transition(rt: Runtime, dir: string, prev: State, input: Input): 
     const out = reduce(state, queue.shift()!, { now, config: DEFAULT_CONFIG, newRotationId: newRotationId(now, random6()), ...(rt.thresholdOverride ? { thresholdOverride: rt.thresholdOverride } : {}), ...(rt.thresholdRelative ? { thresholdRelative: rt.thresholdRelative } : {}) })
     if (out.ignored) rt.port.log(`jeeves: ${out.ignored}`)
     if (out.state === state) continue
+    try {
+      await rt.storage.writeState(dir, out.state)
+    } catch (err) {
+      await blockOnDisk(rt, dir, state, err)
+      throw err
+    }
     state = out.state
-    await rt.storage.writeState(dir, state)
     const r = await runEffects(out.effects, { port: rt.port, storage: rt.storage, taskDir: dir, state })
     for (const f of r.failed) rt.port.log(`jeeves: effect ${f.effect.type} failed: ${f.error}`)
     forHook.push(...r.forHook)
     queue.push(...r.followUps)
   }
   return { state, forHook }
+}
+
+/**
+ * ST-6.5: a state write failed. The state on disk is still the last good one (the swap is atomic), so it stays the
+ * checkpoint; BLOCKED(DISK) is written over it if the disk takes that write. If not, the status line says so (no toast
+ * per failed write).
+ */
+async function blockOnDisk(rt: Runtime, dir: string, prev: State, err: unknown): Promise<void> {
+  if (!(err instanceof StorageError) || err.code !== 'DISK') return
+  const out = reduce(prev, { type: 'DISK_FAILED', path: dir, error: err.message }, { now: await rt.port.now(), config: DEFAULT_CONFIG, newRotationId: '-' })
+  if (out.state === prev) return
+  try {
+    await rt.storage.writeState(dir, out.state)
+    await runEffects(out.effects, { port: rt.port, storage: rt.storage, taskDir: dir, state: out.state })
+  } catch {
+    rt.port.status(`blocked: cannot write task files (DISK)`)
+  }
 }
 
 /** Apply an input to the task in `dir`; null when its state cannot be read. */
@@ -136,6 +158,7 @@ export async function startTask(rt: Runtime, sessionId: string, goal: string | n
   const dir = join(rt.projectDir!, 'tasks', taskId)
   const facts = await gitFacts(rt.port, rt.identity)
   const lock = await rt.storage.acquireLock(dir, sessionId, at, now)
+  await writeProjectRecord(rt, at)
   let state = newTaskState({ taskId, projectId: rt.projectId!, thresholdPercent: DEFAULT_CONFIG.thresholdPercent, taskStartHead: facts.kind === 'git' ? facts.head : null, at })
   if (goal !== null && lock.ok) {
     await rt.storage.writeImmutable(join(dir, revFile(1)), goal)
@@ -143,6 +166,15 @@ export async function startTask(rt: Runtime, sessionId: string, goal: string | n
   }
   const applied = await rt.serial(() => transition(rt, dir, state, { type: 'ON', mode: rt.probe.mode, lockAcquired: lock.ok, sessionId }))
   return { ...applied, dir }
+}
+
+/** `project.json` (02 §6.1): where this project lives, so a moved repository can be relinked (ST-6.5). Written once. */
+export async function writeProjectRecord(rt: Runtime, at: string): Promise<void> {
+  const path = join(rt.projectDir!, 'project.json')
+  if (!rt.identity || (await rt.port.exists(path))) return
+  const id = rt.identity
+  const record = { schemaVersion: SCHEMA_VERSION, repoRoot: id.kind === 'git' ? id.commonDir : id.cwd, worktree: id.kind === 'git' ? id.worktree : id.cwd, createdAt: at }
+  await rt.storage.replaceFile(path, JSON.stringify(record, null, 2) + '\n').catch(err => rt.port.log(`jeeves: project.json not written: ${why(err)}`))
 }
 
 /**
@@ -439,6 +471,16 @@ async function handoverStop(rt: Runtime, own: Task, info: StopInfo): Promise<str
   return retry?.type === 'BLOCK_STOP' ? retryInstruction({ taskId: s.taskId, rotationId: rotation.rotationId, errors: retry.errors }) : null
 }
 
+/** The handover's verified branch against the repository's now; null when they agree or either is unknown. */
+async function branchMismatch(rt: Runtime, handover: string | null): Promise<{ expected: string; actual: string } | null> {
+  const m = handover ? /^- Branch: (.+)$/m.exec(handover) : null
+  if (!m) return null
+  const git = await gitFacts(rt.port, rt.identity)
+  if (git.kind !== 'git') return null
+  const actual = git.branch ?? '(detached HEAD)'
+  return m[1]!.trim() === actual ? null : { expected: m[1]!.trim(), actual }
+}
+
 /** The text of the validated handover `ref` (`history/handover-NNN.md#sha256:<hex>`) if it is on disk and unchanged. */
 async function readVerified(rt: Runtime, dir: string, ref: string | null): Promise<string | null> {
   const m = ref ? /^(.+)#sha256:([0-9a-f]{64})$/.exec(ref) : null
@@ -550,11 +592,19 @@ async function continueFresh(rt: Runtime, dir: string): Promise<void> {
  * already be this session's. 'unverified': the saved handover cannot be verified, so nothing changed.
  * `gap` (recovery): work after the handover may exist; `adopt`: the handover ref to use in place of the state's.
  */
-export async function restoreHere(rt: Runtime, dir: string, input: Input, opts: { gap?: boolean; adopt?: string | null } = {}): Promise<'restored' | 'unverified' | null> {
+export type Restored = 'restored' | 'unverified' | null | { mismatch: { expected: string; actual: string } }
+
+export async function restoreHere(rt: Runtime, dir: string, input: Input, opts: { gap?: boolean; adopt?: string | null; relink?: boolean } = {}): Promise<Restored> {
   const before = await rt.storage.readState(dir)
   if (!before?.ok) return null
   const h = await latestHandover(rt, dir, opts.adopt ? { ...before.value, lastValidatedHandover: opts.adopt } : before.value)
   if (!h.ok) return 'unverified'
+  // ST-6.5: never continue on another branch than the handover's, unless the user relinks (`/relay recover --relink`).
+  const mismatch = opts.relink ? null : await branchMismatch(rt, h.text)
+  if (mismatch) {
+    await apply(rt, dir, { type: 'REPO_MISMATCH', sessionId: await rt.port.sessionId(), detail: `handover branch ${mismatch.expected}, repository on ${mismatch.actual}` })
+    return { mismatch }
+  }
   const r = await apply(rt, dir, input)
   if (!r?.forHook.some(f => f.type === 'INJECT_CONTEXT')) return null
   const ready = await apply(rt, dir, { type: 'CONTEXT_READY' })

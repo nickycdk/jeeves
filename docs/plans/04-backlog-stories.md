@@ -443,6 +443,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **DoD:** standard.
 
 ### ST-6.5 Disk errors, repo mismatch, relink — M
+- **Status:** Solved (M5; `tests/mod/repo.test.ts`, reducer test, AC-23 snapshot). Readings: "branch switched" = the repository's branch differs from the `- Branch:` line of the handover being restored (checked on every restore-path continuation: recover, resume after USER_CLEAR, assisted continue); a branch Claude switches to during the task is fine, since each handover records the branch at its time. "Path moved" = a task of another project whose `project.json` worktree no longer exists (with git, its start commit must exist here); `project.json` is now written at task start. Unverified: the `git cat-file -e` filter on a real moved git repository (mod test is non-git).
 - **Cites:** FR-12, §11 disk/path rows, AC-23.
 - **Scope:** write failures → BLOCKED(DISK), keep last checkpoint; project path moved/branch switched → BLOCKED(REPO_MISMATCH) with `/relay recover --relink` after confirmation.
 - **Depends on:** ST-6.1.

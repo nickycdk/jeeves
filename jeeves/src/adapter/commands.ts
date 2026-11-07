@@ -65,7 +65,7 @@ export async function relay(rt: Runtime, args: string, caller: Caller): Promise<
     case 'continue': return continueHere(rt, tasks, me, caller.endedHere)
     case 'rotate': return rotate(rt, tasks, me, caller.idle === true)
     case 'done': return confirmDone(rt, tasks, me, caller.endedHere)
-    case 'recover': return recover(rt, me, caller.endedHere)
+    case 'recover': return recover(rt, me, caller.endedHere, rest.trim() === '--relink')
     default: return revise(rt, tasks, me, sub as 'dod' | 'check', rest)
   }
 }
@@ -104,13 +104,15 @@ async function pause(rt: Runtime, tasks: Task[], me: string): Promise<string> {
 /** This session's paused task, else the project's latest paused one (a pause survives a restart, FR-11). */
 async function resume(rt: Runtime, tasks: Task[], me: string): Promise<string> {
   const own = ownTask(tasks, me)
-  const target = own?.state.status === 'PAUSED' ? own : own ? null : tasks.find(t => t.state.status === 'PAUSED') ?? null
+  const resumable = (s: State) => s.status === 'PAUSED' || (s.status === 'BLOCKED' && s.reason === 'DISK')
+  const target = own && resumable(own.state) ? own : own ? null : tasks.find(t => resumable(t.state)) ?? null
   if (!target) return own ? MSG.notPaused(own.state.status) : MSG.noTask
   // Only the lock holder writes the task: a live owner elsewhere gets LOCK_HELD and nothing is written.
   if (!(await claim(rt, target.dir, me))) return MSG.lockHeld(target.state.taskId)
   if (target.state.reason === 'USER_CLEAR') {
     // Restore path: this conversation is fresh; the task and its last handover go in as the next prompt.
     const r = await restoreHere(rt, target.dir, { type: 'RESUME', lockOk: true, sessionId: me })
+    if (r !== null && typeof r === 'object') return MSG.repoMismatch(r.mismatch.expected, r.mismatch.actual)
     return r === 'restored' ? MSG.restored(target.state.taskId) : r === 'unverified' ? MSG.handoverUnverified : MSG.noTask
   }
   const r = await apply(rt, target.dir, { type: 'RESUME', lockOk: true, sessionId: me })
@@ -145,6 +147,7 @@ async function continueHere(rt: Runtime, tasks: Task[], me: string, endedHere: R
   if ((await rt.port.turns()) > 0) return MSG.continueNeedsFresh
   if (!(await takeLock(rt, target.dir, target.state.activeSessionId, me, endedHere))) return MSG.lockHeld(target.state.taskId)
   const r = await restoreHere(rt, target.dir, { type: 'CONTINUE_CMD', sessionId: me })
+  if (r !== null && typeof r === 'object') return MSG.repoMismatch(r.mismatch.expected, r.mismatch.actual)
   return r === 'restored' ? MSG.restored(target.state.taskId) : r === 'unverified' ? MSG.handoverUnverified : MSG.nothingToContinue
 }
 

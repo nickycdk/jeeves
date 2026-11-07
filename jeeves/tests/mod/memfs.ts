@@ -28,6 +28,10 @@ export type MemHost = {
   fills: string[]
   /** What `$.session.usage().rateLimits` answers. */
   rateLimits: { kind: string; percentUsed: number; resetsAt?: string }[]
+  /** What `$.session.cwd()` answers. */
+  cwd: string
+  /** Answers `git <args>` (after `--no-optional-locks`); absent: every git call says "not a git repository". */
+  git?: (args: string[]) => { exitCode: number; stdout: string }
   /** What `$.session.usage().context` answers. */
   usage: { window: number; percent?: number; tokens?: number }
 }
@@ -40,7 +44,7 @@ export const T0 = Date.parse('2026-11-07T08:00:00.000Z')
 
 export function memHost(on: On, env: Record<string, string> = { HOME: '/home/t' }): MemHost {
   const h: MemHost = {
-    commands: [], registered: [], toasts: [], status: [], version: '2.1.319', failProcess: false, files: new Map(), dirs: new Set(['/']), env, argv: [], failWrite: null,
+    commands: [], registered: [], toasts: [], status: [], version: '2.1.319', failProcess: false, files: new Map(), dirs: new Set(['/', '/work', '/work/proj']), cwd: '/work/proj', env, argv: [], failWrite: null,
     sessionId: 'sess-test', agents: [], fills: [], turns: 0, logs: [], clock: mock.clock(on, { now: T0 }), usage: { window: 1_000_000 }, rateLimits: [],
   }
   mock.store(on)
@@ -57,7 +61,7 @@ export function memHost(on: On, env: Record<string, string> = { HOME: '/home/t' 
   on('session.end', (_, e) => ({ sessionId: e.sessionId }))
   on('session.version', () => ({ value: { version: h.version } }))
   on('session.usage', () => ({ value: { startedAt: 0, context: { ...h.usage }, rateLimits: [...h.rateLimits], ...(h.costUsd !== undefined ? { cost: { usd: h.costUsd } } : {}) } }))
-  on('session.cwd', () => ({ value: '/work/proj' }))
+  on('session.cwd', () => ({ value: h.cwd }))
   on('session.id', () => ({ value: h.sessionId }))
   on('session.turns', () => ({ value: h.turns }))
   on('ui.toast', (_, e) => { h.toasts.push(e.text); return { value: undefined } })
@@ -99,7 +103,10 @@ export function memHost(on: On, env: Record<string, string> = { HOME: '/home/t' 
     const [cmd, ...rest] = argv
     if (h.failProcess) return { deny: 'process.run unavailable' }
     if (cmd === 'true') return { value: ok }
-    if (cmd === 'git') return { value: { ...ok, exitCode: 128, stderr: 'fatal: not a git repository' } }
+    if (cmd === 'git') {
+      const r = h.git?.(rest.filter(a => a !== '--no-optional-locks'))
+      return { value: r ? { ...ok, ...r } : { ...ok, exitCode: 128, stderr: 'fatal: not a git repository' } }
+    }
     if (cmd === 'uname') return { value: { ...ok, stdout: 'Linux\n' } }
     if (cmd === 'chmod') return { value: ok }
     if (cmd === 'mkdir') {
@@ -112,6 +119,13 @@ export function memHost(on: On, env: Record<string, string> = { HOME: '/home/t' 
     }
     if (cmd === 'mv') {
       const [src, dst] = rest.filter(a => !a.startsWith('-'))
+      if (h.dirs.has(src!)) {
+        if (h.dirs.has(dst!) || h.files.has(dst!)) return { value: { ...ok, exitCode: 1, stderr: `mv: ${dst}: exists` } }
+        const move = (p: string) => dst! + p.slice(src!.length)
+        for (const f of [...h.files.keys()]) if (f.startsWith(`${src}/`)) { h.files.set(move(f), h.files.get(f)!); h.files.delete(f) }
+        for (const d of [...h.dirs]) if (d === src || d.startsWith(`${src}/`)) { h.dirs.add(move(d)); h.dirs.delete(d) }
+        return { value: ok }
+      }
       const t = h.files.get(src!)
       if (t === undefined) return { value: { ...ok, exitCode: 1, stderr: `mv: ${src}: No such file` } }
       h.files.delete(src!)

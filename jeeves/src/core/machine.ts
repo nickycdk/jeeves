@@ -56,6 +56,12 @@ export type Input =
    * (restore path). `adopt`: the interrupted rotation's saved handover, recorded now (its state swap never happened).
    */
   | { type: 'RECOVER'; sessionId: string; adopt?: string }
+  /** A state write failed (ST-6.5): the last written state stays the checkpoint; this is written in its place if it can be. */
+  | { type: 'DISK_FAILED'; path: string; error: string }
+  /** The repository is not the one the handover describes (ST-6.5): no continuation; this session keeps the lock. */
+  | { type: 'REPO_MISMATCH'; sessionId: string; detail: string }
+  /** `/relay recover --relink` moved the task into this project's folder (the repository moved, ST-6.5). */
+  | { type: 'RELINKED'; projectId: string }
 
 export type InputType = Input['type']
 
@@ -112,6 +118,10 @@ export function stopFailureCode(error: string): ReasonCode {
 /** A task `/relay recover` may continue: active, blocked, or stopped because its state.json had to be rebuilt. */
 export const recoverable = (s: State) =>
   ACTIVE(s.status) || s.status === 'BLOCKED' || (s.status === 'NEEDS_REVIEW' && s.reason === 'STATE_CORRUPT')
+
+/** ST-6.5 / AC-23: a failed task-file write names the folder and the fix. */
+export const diskText = (path: string, error: string) =>
+  `Blocked (DISK): Jeeves could not write its task files in ${path} (${error.slice(0, 120)}). The last saved state is kept. Free disk space or fix that folder's permissions, then type /relay resume.`
 
 /** What the user should do about each StopFailure code (ST-6.2, AC-23). Jeeves never retries by itself. */
 export function stopFailureText(code: ReasonCode, error: string, resetsAt?: string): string {
@@ -482,7 +492,8 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
       return done()
 
     case 'RESUME': {
-      if (state.status !== 'PAUSED') return ignore('not paused')
+      // BLOCKED(DISK) resumes the same way once the disk works again (ST-6.5).
+      if (state.status !== 'PAUSED' && !(state.status === 'BLOCKED' && state.reason === 'DISK')) return ignore('not paused')
       if (!input.lockOk) {
         next = { ...state, lastErrorCode: 'LOCK_HELD', updatedAt: at }
         effects.push({ type: 'TOAST', key: '-:lock-held', text: 'Another session owns this task (LOCK_HELD).' })
@@ -554,6 +565,21 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
       effects.push({ type: 'INJECT_CONTEXT', key: key('RESTORED'), via: 'prompt' })
       return done()
     }
+
+    case 'DISK_FAILED':
+      if (state.status === 'DISABLED' || state.status === 'BLOCKED' || state.status === 'COMPLETED') return ignore('nothing to block')
+      go('BLOCKED', 'DISK', { rotation: null, armedFired: false }, `${input.path}: ${input.error}`)
+      effects.push({ type: 'TOAST', key: '-:disk', text: diskText(input.path, input.error) })
+      return done()
+
+    case 'REPO_MISMATCH':
+      if (!recoverable(state) && state.status !== 'PAUSED') return ignore('nothing to block')
+      go('BLOCKED', 'REPO_MISMATCH', { rotation: null, armedFired: false, activeSessionId: input.sessionId }, input.detail)
+      return done()
+
+    case 'RELINKED':
+      if (state.projectId === input.projectId) return ignore('already in this project')
+      return edit({ projectId: input.projectId }, 'relinked', `relinked to project ${input.projectId}`)
 
     case 'DONE_CMD':
       if (state.status !== 'NEEDS_REVIEW' || state.reason !== 'DOD_UNMET') return ignore('nothing waits for /relay done')

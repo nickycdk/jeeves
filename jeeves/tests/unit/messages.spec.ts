@@ -3,7 +3,8 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { stopFailureCode, stopFailureText } from '../../src/core/machine.ts'
+import { MSG } from '../../src/adapter/ui.ts'
+import { diskText, stopFailureCode, stopFailureText } from '../../src/core/machine.ts'
 import { probe } from '../../src/core/probe.ts'
 
 const SNAPSHOT = join(import.meta.dirname, '../fixtures/messages.txt')
@@ -15,6 +16,11 @@ export function allMessages(): string {
     ...ERRORS.map(e => `StopFailure ${e}: ${stopFailureText(stopFailureCode(e), e)}`),
     `StopFailure rate_limit (reset known): ${stopFailureText('RATE_LIMIT', 'rate_limit', '2026-11-07T14:00:00.000Z')}`,
     `Outdated version: ${probe({ version: '2.1.280', primitives: all, stopHookRegistered: true }).message}`,
+    `Disk error: ${diskText('/state/projects/p/tasks/t_1', 'write /state/projects/p/tasks/t_1/state.json.tmp-0123456789ab: EIO')}`,
+    `Wrong branch: ${MSG.repoMismatch('main', 'feature/x')}`,
+    `Wrong path: ${MSG.moved('t_1', '/work/old')}`,
+    `Lock held: ${MSG.recoverHeld('t_1', 42)}`,
+    `Unreadable state: ${MSG.corrupt('t_1')}`,
   ].join('\n') + '\n'
 }
 

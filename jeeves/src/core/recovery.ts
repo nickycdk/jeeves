@@ -39,8 +39,9 @@ export function classify(f: Found, me: string, endedHere: (sessionId: string) =>
   if (s.status === 'PAUSED') return { kind: 'none', why: 'paused' }
   if (!recoverable(s)) return { kind: 'none', why: 'review' }
   const owner = f.lock.kind === 'held' ? f.lock.owner : null
-  if (s.activeSessionId === me && (owner === null || owner === me)) return { kind: 'mine' }
-  if (f.lock.kind === 'held' && !f.lock.stale && !(owner !== null && endedHere(owner))) return owner === me ? { kind: 'mine' } : { kind: 'lock-held', owner }
+  // This session runs it, except a repository mismatch it is waiting to have re-checked or relinked (ST-6.5).
+  if (s.activeSessionId === me && (owner === null || owner === me)) return s.reason === 'REPO_MISMATCH' ? { kind: 'recover', gap: true, adopt: null } : { kind: 'mine' }
+  if (f.lock.kind === 'held' && !f.lock.stale && owner !== me && !(owner !== null && endedHere(owner))) return { kind: 'lock-held', owner }
   switch (s.status) {
     // The handover of the interrupted rotation was saved and verified before the crash: nothing after it.
     case 'VALIDATING': return f.leftover ? { kind: 'recover', gap: false, adopt: f.leftover } : { kind: 'recover', gap: true, adopt: null }

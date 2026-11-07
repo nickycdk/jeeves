@@ -20,6 +20,10 @@ A session-continuity plugin for Claude Code. When a managed task's context reach
 
 **`/relay status` says the task state is unreadable.** `/relay recover` rebuilds `state.json` from the task's event log and write-once files, keeps the unreadable file beside it as `state.json.corrupt-<time>`, and continues from the last validated handover. Nothing is deleted.
 
+**`Blocked (DISK)`.** Jeeves could not write its task files; the message names the folder. The last saved state is kept. Free disk space or fix the folder's permissions, then `/relay resume`.
+
+**`Blocked (REPO_MISMATCH)`.** The repository is on another branch than the one the last handover was written on, so Jeeves did not continue. Switch back and type `/relay recover`, or type `/relay recover --relink` to continue on the current branch. If you moved the repository folder, `/relay recover` in the new folder finds the task by its old path and `/relay recover --relink` moves it here.
+
 **The task is `PAUSED`.** A pause (yours, a `/clear` you typed, an API error) is not an interruption: `/relay resume` continues it. `/relay status` says why it paused.
 
 Supported: Claude Code 2.1.319 or later on macOS. Linux is expected to work but untested.

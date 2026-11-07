@@ -5,10 +5,12 @@ import { STALE_MS } from '../core/lock.ts'
 import { join } from '../core/paths.ts'
 import { classify, rebuildState, type Action, type Found, type LockView } from '../core/recovery.ts'
 import { revFile } from '../core/task.ts'
+import { recoverable } from '../core/machine.ts'
+import { parseJson } from '../core/schema.ts'
 import type { State } from '../core/types.ts'
 import type { Runtime } from './runtime.ts'
 import { sha256Hex } from './storage.ts'
-import { nextHandoverNumber, projectTasks, restoreHere, takeLock } from './task.ts'
+import { apply, claim, nextHandoverNumber, projectTasks, restoreHere, takeLock, writeProjectRecord, type Restored } from './task.ts'
 import { MSG } from './ui.ts'
 
 /** Jeeves's own temporary files (the atomic swap's); others in the folder are never touched (02 §8). */
@@ -123,15 +125,71 @@ async function nothing(rt: Runtime, acts: { c: Candidate; a: Action }[]): Promis
  * validated handover in the continuation prompt, with a note when work after that handover may exist. Idempotent:
  * afterwards the task is this session's (RESTORING/CONTINUING), so a second recover finds nothing to do.
  */
-export async function recover(rt: Runtime, me: string, endedHere: ReadonlySet<string>): Promise<string> {
+export async function recover(rt: Runtime, me: string, endedHere: ReadonlySet<string>, relink = false): Promise<string> {
   const acts = (await candidates(rt)).map(c => ({ c, a: classify(c.found, me, s => endedHere.has(s)) }))
   const pick = acts.find(x => x.a.kind === 'recover' || x.a.kind === 'rebuild')
-  if (!pick) return nothing(rt, acts)
+  if (!pick) {
+    // ST-6.5: nothing here, but a task whose repository folder is gone may be this one, moved.
+    const moved = acts.some(x => x.a.kind !== 'none' || x.a.why !== 'ended') ? [] : await movedTasks(rt)
+    if (moved.length === 0) return nothing(rt, acts)
+    return relink ? relinkHere(rt, moved[0]!, me) : MSG.moved(moved[0]!.state.taskId, moved[0]!.oldPath)
+  }
   const { c } = pick
   if (!(await takeLock(rt, c.dir, c.state?.activeSessionId ?? null, me, endedHere))) return MSG.lockHeld(c.taskId)
   await removeOldTmp(rt, c.dir)
   const a = pick.a.kind === 'rebuild' ? (await rebuild(rt, c.dir, c.taskId), { gap: true, adopt: null }) : pick.a as Extract<Action, { kind: 'recover' }>
-  const r = await restoreHere(rt, c.dir, { type: 'RECOVER', sessionId: me, ...(a.adopt ? { adopt: a.adopt } : {}) }, { gap: a.gap, adopt: a.adopt })
+  return answer(c.taskId, await restoreHere(rt, c.dir, { type: 'RECOVER', sessionId: me, ...(a.adopt ? { adopt: a.adopt } : {}) }, { gap: a.gap, adopt: a.adopt, relink }), pick.a.kind === 'rebuild')
+}
+
+function answer(taskId: string, r: Restored, rebuilt = false): string {
   if (r === 'unverified') return MSG.handoverUnverified
-  return r === 'restored' ? MSG.recovered(c.taskId, pick.a.kind === 'rebuild') : MSG.nothingToRecover
+  if (r !== null && typeof r === 'object') return MSG.repoMismatch(r.mismatch.expected, r.mismatch.actual)
+  return r === 'restored' ? MSG.recovered(taskId, rebuilt) : MSG.nothingToRecover
+}
+
+type Moved = { dir: string; state: State; oldPath: string }
+
+/**
+ * Tasks of other projects whose recorded worktree no longer exists and that no live session runs: candidates for a
+ * repository that was moved here. With git, the task's start commit must exist in this repository.
+ */
+async function movedTasks(rt: Runtime): Promise<Moved[]> {
+  if (!rt.projectDir || !rt.identity) return []
+  const projects = rt.projectDir.replace(/\/[^/]+$/, '')
+  const out: Moved[] = []
+  for (const name of await rt.port.listDirs(projects)) {
+    if (name === rt.projectId) continue
+    const rec = parseJson('project', await rt.port.read(join(projects, name, 'project.json')).catch(() => ''))
+    if (!rec.ok || (await rt.port.exists(rec.value.worktree))) continue
+    for (const t of await rt.port.listDirs(join(projects, name, 'tasks'))) {
+      const dir = join(projects, name, 'tasks', t)
+      const r = await rt.storage.readState(dir).catch(() => null)
+      if (!r?.ok || !recoverable(r.value)) continue
+      const l = await rt.storage.readLock(dir, await rt.port.now())
+      if (l.kind === 'held' && !l.stale) continue
+      const head = r.value.taskStartHead
+      if (rt.identity.kind === 'git' && head && (await rt.port.run(['git', '--no-optional-locks', 'cat-file', '-e', `${head}^{commit}`], { cwd: rt.identity.worktree, env: { LC_ALL: 'C' } })).exitCode !== 0) continue
+      out.push({ dir, state: r.value, oldPath: rec.value.worktree })
+    }
+  }
+  return out.sort((a, b) => b.state.updatedAt.localeCompare(a.state.updatedAt))
+}
+
+/** `/relay recover --relink` (the user confirmed): move the task folder into this project, then recover it here. */
+async function relinkHere(rt: Runtime, m: Moved, me: string): Promise<string> {
+  if (!(await claim(rt, m.dir, me))) return MSG.lockHeld(m.state.taskId)
+  const target = join(rt.projectDir!, 'tasks', m.state.taskId)
+  if (await rt.port.exists(target)) return MSG.relinkExists(target)
+  for (const argv of [['mkdir', '-p', join(rt.projectDir!, 'tasks')], ['mv', m.dir, target]]) {
+    const r = await rt.port.run(argv)
+    if (r.exitCode !== 0) return MSG.relinkFailed(m.dir, r.stderr.trim().slice(0, 120))
+  }
+  await writeProjectRecord(rt, new Date(await rt.port.now()).toISOString())
+  await apply(rt, target, { type: 'RELINKED', projectId: rt.projectId! })
+  const r = await rt.storage.readState(target)
+  if (!r?.ok) return MSG.nothingToRecover
+  const a = classify({ kind: 'state', state: r.value, lock: { kind: 'held', owner: me, stale: false }, leftover: await leftover(rt, target, r.value) }, me, () => false)
+  if (a.kind !== 'recover') return MSG.nothingToRecover
+  const done = await restoreHere(rt, target, { type: 'RECOVER', sessionId: me, ...(a.adopt ? { adopt: a.adopt } : {}) }, { gap: a.gap, adopt: a.adopt, relink: true })
+  return `${MSG.relinked(m.state.taskId, m.oldPath)} ${answer(m.state.taskId, done)}`
 }

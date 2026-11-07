@@ -41,6 +41,21 @@ export async function engineClear($: Kit, h: MemHost, to: string) {
   return $.classic.SessionStart({ source: 'clear', session_id: to })
 }
 
+/** A git repository at /work/proj on `branch.name` (a box, so a test can switch it), one commit, nothing changed. */
+export function fakeGit(h: MemHost, branch = { name: 'main' }) {
+  const HEAD = 'a1b2c3d4e5f60718293a4b5c6d7e8f9012345678'
+  h.dirs.add('/work/proj/.git')
+  h.git = args => {
+    const a = args.join(' ')
+    if (a === 'rev-parse --git-common-dir --show-toplevel') return { exitCode: 0, stdout: '/work/proj/.git\n/work/proj\n' }
+    if (a.startsWith('status ')) return { exitCode: 0, stdout: `## ${branch.name}\0` }
+    if (a === 'rev-parse --verify -q HEAD') return { exitCode: 0, stdout: `${HEAD}\n` }
+    if (a.startsWith('diff ') || a.startsWith('cat-file ')) return { exitCode: 0, stdout: '' }
+    return { exitCode: 1, stdout: '' }
+  }
+  return branch
+}
+
 export const PROMPT = 'Build the parser.\n\n  - keep CRLF?\r\n  - emoji: 🚀 ✅ — ÆØÅ  \n\ttrailing tab\t'
 
 
@@ -72,8 +87,9 @@ export const stop = ($: Kit, message: string) => $.classic.Stop({ stop_hook_acti
 
 /** A task whose handover was just requested: the safe Stop already answered with the instruction. */
 /** `viaTool`: each reading comes at a main-loop tool result (as live, after a model call) instead of session.measure. */
-export async function generating($: Kit, on: Parameters<typeof memHost>[0], opts: { env?: Record<string, string>; readings?: number[]; viaTool?: boolean } = {}) {
+export async function generating($: Kit, on: Parameters<typeof memHost>[0], opts: { env?: Record<string, string>; readings?: number[]; viaTool?: boolean; git?: boolean } = {}) {
   const h = memHost(on, opts.env)
+  const branch = opts.git ? fakeGit(h) : { name: 'main' }
   const refuse: { drop?: (text: string) => boolean } = {}
   const prompts = bottom(on, refuse)
   const clears: string[] = []
@@ -106,6 +122,6 @@ export async function generating($: Kit, on: Parameters<typeof memHost>[0], opts
   expect(ask.block).toContain('JEEVES-HANDOVER')
   const s = stateOf(h, dir)
   expect(s.status).toBe('HANDOVER_GENERATING')
-  return { h, dir, clears, prompts, ctl, refuse, taskId: s.taskId as string, rotationId: s.rotation.rotationId as string }
+  return { h, dir, clears, prompts, ctl, refuse, branch, taskId: s.taskId as string, rotationId: s.rotation.rotationId as string }
 }
 

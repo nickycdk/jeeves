@@ -79,3 +79,18 @@ test('RECOVER: a new rotation in RESTORING, owned here, held prompts kept; refus
   for (const s of ['PAUSED', 'COMPLETED', 'DISABLED'] as const) assert.ok(reduce(st(s), { type: 'RECOVER', sessionId: ME }, ctx).ignored, s)
   assert.equal(reduce(o.state, { type: 'CONTEXT_READY' }, ctx).state.status, 'CONTINUING')
 })
+
+test('ST-6.5: DISK_FAILED blocks once, keeping the rotation out; REPO_MISMATCH blocks for this session; resume leaves BLOCKED(DISK) only', () => {
+  const ctx: Ctx = { now: Date.parse(AT) + 1000, config: DEFAULT_CONFIG, newRotationId: 'r_x' }
+  const d = reduce(st('ROTATION_REQUESTED'), { type: 'DISK_FAILED', path: '/s/t', error: 'EIO' }, ctx)
+  assert.deepEqual([d.state.status, d.state.reason, d.state.rotation], ['BLOCKED', 'DISK', null])
+  assert.ok(d.effects.some(e => e.type === 'TOAST' && e.text.includes('/s/t') && e.text.includes('/relay resume')))
+  assert.ok(reduce(d.state, { type: 'DISK_FAILED', path: '/s/t', error: 'EIO' }, ctx).ignored, 'one block, one toast')
+  assert.equal(reduce(d.state, { type: 'RESUME', lockOk: true, sessionId: ME }, ctx).state.status, 'MONITORING')
+  const m = reduce(st('ROTATING'), { type: 'REPO_MISMATCH', sessionId: ME, detail: 'x' }, ctx)
+  assert.deepEqual([m.state.status, m.state.reason, m.state.activeSessionId], ['BLOCKED', 'REPO_MISMATCH', ME])
+  assert.ok(reduce(m.state, { type: 'RESUME', lockOk: true, sessionId: ME }, ctx).ignored, 'a mismatch needs recover, not resume')
+  // The blocking session may run /relay recover again (re-check or --relink).
+  assert.equal(classify(found(m.state, { kind: 'held', owner: ME, stale: false }), ME, never).kind, 'recover')
+  assert.equal(reduce(m.state, { type: 'RELINKED', projectId: 'p2' }, ctx).state.projectId, 'p2')
+})
