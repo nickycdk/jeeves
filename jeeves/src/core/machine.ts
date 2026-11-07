@@ -179,9 +179,15 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
     const reading = { window: input.window, at, ...(input.percent !== undefined ? { percent: input.percent } : {}), ...(input.tokens !== undefined ? { tokens: input.tokens } : {}) }
     next = { ...next, lastContext: reading, updatedAt: at }
     const p = input.percent
-    // D-25: a fresh session's reading before its first model call is ~2 points low (gate run 6), so it is no start.
-    const counts = rel === undefined || input.fromTool === true
-    if (p !== undefined && counts && next.sessionStart && next.sessionStart.pct === null && input.sessionId === state.activeSessionId) next = { ...next, sessionStart: { ...next.sessionStart, pct: p } }
+    // D-25 (relative only): a session's start is its second tool-result reading. A fresh session's readings before its
+    // first model call, and at its first tool result, read ~2.4 points low (live runs 6, 7); the next one is its real level.
+    let isStart = false
+    const ss = next.sessionStart
+    if (p !== undefined && ss && ss.pct === null && input.sessionId === state.activeSessionId) {
+      if (rel === undefined || (input.fromTool && ss.skipped)) { next = { ...next, sessionStart: { at: ss.at, pct: p } }; isStart = true }
+      else if (input.fromTool) next = { ...next, sessionStart: { ...ss, skipped: true } }
+    }
+    const counts = rel === undefined || isStart
     if (state.status === 'MONITORING') {
       if (p === undefined) return done()
       if (p >= T && !state.armedFired) return request('THRESHOLD')

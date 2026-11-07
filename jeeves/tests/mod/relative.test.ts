@@ -1,5 +1,5 @@
 // D-25 (amended after gate run 6): the test-only relative threshold (JEEVES_TEST_THRESHOLD_OVERRIDE=+d) through the
-// hooks. A session's start is its first tool-result reading; the request comes at start + d; the fresh session
+// hooks. A session's start is its second tool-result reading (the first in a fresh session reads low); the request comes at start + d; the fresh session
 // rearms only below the source session's last reading (the rotation freed context), else POSSIBLE_LOOP.
 import type { SessionMeasureInput } from 'claude-code'
 import { expect, test } from 'claude-code/testing'
@@ -16,9 +16,9 @@ const toolReading = async ($: Kit, g: G, percent: number) => {
   await until(g.h, () => stateOf(g.h, g.dir).lastContext?.percent === percent)
 }
 
-/** Start 6 (first tool reading), request at 6.8, carried through /clear to CONTINUING; the source ends at 6.8. */
+/** Start 6 (second tool reading; the first, 4, is passed over), request at 6.8, carried through /clear to CONTINUING; the source ends at 6.8. */
 async function rotated($: Kit, on: Parameters<typeof generating>[1]) {
-  const g = await generating($, on, { env: ENV, readings: [6, 6.5, 6.8], viaTool: true })
+  const g = await generating($, on, { env: ENV, readings: [4, 6, 6.5, 6.8], viaTool: true })
   const { h, dir, ctl } = g
   expect([stateOf(h, dir).sessionStart.pct, stateOf(h, dir).thresholdPercent]).toEqual([6, 50])
   expect(await stop($, handover(g.taskId, g.rotationId))).toEqual({})
@@ -29,10 +29,11 @@ async function rotated($: Kit, on: Parameters<typeof generating>[1]) {
   return g
 }
 
-test('relative override: an early reading is no start; the fresh session rearms at its first tool reading and rotates at its own start + d', async ($, on) => {
+test('relative override: early readings are no start; the fresh session rearms at its second tool reading and rotates at its own start + d', async ($, on) => {
   const g = await rotated($, on)
   const { h, dir } = g
   await measure($, 3.7)
+  await toolReading($, g, 3.76)
   expect(stateOf(h, dir).status).toBe('CONTINUING')
   await toolReading($, g, 6.2)
   const s = stateOf(h, dir)
@@ -49,6 +50,7 @@ test('relative override: an early reading is no start; the fresh session rearms 
 
 test('relative override: a fresh session that starts at the source session\'s last reading is refused (POSSIBLE_LOOP)', async ($, on) => {
   const g = await rotated($, on)
+  await toolReading($, g, 3.76)
   g.h.usage = { window: 1_000_000, percent: 6.8 }
   await $.tool.call({ tool: 'Bash', command: 'ls' })
   await until(g.h, () => stateOf(g.h, g.dir).status !== 'CONTINUING')
