@@ -424,6 +424,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **DoD:** standard.
 
 ### ST-6.3 User interrupt and user `/clear` — S
+- **Status:** Solved (M5). USER_INTERRUPT and USER_CLEAR were built in M3/M4; M5 closed one gap: an interrupt while a handover is only requested also rules out the later nudge (a late reading with no turn open sent one). Tests: `clear.test.ts` (user /clear in ROTATION_REQUESTED and HANDOVER_GENERATING, no prompt until `/relay resume`, then exactly one), `rotate.test.ts`, reducer test.
 - **Cites:** FR-11, §11 Ctrl+C.
 - **Scope:** aborted turn during HANDOVER_GENERATING → PAUSED(USER_INTERRUPT); user `/clear` outside rotation → PAUSED(USER_CLEAR), `/relay resume` restores via injection.
 - **Depends on:** ST-4.2.

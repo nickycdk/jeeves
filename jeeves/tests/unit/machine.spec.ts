@@ -701,3 +701,12 @@ test('a main tool result carrying a reading past T requests the rotation and app
   assert.deepEqual([below.state.status, below.state.lastContext?.percent, below.effects], ['MONITORING', 30, []])
   assert.ok(run(st('DISABLED'), { type: 'TOOL_RESULT', main: true, reading: { percent: 90, window: 1, sessionId: 'a' } }).ignored)
 })
+
+test('ST-6.3: an aborted turn while a handover is only requested rules out the nudge; nothing else changes', () => {
+  for (const status of ['ROTATION_REQUESTED', 'QUIESCING'] as const) {
+    const o = run(st(status), { type: 'TURN_COMPLETE', reason: 'aborted' })
+    assert.deepEqual([o.state.status, o.state.rotation?.nudged, types(o.effects)], [status, true, []])
+    assert.ok(run(o.state, { type: 'IDLE' }).ignored)
+  }
+  assert.ok(run(st('ROTATION_REQUESTED'), { type: 'TURN_COMPLETE', reason: 'answer' }).ignored)
+})

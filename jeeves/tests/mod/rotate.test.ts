@@ -115,4 +115,9 @@ test('an interrupted turn is never nudged: the user has the floor', async ($, on
   await turnEnd($, 'aborted')
   await h.clock.settle()
   expect(prompts.some(p => p.text === NUDGE_PROMPT)).toBe(false)
+  // ST-6.3: a reading that arrives later, with no turn open, still sends nothing.
+  await measure($, 53)
+  await h.clock.settle()
+  expect(prompts.some(p => p.text === NUDGE_PROMPT)).toBe(false)
+  expect(stateOf(h, taskDirs(h)[0]!).status).toBe('ROTATION_REQUESTED')
 })

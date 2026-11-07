@@ -345,6 +345,11 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
         go('PAUSED', 'USER_INTERRUPT', { rotation: null, armedFired: false })
         return done()
       }
+      // ST-6.3: after an interrupt the user has the floor: no nudge later either (a late reading finds the turn closed).
+      if ((state.status === 'ROTATION_REQUESTED' || state.status === 'QUIESCING') && input.reason === 'aborted' && !state.rotation!.nudged) {
+        setRotation({ nudged: true })
+        return done()
+      }
       if (state.status === 'ROTATING' && state.rotation!.step === 'HANDOVER_PERSISTED') {
         // ST-4.1 AC 2: never /clear on a handover that changed or vanished since it was verified.
         if (input.handoverVerified !== true) {

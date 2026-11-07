@@ -1,7 +1,7 @@
 // Review fix 1: a user's /clear pauses the task (USER_CLEAR) instead of leaving it to a session id that no longer exists.
 import type { SessionMeasureInput } from 'claude-code'
 import { expect, test } from 'claude-code/testing'
-import { bottom, PROMPT, relay, start, stateOf, submit, taskDirs, type Kit } from './kit.ts'
+import { bottom, engineClear, generating, PROMPT, relay, start, stateOf, submit, taskDirs, turnEnd, turnStart, until, type Kit } from './kit.ts'
 import { memHost } from './memfs.ts'
 
 const measure = ($: Kit, percent: number) =>
@@ -39,3 +39,34 @@ test('a /clear with no task changes nothing', async ($, on) => {
   expect(taskDirs(h)).toEqual([])
   expect(h.toasts).toEqual([])
 })
+
+// ST-6.3: a /clear typed during a requested or running handover pauses (USER_CLEAR); the fresh conversation gets nothing unasked.
+for (const at of ['ROTATION_REQUESTED', 'HANDOVER_GENERATING'] as const) {
+  test(`ST-6.3: a user /clear in ${at} pauses and never auto-continues; /relay resume does, once`, async ($, on) => {
+    let h: ReturnType<typeof memHost>, dir: string, prompts: { text: string }[]
+    if (at === 'HANDOVER_GENERATING') ({ h, dir, prompts } = await generating($, on))
+    else {
+      h = memHost(on)
+      prompts = bottom(on)
+      on('command.run', () => ({ text: '' }))
+      await start($)
+      await relay($, 'on')
+      await submit($, PROMPT)
+      dir = taskDirs(h)[0]!
+      await turnStart($)
+      await measure($, 60)
+      expect(stateOf(h, dir).status).toBe('ROTATION_REQUESTED')
+    }
+    const before = prompts.length
+    await engineClear($, h, 'sess-fresh')
+    await turnEnd($)
+    await h.clock.advance(5_000)
+    await until(h, () => true)
+    expect([stateOf(h, dir).status, stateOf(h, dir).reason]).toEqual(['PAUSED', 'USER_CLEAR'])
+    expect(prompts.length).toBe(before)
+    expect(await relay($, 'resume')).toContain('Continuing task')
+    await until(h, () => prompts.length > before)
+    await h.clock.settle()
+    expect(prompts.filter(p => p.text.includes('Jeeves: you are session')).length).toBe(1)
+  })
+}
