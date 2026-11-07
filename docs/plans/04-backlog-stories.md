@@ -307,6 +307,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 ## E4 — Fresh session and continuation
 
 ### ST-4.1 Rotation executor — M
+- **Note (D-23):** also covers a request that lands after the turn's Stop: submit a short plugin prompt to get a Stop, so rotation never waits for the user.
 - **Cites:** FR-08, AC-10.
 - **Scope:** on main `turn.complete` with state ROTATING and verified handover: `$.clock.after(0)` → `$.command.run({ command: 'clear' })`; dedupe by `rotationId:clear`; rejection → ST-4.6.
 - **Depends on:** ST-3.8.
@@ -323,6 +324,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **DoD:** standard.
 
 ### ST-4.3 Context injection and continuation prompt — M
+- **Note (D-23):** the continuation prompt is generated from the validated handover and states what has been built (completed work, files, checks and results) and exactly where to pick up (next actions).
 - **Cites:** FR-09, AC-11.
 - **Scope:** SessionStart(clear) returns `additionalContext` = current task revision + DoD + latest handover (channel per S-05); after `/clear` resolves, `$.prompt.submit` continuation: "You are session N of managed task X. First verify repository state against the handover (git status, files, last test results). Do not redo items under 'Completed' or 'Do not repeat'. Continue with 'Exact next actions' item 1." plus held prompts (ST-4.4); state CONTINUING.
 - **Depends on:** ST-4.2.

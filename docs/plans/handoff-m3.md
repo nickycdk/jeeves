@@ -51,7 +51,7 @@ a413ac7 Rename SessionRelay -> Jeeves    (+ rename review fix and this handoff)
 
 M3 gate evidence: `evidence/m3-demo/RESULT.md` (1 haiku run, $0.07): threshold → safe Stop → Claude's handover validated first try → `history/handover-001.md`, SHA-256 equal to the ref in `state.json`, `handover.md` identical, state ROTATING, no `/clear`. Invalid → NEEDS_REVIEW is proven by `tests/mod/handover.test.ts`.
 
-**Decisions waiting for the maintainer:** D-20 (which handover claims are checked: `[verified]` bullets and "Tests and checks") and D-21 (Stop-hook readings; `/relay pause` in VALIDATING pauses at once). Both are in `07` §2 as Proposed.
+**Maintainer decisions after the gate (all Accepted, `07` §2):** D-20 (which handover claims are checked: `[verified]` bullets and "Tests and checks"), D-21 (Stop-hook readings; `/relay pause` in VALIDATING pauses at once), D-23 (rotation fully automatic, see §7).
 
 ## 4. Code map (`jeeves/`)
 
@@ -74,7 +74,7 @@ Read `handoff-m1.md` §5 (10 rules: no `$` noun as a value, literal `$.env.get` 
 
 ## 6. Open items
 
-- **Q-10 (decide in ST-4.1):** an idle session that crossed the threshold waits for the user's next prompt before the handover. Option: start it from `turn.complete` when the request landed after the Stop.
+- **Q-10 closed by D-23:** rotation must be fully automatic. When the request lands after the turn's Stop (Claude idle), submit a short plugin prompt ("Jeeves: prepare handover") to get a Stop. Build it in ST-4.1.
 - **VALIDATING left standing** if the state write after a saved handover fails: `/relay pause` exits it; re-deriving ROTATING from the verified file is ST-6.1.
 - AC-07 E-layer (permission prompt open at the threshold) and AC-09 E-layer (`failing-tests` fixture run) are open.
 - Live parse rate with the final instruction text: 1/1. Watch handovers in M4 runs.
@@ -85,7 +85,11 @@ Read `handoff-m1.md` §5 (10 rules: no `$` noun as a value, literal `$.env.get` 
 
 **Read first:** `04-backlog-stories.md` E4 and E5 and the standard DoD at its top; `02-architecture-and-adrs.md` ADR-003 (channel note), ADR-007, ADR-010 (+A1), §4 table rows ROTATING…CONTINUING, §5.1 sequence; `05` M4 row; `06` AC-10, AC-11, AC-12, AC-13, AC-15, AC-25 and §2 fixtures (`six-steps`); `evidence/s-04-clear-carryover/` and `evidence/s-06-status-queued-input/` (the spike code for `/clear`, SessionStart injection and held prompts).
 
-**Gate (05):** PTY E2E with ≥ 2 rotations, no keystrokes, no repeated work (AC-10/11/12); AC-13, AC-15 pass; assisted mode honest (AC-25). **Demo:** a fixture task completes across 3 sessions unattended. That demo is several live runs: agree the budget with the maintainer before starting it.
+**Gate (05):** PTY E2E with ≥ 2 rotations, no keystrokes, no repeated work (AC-10/11/12); AC-13, AC-15 pass; assisted mode honest (AC-25). **Demo:** a fixture task completes across 3 sessions unattended.
+
+**Live-run budget for M4: at most 5 live runs in total** (the maintainer approved this; haiku, estimated $0.20–0.50 each). Spend at most 3 on debugging and keep 2 for the clean gate runs. Stop and ask before a 6th.
+
+**D-23 (maintainer):** everything must happen automatically, with no user input at any point. (1) A request that lands after the turn's Stop gets a short plugin prompt to obtain a Stop (ST-4.1). (2) The continuation prompt (ST-4.3) is generated from the validated handover and tells the fresh session what has been built (completed work, files, checks and their results) and exactly where to pick up (the next actions).
 
 Already in place:
 - Reducer rows and `effects.ts` for RUN_CLEAR, TRANSFER_LOCK, CLEAR_FAILED; `turn.complete` hook exists (add the ROTATING case, ST-4.1); `/clear` must come from `$.clock.after(0)` and run exactly once per `rotationId`.
