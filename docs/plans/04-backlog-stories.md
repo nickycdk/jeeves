@@ -190,7 +190,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **DoD:** + first-activation notice hook point (text in ST-7.3).
 
 ### ST-2.2 Task revisions, DoD and verification commands — M
-- **Status:** Solved (3c2a5a2, review fixes 92f7941).
+- **Status:** Solved (3c2a5a2, review fixes 92f7941). M4: `/relay dod|check` before the first prompt are queued and written as revisions 2.. right after it (23f24f2, 29343ff).
 - **Cites:** FR-05, FR-10; ADR-007.
 - **Scope:** `/relay dod <text>` and `/relay check <command>` append a new revision (never mutate); `/relay task` prints original vs current; revisions only from user commands, never from model text.
 - **Depends on:** ST-2.1.
@@ -372,7 +372,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **DoD:** standard.
 
 ### ST-4.8 Fixture task and two-rotation PTY E2E harness — L
-- **Status:** Partial. Harness, fixture and driver built and run live 4 times (312d007 … 1691d49); runs complete the task unattended with zero keystrokes and one commit per step, but none rotated (`evidence/m4-e2e/RESULT.md`). AC (1) open.
+- **Status:** Partial. Harness, fixture and driver built and run live 4 times (312d007 … 1691d49); runs complete the task unattended with zero keystrokes and one commit per step, but none rotated (`evidence/m4-e2e/RESULT.md`). AC (1) open; next: the relative test threshold (D-25) and 2 gate runs. Review 2 fixes: 29343ff.
 - **Cites:** AC-10, AC-11, AC-12; §14.3.
 - **Scope:** `fixtures/build-repo.ts` (creates git repos: clean, dirty, detached, worktrees, failing tests); fixture task "implement 6 small functions with tests in order, one per step" sized to force rotations; `tests/pty/driver.ts` (generalised spike driver) with env flag `JEEVES_TEST_THRESHOLD_OVERRIDE` honoured only when `JEEVES_TEST=1` so rotations happen at low % cheaply; assertions on event log + git state.
 - **Depends on:** ST-4.5, ST-5.2 (for clean end) — harness can start earlier with rotation-only assertions.

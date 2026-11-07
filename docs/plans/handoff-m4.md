@@ -7,7 +7,7 @@ This file is enough to continue in a clean session. Read `handoff-m3.md` §0, §
 ## 1. Before anything
 
 1. `git status` clean; `git log --oneline -1` shows the commit that added this file.
-2. `SR_TEST_TMP=<scratchpad> jeeves/scripts/check-all.sh`: expected **217 unit, 95 mod, validate passes**, exit 0. (The script now fails on a mod-test failure; before M4 it hid them behind a pipe.)
+2. `SR_TEST_TMP=<scratchpad> jeeves/scripts/check-all.sh`: expected **217 unit, 97 mod, validate passes**, exit 0. (The script now fails on a mod-test failure; before M4 it hid them behind a pipe.)
 3. `claude --version` (2.1.319 at handoff).
 
 ## 2. Where things stand
@@ -20,18 +20,27 @@ c37323c ST-4.2 boundary, session record, lock          6088399 ST-5.2 completion
 c71fec1 ST-4.3 context injection + continuation        23f24f2 review fixes 1-3 + debug run 1 fixes
 05775ed ST-4.4 held prompts                            e89de31 debug run 2 fixes
 e9b41a3 ST-4.5 limits                                  1691d49 readings at every tool result (run 3)
-f2b7c15 ST-4.6 assisted mode, /relay continue
-7d7a400 ST-4.7 /relay rotate
+f2b7c15 ST-4.6 assisted mode, /relay continue        dce1fea gate report, D-24, this handoff
+7d7a400 ST-4.7 /relay rotate                         29343ff review 2 fixes (queued revisions, lean)
 312d007 ST-4.8 fixture + PTY harness
 ```
 
 Met: AC-13 (U, I, live E), AC-15 (I trace diff), AC-25 (I + README). Live: the task completes unattended in one session with zero keystrokes after setup and one commit per step (runs 3, 4). **Not yet seen live:** Jeeves's own `/clear`, the SessionStart injection, the continuation prompt, rearm, held prompts, `$.prompt.fill`. They are proven in `claude plugin test` only (and `/clear` + submit in the S-04 spike).
 
-Live budget: 4 of 5 runs used (≈ US$0.09). **Ask the maintainer before more runs.**
+Two `/ponytail:ponytail-review` passes over the M4 range; all findings fixed (23f24f2, 29343ff). Live budget: 4 of the first 5 runs used (≈ US$0.09); D-25 adds 2 gate runs on top.
 
-## 3. The open problem and the proposed fix
+## 3. Next session: build D-25, then the gate (decided)
 
-Haiku's whole `six-steps` task adds ~2.3 points of a 1M window, a session ~0.6-1.0, and the start reading varies ~1.1 points between runs (global plugins). No absolute test threshold fires reliably without tripping the loop guard. Proposed (needs the maintainer's OK, test-only like the override): `JEEVES_TEST_THRESHOLD_OVERRIDE=+0.8` = rotate when this session grew 0.8 points from its first reading (`state.sessionStart.pct`); loop guard in that mode: the fresh session's first reading must be below the threshold that ended the previous session. Then 2 gate runs with `npm run e2e:pty -- <scratch> --override +0.8`. Alternative: a bigger fixture (more steps), which costs more per run.
+The maintainer delegated the choice and the lead engineer's recommendation is recorded as **D-25 (Accepted)**: a relative test threshold, then 2 live gate runs.
+
+Why: haiku's whole `six-steps` task adds ~2.3 points of a 1M window, a session ~0.6-1.0, and the start reading varies ~1.1 points between runs (global plugins). No absolute test threshold fires reliably without tripping the loop guard (`evidence/m4-e2e/RESULT.md`).
+
+Steps:
+1. `runtime.ts`: accept `JEEVES_TEST_THRESHOLD_OVERRIDE=+<d>` (only with `JEEVES_TEST=1`) as a relative override; status says `TEST OVERRIDE +d`.
+2. `machine.ts` (`Ctx`): in relative mode, `T = state.sessionStart.pct + d` (no request while `sessionStart.pct` is null). Loop guard in that mode: in CONTINUING, the first reading must be below the absolute threshold that ended the previous session; store it when the request is made (e.g. `rotation.thresholdAt`, optional). Unit tests per rule; the absolute override and real thresholds unchanged (existing tests).
+3. Mod test: relative override requests at start + d, rearms in the fresh session, refuses a fresh session already at the old threshold.
+4. Live: `npm run e2e:pty -- <scratch> --override +0.8 --chars 6000 --minutes 40`. Expect ≥ 2 rotations; if the first run shows a different growth, adjust `d` from its driver log (it logs tokens at every state change). Keep 2 clean runs as the gate evidence in `evidence/m4-e2e/gate-run5/`, `gate-run6/`; then mark ST-4.8 and M4 solved.
+5. Watch in those runs (first live sight): Jeeves's `/clear`, the injected context, the continuation, rearm, handover parse rate, `$.prompt.fill`.
 
 ## 4. What M4 added (code map additions)
 
@@ -40,7 +49,7 @@ Haiku's whole `six-steps` task adds ~2.3 points of a 1M window, a session ~0.6-1
 - `machine.ts` new inputs: `IDLE`, `HOLD_PROMPT`, `QUEUE_CHANGE`, `SUBMIT_FAILED`, `CONTINUE_CMD`, `DONE_CMD`; `TOOL_RESULT.reading`; `SESSION_START_CLEAR.handoverOk`; `TURN_COMPLETE.handoverVerified`; `COMPLETE_BLOCK {commands, blockers}` (judged in the reducer). New effects `SUBMIT_NUDGE`, `WRITE_SESSION`; `RUN_CLEAR` is now hook-bound.
 - `adapter/task.ts`: `onTurnComplete` (verify hash, `$.clock.after(0)` → `runClear` → `CONTEXT_READY` → submit continuation), `nudgeIfWaiting`, `onFreshSession`, `restoreHere` (restore path for `/relay resume` after USER_CLEAR and `/relay continue`), `holdPrompt`, `completionStop`, `taskSection`, `takeLock`.
 - `hooks/register.ts`: wired `turn.start`, `classic.SessionStart`, `prompt.compose`; module state `turnOpen` (idle detection) and `endedHere` (session ids this process ended; locks are handed on only from those).
-- Commands: `/relay rotate`, `/relay continue`, `/relay done`; `/relay dod|check` before the first prompt are queued.
+- Commands: `/relay rotate`, `/relay continue`, `/relay done`; `/relay dod|check` before the first prompt are queued (`flushPending` writes them wherever a revision is written, so a failed write is retried at the next prompt or revision).
 - State (all optional, no migration): `sessionStart`, `completionAsked`, `pendingChanges`, `rotation.nudged`; `sessions/NNN.json` with `costUsd`.
 - Tests: `tests/mod/{rotate,boundary-clear,continue,held,assisted,manual,complete}.test.ts`; `tests/unit/{continuation,completion,build-repo}.spec.ts`; `tests/fixtures/build-repo.ts`; `tests/pty/{driver,ptylib}.py`.
 - Readings and plan changes: D-24 in `07` §2 (Proposed, for the maintainer).
@@ -57,7 +66,7 @@ Haiku's whole `six-steps` task adds ~2.3 points of a 1M window, a session ~0.6-1
 
 ## 6. Open items
 
-- **M4 gate:** live ≥ 2 rotations (AC-10/11/12), demo across 3 sessions. See §3.
+- **M4 gate:** live ≥ 2 rotations (AC-10/11/12), demo across 3 sessions: §3 (D-25).
 - Live-unverified: `$.prompt.fill` emptying the box (ADR-010 A1), `$.session.turns()` counting for `/relay continue`, `prompt.compose` section actually seen by the model (runs 3-4 wrote correct blocks, which suggests it is).
 - Failure counter: once `classic.StopFailure` is wired (ST-6.2), a rate limit during a handover would count as a rotation failure; exclude those codes then.
 - Shortcuts in code: `onFreshSession`/`holdPrompt` take any clearing rotation of the project (ST-6.6); a `/clear` that resolves without its SessionStart leaves ROTATING (ST-6.1).
