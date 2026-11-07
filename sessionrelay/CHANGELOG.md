@@ -17,3 +17,4 @@
 - Typing `/clear` during a task pauses it (`USER_CLEAR`) and says so; `/relay off` then ends it. Continuing it in the fresh conversation comes with the rotation work.
 - A disk error while saving a task revision no longer blocks later revisions.
 - While a task is on, SessionRelay keeps an evidence ledger of the last 200 commands (redacted, exit status) and edited files, from the main conversation and subagents. Recording never changes, delays or blocks a tool call.
+- Once a handover is due, the first tool result in the main conversation adds one hidden note asking Claude to finish its current step and stop (once per rotation, never while paused).

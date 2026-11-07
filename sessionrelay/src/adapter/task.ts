@@ -1,6 +1,7 @@
 // Managed-task wiring (02 §3): find the task, then read state -> reduce -> write state -> run effects.
 // Task state lives only in files; every cycle re-reads state.json inside the runtime's serial queue.
 import { toolRecord, type ToolOutcome } from '../core/evidence.ts'
+import { QUIESCE_NOTE } from '../core/handover/template.ts'
 import { reduce, type Input } from '../core/machine.ts'
 import { newRotationId, newTaskId } from '../core/ids.ts'
 import { join } from '../core/paths.ts'
@@ -85,7 +86,9 @@ export async function recordTool(rt: Runtime, o: ToolOutcome): Promise<Applied |
   const main = o.agentId === undefined
   // Nothing to record and not a quiesce point: skip the disk reads entirely.
   if (!entry && !main) return null
-  return applyOwn(rt, { type: 'TOOL_RESULT', main, ...(entry ? { entry } : {}) })
+  const r = await applyOwn(rt, { type: 'TOOL_RESULT', main, ...(entry ? { entry } : {}) })
+  if (r?.forHook.some(f => f.type === 'APPEND_NOTE')) await rt.port.appendHiddenNote(QUIESCE_NOTE)
+  return r
 }
 
 /** Own the task's lock: take it when free or stale (owner silent past STALE_MS). False when another live session holds it. */
