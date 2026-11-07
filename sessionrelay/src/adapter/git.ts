@@ -8,20 +8,20 @@ import { sha256Hex } from './storage.ts'
 export const GIT_TIMEOUT_MS = 10_000
 
 // --no-optional-locks: status must not write the index (no git mutation, even incidental).
+// LC_ALL=C: git's messages in English, so "not a git repository" can be recognised.
 const git = (port: FsPort, cwd: string, args: string[]): Promise<ProcResult> =>
-  port.run(['git', '--no-optional-locks', ...args], { cwd, timeoutMs: GIT_TIMEOUT_MS })
+  port.run(['git', '--no-optional-locks', ...args], { cwd, timeoutMs: GIT_TIMEOUT_MS, env: { LC_ALL: 'C' } })
 
-/** null when git itself could not be asked (timeout, git missing). */
+/** null when git could not answer (timeout, git missing, an unexpected git error): unknown, never "not a repo". */
 export async function repoIdentity(port: FsPort, cwd: string): Promise<RepoIdentity | null> {
   const real = (await port.realPath(cwd)) ?? cwd
   let r: ProcResult
-  try { r = await git(port, real, ['rev-parse', '--path-format=absolute', '--git-common-dir', '--show-toplevel']) } catch { return null }
-  if (r.exitCode !== 0) {
-    // A bare repo or the inside of .git also fails here: treat any rev-parse refusal as "not a work tree".
-    return { kind: 'none', cwd: real }
-  }
-  const [commonDir, worktree] = r.stdout.trim().split('\n')
-  if (!commonDir || !worktree) return { kind: 'none', cwd: real }
+  try { r = await git(port, real, ['rev-parse', '--git-common-dir', '--show-toplevel']) } catch { return null }
+  if (r.exitCode !== 0) return /not a git repository/i.test(r.stderr) ? { kind: 'none', cwd: real } : null
+  const [rawCommon, worktree] = r.stdout.trim().split('\n')
+  if (!rawCommon || !worktree) return null
+  // --git-common-dir may be relative to the cwd (".git", "../.git"); --show-toplevel is absolute.
+  const commonDir = rawCommon.startsWith('/') ? rawCommon : join(real, rawCommon)
   return {
     kind: 'git',
     commonDir: (await port.realPath(commonDir)) ?? commonDir,

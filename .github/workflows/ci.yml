@@ -22,8 +22,7 @@ jobs:
           cache: npm
           cache-dependency-path: sessionrelay/package-lock.json
       - run: npm ci
-      # Engine types are not redistributable, so CI checks src/core only; full typecheck runs locally.
-      - run: npm run typecheck -- --core-only
+      # lint type-checks src/core; engine types are not redistributable, so the full typecheck runs locally.
       - run: npm run lint
       - run: npm test
   mod:

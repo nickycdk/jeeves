@@ -16,7 +16,7 @@ npm run validate    # claude plugin validate . --strict
 `.claude-plugin/types/` the first time it loads this folder with `claude --plugin-dir .` in an
 interactive session. You can also point `CLAUDE_CODE_TYPES` at a `claude-code.d.ts` file. They are
 not committed (they belong to Claude Code, not to this project). Without them, use
-`npm run typecheck -- --core-only` (what CI does).
+`npm run typecheck -- --core-only`. CI relies on `npm run lint`, which type-checks `src/core`.
 
 Layout: `src/core` is pure TypeScript (no `$`, no I/O, no clock); `src/adapter` talks to the engine;
 `hooks/register.ts` only wires events. Unit tests are `tests/unit/*.spec.ts`; mod tests are

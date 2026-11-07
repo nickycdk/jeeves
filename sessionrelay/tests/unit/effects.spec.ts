@@ -24,7 +24,7 @@ test('runs generic effects in order and hands hook-bound ones back', async () =>
   const storage = createStorage(nodePort())
   const { port, toasts, commands } = fakeEngine()
   const effects: Effect[] = [
-    { type: 'LOG_EVENT', key: 'r1:ROTATION_REQUESTED', from: 'MONITORING', to: 'ROTATION_REQUESTED', code: 'THRESHOLD', detail: 'context 52%' },
+    { type: 'LOG_EVENT', key: 'r1:ROTATION_REQUESTED', rotationId: 'r1', from: 'MONITORING', to: 'ROTATION_REQUESTED', code: 'THRESHOLD', detail: 'context 52%' },
     { type: 'TOAST', key: 'r1:t', text: 'hello' },
     { type: 'BLOCK_STOP', key: 'r1:HANDOVER_REQUESTED', kind: 'handover-request', errors: [] },
     { type: 'RUN_CLEAR', key: 'r1:CLEAR_SCHEDULED' },

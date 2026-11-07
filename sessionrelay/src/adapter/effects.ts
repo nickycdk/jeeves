@@ -26,7 +26,7 @@ export async function runEffects(effects: Effect[], deps: { port: EnginePort; st
       switch (effect.type) {
         case 'LOG_EVENT':
           await storage.appendEvent(taskDir, {
-            v: 1, at: state.updatedAt, taskId: state.taskId, rotationId: state.rotation?.rotationId ?? null,
+            v: 1, at: state.updatedAt, taskId: state.taskId, rotationId: effect.rotationId,
             from: effect.from, to: effect.to, code: effect.code, pct: state.lastContext?.percent ?? null,
             sessionId: state.activeSessionId, detail: effect.detail,
           })

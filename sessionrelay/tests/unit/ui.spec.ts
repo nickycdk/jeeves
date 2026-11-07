@@ -38,7 +38,10 @@ test('a task: mode, task, state, context or unknown, threshold, rotations, last 
 test('unsupported and assisted modes and a broken state folder still fit', () => {
   const uns = statusText(view({ probe: probe({ version: '2.1.200', primitives: all, stopHookRegistered: true }) }))
   shape(uns)
-  assert.ok(uns.includes('mode: unsupported') && uns.includes('Needs Claude Code 2.1.319+') && uns.includes('This is 2.1.200'))
+  assert.ok(uns.includes('mode: unsupported') && uns.includes('Needs 2.1.319+, this is 2.1.200'), uns)
+  const unsTask = statusText(view({ probe: probe({ version: '2.1.200', primitives: all, stopHookRegistered: true }), task: { state: validState(), dir: `${root}/projects/p/tasks/t1` } }))
+  shape(unsTask)
+  assert.ok(unsTask.split('\n').at(-1)!.startsWith('Path: '), `Path line kept:\n${unsTask}`)
   shape(statusText(view({ probe: probe({ version: '2.1.319', primitives: { ...all, 'process.run': false }, stopHookRegistered: true }) })))
   const broken = statusText(view({ stateRoot: null, stateRootError: 'BAD_STATE_ROOT: HOME is not set; set stateDir in /config' }))
   shape(broken)

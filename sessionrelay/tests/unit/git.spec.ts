@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { rename, stat, writeFile } from 'node:fs/promises'
+import { mkdir, rename, stat, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { gitFacts, projectId, repoIdentity } from '../../src/adapter/git.ts'
 import { parsePorcelainZ, sameRepo } from '../../src/core/git.ts'
@@ -94,4 +94,22 @@ test('facts commands never mutate git (no index write)', async () => {
   const before = await indexStat()
   await gitFacts(port, await repoIdentity(port, dir), null)
   assert.deepEqual(await indexStat(), before)
+})
+
+test('identity from a subdirectory resolves a relative common dir to the same project', async () => {
+  const { dir } = await buildRepo('clean')
+  await mkdir(join(dir, 'sub/deeper'), { recursive: true })
+  const top = await repoIdentity(port, dir), sub = await repoIdentity(port, join(dir, 'sub/deeper'))
+  assert.ok(top?.kind === 'git' && sub?.kind === 'git')
+  assert.ok(sub.commonDir.startsWith('/'))
+  assert.deepEqual(sub, top)
+})
+
+test('an unexpected git error is unknown (null), not "not a repo"; git runs with LC_ALL=C', async () => {
+  const seen: (Record<string, string> | undefined)[] = []
+  const odd: FsPort = { ...port, run: async (_argv, o) => { seen.push(o?.env); return { exitCode: 128, stdout: '', stderr: 'fatal: detected dubious ownership in repository' } } }
+  assert.equal(await repoIdentity(odd, '/tmp'), null)
+  assert.deepEqual(seen[0], { LC_ALL: 'C' })
+  const notRepo: FsPort = { ...port, run: async () => ({ exitCode: 128, stdout: '', stderr: 'fatal: not a git repository (or any of the parent directories): .git' }) }
+  assert.equal((await repoIdentity(notRepo, '/tmp'))?.kind, 'none')
 })

@@ -1,6 +1,5 @@
 // Domain types for SessionRelay (02 §4, §6). Pure: no engine, no I/O.
 
-export const PRODUCT = 'SessionRelay'
 export const SCHEMA_VERSION = 1
 
 export const STATUSES = [
@@ -144,17 +143,4 @@ export type EventLine = {
   pct: number | null
   sessionId: string | null
   detail: string
-}
-
-/** An immutable task revision; rev 1 is the verbatim original prompt. */
-export type TaskRevision = {
-  rev: number
-  file: string
-  sha256: string
-}
-
-export type Task = {
-  taskId: string
-  projectId: string
-  revisions: TaskRevision[]
 }

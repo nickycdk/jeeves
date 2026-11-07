@@ -254,6 +254,21 @@ test('row 27: any + session.end(clear) while not ROTATING -> PAUSED(USER_CLEAR)'
   assert.ok(run(st('MONITORING'), { type: 'SESSION_END', reason: 'exit', sessionId: 's' }).ignored)
 })
 
+test('the event line of a transition that ends a rotation still names that rotation', () => {
+  const o = run(st('QUIESCING', { rotation: rot({ step: 'QUIESCING', quiesceCount: 3 }) }), stop(1))
+  const log = o.effects.find(e => e.type === 'LOG_EVENT')
+  assert.equal(o.state.rotation, null)
+  assert.equal(log?.type === 'LOG_EVENT' && log.rotationId, 'r1')
+  const plain = run(st('DISABLED'), { type: 'ON', mode: 'full', lockAcquired: true, sessionId: 's' }).effects[0]
+  assert.equal(plain?.type === 'LOG_EVENT' && plain.rotationId, null)
+})
+
+test('a user pause or /clear is not recorded as an error', () => {
+  assert.equal(run(st('MONITORING'), { type: 'PAUSE' }).state.lastErrorCode, null)
+  assert.equal(run(st('MONITORING'), { type: 'SESSION_END', reason: 'clear', sessionId: 's' }).state.lastErrorCode, null)
+  assert.equal(run(st('MONITORING'), { type: 'STOP_FAILURE', error: 'rate_limit' }).state.lastErrorCode, 'RATE_LIMIT')
+})
+
 // ---- Forbidden transitions ----
 
 test('forbidden transitions are no-ops with a reason', () => {

@@ -11,7 +11,7 @@ export function fsPort($: EngineInterface): FsPort {
     realPath: path => $.fs.stat(path, { resolve: true }).then(st => st.realPath ?? null, () => null),
     mtimeMs: path => $.fs.stat(path).then(st => st.mtimeMs, () => null),
     run: async (argv, opts = {}) => {
-      const r = await $.process.run(argv, { timeoutMs: opts.timeoutMs ?? 10_000, ...(opts.cwd ? { cwd: opts.cwd } : {}) })
+      const r = await $.process.run(argv, { timeoutMs: opts.timeoutMs ?? 10_000, ...(opts.cwd ? { cwd: opts.cwd } : {}), ...(opts.env ? { env: opts.env } : {}) })
       return { exitCode: r.exitCode, stdout: r.stdout, stderr: r.stderr }
     },
     env: name => {

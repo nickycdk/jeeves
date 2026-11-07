@@ -14,7 +14,7 @@ export function nodePort(env: Record<string, string | undefined> = {}): FsPort {
     realPath: path => realpath(path).then(p => p, () => null),
     mtimeMs: path => stat(path).then(st => st.mtimeMs, () => null),
     run: (argv, opts = {}) => new Promise((resolve, reject) => {
-      execFile(argv[0]!, argv.slice(1), { cwd: opts.cwd, timeout: opts.timeoutMs ?? 10_000 }, (err, stdout, stderr) => {
+      execFile(argv[0]!, argv.slice(1), { cwd: opts.cwd, timeout: opts.timeoutMs ?? 10_000, env: { ...process.env, ...opts.env } }, (err, stdout, stderr) => {
         if (err?.killed) return reject(new Error(`${argv[0]} timed out`))
         if (err && typeof err.code === 'string') return reject(err) // e.g. ENOENT: the program is missing
         const code = err ? (typeof err.code === 'number' ? err.code : 1) : 0

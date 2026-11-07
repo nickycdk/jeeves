@@ -27,7 +27,7 @@ export type InputType = Input['type']
 
 type Keyed = { key: string }
 export type Effect = Keyed & (
-  | { type: 'LOG_EVENT'; from: Status; to: Status; code: ReasonCode | null; detail: string }
+  | { type: 'LOG_EVENT'; rotationId: string | null; from: Status; to: Status; code: ReasonCode | null; detail: string }
   | { type: 'TOAST'; text: string }
   | { type: 'APPEND_NOTE' }
   | { type: 'CAPTURE_FACTS' }
@@ -69,9 +69,12 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
   const go = (to: Status, code: ReasonCode | null, patch: Partial<State> = {}, detail = ''): void => {
     const from = next.status
     next = { ...next, ...patch, status: to, reason: code, updatedAt: at }
-    if (code && to !== 'MONITORING' && to !== 'COMPLETED' && to !== 'CONTINUING' && !ROTATION_STATES.includes(to)) next.lastErrorCode = code
+    // A user's own pause or /clear is not an error.
+    const isError = code !== null && !code.startsWith('USER_') && to !== 'MONITORING' && to !== 'COMPLETED' && to !== 'CONTINUING' && !ROTATION_STATES.includes(to)
+    if (isError) next.lastErrorCode = code
+    // The rotation this line is about, even when the transition just ended it.
     const r = next.rotation?.rotationId ?? rid
-    effects.push({ type: 'LOG_EVENT', key: `${r}:${to}`, from, to, code, detail })
+    effects.push({ type: 'LOG_EVENT', key: `${r}:${to}`, rotationId: r === '-' ? null : r, from, to, code, detail })
   }
   const setRotation = (patch: Partial<Rotation>) => { next = { ...next, rotation: { ...next.rotation!, ...patch }, updatedAt: at } }
   const key = (step: RotationStep | string) => `${next.rotation?.rotationId ?? rid}:${step}`

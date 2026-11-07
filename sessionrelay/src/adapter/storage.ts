@@ -94,8 +94,6 @@ export function createStorage(port: FsPort, opts: { eventLogMaxBytes?: number } 
   }
 
   return {
-    enqueue,
-
     /** Create the root with user-only permissions. An existing folder keeps its permissions (it may be one the user shares). */
     ensureRoot: (root: string) => enqueue(async () => {
       if (await disk(`exists ${root}`, () => port.exists(root))) return
@@ -103,25 +101,13 @@ export function createStorage(port: FsPort, opts: { eventLogMaxBytes?: number } 
       await runOk(['chmod', '700', root])
     }),
 
-    read: (path: string) => disk(`read ${path}`, () => port.read(path)),
-    exists: (path: string) => disk(`exists ${path}`, () => port.exists(path)),
-
     /** Write once: refuses an existing file, then reads back and compares SHA-256. Returns the hash. */
     writeImmutable: (path: string, text: string) => enqueue(async () => {
       if (await disk(`exists ${path}`, () => port.exists(path))) throw new StorageError('IMMUTABLE_EXISTS', `${path} already exists and is never overwritten`)
       return writeVerified(path, text)
     }),
 
-    /** Append one line through the queue (the engine has no append). */
-    appendLine: (path: string, line: string) => enqueue(async () => {
-      const prev = (await disk(`exists ${path}`, () => port.exists(path))) ? await disk(`read ${path}`, () => port.read(path)) : ''
-      await disk(`write ${path}`, () => port.write(path, prev + line + '\n'))
-    }),
-
-    /** Unqueued verified write, for callers already inside `enqueue`. */
-    writeVerified,
-
-    /** One line per transition; `detail` is redacted and capped here, whatever the caller passed. */
+    /** One line per transition (read + rewrite: the engine has no append); `detail` is redacted and capped here, whatever the caller passed. */
     appendEvent: (taskDir: string, e: EventLine) => enqueue(async () => {
       const line = JSON.stringify({ ...e, detail: eventDetail(e.detail) })
       const valid = check('event', JSON.parse(line))
@@ -190,25 +176,36 @@ export function createStorage(port: FsPort, opts: { eventLogMaxBytes?: number } 
     releaseLock: (taskDir: string, sessionId: string) => enqueue(async () => {
       const owner = await readOwner(taskDir)
       if (owner?.ownerSessionId !== sessionId) return false
-      await runOk(['rm', '-f', ownerPath(taskDir)])
-      await runOk(['rmdir', join(taskDir, 'lock.d')])
+      await runOk(['rm', '-rf', join(taskDir, 'lock.d')])
       return true
     }),
 
     /**
-     * Take over a stale lock. Re-checks staleness first; the `mv` of lock.d is atomic, so of two
-     * racing takers only one moves it and the other gets LOCK_HELD.
+     * Take over a stale lock. Takers serialise on a second mkdir lock (lock.takeover.d) and re-check
+     * staleness while holding it, so of two racing takers only one ends up owning lock.d.
      */
     takeoverLock: (taskDir: string, sessionId: string, nowIso: string, nowMs: number) => enqueue(async (): Promise<LockResult> => {
-      const lockDir = join(taskDir, 'lock.d')
-      const state = await lockState(taskDir, nowMs)
-      if (state.kind === 'free') return acquire(taskDir, sessionId, nowIso, nowMs)
-      if (!state.stale) return { ok: false, code: 'LOCK_HELD', owner: state.owner, stale: false }
-      const aside = `${lockDir}.stale-${randomTag()}`
-      if ((await port.run(['mv', lockDir, aside])).exitCode !== 0) return { ok: false, code: 'LOCK_HELD', owner: state.owner, stale: true }
-      const r = await acquire(taskDir, sessionId, nowIso, nowMs)
-      await port.run(['rm', '-rf', aside])
-      return r
+      const first = await lockState(taskDir, nowMs)
+      if (first.kind === 'free') return acquire(taskDir, sessionId, nowIso, nowMs)
+      const held: LockResult = { ok: false, code: 'LOCK_HELD', owner: first.owner, stale: first.stale }
+      if (!first.stale) return held
+      const guard = join(taskDir, 'lock.takeover.d')
+      if ((await port.run(['mkdir', guard])).exitCode !== 0) {
+        // shortcut: a guard left by a crashed taker is replaced once it is older than STALE_MS; two takers racing on
+        // that same dead guard can still collide. Upgrade if auto-recover ever runs in many processes at once.
+        const age = await port.mtimeMs(guard)
+        if (age === null || nowMs - age <= STALE_MS) return held
+        await runOk(['rm', '-rf', guard])
+        if ((await port.run(['mkdir', guard])).exitCode !== 0) return held
+      }
+      try {
+        const again = await lockState(taskDir, nowMs)
+        if (again.kind === 'held' && !again.stale) return { ok: false, code: 'LOCK_HELD', owner: again.owner, stale: false }
+        await runOk(['rm', '-rf', join(taskDir, 'lock.d')])
+        return await acquire(taskDir, sessionId, nowIso, nowMs)
+      } finally {
+        await port.run(['rmdir', guard])
+      }
     }),
   }
 

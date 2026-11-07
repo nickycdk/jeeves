@@ -24,7 +24,7 @@ export function pickTask<T extends { state: State }>(tasks: T[], sessionId: stri
 async function currentTask(rt: Runtime): Promise<{ task: { state: State; dir: string } | null; error: string | null }> {
   if (!rt.stateRoot) return { task: null, error: null }
   const id = await repoIdentity(rt.port, await rt.port.cwd())
-  if (!id) return { task: null, error: null }
+  if (!id) return { task: null, error: 'git did not answer; task unknown' }
   const tasksDir = join(projectDir(rt.stateRoot, await projectId(id)), 'tasks')
   const found: { state: State; dir: string }[] = []
   let error: string | null = null

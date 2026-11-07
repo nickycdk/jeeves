@@ -19,7 +19,7 @@ export type StatusView = {
 
 export function statusText(v: StatusView): string {
   const lines = [`SessionRelay  mode: ${v.probe.mode}`]
-  if (v.probe.mode === 'unsupported') lines.push(`Needs ${v.probe.missing[0] ?? 'a newer Claude Code'}`, `This is ${v.probe.version ?? 'unknown'}`)
+  if (v.probe.mode === 'unsupported') lines.push(`Needs ${(v.probe.missing[0] ?? 'newer').replace('Claude Code ', '')}, this is ${v.probe.version ?? '?'}`)
   else if (v.probe.mode === 'assisted') lines.push(`Missing: ${v.probe.missing.join(', ')}`)
   if (v.taskError) lines.push(`Task state unreadable:`, v.taskError)
   else if (!v.task) lines.push('No managed task. Start with /relay on')

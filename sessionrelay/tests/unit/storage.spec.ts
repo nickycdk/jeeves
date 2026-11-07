@@ -1,20 +1,21 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { chmod, stat } from 'node:fs/promises'
+import { chmod, readFile, stat } from 'node:fs/promises'
 import { join } from 'node:path'
 import { createQueue, createStorage, resolveStateRoot, sha256Hex, StorageError } from '../../src/adapter/storage.ts'
 import type { FsPort } from '../../src/adapter/ports.ts'
 import { nodePort, tempDir } from './node-port.ts'
+import { AT } from './helpers.ts'
+
+const ev = (detail: string) => ({ v: 1, at: AT, taskId: 't1', rotationId: null, from: null, to: null, code: null, pct: null, sessionId: null, detail })
 
 const code = (err: unknown) => (err instanceof StorageError ? err.code : String(err))
 
-test('50 concurrent appends on a real disk keep every line, in order', async () => {
+test('50 concurrent event appends on a real disk keep every line, in order', async () => {
   const dir = await tempDir()
   const s = createStorage(nodePort())
-  const path = join(dir, 'events.jsonl')
-  await Promise.all(Array.from({ length: 50 }, (_, i) => s.appendLine(path, `line-${i}`)))
-  const lines = (await s.read(path)).trimEnd().split('\n')
-  assert.deepEqual(lines, Array.from({ length: 50 }, (_, i) => `line-${i}`))
+  await Promise.all(Array.from({ length: 50 }, (_, i) => s.appendEvent(dir, ev(`line-${i}`))))
+  assert.deepEqual((await s.readEvents(dir)).map(l => JSON.parse(l).detail), Array.from({ length: 50 }, (_, i) => `line-${i}`))
 })
 
 test('writeImmutable writes once, returns the SHA-256, and never overwrites', async () => {
@@ -24,7 +25,7 @@ test('writeImmutable writes once, returns the SHA-256, and never overwrites', as
   const hash = await s.writeImmutable(path, 'first ✓\n')
   assert.equal(hash, await sha256Hex('first ✓\n'))
   await assert.rejects(s.writeImmutable(path, 'second'), (e: unknown) => code(e) === 'IMMUTABLE_EXISTS')
-  assert.equal(await s.read(path), 'first ✓\n')
+  assert.equal(await readFile(path, 'utf8'), 'first ✓\n')
 })
 
 test('a read-back mismatch is DISK', async () => {
@@ -40,12 +41,11 @@ test('fs failures surface as DISK and the queue keeps going', async () => {
   const broken: FsPort = { ...real, write: async (p, t) => { if (fail) { fail = false; throw new Error('ENOSPC: no space left') } return real.write(p, t) } }
   const dir = await tempDir()
   const s = createStorage(broken)
-  const path = join(dir, 'log')
-  const [a, b] = await Promise.allSettled([s.appendLine(path, 'one'), s.appendLine(path, 'two')])
+  const [a, b] = await Promise.allSettled([s.appendEvent(dir, ev('one')), s.appendEvent(dir, ev('two'))])
   assert.equal(a.status, 'rejected')
   assert.equal(code((a as PromiseRejectedResult).reason), 'DISK')
   assert.equal(b.status, 'fulfilled')
-  assert.equal(await s.read(path), 'two\n')
+  assert.deepEqual((await s.readEvents(dir)).map(l => JSON.parse(l).detail), ['two'])
 })
 
 test('ensureRoot creates the folder with user-only permissions', async () => {

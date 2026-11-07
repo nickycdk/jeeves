@@ -41,7 +41,6 @@ export function memHost(on: On, env: Record<string, string> = { HOME: '/home/t' 
     if (h.failWrite?.(e.path)) return { deny: `EIO: ${e.path}` }
     mkdirs(parent(e.path))
     h.files.set(e.path, e.text)
-    mkdirs(parent(e.path))
     return { value: undefined }
   })
   on('fs.list', (_, e) => {
