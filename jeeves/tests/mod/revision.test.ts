@@ -105,3 +105,42 @@ test('a failed state write after a revision file was written never blocks later 
   expect(text).toContain('task-rev-002.md  DoD: first')
   expect(text).toContain('task-rev-003.md  DoD: second')
 })
+
+test('review 2 fix 1: a queued check whose write failed is not lost: the next prompt (or revision) writes it', async ($, on) => {
+  const h = memHost(on)
+  bottom(on)
+  await start($)
+  await relay($, 'on')
+  await relay($, 'check ./verify.sh')
+  const [dir] = taskDirs(h)
+  h.failWrite = p => p.endsWith('task-rev-002.md')
+  await submit($, PROMPT)
+  h.failWrite = null
+  expect(stateOf(h, dir!).taskRevision).toBe(1)
+  expect(stateOf(h, dir!).pendingChanges).toEqual([{ kind: 'check', text: './verify.sh' }])
+  await submit($, 'a later prompt, never a revision')
+  expect(stateOf(h, dir!).taskRevision).toBe(2)
+  expect(stateOf(h, dir!).pendingChanges).toEqual([])
+  expect(h.files.get(`${dir}/task-rev-002.md`)).toContain('\n\n./verify.sh')
+  expect(h.files.has(`${dir}/task-rev-003.md`)).toBe(false)
+  expect(await relay($, 'task')).toContain('task-rev-002.md  check: ./verify.sh')
+})
+
+test('review 2 fix 1: a leftover file written before a failed state write is adopted as the queued change, not doubled', async ($, on) => {
+  const h = memHost(on)
+  bottom(on)
+  await start($)
+  await relay($, 'on')
+  await relay($, 'dod all six pass')
+  const [dir] = taskDirs(h)
+  // rev 2 lands, then its state write fails: the file exists, the state still says rev 1 with the change queued.
+  h.failWrite = p => p.includes('state.json.tmp') && h.files.has(`${dir}/task-rev-002.md`)
+  await submit($, PROMPT)
+  h.failWrite = null
+  expect([stateOf(h, dir!).taskRevision, stateOf(h, dir!).pendingChanges.length]).toEqual([1, 1])
+  expect(await relay($, 'check npm test')).toBe('Saved as task revision 3 (verification command, stored as text, never run by Jeeves). /relay task shows all changes.')
+  expect(stateOf(h, dir!).pendingChanges).toEqual([])
+  const task = await relay($, 'task')
+  expect(task).toContain('task-rev-002.md  DoD: all six pass')
+  expect(task).toContain('task-rev-003.md  check: npm test')
+})

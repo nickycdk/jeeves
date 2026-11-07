@@ -145,30 +145,45 @@ export async function startTask(rt: Runtime, sessionId: string, goal: string | n
  */
 async function adoptLeftovers(rt: Runtime, dir: string, s: State): Promise<State> {
   while (await rt.port.exists(join(dir, revFile(s.taskRevision + 1)))) {
-    const next = (await transition(rt, dir, s, { type: 'REVISED', revision: s.taskRevision + 1 })).state
+    // After rev 1 the queue is written first (flushPending), so a leftover then is the first queued change.
+    const pending = s.taskRevision >= 1 && (s.pendingChanges?.length ?? 0) > 0
+    const next = (await transition(rt, dir, s, { type: 'REVISED', revision: s.taskRevision + 1, ...(pending ? { pending } : {}) })).state
     if (next.taskRevision === s.taskRevision) break
     s = next
   }
   return s
 }
 
-/** `prompt.submit` (composer): while this session's task waits for its first prompt, store it as rev 1, byte for byte. */
+/**
+ * `/relay dod|check` typed before the first prompt become the next revisions once rev 1 exists, in the order typed
+ * (FR-05). Called wherever a revision is written, so a queue left by a failed write is flushed at the next chance.
+ */
+async function flushPending(rt: Runtime, dir: string, s: State): Promise<State> {
+  for (const c of [...(s.pendingChanges ?? [])]) {
+    if (s.taskRevision < 1) break
+    const n = s.taskRevision + 1
+    await rt.storage.writeImmutable(join(dir, revFile(n)), renderChange(n, c.kind, c.text, new Date(await rt.port.now()).toISOString()))
+    s = (await transition(rt, dir, s, { type: 'REVISED', revision: n, pending: true })).state
+  }
+  return s
+}
+
+/**
+ * `prompt.submit` (composer): while this session's task waits for its first prompt, store it as rev 1, byte for byte.
+ * A later prompt only flushes changes still queued from before rev 1 (left by a failed write).
+ */
 export async function captureFirstPrompt(rt: Runtime, text: string): Promise<void> {
   const own = ownTask((await projectTasks(rt)).tasks, await rt.port.sessionId())
-  if (!own || own.state.taskRevision !== 0) return
+  if (!own || (own.state.taskRevision !== 0 && !own.state.pendingChanges?.length)) return
   await rt.serial(async () => {
     const r = await rt.storage.readState(own.dir)
     if (!r?.ok) return
-    const s = await adoptLeftovers(rt, own.dir, r.value)
-    if (s.taskRevision !== 0) return
-    await rt.storage.writeImmutable(join(own.dir, revFile(1)), text)
-    let next = (await transition(rt, own.dir, s, { type: 'REVISED', revision: 1 })).state
-    // Changes typed before this prompt become revisions 2.., in the order typed (FR-05).
-    for (const c of next.pendingChanges ?? []) {
-      const n = next.taskRevision + 1
-      await rt.storage.writeImmutable(join(own.dir, revFile(n)), renderChange(n, c.kind, c.text, new Date(await rt.port.now()).toISOString()))
-      next = (await transition(rt, own.dir, next, { type: 'REVISED', revision: n, pending: true })).state
+    let s = await adoptLeftovers(rt, own.dir, r.value)
+    if (s.taskRevision === 0) {
+      await rt.storage.writeImmutable(join(own.dir, revFile(1)), text)
+      s = (await transition(rt, own.dir, s, { type: 'REVISED', revision: 1 })).state
     }
+    await flushPending(rt, own.dir, s)
   })
 }
 
@@ -201,11 +216,12 @@ export function addRevision(rt: Runtime, dir: string, kind: ChangeKind, text: st
   return rt.serial(async () => {
     const r = await rt.storage.readState(dir)
     if (!r?.ok) return null
-    const s = await adoptLeftovers(rt, dir, r.value)
+    let s = await adoptLeftovers(rt, dir, r.value)
     if (s.taskRevision < 1) {
       const q = await transition(rt, dir, s, { type: 'QUEUE_CHANGE', kind, text })
       return (q.state.pendingChanges?.length ?? 0) > (s.pendingChanges?.length ?? 0) ? 'pending' : null
     }
+    s = await flushPending(rt, dir, s)
     const n = s.taskRevision + 1
     await rt.storage.writeImmutable(join(dir, revFile(n)), renderChange(n, kind, text, new Date(await rt.port.now()).toISOString()))
     await transition(rt, dir, s, { type: 'REVISED', revision: n })
@@ -420,7 +436,6 @@ async function readVerified(rt: Runtime, dir: string, ref: string | null): Promi
   const text = await rt.port.read(join(dir, m[1]!)).catch(() => null)
   return text !== null && (await sha256Hex(text)) === m[2] ? text : null
 }
-const handoverIntact = async (rt: Runtime, dir: string, ref: string | null) => (await readVerified(rt, dir, ref)) !== null
 
 /** The task's latest handover. `ok` false: there is one but it cannot be read back or no longer matches its hash. */
 type Latest = { ok: boolean; file: string | null; text: string | null }
@@ -453,7 +468,7 @@ function continuationFor(s: State, h: Latest, held: readonly string[], context?:
 export async function onTurnComplete(rt: Runtime, reason: 'answer' | 'aborted' | 'refusal' | 'error'): Promise<void> {
   const own = ownTask((await projectTasks(rt)).tasks, await rt.port.sessionId())
   if (!own) return
-  const handoverVerified = own.state.status === 'ROTATING' ? await handoverIntact(rt, own.dir, own.state.lastValidatedHandover) : undefined
+  const handoverVerified = own.state.status === 'ROTATING' ? (await readVerified(rt, own.dir, own.state.lastValidatedHandover)) !== null : undefined
   const r = await applyOwn(rt, { type: 'TURN_COMPLETE', reason, ...(handoverVerified !== undefined ? { handoverVerified } : {}) })
   if (r?.forHook.some(f => f.type === 'RUN_CLEAR')) rt.port.after(0, () => void runClear(rt, own.dir).catch(err => rt.port.log(`jeeves: rotation after /clear failed: ${why(err)}`)))
   else if (reason !== 'aborted') await nudgeIfWaiting(rt)

@@ -27,7 +27,7 @@ export function pickTask<T extends { state: State }>(tasks: T[], sessionId: stri
  * only read. `idle`: no main-loop turn is open, so a requested handover needs the nudge to get a Stop (ST-4.7).
  * `endedHere`: session ids this process ended (by /clear), whose locks it may hand on.
  */
-export type Caller = { userTyped: boolean; idle?: boolean; endedHere?: ReadonlySet<string> }
+export type Caller = { userTyped: boolean; idle?: boolean; endedHere: ReadonlySet<string> }
 
 const CHANGES = new Set(['on', 'off', 'dod', 'check', 'threshold', 'pause', 'resume', 'continue', 'rotate', 'done'])
 
@@ -61,9 +61,9 @@ export async function relay(rt: Runtime, args: string, caller: Caller): Promise<
     case 'threshold': return threshold(rt, tasks, me, rest.trim())
     case 'pause': return pause(rt, tasks, me)
     case 'resume': return resume(rt, tasks, me)
-    case 'continue': return continueHere(rt, tasks, me, caller.endedHere ?? new Set())
+    case 'continue': return continueHere(rt, tasks, me, caller.endedHere)
     case 'rotate': return rotate(rt, tasks, me, caller.idle === true)
-    case 'done': return confirmDone(rt, tasks, me, caller.endedHere ?? new Set())
+    case 'done': return confirmDone(rt, tasks, me, caller.endedHere)
     default: return revise(rt, tasks, me, sub as 'dod' | 'check', rest)
   }
 }
