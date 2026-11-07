@@ -2,7 +2,7 @@
 
 Jeeves was called SessionRelay until 2026-11-07 (D-22); the PRD file and older evidence keep the old name.
 
-**Date:** 2026-11-07 · **Source:** `docs/specs/sessionrelay-product-engineering-spec.md` (PRD v1.0) · **Verified against:** Claude Code 2.1.319 (macOS, Darwin 23.6) · **Status:** Approved (D-15). M0, M1, M2 and M3 solved; M4 (Fresh session & continuation) is next. Progress per milestone: `05-delivery-milestones.md` § Status.
+**Date:** 2026-11-07 · **Source:** `docs/specs/sessionrelay-product-engineering-spec.md` (PRD v1.0) · **Verified against:** Claude Code 2.1.319 (macOS, Darwin 23.6) · **Status:** Approved (D-15). M0, M1, M2, M3 and M4 solved (M4 gate: two live runs with 5 and 4 unattended rotations, `evidence/m4-e2e/RESULT.md`); M5 (Recovery & safety) is next (`handoff-m4b.md`). Progress per milestone: `05-delivery-milestones.md` § Status.
 
 ## 1. Go / no-go recommendation
 
