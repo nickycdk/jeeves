@@ -61,5 +61,10 @@ export async function gitFacts(port: FsPort, id: RepoIdentity | null, taskStartH
   }
 }
 
+/** Whether `sha` is a commit of the repository at `worktree` (a moved repository still has the task's start commit). */
+export async function hasCommit(port: FsPort, worktree: string, sha: string): Promise<boolean> {
+  return (await git(port, worktree, ['cat-file', '-e', `${sha}^{commit}`]).catch(() => null))?.exitCode === 0
+}
+
 /** The project folder under the state root. */
 export const projectDir = (stateRoot: string, pid: string) => join(stateRoot, 'projects', pid)

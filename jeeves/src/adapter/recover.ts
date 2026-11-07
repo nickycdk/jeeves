@@ -8,6 +8,7 @@ import { revFile } from '../core/task.ts'
 import { recoverable } from '../core/machine.ts'
 import { parseJson } from '../core/schema.ts'
 import type { State } from '../core/types.ts'
+import { hasCommit } from './git.ts'
 import type { Runtime } from './runtime.ts'
 import { sha256Hex } from './storage.ts'
 import { apply, claim, nextHandoverNumber, projectTasks, restoreHere, takeLock, writeProjectRecord, type Restored } from './task.ts'
@@ -168,7 +169,7 @@ async function movedTasks(rt: Runtime): Promise<Moved[]> {
       const l = await rt.storage.readLock(dir, await rt.port.now())
       if (l.kind === 'held' && !l.stale) continue
       const head = r.value.taskStartHead
-      if (rt.identity.kind === 'git' && head && (await rt.port.run(['git', '--no-optional-locks', 'cat-file', '-e', `${head}^{commit}`], { cwd: rt.identity.worktree, env: { LC_ALL: 'C' } })).exitCode !== 0) continue
+      if (rt.identity.kind === 'git' && head && !(await hasCommit(rt.port, rt.identity.worktree, head))) continue
       out.push({ dir, state: r.value, oldPath: rec.value.worktree })
     }
   }
