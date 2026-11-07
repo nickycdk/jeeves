@@ -663,6 +663,8 @@ test('D-25 relative loop guard: the fresh session rearms at its start reading on
   const loop = run(s, toolReading(6.9), c)
   assert.deepEqual([loop.state.status, loop.state.reason], ['FAILED', 'POSSIBLE_LOOP'])
   assert.ok(loop.effects.some(e => e.type === 'TOAST' && e.text.includes('(threshold 6.9%)')))
+  // a start already known before CONTINUING (set in RESTORING): the next reading still rearms
+  assert.equal(run(st('CONTINUING', { rotation: rot({ step: 'CONTINUED', guardPct: 6.9 }), sessionStart: { at: AT, pct: 6.4 } }), measure(6.5), c).state.status, 'MONITORING')
   // no source reading recorded: nothing to guard, rearm
   assert.equal(run(st('CONTINUING', { rotation: rot({ step: 'CONTINUED' }), sessionStart: { at: AT, pct: null, firstPct: 3.76 } }), toolReading(40), c).state.status, 'MONITORING')
 })

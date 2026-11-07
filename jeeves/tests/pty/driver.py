@@ -127,7 +127,8 @@ def main():
             if os.path.isdir(f"{d}/{sub}"): shutil.copytree(f"{d}/{sub}", f"{out}/{sub}", dirs_exist_ok=True)
     open(f"{out}/git-log.txt", 'w').write('\n'.join(log) + '\n')
     if os.path.exists(debug):
-        open(f"{out}/jeeves-debug.log", 'w').writelines(l for l in open(debug, errors='replace') if 'jeeves' in l.lower())
+        # Jeeves's own markers only: the scratch path itself contains "jeeves".
+        open(f"{out}/jeeves-debug.log", 'w').writelines(l for l in open(debug, errors='replace') if re.search(r'\(jeeves\)|\[jeeves\]|jeeves@', l))
     json.dump(r, open(f"{out}/result.json", 'w'), indent=1, ensure_ascii=False)
     lines = [f"# PTY E2E six-steps: {'PASS' if all(checks.values()) else 'FAIL'}", '',
              f"Claude Code {r['claude_version']} · model haiku · threshold override {a.override}% · case tables {a.chars} chars per step",

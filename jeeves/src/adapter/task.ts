@@ -485,9 +485,9 @@ export async function nudgeIfWaiting(rt: Runtime): Promise<void> {
 }
 
 /**
- * The scheduled `/clear` (ST-4.1). A rejection means automatic rotation is unavailable here (ST-4.6). When it
- * resolves (after the fresh SessionStart took the task) the continuation goes out; the fresh session's own timer
- * does the same, because live the promise may never resolve (gate run 5).
+ * The scheduled `/clear` (ST-4.1). A rejection means automatic rotation is unavailable here (ST-4.6). Live (2.1.319)
+ * the promise resolves when the /clear is queued, before it runs (gate runs 5-6), or never (live run 5); the mod kit
+ * resolves it after the fresh SessionStart. Whichever path finds RESTORING continues: here, or the fresh session's timer.
  */
 async function runClear(rt: Runtime, dir: string): Promise<void> {
   try {
@@ -500,7 +500,7 @@ async function runClear(rt: Runtime, dir: string): Promise<void> {
   await continueFresh(rt, dir)
 }
 
-/** Gate run 5 (2.1.319): a /clear run as the handover turn ends is queued, and its `$.command.run` promise never resolved. */
+/** How long after the fresh SessionStart that session continues on its own; live this is the path that continues. */
 export const FRESH_CONTINUE_MS = 1000
 
 /**
@@ -510,11 +510,9 @@ export const FRESH_CONTINUE_MS = 1000
 async function continueFresh(rt: Runtime, dir: string): Promise<void> {
   const r = await apply(rt, dir, { type: 'CONTEXT_READY' })
   const submit = r?.forHook.find(f => f.type === 'SUBMIT_CONTINUATION')
-  if (!r || submit?.type !== 'SUBMIT_CONTINUATION') {
-    // shortcut: a /clear that resolved without its SessionStart leaves the task ROTATING; recovery is ST-6.1.
-    if (r?.state.status === 'ROTATING') rt.port.log('jeeves: /clear resolved but the fresh session did not take the task')
-    return
-  }
+  // Not RESTORING: the other path already continued, or (live) the /clear is only queued and the timer will.
+  // shortcut: a /clear that never brings its SessionStart leaves the task ROTATING; recovery is ST-6.1.
+  if (!r || submit?.type !== 'SUBMIT_CONTINUATION') return
   try {
     await rt.port.submitPrompt(continuationFor(r.state, await latestHandover(rt, dir, r.state), submit.heldPrompts))
   } catch (err) {
