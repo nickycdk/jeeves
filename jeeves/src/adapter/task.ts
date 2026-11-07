@@ -285,7 +285,9 @@ export async function onFreshSession(rt: Runtime, sessionId: string): Promise<st
   if (!t) return null
   const h = await latestHandover(rt, t.dir, t.state)
   const r = await apply(rt, t.dir, { type: 'SESSION_START_CLEAR', sessionId, handoverOk: h.ok && h.text !== null })
-  return r?.forHook.some(f => f.type === 'INJECT_CONTEXT') ? contextFor(rt, t.dir, r.state, h) : null
+  if (!r?.forHook.some(f => f.type === 'INJECT_CONTEXT')) return null
+  rt.port.after(FRESH_CONTINUE_MS, () => void continueFresh(rt, t.dir).catch(err => rt.port.log(`jeeves: continuation failed: ${why(err)}`)))
+  return contextFor(rt, t.dir, r.state, h)
 }
 
 /** What the Stop hook passes in (classic.Stop on the main loop). */
@@ -481,9 +483,9 @@ export async function nudgeIfWaiting(rt: Runtime): Promise<void> {
 }
 
 /**
- * The scheduled `/clear` (ST-4.1). It resolves after the fresh SessionStart took the task (RESTORING, context
- * injected), so the continuation goes out now, with no keystroke (ST-4.3). A rejection means automatic rotation is
- * unavailable here (ST-4.6).
+ * The scheduled `/clear` (ST-4.1). A rejection means automatic rotation is unavailable here (ST-4.6). When it
+ * resolves (after the fresh SessionStart took the task) the continuation goes out; the fresh session's own timer
+ * does the same, because live the promise may never resolve (gate run 5).
  */
 async function runClear(rt: Runtime, dir: string): Promise<void> {
   try {
@@ -493,10 +495,24 @@ async function runClear(rt: Runtime, dir: string): Promise<void> {
     rt.port.log(`jeeves: /clear rejected: ${why(err)}`)
     return
   }
+  await continueFresh(rt, dir)
+}
+
+/** Gate run 5 (2.1.319): a /clear run as the handover turn ends is queued, and its `$.command.run` promise never resolved. */
+export const FRESH_CONTINUE_MS = 1000
+
+/**
+ * RESTORING -> CONTINUING and the continuation, with no keystroke (ST-4.3). Called by the resolved /clear and by
+ * the fresh session's timer; the serial queue and the reducer let only the first one submit.
+ */
+async function continueFresh(rt: Runtime, dir: string): Promise<void> {
   const r = await apply(rt, dir, { type: 'CONTEXT_READY' })
   const submit = r?.forHook.find(f => f.type === 'SUBMIT_CONTINUATION')
-  // shortcut: a /clear that resolved without its SessionStart leaves the task ROTATING; recovery is ST-6.1.
-  if (!r || submit?.type !== 'SUBMIT_CONTINUATION') return rt.port.log('jeeves: /clear resolved but the fresh session did not take the task')
+  if (!r || submit?.type !== 'SUBMIT_CONTINUATION') {
+    // shortcut: a /clear that resolved without its SessionStart leaves the task ROTATING; recovery is ST-6.1.
+    if (r?.state.status === 'ROTATING') rt.port.log('jeeves: /clear resolved but the fresh session did not take the task')
+    return
+  }
   try {
     await rt.port.submitPrompt(continuationFor(r.state, await latestHandover(rt, dir, r.state), submit.heldPrompts))
   } catch (err) {

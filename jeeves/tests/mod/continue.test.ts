@@ -3,6 +3,7 @@
 // reading rearms. The restore path (/relay resume after the user's /clear) puts the context in the prompt itself.
 import type { SessionMeasureInput } from 'claude-code'
 import { expect, test } from 'claude-code/testing'
+import { FRESH_CONTINUE_MS } from '../../src/adapter/task.ts'
 import { NUDGE_PROMPT } from '../../src/core/handover/template.ts'
 import { bottom, engineClear, generating, handover, PROMPT, relay, start, stateOf, stop, submit, taskDirs, turnEnd, until, type Kit } from './kit.ts'
 import { memHost } from './memfs.ts'
@@ -38,12 +39,30 @@ test('AC-11: task + DoD + handover injected at SessionStart(clear); continuation
   // Nothing typed: the only prompts after the handover are Jeeves's own.
   expect(prompts.filter(p => p.origin === 'composer').length).toBe(typedBefore)
   expect(prompts.some(p => p.text === NUDGE_PROMPT)).toBe(false)
+  // The fresh session's own timer fires too: still exactly one continuation.
+  await h.clock.advance(FRESH_CONTINUE_MS)
+  await h.clock.settle()
+  expect(prompts.filter(p => p.text.startsWith('Jeeves: you are session 2')).length).toBe(1)
 
   const s = stateOf(h, dir)
   expect([s.rotationCount, s.rotation.step, s.heldPrompts]).toEqual([1, 'CONTINUED', []])
   await measure($, 4)
   const after = stateOf(h, dir)
   expect([after.status, after.armedFired, after.sessionSequence, after.rotation]).toEqual(['MONITORING', false, 2, null])
+})
+
+test('gate run 5: a /clear whose promise never resolves still continues, from the fresh session\'s timer', async ($, on) => {
+  const g = await generating($, on)
+  const { h, dir, ctl, prompts } = g
+  expect(await stop($, handover(g.taskId, g.rotationId))).toEqual({})
+  ctl.onClear = async () => { await engineClear($, h, 'sess-2'); await new Promise(() => {}) }
+  await turnEnd($)
+  await until(h, () => stateOf(h, dir).status === 'RESTORING')
+  expect(prompts.some(p => p.text.startsWith('Jeeves: you are session 2'))).toBe(false)
+  await h.clock.advance(FRESH_CONTINUE_MS)
+  await until(h, () => prompts.some(p => p.text.startsWith('Jeeves: you are session 2')))
+  expect([stateOf(h, dir).status, stateOf(h, dir).rotation.step]).toEqual(['CONTINUING', 'CONTINUED'])
+  expect(prompts.filter(p => p.text.startsWith('Jeeves: you are session 2')).length).toBe(1)
 })
 
 test('a handover changed between /clear and the fresh SessionStart: nothing injected or continued, NEEDS_REVIEW', async ($, on) => {
