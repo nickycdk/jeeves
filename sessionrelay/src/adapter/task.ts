@@ -2,12 +2,15 @@
 // Task state lives only in files; every cycle re-reads state.json inside the runtime's serial queue.
 import { toolRecord, type ToolOutcome } from '../core/evidence.ts'
 import { capturedFacts } from '../core/evidence.ts'
-import { handoverInstruction, QUIESCE_NOTE, type CapturedFacts } from '../core/handover/template.ts'
+import { parseHandover } from '../core/handover/parse.ts'
+import { handoverFile, renderHandover, roundTrips } from '../core/handover/render.ts'
+import { handoverInstruction, QUIESCE_NOTE, retryInstruction, type CapturedFacts } from '../core/handover/template.ts'
+import { mentionedPaths, validateHandover } from '../core/handover/validate.ts'
 import { reduce, type Input } from '../core/machine.ts'
 import { newRotationId, newTaskId } from '../core/ids.ts'
 import { join } from '../core/paths.ts'
 import { foldTask, newTaskState, parseRevision, renderChange, revFile, type ChangeKind, type TaskView } from '../core/task.ts'
-import { DEFAULT_CONFIG, type State } from '../core/types.ts'
+import { DEFAULT_CONFIG, type ReasonCode, type State } from '../core/types.ts'
 import { runEffects, type EffectResult } from './effects.ts'
 import { gitFacts } from './git.ts'
 import type { Runtime } from './runtime.ts'
@@ -209,7 +212,7 @@ export async function onUserClear(rt: Runtime, oldSessionId: string): Promise<vo
 export type StopInfo = { backgroundTasks: number; crons: readonly { id: string; schedule: string; recurring: boolean; prompt: string }[]; message: string }
 
 /** Rotation states in which a Stop matters. */
-const STOP_STATES = new Set<State['status']>(['ROTATION_REQUESTED', 'QUIESCING'])
+const STOP_STATES = new Set<State['status']>(['ROTATION_REQUESTED', 'QUIESCING', 'HANDOVER_GENERATING'])
 
 /** The facts snapshot taken at the safe Stop (ADR-003 verified section; ADR-004 A1 crons). */
 export const factsFile = (rotationId: string) => `history/facts-${rotationId}.json`
@@ -222,6 +225,7 @@ export const factsFile = (rotationId: string) => `history/facts-${rotationId}.js
 export async function onStop(rt: Runtime, info: StopInfo): Promise<string | null> {
   const own = ownTask((await projectTasks(rt)).tasks, await rt.port.sessionId())
   if (!own || !STOP_STATES.has(own.state.status)) return null
+  if (own.state.status === 'HANDOVER_GENERATING') return handoverStop(rt, own, info)
   // An agent list that cannot be read counts as one running agent: unsafe, so the quiesce limit still ends the wait.
   const runningAgents = await rt.port.runningAgents().catch(() => 1)
   const r = await applyOwn(rt, { type: 'STOP', backgroundTasks: info.backgroundTasks, runningAgents })
@@ -241,6 +245,73 @@ export async function onStop(rt: Runtime, info: StopInfo): Promise<string | null
     return handoverInstruction({ taskId: r.state.taskId, rotationId, maxChars: DEFAULT_CONFIG.handoverMaxChars, facts: captured })
   }
   return null
+}
+
+const why = (err: unknown) => (err instanceof Error ? err.message : String(err)).slice(0, 200)
+
+/** The next unused `history/handover-NNN.md` (write-once: a number is never reused). */
+async function nextHandoverNumber(rt: Runtime, dir: string): Promise<number> {
+  let n = 1
+  while (await rt.port.exists(join(dir, handoverFile(n)))) n++
+  return n
+}
+
+/** The branch in the rotation's facts snapshot; undefined when there is none to compare with. */
+async function snapshotBranch(rt: Runtime, dir: string, rotationId: string): Promise<string | null | undefined> {
+  try {
+    const snap = JSON.parse(await rt.port.read(join(dir, factsFile(rotationId)))) as { git?: { kind?: string; branch?: string | null } }
+    return snap.git?.kind === 'git' ? (snap.git.branch ?? null) : undefined
+  } catch { return undefined }
+}
+
+/**
+ * The Stop that carries Claude's handover (ST-3.8): parse, validate against fresh facts, render the merged file and
+ * check it parses back; then the reducer decides. Valid: write history/handover-NNN.md once (SHA-256 read back) and
+ * only then record HANDOVER_PERSISTED, the one way to ROTATING, so no /clear can come before a verified file.
+ * Invalid: block with the errors up to maxHandoverRetries, then NEEDS_REVIEW(HANDOVER_INVALID) with nothing written.
+ */
+async function handoverStop(rt: Runtime, own: Task, info: StopInfo): Promise<string | null> {
+  const s = own.state, rotation = s.rotation!
+  const base = rt.identity?.kind === 'git' ? rt.identity.worktree : rt.identity?.kind === 'none' ? rt.identity.cwd : await rt.port.cwd()
+  const git = await gitFacts(rt.port, rt.identity, s.taskStartHead)
+  const parsed = parseHandover(info.message)
+  const existing = new Set<string>()
+  if (parsed.ok) for (const p of mentionedPaths(parsed.value)) if (await rt.port.exists(p.startsWith('/') ? p : join(base, p))) existing.add(p)
+  const v = validateHandover(info.message, {
+    taskId: s.taskId, rotationId: rotation.rotationId, maxChars: DEFAULT_CONFIG.handoverMaxChars, git,
+    capturedBranch: await snapshotBranch(rt, own.dir, rotation.rotationId), ledger: s.ledger, existing,
+  })
+  let merged: string | null = null, n = 0
+  let outcome: { ok: true } | { ok: false; errors: string[]; fatal?: ReasonCode }
+  if (v.ok) {
+    n = await nextHandoverNumber(rt, own.dir)
+    const { view } = await readTask(rt, own.dir, s)
+    merged = renderHandover({
+      n, taskId: s.taskId, rotationId: rotation.rotationId, trigger: rotation.trigger, sourceSessionId: s.activeSessionId,
+      at: new Date(await rt.port.now()).toISOString(), contextPercent: s.lastContext?.percent ?? null, retries: rotation.retries,
+      taskRevision: s.taskRevision, dod: view.dod, checks: view.checks, taskStartHead: s.taskStartHead, git, crons: info.crons,
+      ledger: s.ledger, narrative: v.narrative,
+    })
+    outcome = roundTrips(merged, v.narrative) ? { ok: true } : { ok: false, errors: ['the merged handover file did not parse back'], fatal: 'HANDOVER_INVALID' }
+  } else {
+    outcome = { ok: false, errors: v.errors.map(e => e.message), ...(v.fatal ? { fatal: v.fatal } : {}) }
+  }
+  const r = await applyOwn(rt, { type: 'STOP', backgroundTasks: info.backgroundTasks, runningAgents: 0, handover: outcome })
+  if (!r) return null
+  if (merged !== null && r.forHook.some(f => f.type === 'PERSIST_HANDOVER')) {
+    let ref: string | null = null
+    try {
+      ref = `${handoverFile(n)}#sha256:${await rt.storage.writeImmutable(join(own.dir, handoverFile(n)), merged)}`
+      // handover.md is a convenience copy; the verified history file is what counts.
+      await rt.storage.replaceFile(join(own.dir, 'handover.md'), merged).catch(err => rt.port.log(`sessionrelay: handover.md not updated: ${why(err)}`))
+    } catch (err) {
+      rt.port.log(`sessionrelay: handover not saved: ${why(err)}`)
+    }
+    await applyOwn(rt, ref ? { type: 'HANDOVER_PERSISTED', ok: true, ref } : { type: 'HANDOVER_PERSISTED', ok: false })
+    return null
+  }
+  const retry = r.forHook.find(f => f.type === 'BLOCK_STOP' && f.kind === 'handover-retry')
+  return retry?.type === 'BLOCK_STOP' ? retryInstruction({ taskId: s.taskId, rotationId: rotation.rotationId, errors: retry.errors }) : null
 }
 
 /** A main-loop turn the user interrupted: a handover in progress pauses (USER_INTERRUPT); nothing else changes. */

@@ -146,6 +146,9 @@ export function createStorage(port: FsPort, opts: { eventLogMaxBytes?: number } 
       await swap(join(taskDir, 'state.json'), JSON.stringify(state, null, 2) + '\n')
     }),
 
+    /** Replace a mutable convenience file (handover.md) by the same tmp + hash check + `mv -f` swap as state.json. */
+    replaceFile: (path: string, text: string) => enqueue(() => swap(path, text)),
+
     /** null when there is no state file; otherwise the parse result (invalid or too new is not thrown). */
     readState: async (taskDir: string): Promise<Result<State> | null> => {
       const path = join(taskDir, 'state.json')

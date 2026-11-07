@@ -37,3 +37,14 @@ export function handoverInstruction(p: { taskId: string; rotationId: string; max
 }
 
 export const HANDOVER_INSTRUCTION_MAX = 2500
+
+/** The Stop `block` text after an invalid handover: the specific errors, then the exact first line again. */
+export function retryInstruction(p: { taskId: string; rotationId: string; errors: string[] }): string {
+  const shown = p.errors.slice(0, 8).map(e => `- ${e}`).join('\n').slice(0, 1800)
+  return [
+    'SessionRelay: the handover is invalid. Fix these and reply again with one corrected block in the same format; do not run any tool or command:',
+    shown,
+    `First line: ${OPEN} task=${p.taskId} rotation=${p.rotationId}`,
+    `Last line: ${CLOSE}`,
+  ].join('\n')
+}
