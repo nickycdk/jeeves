@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "taskId": "t_20261107_ox4ooi",
+  "projectId": "91fa9b74c9d1f824",
+  "status": "RESTORING",
+  "reason": "THRESHOLD",
+  "mode": "full",
+  "taskRevision": 2,
+  "sessionSequence": 1,
+  "activeSessionId": "04e79ec9-8884-4929-811d-c5ecd66c92d3",
+  "rotation": {
+    "rotationId": "r_20261107_vpqv6b",
+    "trigger": "THRESHOLD",
+    "requestedAt": "2026-11-07T19:38:11.017Z",
+    "sourceSessionId": "02f5cb1a-e4c8-4fd0-a08a-eb03fb70cf4e",
+    "targetSessionId": "04e79ec9-8884-4929-811d-c5ecd66c92d3",
+    "step": "RESTORED",
+    "retries": 1,
+    "quiesceCount": 0,
+    "noteAppended": true,
+    "thresholdAt": 6.4799999999999995
+  },
+  "lastValidatedHandover": "history/handover-001.md#sha256:5480d4c7e8376fb6e1d61d74763492eb6e1e9e17955238b43e3aaf4fda312faf",
+  "rotationCount": 0,
+  "consecutiveFailures": 0,
+  "thresholdPercent": 50,
+  "lastContext": {
+    "window": 1000000,
+    "at": "2026-11-07T19:38:36.458Z",
+    "percent": 6.87,
+    "tokens": 68688
+  },
+  "armedFired": true,
+  "warnedSessionId": "02f5cb1a-e4c8-4fd0-a08a-eb03fb70cf4e",
+  "heldPrompts": [],
+  "pauseRequested": false,
+  "taskStartHead": "620b1cf39c3bb584bea1cdc3fd0aa86f9fdbdd25",
+  "lastErrorCode": null,
+  "ledger": [
+    {
+      "kind": "cmd",
+      "command": "git status --short && git log --oneline | head -5 && ls -la && cat SPEC.md && cat verify.sh && ls src tests && cat package.json 2>/dev/null",
+      "ok": true,
+      "exit": 0,
+      "agent": null,
+      "at": "2026-11-07T19:38:01.343Z"
+    },
+    {
+      "kind": "cmd",
+      "command": "for f in src/step1.js tests/step1.test.js; do echo \"== $f\"; cat $f; done; cat .gitignore",
+      "ok": true,
+      "exit": 0,
+      "agent": null,
+      "at": "2026-11-07T19:38:04.537Z"
+    },
+    {
+      "kind": "cmd",
+      "command": "cat > src/step1.js <<'EOF' // Step 1: see SPEC.md. export function double(n) { return n * 2 } EOF ./verify.sh; echo \"exit=$?\"",
+      "ok": true,
+      "exit": 0,
+      "agent": null,
+      "at": "2026-11-07T19:38:08.045Z"
+    },
+    {
+      "kind": "cmd",
+      "command": "git add -A && git commit -q -m \"step 1: double\" && git log --oneline | head -2 && cat src/step2.js && cat tests/step2.test.js | grep -v \"^ \\[\"",
+      "ok": true,
+      "exit": 0,
+      "agent": null,
+      "at": "2026-11-07T19:38:11.017Z"
+    }
+  ],
+  "updatedAt": "2026-11-07T19:38:36.652Z",
+  "sessionStart": {
+    "at": "2026-11-07T19:38:36.652Z",
+    "pct": null
+  },
+  "pendingChanges": []
+}

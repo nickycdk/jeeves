@@ -14,7 +14,8 @@ export type Input =
   | { type: 'QUEUE_CHANGE'; kind: 'dod' | 'check'; text: string }
   /** `/relay threshold <n>`, n a whole number 20..90 (FR-03). */
   | { type: 'SET_THRESHOLD'; percent: number }
-  | { type: 'MEASURE'; percent?: number; tokens?: number; window: number; sessionId: string }
+  /** `fromTool`: read at a main-loop tool result, so after a model call (D-25 counts only those as a session's start). */
+  | { type: 'MEASURE'; percent?: number; tokens?: number; window: number; sessionId: string; fromTool?: boolean }
   | { type: 'ROTATE_CMD' }
   | { type: 'COMPACTED' }
   /** A tool call finished: `entry` goes to the ledger; on the main loop it is also the soft-quiesce point. */
@@ -112,8 +113,8 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
   const T = rel !== undefined ? (startPct === null ? Infinity : startPct + rel) : ctx.thresholdOverride ?? state.thresholdPercent
   // Loop guard (02 §4: rearm below T−10). Under the test override a fresh live session already starts near 6%, so a
   // cheap test threshold (~8%) uses a 0.5-point margin; real thresholds (20..90) always keep 10 (ST-4.8 reading).
-  // Relative (D-25): below the threshold that ended the previous session; none recorded (no reading then) rearms.
-  const rearmBelow = rel !== undefined ? state.rotation?.thresholdAt ?? Infinity
+  // Relative (D-25 as amended): below the source session's last reading, so the rotation freed context; none recorded rearms.
+  const rearmBelow = rel !== undefined ? state.rotation?.guardPct ?? Infinity
     : T - (ctx.thresholdOverride === undefined ? LOOP_MARGIN : TEST_LOOP_MARGIN)
   const shown = (n: number) => Math.round(n * 100) / 100
   const rid = state.rotation?.rotationId ?? '-'
@@ -168,7 +169,6 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
     const rotation: Rotation = {
       rotationId: ctx.newRotationId, trigger, requestedAt: at, sourceSessionId: null, targetSessionId: null,
       step: 'REQUESTED', retries: 0, quiesceCount: 0, noteAppended: false,
-      ...(rel !== undefined && Number.isFinite(T) ? { thresholdAt: T } : {}),
     }
     go('ROTATION_REQUESTED', trigger, { rotation, armedFired: true }, trigger === 'THRESHOLD' ? `context ${next.lastContext?.percent ?? '?'}%` : '')
     return done()
@@ -179,7 +179,9 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
     const reading = { window: input.window, at, ...(input.percent !== undefined ? { percent: input.percent } : {}), ...(input.tokens !== undefined ? { tokens: input.tokens } : {}) }
     next = { ...next, lastContext: reading, updatedAt: at }
     const p = input.percent
-    if (p !== undefined && next.sessionStart && next.sessionStart.pct === null && input.sessionId === state.activeSessionId) next = { ...next, sessionStart: { ...next.sessionStart, pct: p } }
+    // D-25: a fresh session's reading before its first model call is ~2 points low (gate run 6), so it is no start.
+    const counts = rel === undefined || input.fromTool === true
+    if (p !== undefined && counts && next.sessionStart && next.sessionStart.pct === null && input.sessionId === state.activeSessionId) next = { ...next, sessionStart: { ...next.sessionStart, pct: p } }
     if (state.status === 'MONITORING') {
       if (p === undefined) return done()
       if (p >= T && !state.armedFired) return request('THRESHOLD')
@@ -190,7 +192,7 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
       return done()
     }
     if (state.status === 'CONTINUING') {
-      if (p === undefined) return done()
+      if (p === undefined || !counts) return done()
       if (p < rearmBelow) {
         go('MONITORING', null, { armedFired: false, rotation: null, sessionSequence: state.sessionSequence + 1, warnedSessionId: null, completionAsked: false }, `rearmed at ${p}%`)
         return done()
@@ -249,7 +251,7 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
         // The engine sends few session.measure events in a long turn (debug run 3: one in 60 s), so each main-loop
         // tool result also carries a reading: applied first, so a request it makes gets its quiesce note right here.
         const { reading, ...rest } = input
-        const m = reduce(state, { type: 'MEASURE', ...reading }, ctx)
+        const m = reduce(state, { type: 'MEASURE', ...reading, fromTool: true }, ctx)
         const t = reduce(m.state, rest, ctx)
         return { state: t.state, effects: [...m.effects, ...t.effects] }
       }
@@ -355,7 +357,7 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
           endReason: 'clear', startPct: state.sessionStart?.pct ?? null, endPct: state.lastContext?.percent ?? null,
           ...(input.costUsd !== undefined ? { costUsd: input.costUsd } : {}),
         }
-        setRotation({ step: 'CLEARED', sourceSessionId: r.sourceSessionId ?? input.sessionId })
+        setRotation({ step: 'CLEARED', sourceSessionId: r.sourceSessionId ?? input.sessionId, ...(rel !== undefined && record.endPct !== null ? { guardPct: record.endPct } : {}) })
         effects.push({ type: 'WRITE_SESSION', key: key('session'), n: state.sessionSequence, record })
         return done()
       }

@@ -71,7 +71,8 @@ export const sha256 = async (t: string) => [...new Uint8Array(await crypto.subtl
 export const stop = ($: Kit, message: string) => $.classic.Stop({ stop_hook_active: true, last_assistant_message: message, background_tasks: [], session_crons: [] })
 
 /** A task whose handover was just requested: the safe Stop already answered with the instruction. */
-export async function generating($: Kit, on: Parameters<typeof memHost>[0], opts: { env?: Record<string, string>; readings?: number[] } = {}) {
+/** `viaTool`: each reading comes at a main-loop tool result (as live, after a model call) instead of session.measure. */
+export async function generating($: Kit, on: Parameters<typeof memHost>[0], opts: { env?: Record<string, string>; readings?: number[]; viaTool?: boolean } = {}) {
   const h = memHost(on, opts.env)
   const refuse: { drop?: (text: string) => boolean } = {}
   const prompts = bottom(on, refuse)
@@ -95,7 +96,12 @@ export async function generating($: Kit, on: Parameters<typeof memHost>[0], opts
   await until(h, () => stateOf(h, dir).ledger.length === 1)
   // The reading comes mid-turn, so that turn's Stop asks (no nudge); tests end the turn with turnEnd.
   await turnStart($)
-  for (const percent of opts.readings ?? [52]) await $.session.measure({ context: { window: 1_000_000, percent }, rateLimits: [], changed: ['context'] } satisfies SessionMeasureInput)
+  for (const percent of opts.readings ?? [52]) {
+    if (!opts.viaTool) { await $.session.measure({ context: { window: 1_000_000, percent }, rateLimits: [], changed: ['context'] } satisfies SessionMeasureInput); continue }
+    h.usage = { window: 1_000_000, percent }
+    await $.tool.call({ tool: 'Bash', command: 'ls' })
+    await until(h, () => stateOf(h, dir).lastContext?.percent === percent)
+  }
   const ask = await $.classic.Stop({ stop_hook_active: false, last_assistant_message: 'step done', background_tasks: [], session_crons: [] })
   expect(ask.block).toContain('JEEVES-HANDOVER')
   const s = stateOf(h, dir)
