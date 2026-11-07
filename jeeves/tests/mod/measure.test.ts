@@ -26,6 +26,9 @@ test('a context measure stores the reading; status shows usage().context.percent
   // Status reads the live figure in the owning session, so it is never older than the last turn.
   h.usage = ctx(23)
   expect(await relay($, 'status')).toContain('Context: 23%')
+  // The engine rounds percent to a whole number; with tokens known the stored reading is exact.
+  await $.session.measure({ context: { window: 1_000_000, percent: 6, tokens: 63_161 }, rateLimits: [], changed: ['context'] } satisfies SessionMeasureInput)
+  expect(stateOf(h, dir).lastContext).toMatchObject({ percent: 6.32, tokens: 63_161 })
 })
 
 test('AC-06: an undefined percent is "unknown", never 0%, and never triggers', async ($, on) => {

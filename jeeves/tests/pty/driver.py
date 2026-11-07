@@ -2,7 +2,7 @@
 # test threshold, so the task crosses it several times. The driver types only the setup (/relay on, /relay check
 # ./verify.sh, then the task prompt), then nothing until the task ends, and checks the result on disk.
 #
-#   npm run e2e:pty -- <scratch dir> [--override 9] [--chars 28000] [--minutes 30] [--out <evidence dir>]
+#   npm run e2e:pty -- <scratch dir> [--override 8.5] [--chars 6000] [--minutes 30] [--out <evidence dir>]
 #
 # Needs `claude` on PATH and logged in; costs a few haiku turns per session (recorded in RESULT.md).
 # Evidence format (06 §5): <out>/RESULT.md (assertions, cost), result.json, events.jsonl, sessions/, handovers,
@@ -20,8 +20,8 @@ TERMINAL = ('COMPLETED', 'NEEDS_REVIEW', 'FAILED', 'PAUSED', 'DISABLED')
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('scratch')
-    ap.add_argument('--override', default='9')
-    ap.add_argument('--chars', default='28000')
+    ap.add_argument('--override', default='8.5')
+    ap.add_argument('--chars', default='6000')
     ap.add_argument('--minutes', type=float, default=30)
     ap.add_argument('--out', default=None)
     a = ap.parse_args()
@@ -69,7 +69,8 @@ def main():
     while time.time() < deadline:
         if not c.pump(5): c.note('claude exited'); break
         s = state()
-        now = (s.get('status'), s.get('reason'), s.get('rotationCount'), s.get('activeSessionId'))
+        lc = s.get('lastContext') or {}
+        now = (s.get('status'), s.get('reason'), s.get('rotationCount'), s.get('activeSessionId'), lc.get('percent'), lc.get('tokens'))
         if now != last: c.note('state', json.dumps(now)); last = now
         if s.get('status') in TERMINAL: break
         if re.search(r'Doyouwanttoproceed|Doyouwanttomake|Allowonce', c.squeezed(1500)) and not dialog:

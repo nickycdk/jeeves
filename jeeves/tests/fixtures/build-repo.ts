@@ -38,7 +38,7 @@ export const STEPS: readonly { name: string; spec: string; ref: (x: never) => un
 /** The task the E2E driver types (the only prompt). */
 export const SIX_STEPS_TASK = 'Implement the six functions described in SPEC.md, strictly in order, one step at a time. For each step k: read tests/stepk.test.js (its case table shows the edge cases), implement only src/stepk.js, run ./verify.sh, then commit with: git add -A && git commit -m "step k: <function name>". Never change a step that is already committed. When all six steps are committed and ./verify.sh exits 0, the task is complete.'
 
-/** Deterministic cases, as many as fit in `chars` characters: the test file is what Claude reads, so it is the context lever. */
+/** Deterministic cases, as many as fit in `chars` characters; verify.sh prints one line per case of each implemented step. */
 function caseTable(step: (typeof STEPS)[number], seed: number, chars: number): string {
   let x = seed
   const r = () => ((x = (x * 1103515245 + 12345) % 2 ** 31) / 2 ** 31)
@@ -58,14 +58,16 @@ function sixSteps(dir: string, chars: number) {
     '.gitignore': '.verify.log\n',
     'SPEC.md': ['# Six steps', '', 'Implement one function per step, in this order. Each lives in its own file, `src/stepK.js`, and has its tests in `tests/stepK.test.js`, with a table of reference cases. `./verify.sh` runs all tests; it exits 0 only when all six pass.', '',
       ...STEPS.map((s, i) => `${i + 1}. \`src/step${i + 1}.js\`: ${s.spec}`), ''].join('\n'),
-    'verify.sh': ['#!/bin/sh', '# Runs every step\'s tests and prints the summary.', 'node --test tests/*.test.js > .verify.log 2>&1', 'code=$?', 'grep -E "^# (tests|pass|fail)|^not ok" .verify.log',
+    // Prints a line per case of every implemented step: ordinary test output that grows with progress (the lever).
+    'verify.sh': ['#!/bin/sh', '# Runs every step\'s tests and prints each result.', 'node --test tests/*.test.js > .verify.log 2>&1', 'code=$?', 'grep -E "^ *(not )?ok |^# (tests|pass|fail)" .verify.log',
       'if [ $code -eq 0 ]; then echo "verify: all steps pass"; else echo "verify: some steps fail (expected until every step is implemented)"; fi', 'exit $code', ''].join('\n'),
   }
   STEPS.forEach((s, i) => {
     files[`src/step${i + 1}.js`] = `// Step ${i + 1}: see SPEC.md.\nexport function ${s.name}() {\n  throw new Error('not implemented')\n}\n`
     files[`tests/step${i + 1}.test.js`] = [`import { test } from 'node:test'`, `import assert from 'node:assert/strict'`, `import { ${s.name} } from '../src/step${i + 1}.js'`, '',
       '// Reference cases: [input, expected].', 'const CASES = [', caseTable(s, 1000 + i, chars), ']', '',
-      `test('step ${i + 1}: ${s.name}', () => { for (const [input, want] of CASES) assert.deepEqual(${s.name}(input), want, JSON.stringify(input)) })`, ''].join('\n')
+      `test('step ${i + 1}: ${s.name}', async t => {`, `  assert.doesNotThrow(() => ${s.name}(CASES[0][0]), 'not implemented yet')`,
+      `  for (const [input, want] of CASES) await t.test(\`case \${JSON.stringify(input)}\`, () => assert.deepEqual(${s.name}(input), want))`, '})', ''].join('\n')
   })
   write(dir, files)
   chmodSync(join(dir, 'verify.sh'), 0o755)
@@ -90,7 +92,7 @@ export function build(fixture: Fixture, dir: string, opts: { chars?: number } = 
     case 'failing-tests':
       write(dir, { ...base, 'package.json': '{ "name": "failing", "private": true, "scripts": { "test": "node -e \\"process.exit(1)\\"" } }\n' })
       init(dir); commitAll(dir, 'init'); break
-    case 'six-steps': sixSteps(dir, opts.chars ?? 28_000); break
+    case 'six-steps': sixSteps(dir, opts.chars ?? 6000); break
   }
   return dir
 }

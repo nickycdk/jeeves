@@ -77,7 +77,7 @@ export type Output = { state: State; effects: Effect[]; ignored?: string }
 
 const ACTIVE = (s: Status) => !INERT.includes(s)
 export const LOOP_MARGIN = 10
-export const TEST_LOOP_MARGIN = 1
+export const TEST_LOOP_MARGIN = 0.5
 export const THRESHOLD_MIN = 20
 export const THRESHOLD_MAX = 90
 export const isThreshold = (n: number) => Number.isInteger(n) && n >= THRESHOLD_MIN && n <= THRESHOLD_MAX
@@ -104,7 +104,7 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
   const at = new Date(ctx.now).toISOString()
   const T = ctx.thresholdOverride ?? state.thresholdPercent
   // Loop guard margin (02 §4: T−10). Under the test override a fresh live session already starts near 6%, so a
-  // cheap test threshold (~10%) uses a 1-point margin; real thresholds (20..90) always keep 10 (ST-4.8 reading).
+  // cheap test threshold (~8%) uses a 0.5-point margin; real thresholds (20..90) always keep 10 (ST-4.8 reading).
   const loopMargin = ctx.thresholdOverride === undefined ? LOOP_MARGIN : TEST_LOOP_MARGIN
   const rid = state.rotation?.rotationId ?? '-'
   const effects: Effect[] = []
@@ -174,7 +174,7 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
       if (p >= T && !state.armedFired) return request('THRESHOLD')
       if (p >= T - ctx.config.warnBeforePercent && p < T && state.warnedSessionId !== input.sessionId) {
         next = { ...next, warnedSessionId: input.sessionId }
-        effects.push({ type: 'TOAST', key: `-:warn:${input.sessionId}`, text: `Context at ${p}%. Jeeves will hand over at ${T}%.` })
+        effects.push({ type: 'TOAST', key: `-:warn:${input.sessionId}`, text: `Context at ${Math.round(p)}%. Jeeves will hand over at ${T}%.` })
       }
       return done()
     }

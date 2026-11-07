@@ -7,7 +7,7 @@ Stories are listed in dependency order; implement top to bottom. IDs are `ST-<ep
 
 Module names refer to `02-architecture-and-adrs.md` §3.
 
-**Progress (2026-11-07):** E0, E1, E2 and E3 solved, plus ST-7.3. Each solved story has a **Status** line under its heading. Everything without one is open.
+**Progress (2026-11-07):** E0, E1, E2, E3 and E4/E5 (M4) solved, plus ST-7.3. Each solved story has a **Status** line under its heading. Everything without one is open.
 
 ---
 
@@ -307,6 +307,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 ## E4 — Fresh session and continuation
 
 ### ST-4.1 Rotation executor — M
+- **Status:** Solved (28bd873).
 - **Note (D-23):** also covers a request that lands after the turn's Stop: submit a short plugin prompt to get a Stop, so rotation never waits for the user.
 - **Cites:** FR-08, AC-10.
 - **Scope:** on main `turn.complete` with state ROTATING and verified handover: `$.clock.after(0)` → `$.command.run({ command: 'clear' })`; dedupe by `rotationId:clear`; rejection → ST-4.6.
@@ -316,6 +317,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **DoD:** standard.
 
 ### ST-4.2 Rotation boundary detection and lock transfer — M
+- **Status:** Solved (c37323c).
 - **Cites:** FR-08, §7 invariants.
 - **Scope:** `session.end(reason clear)` while ROTATING → record `sourceSessionId`, write `sessions/NNN.json`; `classic.SessionStart(source clear)` → `targetSessionId`, lock owner := new id, state RESTORING.
 - **Depends on:** ST-4.1.
@@ -324,6 +326,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **DoD:** standard.
 
 ### ST-4.3 Context injection and continuation prompt — M
+- **Status:** Solved (c71fec1; review fix 23f24f2).
 - **Note (D-23):** the continuation prompt is generated from the validated handover and states what has been built (completed work, files, checks and results) and exactly where to pick up (next actions).
 - **Cites:** FR-09, AC-11.
 - **Scope:** SessionStart(clear) returns `additionalContext` = current task revision + DoD + latest handover (channel per S-05); after `/clear` resolves, `$.prompt.submit` continuation: "You are session N of managed task X. First verify repository state against the handover (git status, files, last test results). Do not redo items under 'Completed' or 'Do not repeat'. Continue with 'Exact next actions' item 1." plus held prompts (ST-4.4); state CONTINUING.
@@ -333,6 +336,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **DoD:** standard.
 
 ### ST-4.4 Held prompts during rotation — S
+- **Status:** Solved (05775ed; review fix 23f24f2).
 - **Cites:** ADR-010.
 - **Scope:** `prompt.submit` composer prompts during HANDOVER_GENERATING…RESTORING → `{ drop: "Held by Jeeves…" }`, stored (redacted copy for events, full text in state for delivery), appended to continuation.
 - **Depends on:** ST-4.3, ST-0.6.
@@ -341,6 +345,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **DoD:** standard.
 
 ### ST-4.5 Rearm, loop guard, max rotations — S
+- **Status:** Solved (e9b41a3).
 - **Cites:** FR-03, §7 last invariant, §11 "new session > threshold".
 - **Scope:** CONTINUING + fresh reading `< T−10` → MONITORING, `armedFired=false`, `sessionSequence++`; `≥ T−10` → FAILED(POSSIBLE_LOOP); `rotationCount ≥ maxRotationsPerTask` → PAUSED(MAX_ROTATIONS); `consecutiveFailures ≥ max` → FAILED.
 - **Depends on:** ST-4.3.
@@ -349,6 +354,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **DoD:** standard.
 
 ### ST-4.6 Assisted-mode fallback and `/relay continue` — M
+- **Status:** Solved (f2b7c15; review fix 23f24f2). Context goes in the prompt, not `$.session.append` (D-24).
 - **Cites:** AC-25, ADR-002, PRD §3.3 go/no-go.
 - **Scope:** if probe ≠ full or `/clear` rejects: keep validated handover, state NEEDS_REVIEW(ROTATE_UNAVAILABLE), message "Run /clear, then /relay continue"; `/relay continue` in a fresh conversation performs injection (via `$.session.append`) + continuation; status shows "assisted".
 - **Depends on:** ST-4.3.
@@ -357,6 +363,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **DoD:** standard.
 
 ### ST-4.7 Manual `/relay rotate` — S
+- **Status:** Solved (7d7a400).
 - **Cites:** FR-11, AC-15; Flow C.
 - **Scope:** sets ROTATION_REQUESTED(MANUAL); identical pipeline; if idle, the next Stop happens only after a turn, so `rotate` while idle submits a tiny plugin prompt ("Jeeves: prepare handover") to obtain a Stop.
 - **Depends on:** ST-4.3.
@@ -365,6 +372,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **DoD:** standard.
 
 ### ST-4.8 Fixture task and two-rotation PTY E2E harness — L
+- **Status:** Harness built (312d007, 23f24f2); live gate evidence: see M4 gate.
 - **Cites:** AC-10, AC-11, AC-12; §14.3.
 - **Scope:** `fixtures/build-repo.ts` (creates git repos: clean, dirty, detached, worktrees, failing tests); fixture task "implement 6 small functions with tests in order, one per step" sized to force rotations; `tests/pty/driver.ts` (generalised spike driver) with env flag `JEEVES_TEST_THRESHOLD_OVERRIDE` honoured only when `JEEVES_TEST=1` so rotations happen at low % cheaply; assertions on event log + git state.
 - **Depends on:** ST-4.5, ST-5.2 (for clean end) — harness can start earlier with rotation-only assertions.
@@ -377,6 +385,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 ## E5 — Completion
 
 ### ST-5.1 Completion block and DoD evaluator — M
+- **Status:** Solved (bde8a5d).
 - **Cites:** FR-10, AC-13; ADR-007.
 - **Scope:** parse `<<<JEEVES-COMPLETE v1 … >>>`; evaluate each verification command: last ledger entry with exact command, exit 0, timestamp after last edit; blockers list empty.
 - **Depends on:** ST-3.1, ST-2.2.
@@ -385,6 +394,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **DoD:** standard.
 
 ### ST-5.2 Completion gate, `/relay done`, summary — S
+- **Status:** Solved (6088399; review fix 23f24f2).
 - **Cites:** FR-10, AC-13; Flow F.
 - **Scope:** at Stop: evidence missing → one `{ block }` listing checks to run; still missing → NEEDS_REVIEW(DOD_UNMET); passing → COMPLETED + summary (rotations, sessions, checks) + lock release; no verification commands → NEEDS_REVIEW, `/relay done` confirms (records user approval event).
 - **Depends on:** ST-5.1, ST-3.3.

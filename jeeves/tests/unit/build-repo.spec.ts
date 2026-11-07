@@ -30,6 +30,7 @@ test('six-steps: verify.sh fails on the stubs; the reference implementations pas
   const first = run('./verify.sh', dir)
   assert.equal(first.status, 1)
   assert.match(first.stdout, /# fail 6/)
+  assert.ok(first.stdout.split('\n').length < 20, 'stubs fail once each, not once per case')
   assert.equal(git(dir, 'log', '--format=%s'), 'six-steps fixture')
   const t1 = readFileSync(join(dir, 'tests/step1.test.js'), 'utf8')
   assert.ok(t1.length > 3000 && t1.length < 4000, String(t1.length))
@@ -37,4 +38,5 @@ test('six-steps: verify.sh fails on the stubs; the reference implementations pas
   const done = run('./verify.sh', dir)
   assert.equal(done.status, 0, done.stdout)
   assert.match(done.stdout, /verify: all steps pass/)
+  assert.ok(done.stdout.split('\n').filter(l => /^ +ok \d+ - case /.test(l)).length > 300, 'one line per case once implemented')
 })

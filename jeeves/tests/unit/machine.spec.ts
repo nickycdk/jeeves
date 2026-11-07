@@ -614,12 +614,14 @@ test('ST-4.6: assisted mode never schedules /clear; CONTINUE_CMD only from NEEDS
   for (const x of [st('NEEDS_REVIEW', { reason: 'HANDOVER_INVALID' }), st('MONITORING'), st('PAUSED', { reason: 'USER_PAUSE' })]) assert.ok(run(x, { type: 'CONTINUE_CMD', sessionId: 'b' }).ignored)
 })
 
-test('ST-4.8 reading: the loop margin is 10 points, 1 point only under the test override', () => {
+test('ST-4.8 reading: the loop margin is 10 points, 0.5 point only under the (decimal) test override', () => {
   const s = st('CONTINUING', { rotation: rot({ step: 'CONTINUED' }) })
   assert.equal(run(s, measure(39)).state.status, 'MONITORING')
   assert.equal(run(s, measure(40)).state.status, 'FAILED')
-  assert.equal(run(s, measure(8), ctx({ thresholdOverride: 10 })).state.status, 'MONITORING')
-  assert.deepEqual([run(s, measure(9), ctx({ thresholdOverride: 10 })).state.status, run(s, measure(9), ctx({ thresholdOverride: 10 })).state.reason], ['FAILED', 'POSSIBLE_LOOP'])
+  assert.equal(run(s, measure(7.99), ctx({ thresholdOverride: 8.5 })).state.status, 'MONITORING')
+  assert.deepEqual([run(s, measure(8), ctx({ thresholdOverride: 8.5 })).state.status, run(s, measure(8), ctx({ thresholdOverride: 8.5 })).state.reason], ['FAILED', 'POSSIBLE_LOOP'])
+  assert.equal(run(st('MONITORING'), measure(8.49), ctx({ thresholdOverride: 8.5 })).state.status, 'MONITORING')
+  assert.equal(run(st('MONITORING'), measure(8.5), ctx({ thresholdOverride: 8.5 })).state.status, 'ROTATION_REQUESTED')
 })
 
 test('QUEUE_CHANGE: only before rev 1 (max 20); a pending REVISED drops the first queued change', () => {

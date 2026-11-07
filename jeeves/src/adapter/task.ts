@@ -225,7 +225,9 @@ export async function readTask(rt: Runtime, dir: string, state: State): Promise<
 /** `session.measure` with a context change: the main conversation's `usage().context` (FR-02). Missing percent stays unknown. */
 export async function measure(rt: Runtime, c: { percent?: number; tokens?: number; window: number }): Promise<Applied | null> {
   const sessionId = await rt.port.sessionId()
-  return applyOwn(rt, { type: 'MEASURE', window: c.window, sessionId, ...(c.percent !== undefined ? { percent: c.percent } : {}), ...(c.tokens !== undefined ? { tokens: c.tokens } : {}) })
+  // The engine's percent is a whole number (10K tokens on a 1M window); with tokens known, use the exact figure.
+  const percent = c.percent !== undefined && c.tokens !== undefined && c.window > 0 ? Math.round((c.tokens / c.window) * 10_000) / 100 : c.percent
+  return applyOwn(rt, { type: 'MEASURE', window: c.window, sessionId, ...(percent !== undefined ? { percent } : {}), ...(c.tokens !== undefined ? { tokens: c.tokens } : {}) })
 }
 
 /** The session ends for good (exit, logout, resume elsewhere): give up its lock so the next session can resume at once. Task state is kept. */
@@ -318,7 +320,7 @@ async function completionStop(rt: Runtime, own: Task, blockers: string[]): Promi
   const ask = r?.forHook.find(f => f.type === 'BLOCK_STOP' && f.kind === 'completion-missing')
   if (ask?.type !== 'BLOCK_STOP') return null
   return [
-    'Jeeves: not marked done yet. Fix these, running each check with your Bash tool exactly as written and after your last edit, then reply with the JEEVES-COMPLETE block again:',
+    'Jeeves: not marked done yet. Run each check below as its own Bash command, exactly as written, with nothing before or after it (no ;, &&, pipes or echo: a chained command reports the last command\'s exit code), then reply with the JEEVES-COMPLETE block again:',
     ...ask.errors.slice(0, 10).map(e => `- ${e}`),
   ].join('\n')
 }

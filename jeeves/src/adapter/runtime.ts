@@ -22,7 +22,7 @@ export type Runtime = {
   projectDir: string | null
   /** Serialises each read -> reduce -> write -> effects cycle, so concurrent hooks never act on the same old state. */
   serial: ReturnType<typeof createQueue>
-  /** Test-only threshold (06 §1): set only when JEEVES_TEST=1 and the override is a whole number 1..99. */
+  /** Test-only threshold (06 §1): set only when JEEVES_TEST=1 and the override is a number 1..99 (decimals allowed). */
   thresholdOverride: number | null
 }
 
@@ -54,6 +54,6 @@ async function build($: EngineInterface, options: Options): Promise<Runtime> {
   return {
     port, storage, probe, stateRoot, stateRootError, identity: id, projectId: pid,
     projectDir: stateRoot && pid ? projectDir(stateRoot, pid) : null, serial: createQueue(),
-    thresholdOverride: Number.isInteger(override) && override >= 1 && override <= 99 ? override : null,
+    thresholdOverride: Number.isFinite(override) && override >= 1 && override <= 99 ? override : null,
   }
 }

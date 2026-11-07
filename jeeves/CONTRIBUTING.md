@@ -25,7 +25,7 @@ Layout: `src/core` is pure TypeScript (no `$`, no I/O, no clock); `src/adapter` 
 ## PTY end-to-end run (costs model usage)
 
 ```sh
-npm run e2e:pty -- <scratch dir> [--override 9] [--chars 28000] [--minutes 30] [--out <evidence dir>]
+npm run e2e:pty -- <scratch dir> [--override 8.5] [--chars 6000] [--minutes 30] [--out <evidence dir>]
 ```
 
 `tests/pty/driver.py` (Python: Node has no pseudo-terminal without a native dependency) builds the `six-steps`

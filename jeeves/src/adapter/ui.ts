@@ -33,7 +33,7 @@ export function statusText(v: StatusView): string {
     lines.push(
       `Task: ${s.taskId}`,
       `State: ${s.status}${s.reason ? ` (${s.reason})` : ''}`,
-      `Context: ${pct === undefined ? 'unknown' : `${pct}%`}  Threshold: ${v.thresholdOverride ?? s.thresholdPercent}%`,
+      `Context: ${pct === undefined ? 'unknown' : `${Math.round(pct * 10) / 10}%`}  Threshold: ${v.thresholdOverride ?? s.thresholdPercent}%`,
       ...(v.thresholdOverride ? [`TEST OVERRIDE (task setting ${s.thresholdPercent}%)`] : []),
       `Rotations: ${s.rotationCount}  Session: ${s.sessionSequence}`,
       ...(s.reason && INERT.includes(s.status) ? [REASON_TEXT[s.reason]] : []),
