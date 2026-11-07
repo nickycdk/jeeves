@@ -7,11 +7,14 @@ Stories are listed in dependency order; implement top to bottom. IDs are `ST-<ep
 
 Module names refer to `02-architecture-and-adrs.md` §3.
 
+**Progress (2026-11-07):** E0, E1 and E2 solved, plus ST-7.3. Each solved story has a **Status** line under its heading. Everything without one is open.
+
 ---
 
 ## E0 — Feasibility closeout
 
 ### ST-0.1 Cursor rotation manual spike (S-01) — S
+- **Status:** Solved (M0; evidence/s-01-cursor, partial Cursor checklist accepted in D-14).
 - **Cites:** SPIKE-01, NFR-02, AC-02.
 - **Scope:** Prove the spike mod rotates inside Cursor's integrated terminal with normal interaction. Out: product code.
 - **Approach:** `claude --plugin-dir docs/plans/evidence/spike-01-mod-rotation/mod --model haiku` in a scratch git repo inside Cursor; follow 06 §6 checklist (type during turns, resize pane, Ctrl+C at idle and mid-turn, Esc, trigger a Bash permission prompt with default mode, paste Unicode/emoji).
@@ -21,6 +24,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **DoD:** + `evidence/s-01-cursor/RESULT.md` with versions (Cursor, Claude Code, macOS).
 
 ### ST-0.2 Work-in-flight spike (S-02) — S
+- **Status:** Solved (M0; evidence/s-02-work-in-flight).
 - **Cites:** SPIKE-05, FR-04, AC-07.
 - **Scope:** Observe Stop/`$.agent.list()` with a background shell and a background subagent.
 - **Approach:** Extend spike mod: log `background_tasks`, `session_crons`, `$.agent.list()` at Stop; prompt starts `sleep 45 &` via Bash `run_in_background` and a background Agent.
@@ -30,6 +34,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **DoD:** + RESULT.md incl. exact field shapes.
 
 ### ST-0.3 Soft-quiesce spike (S-03) — S
+- **Status:** Solved (M0; evidence/s-03-soft-quiesce).
 - **Cites:** FR-04.
 - **Scope:** Measure whether a hidden `$.session.append` note mid-turn makes Claude stop soon.
 - **Approach:** Long multi-file fixture prompt; at first `tool.call` result after a fake threshold, append note; count further tool calls; 5 runs.
@@ -39,6 +44,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **DoD:** + RESULT.md with counts.
 
 ### ST-0.4 `/clear` carry-over spike (S-04) — S
+- **Status:** Solved (M0; evidence/s-04-clear-carryover).
 - **Cites:** SPIKE-06, FR-08.
 - **Scope:** `--add-dir`, session-granted permission, plan mode, session cron across `/clear`.
 - **Approach:** Spike mod logs `permission_mode`; probe add-dir by asking Claude to read a file there; grant "yes, for this session" on a Bash command then repeat it after rotation; create a cron with `/loop`.
@@ -48,6 +54,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **DoD:** + RESULT.md.
 
 ### ST-0.5 Handover size and parse spike (S-05) — M
+- **Status:** Solved (M0; evidence/s-05-handover-size-parse).
 - **Cites:** FR-06, FR-07, AC-08.
 - **Scope:** Deliverability of 4K/12K/30K-char `additionalContext`; parse rate of draft template.
 - **Approach:** Inject marker text at end of each payload and ask the model to quote it; run draft instruction (ST-3.4) 10× on fixture repo with a throwaway parser.
@@ -57,6 +64,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **DoD:** + RESULT.md, chosen channel recorded in ADR-003.
 
 ### ST-0.6 Status coexistence and queued input spike (S-06) — S
+- **Status:** Solved (M0; evidence/s-06-status-queued-input).
 - **Cites:** FR-17, §4.3, ADR-010.
 - **Scope:** `$.ui.status` next to a custom `statusLine`; typed prompt during queued rotation; modal dialog during rotation; per-plugin data dir discovery (`$.env.get` candidates).
 - **Approach:** spike mod variants with PTY driver.
@@ -66,6 +74,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **DoD:** + RESULT.md.
 
 ### ST-0.7 ADR sign-off and upstream confirmation — S
+- **Status:** Solved for ADR sign-off (D-15); upstream question drafted, not posted (Q-1).
 - **Cites:** PRD §15 DoR.
 - **Scope:** Maintainer review of ADR-001…010 and proposed PRD changes; open a GitHub discussion asking whether plugin-invoked `/clear` is supported.
 - **Depends on:** ST-0.1…0.6.
@@ -78,6 +87,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 ## E1 — Foundation
 
 ### ST-1.1 Repo scaffold, toolchain and CI — M
+- **Status:** Solved (f1f05c2); CI config written but never run (no remote).
 - **Cites:** FR-15, NFR-07, AC-21.
 - **Scope:** Layout per 02 §3; `package.json` (devDeps: `typescript` only), `tsconfig.json` (strict, `noUncheckedIndexedAccess`, mod JSX settings from the types header), `.gitignore`, `npm run typecheck|lint|test|test:mod|validate`; lint = `tsc --noEmit` + a tiny custom check script (no ESLint dependency; revisit if contributors ask). GitHub Actions: macOS + Linux, Node 22, lockfile install, minimal `permissions: contents: read`.
 - **Approach:** Node `node --test --experimental-strip-types tests/unit` for core; `claude plugin test .` job only where Claude Code is installable in CI (see ST-8.3).
@@ -88,6 +98,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **DoD:** + CONTRIBUTING stub with commands.
 
 ### ST-1.2 Domain types, reason codes, schemas and migrations — M
+- **Status:** Solved (112e391).
 - **Cites:** NFR-07, NFR-09, §8.
 - **Scope:** `types.ts` (states, reason codes, Task, TaskRevision, State, Rotation, Event, Config), `schema.ts` guards for every persisted file, `migrate(json)` pipeline, `SCHEMA_TOO_NEW`.
 - **Approach:** hand-written guards returning `{ ok, value } | { ok: false, errors[] }` with path-qualified messages.
@@ -97,6 +108,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **DoD:** standard.
 
 ### ST-1.3 Storage: state root, serial queue, immutable writes — M
+- **Status:** Solved (541b645, ccaec06); AC 1 engine-level test closed in ST-2.4 (bac704b).
 - **Cites:** FR-07, FR-13, NFR-04; ADR-005.
 - **Scope:** resolve state root (config override → per-plugin dir if S-06 found one → OS default); create with user-only perms; `StorageQueue` serialising all writes; `writeImmutable(path, text)` = refuse if exists, write, read back, compare SHA-256.
 - **Approach:** `$.fs.write/read/exists`, `crypto.subtle.digest`; `$.process.run(['chmod','700',dir])` once.
@@ -107,6 +119,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **DoD:** + A-05 retired in 01.
 
 ### ST-1.4 Atomic pointer swap and lock — M
+- **Status:** Solved (1670220).
 - **Cites:** FR-07, FR-12, FR-13; ADR-005.
 - **Scope:** `writeState()` via tmp + verify + `mv -f`; `acquireLock()` via `mkdir lock.d`; `owner.json`; heartbeat every 30 s; `isStale(120 s)`; `release()`; `takeover()` (re-check staleness first).
 - **Depends on:** ST-1.3.
@@ -115,6 +128,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **DoD:** + A-04 retired.
 
 ### ST-1.5 Event log with redaction — S
+- **Status:** Solved (63200c4).
 - **Cites:** FR-14, FR-16, NFR-05, NFR-10.
 - **Scope:** `appendEvent(e)` through the queue; file roll at 1 MiB; `detail` passed through `redact()` (ST-3.7 provides full patterns; this story ships a minimal version).
 - **Depends on:** ST-1.3.
@@ -123,6 +137,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **DoD:** standard.
 
 ### ST-1.6 Project/task identity and git facts — M
+- **Status:** Solved (bab8dca).
 - **Cites:** FR-06, FR-13, §10 multi-worktree.
 - **Scope:** `projectId` from `git rev-parse --git-common-dir` + `--show-toplevel` realpaths; non-git directories supported (projectId from cwd realpath, git facts "none"); `gitFacts()` = branch, HEAD, porcelain status, worktree, files changed since `taskStartHead`.
 - **Approach:** `$.process.run(['git', ...], { cwd, timeoutMs: 10000 })`; parse porcelain v1.
@@ -133,6 +148,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **DoD:** standard.
 
 ### ST-1.7 State machine reducer and invariants — L
+- **Status:** Solved (8544bc2).
 - **Cites:** §7, FR-03, FR-12; NFR-04, NFR-07.
 - **Scope:** `reduce(state, input, now) → { state, effects[] }` implementing the table in 02 §4 (all rows; inputs not yet produced by adapters are still unit-testable); effects carry dedupe keys.
 - **Depends on:** ST-1.2.
@@ -141,6 +157,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **DoD:** + state diagram in docs generated from the table (Mermaid).
 
 ### ST-1.8 Engine port, mod adapter, register wiring, capability probe — M
+- **Status:** Solved (ce192a1; probe per ADR-002 A1 / D-16).
 - **Cites:** FR-01, NFR-06; ADR-002, ADR-008.
 - **Scope:** `ports.ts`, `engine-mod.ts`, `effects.ts`, `probe.ts`; `register.ts` subscribes to all events used later but forwards only `session.start` for now; probe result stored and shown.
 - **Approach:** version check via `$.session.version()`; feature checks by harmless calls (not `typeof`: the 2.1.319 scanner refuses `$` nouns as values; ADR-002 A1); supported range constant.
@@ -150,6 +167,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **DoD:** standard.
 
 ### ST-1.9 `/relay` router, `status`, `help` — S
+- **Status:** Solved (e3367c2).
 - **Cites:** §4.2, FR-14.
 - **Scope:** register `relay` (fallback `sessionrelay` on collision); parse subcommands; unknown subcommand → help; `status` shows mode, task, state, context (or unknown), threshold, rotation count, last success/error, state path.
 - **Depends on:** ST-1.8.
@@ -162,6 +180,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 ## E2 — Managed task and monitoring
 
 ### ST-2.1 `/relay on|off` and verbatim task capture — M
+- **Status:** Solved (e9ab583, review fixes 92f7941).
 - **Cites:** FR-05, §4.4, AC-03; ADR-009.
 - **Scope:** `/relay on [goal]`; capture next composer prompt verbatim if no goal; create task dir, `task-rev-001.md`, `state.json` (MONITORING), lock; `/relay off` → DISABLED, lock released, files kept.
 - **Approach:** `prompt.submit` hook with `origin.kind === 'composer'` while `awaitingGoal`; pass prompt through unchanged; slash commands ignored for capture.
@@ -171,6 +190,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **DoD:** + first-activation notice hook point (text in ST-7.3).
 
 ### ST-2.2 Task revisions, DoD and verification commands — M
+- **Status:** Solved (3c2a5a2, review fixes 92f7941).
 - **Cites:** FR-05, FR-10; ADR-007.
 - **Scope:** `/relay dod <text>` and `/relay check <command>` append a new revision (never mutate); `/relay task` prints original vs current; revisions only from user commands, never from model text.
 - **Depends on:** ST-2.1.
@@ -179,6 +199,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **DoD:** standard.
 
 ### ST-2.3 Context reading adapter — S
+- **Status:** Solved (bd666b0); A-02 subagent check stays in ST-4.8.
 - **Cites:** FR-02, AC-04, AC-06.
 - **Scope:** on `session.measure` (main thread) read `$.session.usage().context`; map missing `percent` → `unknown`; store `lastContext` with timestamp; staleness = reading older than the last turn → unknown.
 - **Depends on:** ST-1.8.
@@ -187,6 +208,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **DoD:** + A-02 test hook (subagent run doesn't move reading) scheduled in ST-4.8.
 
 ### ST-2.4 Threshold trigger, warning, hysteresis, `/relay threshold` — M
+- **Status:** Solved (bac704b).
 - **Cites:** FR-03, AC-05.
 - **Scope:** core `threshold.ts`: trigger at `p ≥ T` once per session (`armedFired`); warn once at `T−5`; rearm only after a fresh reading `< T−10` in a new session; `/relay threshold <n>` integer 20–90, else error with range.
 - **Depends on:** ST-2.3, ST-1.7.
@@ -195,6 +217,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **DoD:** standard.
 
 ### ST-2.5 Pause and resume — S
+- **Status:** Solved (42b42c8, review fixes 92f7941); resume after a user /clear waits for ST-4.3.
 - **Cites:** FR-11, AC-14.
 - **Scope:** `/relay pause|resume`; persisted in `state.json`; survives restart; pause during `ROTATION_REQUESTED/QUIESCING` cancels the pending rotation (not after handover persisted — then pause applies after continuation).
 - **Depends on:** ST-2.4.
@@ -440,6 +463,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **DoD:** standard.
 
 ### ST-7.3 First-activation notice and message catalogue — S
+- **Status:** Solved (4e2b542).
 - **Cites:** §4.1, AC-23.
 - **Scope:** first `/relay on` per machine: 3-line notice (state stored locally at <path>, a fresh conversation will be started automatically, how to pause); all messages in `ui.ts` catalogue with codes.
 - **Depends on:** ST-2.1.

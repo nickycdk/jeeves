@@ -7,6 +7,7 @@ Dependency order: E0 → E1 → E2 → E3 → E4 → E5 → (E6, E7 in parallel)
 ---
 
 ## E0 — Feasibility closeout (P0)
+- **Status:** Solved (M0 gate passed, D-15).
 - **Goal:** Retire the remaining unknowns before any product code; freeze ADR-001.
 - **Scope:** Spikes S-01…S-06 (01 §4); maintainer sign-off on ADRs. **Out:** product code.
 - **User value:** Guarantees the "full auto" claim is true before work starts (AC-25).
@@ -16,6 +17,7 @@ Dependency order: E0 → E1 → E2 → E3 → E4 → E5 → (E6, E7 in parallel)
 - **Artifact:** evidence folder + signed ADR list.
 
 ## E1 — Foundation: core, storage, adapter skeleton (P0)
+- **Status:** Solved (M1 gate passed; CI never run, no remote).
 - **Goal:** Buildable, testable plugin skeleton with pure core and safe persistence.
 - **Scope:** repo scaffold, CI, domain types, state machine reducer, schemas/migrations, storage (serial queue, atomic swap, immutable files, lock, events), git facts, capability probe, `/relay status|help`.
 - **User value:** Nothing visible yet beyond `/relay status`; foundation for every guarantee.
@@ -25,6 +27,7 @@ Dependency order: E0 → E1 → E2 → E3 → E4 → E5 → (E6, E7 in parallel)
 - **Artifact:** CI run, `claude plugin test` report, status screenshot.
 
 ## E2 — Managed task and context monitoring (P0)
+- **Status:** Solved (M2 gate passed; evidence/m2-demo).
 - **Goal:** Opt-in task with immutable original goal; correct context readings and threshold trigger.
 - **Scope:** `/relay on|off|threshold|pause|resume`, task capture and revisions, DoD/verification commands entry, `session.measure` handling, warnings, hysteresis, unknown handling, rate-limit separation.
 - **User value:** User can turn SessionRelay on in one command and see accurate context status.
@@ -68,6 +71,7 @@ Dependency order: E0 → E1 → E2 → E3 → E4 → E5 → (E6, E7 in parallel)
 - **Artifact:** crash-matrix report, concurrency test report.
 
 ## E7 — Terminal UX and controls (P0)
+- **Status:** Open. ST-7.3 solved in M2; ST-7.1, ST-7.2 open.
 - **Goal:** Discreet, accessible status and clear messages.
 - **Scope:** status entry, transition toasts/log lines, narrow-width strings, no-emoji/no-colour-only, `/relay history`, first-activation notice, help text, error copy.
 - **Dependencies:** E2 (can run alongside E3–E6). **Risks:** R-14.

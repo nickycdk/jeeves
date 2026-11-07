@@ -4,7 +4,7 @@
 
 ## 1. Where things stand
 
-M2 (ST-2.1 … ST-2.5, ST-7.3) is implemented, one commit per story. Checks: typecheck ok, lint ok, 103 unit tests, 40 mod tests, `validate --strict` passes. Live demo: `evidence/m2-demo/RESULT.md` (2 runs, $0.07 each).
+M2 (ST-2.1 … ST-2.5, ST-7.3) is implemented, one commit per story. Checks: typecheck ok, lint ok, 103 unit tests, 44 mod tests, `validate --strict` passes. Live demo: `evidence/m2-demo/RESULT.md` (2 runs, $0.07 each).
 
 ```
 e9ab583 ST-2.1 on/off + verbatim capture    42b42c8 ST-2.5 pause/resume
@@ -34,7 +34,7 @@ bac704b ST-2.4 threshold + test override
 
 - D-17, D-18 (07 §2) await the maintainer.
 - `/relay on <goal>` submission is tested only under `claude plugin test`, not live.
-- A capture whose rev file was written but whose state write then failed leaves rev 0 with an existing `task-rev-001.md`; the next capture then logs IMMUTABLE_EXISTS. Disk-error recovery is ST-6.5.
+- Review fixes (`92f7941`): a user `/clear` now pauses the task (USER_CLEAR) and releases the old id's lock; a leftover revision file is adopted on retry; `resume` writes nothing without the lock. `/relay resume` after a user `/clear` refuses until ST-4.3 builds the restore path (marked `shortcut:` in `commands.ts`).
 - `/relay resume` cannot adopt a MONITORING task left by a crashed session (only PAUSED ones). Recovery is ST-6.1.
 - `projectTasks` reads every task's `state.json` per hook call (marked `shortcut:`).
 - Carried from M1: A-05 (real OS state root write, needs OK), CI never run, port reuse across hooks (still worked live in M2).

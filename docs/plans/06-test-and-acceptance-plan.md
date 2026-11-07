@@ -35,6 +35,8 @@ Built by `fixtures/build-repo.ts` into a temp dir per test (never committed stat
 
 ## 3. Acceptance criteria → tests
 
+**Status (2026-11-07, after M2):** passing: AC-04 (I), AC-05 (U, I), AC-06 (U, I), AC-14 (U, I), AC-03 (I layer; its E-layer session run is still open). Status shows "unknown" rather than "?" for AC-06 (D-17). Every other AC is open.
+
 | AC | Requirement (short) | Primary test(s) | Layer | Evidence |
 |---|---|---|---|---|
 | AC-01 | Install on clean macOS, no service/API key | Quickstart on fresh macOS user account; timed | M (+ P for settings diff) | recording + timing |

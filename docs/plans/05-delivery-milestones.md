@@ -15,6 +15,15 @@ Estimates use story midpoints (S 0.5 d, M 1.5 d, L 3.5 d), one developer.
 | **M6** | UX & distribution | ST-7.1, ST-7.2, ST-8.1 … ST-8.4 | 7 d | AC-01, AC-02 (manual), AC-20, AC-21, AC-22 evidence; install < 5 min on clean user | Clean-machine install → first rotation |
 | **M7** | Public beta | ST-9.1 … ST-9.3 | 4.5 d | Every AC pass/fail/not-supported with evidence; security review no Critical/High; real Cursor two-rotation demo; maintainer sign-off; v0.1.0 released | Release + demo video |
 
+## Status (2026-11-07)
+
+| M | Status | Evidence |
+|---|---|---|
+| M0 | Solved | `evidence/s-0*`, D-15 |
+| M1 | Solved (CI never run: no remote) | `handoff-m1.md`, `evidence/m1-relay-status/` |
+| M2 | Solved | `handoff-m2.md`, `evidence/m2-demo/`; 103 unit + 44 mod tests |
+| M3 … M7 | Open | — |
+
 Total ≈ 73 engineer-days, matching the backlog. ST-7.3 is scheduled in M2 because the first-activation notice ships with `/relay on`.
 
 ## Critical path
