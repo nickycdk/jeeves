@@ -51,6 +51,11 @@ export type Input =
   | { type: 'COMPLETE_BLOCK'; commands: string[]; blockers: string[] }
   /** `/relay done`: the user confirms a completion Jeeves could not verify (ADR-007). */
   | { type: 'DONE_CMD'; sessionId: string }
+  /**
+   * `/relay recover` (ST-6.1, 02 §8): this session took the lock of a task no live session runs and continues it here
+   * (restore path). `adopt`: the interrupted rotation's saved handover, recorded now (its state swap never happened).
+   */
+  | { type: 'RECOVER'; sessionId: string; adopt?: string }
 
 export type InputType = Input['type']
 
@@ -103,6 +108,10 @@ export function stopFailureCode(error: string): ReasonCode {
     default: return 'API_ERROR'
   }
 }
+
+/** A task `/relay recover` may continue: active, blocked, or stopped because its state.json had to be rebuilt. */
+export const recoverable = (s: State) =>
+  ACTIVE(s.status) || s.status === 'BLOCKED' || (s.status === 'NEEDS_REVIEW' && s.reason === 'STATE_CORRUPT')
 
 /** What the user should do about each StopFailure code (ST-6.2, AC-23). Jeeves never retries by itself. */
 export function stopFailureText(code: ReasonCode, error: string, resetsAt?: string): string {
@@ -527,6 +536,22 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
       }
       go('NEEDS_REVIEW', 'DOD_UNMET', { rotation: null }, `missing: ${missing.join('; ')}`)
       effects.push({ type: 'TOAST', key: key('dod'), text: `Not marked done: ${missing.length} check(s) missing or failing. /relay status shows the task; /relay done confirms by hand.` })
+      return done()
+    }
+
+    case 'RECOVER': {
+      if (!recoverable(state)) return ignore('nothing to recover')
+      // A new rotation keyed by its own id: a second /relay recover finds RESTORING/CONTINUING owned by this session.
+      const rotation: Rotation = {
+        rotationId: ctx.newRotationId, trigger: 'MANUAL', requestedAt: at, sourceSessionId: state.activeSessionId,
+        targetSessionId: input.sessionId, step: 'RESTORED', retries: 0, quiesceCount: 0, noteAppended: false,
+      }
+      const from = input.adopt ?? state.lastValidatedHandover
+      go('RESTORING', 'STALE_LOCK', {
+        rotation, activeSessionId: input.sessionId, sessionStart: { at, pct: null }, armedFired: false, pauseRequested: false,
+        completionAsked: false, lastValidatedHandover: from,
+      }, `recovered by /relay recover from ${state.status}${from ? ` with ${from.split('#')[0]}` : ' with no handover'}`)
+      effects.push({ type: 'INJECT_CONTEXT', key: key('RESTORED'), via: 'prompt' })
       return done()
     }
 

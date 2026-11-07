@@ -49,6 +49,8 @@ export type ContinuationInput = {
   heldPrompts: readonly string[]
   /** Restore path (no /clear, no SessionStart): the context goes into the prompt itself (ADR-003). */
   context?: string
+  /** `/relay recover` after the previous session stopped unexpectedly: work after the handover may exist (02 §8). */
+  gap?: boolean
 }
 
 /** The prompt Jeeves submits in the fresh conversation: what is built, where to pick up, and the user's held messages. */
@@ -82,6 +84,10 @@ export function continuationPrompt(c: ContinuationInput): string {
     ...(c.context ? [c.context, '', '---', ''] : []),
     `Jeeves: you are session ${c.session} of managed task ${c.taskId}. The previous conversation was cleared to free context. The original task${c.handoverFile ? ` and the latest validated handover (${c.handoverFile})` : ''} are in your context.`,
     '',
+    ...(c.gap ? [
+      `Jeeves recovered this task: the previous session stopped unexpectedly${c.handoverFile ? ` after ${c.handoverFile} was written` : ''}. Work done after that may exist and is not described here. Before acting, compare the repository with the handover: run git status and git log, read any changed files, and do not redo work that is already there.`,
+      '',
+    ] : []),
     ...built,
     ...held,
   ].join('\n')

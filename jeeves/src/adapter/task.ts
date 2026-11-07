@@ -24,20 +24,26 @@ const ENDED = new Set<State['status']>(['DISABLED', 'COMPLETED', 'FAILED'])
 const random6 = () => crypto.getRandomValues(new Uint8Array(6))
 const recentFirst = (a: Task, b: Task) => b.state.updatedAt.localeCompare(a.state.updatedAt)
 
-/** Every readable task of this project, most recently updated first; unreadable ones as errors. */
-export async function projectTasks(rt: Runtime): Promise<{ tasks: Task[]; errors: string[] }> {
-  if (!rt.projectDir) return { tasks: [], errors: [] }
+/** A task folder whose state.json cannot be used: unreadable or invalid, or written by a newer Jeeves (`tooNew`). */
+export type Broken = { dir: string; name: string; tooNew: boolean }
+
+/** Every readable task of this project, most recently updated first; unreadable ones as errors (and in `broken`). */
+export async function projectTasks(rt: Runtime): Promise<{ tasks: Task[]; errors: string[]; broken: Broken[] }> {
+  if (!rt.projectDir) return { tasks: [], errors: [], broken: [] }
   // shortcut: reads every task's state.json per call; cache the owned task's folder if task counts grow large.
   const tasksDir = join(rt.projectDir, 'tasks')
-  const tasks: Task[] = [], errors: string[] = []
+  const tasks: Task[] = [], errors: string[] = [], broken: Broken[] = []
   for (const name of await rt.port.listDirs(tasksDir)) {
     const dir = join(tasksDir, name)
     const r = await rt.storage.readState(dir).catch(err => ({ ok: false as const, errors: [String(err)] }))
     if (r === null) continue
     if (r.ok) tasks.push({ state: r.value, dir })
-    else errors.push(`${name}: ${r.errors[0] ?? 'invalid'}`)
+    else {
+      errors.push(`${name}: ${r.errors[0] ?? 'invalid'}`)
+      broken.push({ dir, name, tooNew: 'code' in r && r.code === 'SCHEMA_TOO_NEW' })
+    }
   }
-  return { tasks: tasks.sort(recentFirst), errors }
+  return { tasks: tasks.sort(recentFirst), errors, broken }
 }
 
 /** The task this session owns and that has not ended (not off, completed or failed), if any. */
@@ -360,7 +366,7 @@ export async function taskSection(rt: Runtime): Promise<string | null> {
 export const why = (err: unknown) => (err instanceof Error ? err.message : String(err)).slice(0, 200)
 
 /** The next unused `history/handover-NNN.md` (write-once: a number is never reused). */
-async function nextHandoverNumber(rt: Runtime, dir: string): Promise<number> {
+export async function nextHandoverNumber(rt: Runtime, dir: string): Promise<number> {
   let n = 1
   while (await rt.port.exists(join(dir, handoverFile(n)))) n++
   return n
@@ -456,11 +462,11 @@ async function contextFor(rt: Runtime, dir: string, s: State, h: Latest): Promis
 }
 
 /** The continuation prompt (ST-4.3, D-23): generated from the validated handover, plus the prompts held during rotation. */
-function continuationFor(s: State, h: Latest, held: readonly string[], context?: string): string {
+function continuationFor(s: State, h: Latest, held: readonly string[], context?: string, gap?: boolean): string {
   const parsed = h.text ? parseHandover(h.text) : null
   return continuationPrompt({
     taskId: s.taskId, session: s.sessionSequence + 1, handoverFile: h.file, narrative: parsed?.ok ? parsed.value : null,
-    changedFiles: h.text ? changedFiles(h.text) : null, heldPrompts: held, ...(context ? { context } : {}),
+    changedFiles: h.text ? changedFiles(h.text) : null, heldPrompts: held, ...(context ? { context } : {}), ...(gap ? { gap } : {}),
   })
 }
 
@@ -542,18 +548,19 @@ async function continueFresh(rt: Runtime, dir: string): Promise<void> {
  * Restore path (02 §5.3, ADR-003): this conversation is already fresh (the user's /clear), so `input` (RESUME after
  * USER_CLEAR, or CONTINUE_CMD in assisted mode) moves the task to RESTORING and the context goes into the continuation prompt itself. The lock must
  * already be this session's. 'unverified': the saved handover cannot be verified, so nothing changed.
+ * `gap` (recovery): work after the handover may exist; `adopt`: the handover ref to use in place of the state's.
  */
-export async function restoreHere(rt: Runtime, dir: string, input: Input): Promise<'restored' | 'unverified' | null> {
+export async function restoreHere(rt: Runtime, dir: string, input: Input, opts: { gap?: boolean; adopt?: string | null } = {}): Promise<'restored' | 'unverified' | null> {
   const before = await rt.storage.readState(dir)
   if (!before?.ok) return null
-  const h = await latestHandover(rt, dir, before.value)
+  const h = await latestHandover(rt, dir, opts.adopt ? { ...before.value, lastValidatedHandover: opts.adopt } : before.value)
   if (!h.ok) return 'unverified'
   const r = await apply(rt, dir, input)
   if (!r?.forHook.some(f => f.type === 'INJECT_CONTEXT')) return null
   const ready = await apply(rt, dir, { type: 'CONTEXT_READY' })
   const submit = ready?.forHook.find(f => f.type === 'SUBMIT_CONTINUATION')
   if (!ready || submit?.type !== 'SUBMIT_CONTINUATION') return null
-  const text = continuationFor(ready.state, h, submit.heldPrompts, await contextFor(rt, dir, ready.state, h))
+  const text = continuationFor(ready.state, h, submit.heldPrompts, await contextFor(rt, dir, ready.state, h), opts.gap)
   // A command.run hook may not submit (D-19): it goes out once the hook has returned.
   rt.port.submitPromptSoon(text, err => {
     rt.port.log(`jeeves: continuation rejected: ${why(err)}`)

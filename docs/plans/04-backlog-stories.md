@@ -407,6 +407,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 ## E6 — Recovery and safety
 
 ### ST-6.1 Recovery classifier and `/relay recover` — L
+- **Status:** Solved (M5; `src/core/recovery.ts`, `src/adapter/recover.ts`; `tests/unit/recovery.spec.ts` one test per 02 §8 row, `tests/mod/recover.test.ts`). Per the maintainer (2026-11-07) the handover goes into the continuation prompt's text (ADR-003 channel note, D-13), not `$.session.append`. Readings: a MONITORING task whose session crashed or exited is recoverable too (carried "MONITORING crash adoption"); a VALIDATING task whose handover file was saved adopts it (carried "VALIDATING left standing"); a lock owned by a session this process ended can be taken at once (a `/clear` that never brought its SessionStart); `autoRecover` is a `userConfig` row. Startup notice also names a task another session holds. REPO_MISMATCH row: ST-6.5.
 - **Cites:** FR-12, AC-16; Flow E; 02 §8.
 - **Scope:** `recovery.ts` maps on-disk state → action (table in 02 §8); `session.start` scan shows notice; `/relay recover` executes (takeover lock, inject last validated handover via `$.session.append`, continuation prompt noting possible gap); `autoRecover` option.
 - **Depends on:** ST-4.3, ST-1.4.

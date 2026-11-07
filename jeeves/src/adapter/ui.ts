@@ -1,5 +1,6 @@
 // User-facing strings (FR-14, NFR-08): plain ASCII, text labels, <= 40 columns, <= 8 lines for status.
 import type { Probe } from '../core/probe.ts'
+import { recoverable } from '../core/machine.ts'
 import { INERT, type ReasonCode, type State } from '../core/types.ts'
 
 export const WIDTH = 40
@@ -60,6 +61,7 @@ export const HELP = [
   'resume        allow the handover again',
   'rotate        hand over now',
   'continue      after /clear (assisted)',
+  'recover       continue a stopped task',
   'done          confirm the task is done',
   'threshold <n> hand over at n% (20-90)',
   'task          original task + changes',
@@ -88,7 +90,16 @@ export const MSG = {
     : 'Jeeves could not tell which project this is (git did not answer). Try again.',
   alreadyOn: (s: State) => `Already on: task ${s.taskId} (${s.status}). /relay status shows it.`,
   lockHeld: (taskId: string) => `Another running session owns task ${taskId} here (LOCK_HELD). /relay status shows it read-only.`,
-  leftBehind: (s: State) => `Task ${s.taskId} from an earlier session is ${s.status} here. ${s.status === 'PAUSED' ? '/relay resume continues it, or ' : ''}/relay off ends it.`,
+  leftBehind: (s: State) => `Task ${s.taskId} from an earlier session is ${s.status} here. ${s.status === 'PAUSED' ? '/relay resume continues it, or ' : recoverable(s) ? '/relay recover continues it here, or ' : ''}/relay off ends it.`,
+  interrupted: (taskId: string, status: string) => `Task ${taskId} was left ${status} by an earlier session. /relay recover continues it here.`,
+  corrupt: (taskId: string) => `Task ${taskId}: its state.json is unreadable. /relay recover rebuilds it from the task's files (nothing is deleted).`,
+  recovered: (taskId: string, rebuilt: boolean) => `Recovering task ${taskId} here${rebuilt ? ' (state.json rebuilt; the old file is kept)' : ''}: Jeeves sends the task and its last validated handover as the next prompt.`,
+  recoverHeld: (taskId: string, wait: number | null) => `Another session owns task ${taskId} and is still running (LOCK_HELD), so nothing was changed.${wait !== null ? ` If that session is gone, try again in ${wait} s.` : ''}`,
+  heldElsewhere: (taskId: string, status: string) => `Task ${taskId} is ${status} in another session. If that session stopped, /relay recover takes it over once it has been silent for 2 minutes.`,
+  recoverMine: 'This session runs the task already: nothing to recover. /relay status shows it.',
+  recoverTooNew: (taskId: string) => `Task ${taskId} was saved by a newer Jeeves (SCHEMA_TOO_NEW). Update Jeeves; nothing was changed.`,
+  recoverPaused: 'The task is paused, not interrupted: /relay resume continues it.',
+  nothingToRecover: 'Nothing to recover: no task here was interrupted. /relay status shows the task.',
   restored: (taskId: string) => `Continuing task ${taskId} here: Jeeves sends the task and its latest handover as the next prompt.`,
   rotateRequested: 'Handover requested: Jeeves asks Claude for it at the next safe stop, then starts a fresh conversation.',
   notRotatable: (status: string) => `No handover now: the task is ${status}. /relay status shows why.`,

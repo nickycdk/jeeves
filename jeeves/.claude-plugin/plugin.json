@@ -12,6 +12,12 @@
       "title": "State folder",
       "description": "Absolute path where Jeeves keeps task state and handovers. Empty uses the OS default (macOS: ~/Library/Application Support/Jeeves). Never inside a repository unless you set it here.",
       "default": ""
+    },
+    "autoRecover": {
+      "type": "boolean",
+      "title": "Recover by itself",
+      "description": "At session start, continue a task that an earlier session left interrupted (as /relay recover would), without asking. Off by default.",
+      "default": false
     }
   }
 }

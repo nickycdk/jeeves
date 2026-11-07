@@ -170,6 +170,7 @@ States (PRD §7 plus explicit `QUIESCING` substates kept as data): `DISABLED, MO
 | MONITORING/CONTINUING | COMPLETE block | evidence missing | NEEDS_REVIEW(DOD_UNMET) | list missing checks |
 | any | `/relay off` | — | DISABLED | state kept, lock released |
 | any | session.end(clear) | not ROTATING | PAUSED(USER_CLEAR) | — |
+| any active/BLOCKED/NEEDS_REVIEW | `/relay recover` (ST-6.1) | lock free, stale or ended by this process; NEEDS_REVIEW only for STATE_CORRUPT | RESTORING | new MANUAL rotation, restore path (context in the prompt), gap note when work after the handover may exist |
 
 **Invariants (enforced in `machine.ts`, property-tested):** ≤ 1 active rotation per task; `rotationId`, `sourceSessionId`, `targetSessionId` immutable once set; handover persisted and verified before `runCommand('clear')`; every effect carries a dedupe key `rotationId:step`; no auto-rotation from `DISABLED/PAUSED/BLOCKED/NEEDS_REVIEW/FAILED/COMPLETED`; state changes driven by LLM text only through parsed blocks that pass machine checks; rate-limit and threshold reasons are distinct codes; loop guard as above.
 

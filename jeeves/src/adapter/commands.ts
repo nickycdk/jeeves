@@ -4,6 +4,7 @@ import { taskText } from '../core/task.ts'
 import type { State } from '../core/types.ts'
 import type { Runtime } from './runtime.ts'
 import { addRevision, apply, claim, heldByOther, liveTask, ownTask, projectTasks, readTask, nudgeIfWaiting, restoreHere, startTask, takeLock, type Task } from './task.ts'
+import { recover } from './recover.ts'
 import { firstActivationText, HELP, MSG, statusText } from './ui.ts'
 
 export const PLUGIN = 'jeeves'
@@ -29,7 +30,7 @@ export function pickTask<T extends { state: State }>(tasks: T[], sessionId: stri
  */
 export type Caller = { userTyped: boolean; idle?: boolean; endedHere: ReadonlySet<string> }
 
-const CHANGES = new Set(['on', 'off', 'dod', 'check', 'threshold', 'pause', 'resume', 'continue', 'rotate', 'done'])
+const CHANGES = new Set(['on', 'off', 'dod', 'check', 'threshold', 'pause', 'resume', 'continue', 'rotate', 'done', 'recover'])
 
 export async function relay(rt: Runtime, args: string, caller: Caller): Promise<string> {
   const m = /^\s*(\S*)\s?([\s\S]*)$/.exec(args)!
@@ -64,6 +65,7 @@ export async function relay(rt: Runtime, args: string, caller: Caller): Promise<
     case 'continue': return continueHere(rt, tasks, me, caller.endedHere)
     case 'rotate': return rotate(rt, tasks, me, caller.idle === true)
     case 'done': return confirmDone(rt, tasks, me, caller.endedHere)
+    case 'recover': return recover(rt, me, caller.endedHere)
     default: return revise(rt, tasks, me, sub as 'dod' | 'check', rest)
   }
 }

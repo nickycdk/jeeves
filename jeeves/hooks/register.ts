@@ -2,6 +2,7 @@
 import type { CommandRunInput, EngineInterface, Register, Timer, ToolCallInput, ToolCallResult } from 'claude-code'
 import type { ToolOutcome } from '../src/core/evidence.ts'
 import { chooseCommandName, FALLBACK, PRIMARY, relay } from '../src/adapter/commands.ts'
+import { recover, recoveryNotice } from '../src/adapter/recover.ts'
 import { runtime, type Options } from '../src/adapter/runtime.ts'
 import { captureFirstPrompt, compacted, heartbeat, managedNow, holdPrompt, measure, nudgeIfWaiting, onFreshSession, onStop, onTurnComplete, taskSection, onUserClear, recordTool, releaseOnExit, stopFailure, why } from '../src/adapter/task.ts'
 import { HEARTBEAT_MS } from '../src/core/lock.ts'
@@ -30,7 +31,7 @@ async function quietly($: EngineInterface, opts: Options, what: string, work: (r
 }
 
 export const register: Register = (on, options) => {
-  const opts: Options = { stateDir: typeof options.stateDir === 'string' && options.stateDir ? options.stateDir : undefined }
+  const opts: Options = { stateDir: typeof options.stateDir === 'string' && options.stateDir ? options.stateDir : undefined, autoRecover: options.autoRecover === true }
   // Which name this process registered; rebuilt by session.start after a reload.
   let commandName: typeof PRIMARY | typeof FALLBACK | null = null
   let beat: Timer | null = null
@@ -42,12 +43,19 @@ export const register: Register = (on, options) => {
   on('session.start', async ($, e, next) => {
     const rt = await runtime($, opts, true)
     commandName = chooseCommandName(await $.command.list())
-    await $.command.register({ name: commandName, description: 'Jeeves: keep a long task going across fresh conversations', argumentHint: 'on [goal] | off | pause | resume | rotate | continue | threshold <n> | task | dod <text> | check <cmd> | status | help' })
+    await $.command.register({ name: commandName, description: 'Jeeves: keep a long task going across fresh conversations', argumentHint: 'on [goal] | off | pause | resume | rotate | continue | recover | threshold <n> | task | dod <text> | check <cmd> | status | help' })
     if (commandName === FALLBACK) $.ui.toast('/relay is taken by another command, so Jeeves uses /jeeves.')
     if (rt.probe.mode !== 'full' && rt.probe.message) {
       $.ui.status(rt.probe.mode === 'unsupported' ? `off: needs ${rt.probe.missing[0]}` : 'assisted mode')
       $.ui.toast(rt.probe.message)
     }
+    // ST-6.1: a task an earlier session left (crash, exit mid-rotation) is named once; autoRecover continues it.
+    await quietly($, opts, 'recovery scan', async rt => {
+      const n = await recoveryNotice(rt)
+      if (!n) return
+      if (opts.autoRecover && n.recover) rt.port.toast(await recover(rt, await rt.port.sessionId(), endedHere))
+      else rt.port.toast(n.text)
+    })
     beat?.cancel()
     beat = $.clock.every(HEARTBEAT_MS, () => void quietly($, opts, 'heartbeat', heartbeat))
     return next(e)

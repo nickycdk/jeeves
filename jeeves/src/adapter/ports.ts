@@ -14,6 +14,8 @@ export interface FsPort {
   exists(path: string): Promise<boolean>
   /** Names of the directories directly under `path`; [] when it does not exist. */
   listDirs(path: string): Promise<string[]>
+  /** Names of the files directly under `path`; [] when it does not exist. */
+  listFiles(path: string): Promise<string[]>
   /** Every symbolic link and `..` resolved; null when the path does not exist. */
   realPath(path: string): Promise<string | null>
   /** Last modification in ms, or null when the path does not exist. */

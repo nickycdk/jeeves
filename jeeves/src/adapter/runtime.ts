@@ -28,7 +28,8 @@ export type Runtime = {
   thresholdRelative: number | null
 }
 
-export type Options = { stateDir?: string | undefined }
+/** `autoRecover`: run /relay recover by itself at session start when a task waits for it (userConfig, default off). */
+export type Options = { stateDir?: string | undefined; autoRecover?: boolean }
 
 let current: Promise<Runtime> | null = null
 
