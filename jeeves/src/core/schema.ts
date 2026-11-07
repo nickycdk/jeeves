@@ -102,7 +102,7 @@ const config = obj<Config>({
 const project = obj<ProjectRecord>({ schemaVersion: ver, repoRoot: str({ nonEmpty: true }), worktree: str({ nonEmpty: true }), createdAt: iso })
 const session = obj<SessionRecord>({
   schemaVersion: ver, sessionId: str({ nonEmpty: true }), startedAt: iso, endedAt: nullable(iso),
-  endReason: nullable(str({ max: 100 })), startPct: nullable(num(0, 100)), endPct: nullable(num(0, 100)),
+  endReason: nullable(str({ max: 100 })), startPct: nullable(num(0, 100)), endPct: nullable(num(0, 100)), costUsd: { optional: num(0, 1_000_000) },
 })
 const lock = obj<LockOwner>({ schemaVersion: ver, ownerSessionId: str({ nonEmpty: true }), acquiredAt: iso, heartbeatAt: iso })
 const event = obj<EventLine>({

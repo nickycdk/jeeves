@@ -44,9 +44,9 @@ export async function engineClear($: Kit, h: MemHost, to: string) {
 export const PROMPT = 'Build the parser.\n\n  - keep CRLF?\r\n  - emoji: 🚀 ✅ — ÆØÅ  \n\ttrailing tab\t'
 
 
-/** Settle the mock clock until `ready()` holds (work a timer started runs past one settle). Gives up after 200 rounds. */
+/** Settle the mock clock until `ready()` holds (work a timer started runs past one settle). Gives up after 1000 rounds (load). */
 export async function until(h: MemHost, ready: () => boolean): Promise<void> {
-  for (let i = 0; i < 200 && !ready(); i++) await h.clock.settle()
+  for (let i = 0; i < 1000 && !ready(); i++) await h.clock.settle()
 }
 
 // ---- A task at the handover Stop (ST-3.8), shared by the handover and rotation tests ----

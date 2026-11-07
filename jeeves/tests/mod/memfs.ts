@@ -18,6 +18,8 @@ export type MemHost = {
   clock: MockClock
   /** What `$.agent.list()` answers (status only matters). */
   agents: { id: string; status: string }[]
+  /** What `$.session.usage().cost.usd` answers; absent: no cost. */
+  costUsd?: number
   /** Debug log lines (`$.ui.log`). */
   logs: string[]
   /** What `$.session.turns()` answers. */
@@ -49,7 +51,7 @@ export function memHost(on: On, env: Record<string, string> = { HOME: '/home/t' 
   on('turn.complete', (_, e) => ({ text: e.answer }))
   on('session.end', (_, e) => ({ sessionId: e.sessionId }))
   on('session.version', () => ({ value: { version: h.version } }))
-  on('session.usage', () => ({ value: { startedAt: 0, context: { ...h.usage }, rateLimits: [] } }))
+  on('session.usage', () => ({ value: { startedAt: 0, context: { ...h.usage }, rateLimits: [], ...(h.costUsd !== undefined ? { cost: { usd: h.costUsd } } : {}) } }))
   on('session.cwd', () => ({ value: '/work/proj' }))
   on('session.id', () => ({ value: h.sessionId }))
   on('session.turns', () => ({ value: h.turns }))

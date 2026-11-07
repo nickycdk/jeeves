@@ -33,6 +33,8 @@ export interface EnginePort extends FsPort {
   /** Turns in the main conversation so far (`$.session.turns()`). */
   turns(): Promise<number>
   usage(): Promise<Usage>
+  /** This conversation's cost so far in US$, or null when unknown. */
+  costUsd(): Promise<number | null>
   runCommand(name: 'clear'): Promise<void>
   /** Run `fn` once the current hook has returned (`$.clock.after`). */
   after(ms: number, fn: () => void): void

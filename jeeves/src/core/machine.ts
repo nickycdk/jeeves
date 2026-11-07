@@ -23,7 +23,8 @@ export type Input =
   | { type: 'TURN_COMPLETE'; reason: 'answer' | 'aborted' | 'refusal' | 'error'; handoverVerified?: boolean }
   /** The main loop is idle (no turn open), so no Stop will come by itself (D-23). */
   | { type: 'IDLE' }
-  | { type: 'SESSION_END'; reason: string; sessionId: string }
+  /** `costUsd`: the ending conversation's cost, when the engine gave one. */
+  | { type: 'SESSION_END'; reason: string; sessionId: string; costUsd?: number }
   /** `handoverOk`: the handover to inject was read back and matches its SHA-256 (or the task has none yet). */
   | { type: 'SESSION_START_CLEAR'; sessionId: string; handoverOk: boolean }
   | { type: 'CLEAR_FAILED' }
@@ -68,6 +69,8 @@ export type Ctx = { now: number; config: Config; newRotationId: string; threshol
 export type Output = { state: State; effects: Effect[]; ignored?: string }
 
 const ACTIVE = (s: Status) => !INERT.includes(s)
+export const LOOP_MARGIN = 10
+export const TEST_LOOP_MARGIN = 1
 export const THRESHOLD_MIN = 20
 export const THRESHOLD_MAX = 90
 export const isThreshold = (n: number) => Number.isInteger(n) && n >= THRESHOLD_MIN && n <= THRESHOLD_MAX
@@ -91,6 +94,9 @@ export const isSafe = (b: { backgroundTasks: number; runningAgents: number }) =>
 export function reduce(state: State, input: Input, ctx: Ctx): Output {
   const at = new Date(ctx.now).toISOString()
   const T = ctx.thresholdOverride ?? state.thresholdPercent
+  // Loop guard margin (02 §4: T−10). Under the test override a fresh live session already starts near 6%, so a
+  // cheap test threshold (~10%) uses a 1-point margin; real thresholds (20..90) always keep 10 (ST-4.8 reading).
+  const loopMargin = ctx.thresholdOverride === undefined ? LOOP_MARGIN : TEST_LOOP_MARGIN
   const rid = state.rotation?.rotationId ?? '-'
   const effects: Effect[] = []
   let next: State = state
@@ -165,7 +171,7 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
     }
     if (state.status === 'CONTINUING') {
       if (p === undefined) return done()
-      if (p < T - 10) {
+      if (p < T - loopMargin) {
         go('MONITORING', null, { armedFired: false, rotation: null, sessionSequence: state.sessionSequence + 1, warnedSessionId: null }, `rearmed at ${p}%`)
         return done()
       }
@@ -312,6 +318,7 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
         const record: SessionRecord = {
           schemaVersion: SCHEMA_VERSION, sessionId: input.sessionId, startedAt: state.sessionStart?.at ?? r.requestedAt, endedAt: at,
           endReason: 'clear', startPct: state.sessionStart?.pct ?? null, endPct: state.lastContext?.percent ?? null,
+          ...(input.costUsd !== undefined ? { costUsd: input.costUsd } : {}),
         }
         setRotation({ step: 'CLEARED', sourceSessionId: r.sourceSessionId ?? input.sessionId })
         effects.push({ type: 'WRITE_SESSION', key: key('session'), n: state.sessionSequence, record })

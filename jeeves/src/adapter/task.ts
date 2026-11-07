@@ -225,7 +225,8 @@ export async function releaseOnExit(rt: Runtime, sessionId: string): Promise<voi
 export async function onUserClear(rt: Runtime, oldSessionId: string): Promise<void> {
   const own = ownTask((await projectTasks(rt)).tasks, oldSessionId)
   if (!own) return
-  const r = await apply(rt, own.dir, { type: 'SESSION_END', reason: 'clear', sessionId: oldSessionId })
+  const cost = await rt.port.costUsd()
+  const r = await apply(rt, own.dir, { type: 'SESSION_END', reason: 'clear', sessionId: oldSessionId, ...(cost !== null ? { costUsd: cost } : {}) })
   if (r?.state.status === 'PAUSED' && r.state.reason === 'USER_CLEAR') await rt.storage.releaseLock(own.dir, oldSessionId)
 }
 

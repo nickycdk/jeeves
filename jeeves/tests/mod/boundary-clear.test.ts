@@ -14,6 +14,7 @@ const owner = (h: ReturnType<typeof memHost>, dir: string) => JSON.parse(h.files
 
 test('Jeeves /clear -> source recorded, sessions/001.json written, fresh session owns the task (RESTORING)', async ($, on) => {
   const { h, dir, ctl, rotationId, prompts } = await rotating($, on)
+  h.costUsd = 0.0123
   ctl.onClear = async () => { await engineClear($, h, 'sess-2') }
   await turnEnd($)
   // RESTORING lasts until /clear resolves; then the continuation moves it on (ST-4.3).
@@ -27,7 +28,7 @@ test('Jeeves /clear -> source recorded, sessions/001.json written, fresh session
   expect(events.slice(-2).map(e => [e.from, e.to, e.sessionId])).toEqual([['ROTATING', 'RESTORING', 'sess-2'], ['RESTORING', 'CONTINUING', 'sess-2']])
   expect(owner(h, dir)).toBe('sess-2')
   const rec = JSON.parse(h.files.get(`${dir}/sessions/001.json`)!)
-  expect([rec.sessionId, rec.endReason, rec.endPct, rec.startedAt <= rec.endedAt]).toEqual(['sess-test', 'clear', 52, true])
+  expect([rec.sessionId, rec.endReason, rec.endPct, rec.costUsd, rec.startedAt <= rec.endedAt]).toEqual(['sess-test', 'clear', 52, 0.0123, true])
 })
 
 test('AC 3: sessions/NNN.json is write-once: an existing file is never overwritten, the rotation still goes on', async ($, on) => {

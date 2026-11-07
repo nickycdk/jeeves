@@ -14,7 +14,8 @@
     "test": "node --test --experimental-strip-types --no-warnings \"tests/unit/**/*.spec.ts\"",
     "test:mod": "claude plugin test .",
     "validate": "claude plugin validate . --strict",
-    "docs:state": "node scripts/state-diagram.mjs"
+    "docs:state": "node scripts/state-diagram.mjs",
+    "e2e:pty": "python3 tests/pty/driver.py"
   },
   "devDependencies": {
     "typescript": "7.0.2"

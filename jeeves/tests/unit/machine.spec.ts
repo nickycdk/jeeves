@@ -573,3 +573,11 @@ test('ST-4.6: assisted mode never schedules /clear; CONTINUE_CMD only from NEEDS
   assert.equal(run(c.state, { type: 'CONTEXT_READY' }).state.status, 'CONTINUING')
   for (const x of [st('NEEDS_REVIEW', { reason: 'HANDOVER_INVALID' }), st('MONITORING'), st('PAUSED', { reason: 'USER_PAUSE' })]) assert.ok(run(x, { type: 'CONTINUE_CMD', sessionId: 'b' }).ignored)
 })
+
+test('ST-4.8 reading: the loop margin is 10 points, 1 point only under the test override', () => {
+  const s = st('CONTINUING', { rotation: rot({ step: 'CONTINUED' }) })
+  assert.equal(run(s, measure(39)).state.status, 'MONITORING')
+  assert.equal(run(s, measure(40)).state.status, 'FAILED')
+  assert.equal(run(s, measure(8), ctx({ thresholdOverride: 10 })).state.status, 'MONITORING')
+  assert.deepEqual([run(s, measure(9), ctx({ thresholdOverride: 10 })).state.status, run(s, measure(9), ctx({ thresholdOverride: 10 })).state.reason], ['FAILED', 'POSSIBLE_LOOP'])
+})

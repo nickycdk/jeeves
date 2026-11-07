@@ -139,6 +139,8 @@ export type SessionRecord = {
   endReason: string | null
   startPct: number | null
   endPct: number | null
+  /** The conversation's cost at its end (`$.session.usage().cost`; it starts over at /clear), when known. */
+  costUsd?: number
 }
 
 export type LockOwner = {
