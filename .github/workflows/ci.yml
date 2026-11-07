@@ -13,14 +13,14 @@ jobs:
     runs-on: ${{ matrix.os }}
     defaults:
       run:
-        working-directory: sessionrelay
+        working-directory: jeeves
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: sessionrelay/package-lock.json
+          cache-dependency-path: jeeves/package-lock.json
       - run: npm ci
       # lint type-checks src/core; engine types are not redistributable, so the full typecheck runs locally.
       - run: npm run lint
@@ -30,7 +30,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: sessionrelay
+        working-directory: jeeves
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

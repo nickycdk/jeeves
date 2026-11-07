@@ -1,0 +1,22 @@
+{
+  "name": "jeeves",
+  "version": "0.0.0",
+  "private": true,
+  "description": "A session-continuity plugin for Claude Code: rotates a long task into fresh conversations with a verified handover.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=22.6"
+  },
+  "scripts": {
+    "typecheck": "node scripts/typecheck.mjs",
+    "lint": "tsc -p tsconfig.core.json && node scripts/lint.mjs",
+    "test": "node --test --experimental-strip-types --no-warnings \"tests/unit/**/*.spec.ts\"",
+    "test:mod": "claude plugin test .",
+    "validate": "claude plugin validate . --strict",
+    "docs:state": "node scripts/state-diagram.mjs"
+  },
+  "devDependencies": {
+    "typescript": "7.0.2"
+  }
+}

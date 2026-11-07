@@ -7,7 +7,7 @@ SP, PLUGIN = sys.argv[1], sys.argv[2]
 OVERRIDE = sys.argv[3] if len(sys.argv) > 3 else '9'
 fresh_repo(SP, {'src/calc.js': 'export function add(a, b) { return a + b }\n', 'README.md': '# calc\n'})
 STATE = f"{SP}/state"
-c = Claude(SP, PLUGIN, [], extra_env={'SESSIONRELAY_TEST': '1', 'SESSIONRELAY_STATE_DIR': STATE, 'SESSIONRELAY_TEST_THRESHOLD_OVERRIDE': OVERRIDE})
+c = Claude(SP, PLUGIN, [], extra_env={'JEEVES_TEST': '1', 'JEEVES_STATE_DIR': STATE, 'JEEVES_TEST_THRESHOLD_OVERRIDE': OVERRIDE})
 def sq(n=4000): return re.sub(r'\s', '', c.tail(n))
 def task_dir():
     d = glob.glob(f"{STATE}/projects/*/tasks/*")
@@ -30,7 +30,7 @@ c.pump(4)
 out = {'override': OVERRIDE}
 
 c.typ('/relay on'); c.pump(1.5); c.enter()
-out['on_answered'] = c.wait(lambda: 'SessionRelayon:task' in sq(3000), 30, label='/relay on answer')
+out['on_answered'] = c.wait(lambda: 'Jeeveson:task' in sq(3000), 30, label='/relay on answer')
 c.pump(1.5)
 c.typ('Demo task: src/calc.js exports add(a, b); later we add sub and mul. For now reply with only the word OK.'); c.pump(0.8); c.enter()
 c.wait(lambda: 'percent' in ((state() or {}).get('lastContext') or {}), 120, label='first reading')

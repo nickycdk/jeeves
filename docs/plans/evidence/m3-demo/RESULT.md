@@ -17,6 +17,8 @@
 | State after | ROTATING, step HANDOVER_PERSISTED; events MONITORING > ROTATION_REQUESTED > HANDOVER_GENERATING > VALIDATING > ROTATING |
 | No `/clear` (M3 does not wire it) | PASS |
 
+After the run the product was renamed Jeeves (D-22); `drive_m3.py` now uses `JEEVES_*` variables and the `Jeeves on:` answer, while the log, result and handover below are the run as recorded (old names). Run it as `drive_m3.py <scratch> <repo>/jeeves [override]`.
+
 Files: `result-run1.json` (state and events from disk), `handover-001-run1.md` (the merged file), `driver-run1.log`. Scratch paths are replaced by `<scratch>`.
 
 ## Findings

@@ -30,7 +30,7 @@ Dependency order: E0 → E1 → E2 → E3 → E4 → E5 → (E6, E7 in parallel)
 - **Status:** Solved (M2 gate passed; evidence/m2-demo).
 - **Goal:** Opt-in task with immutable original goal; correct context readings and threshold trigger.
 - **Scope:** `/relay on|off|threshold|pause|resume`, task capture and revisions, DoD/verification commands entry, `session.measure` handling, warnings, hysteresis, unknown handling, rate-limit separation.
-- **User value:** User can turn SessionRelay on in one command and see accurate context status.
+- **User value:** User can turn Jeeves on in one command and see accurate context status.
 - **Dependencies:** E1. **Risks:** R-03, R-13.
 - **Cites:** FR-02, FR-03, FR-05, FR-11; AC-03, AC-04, AC-05, AC-06, AC-14; §4.4.
 - **AC:** without `/relay on` no rotation ever (AC-03); 49% no request, 50% exactly one, repeated 51% nothing more (AC-05); `undefined` reading shows "unknown" and never triggers (AC-06); original prompt byte-identical in `task-rev-001.md`; pause before threshold prevents rotation until resume (AC-14).

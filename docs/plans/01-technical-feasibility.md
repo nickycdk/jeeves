@@ -85,7 +85,7 @@ All facts below are tagged:
 
 - `$.command.register({ name, description, argumentHint, immediate })`; a built-in's name is refused [V-TYPES]. `$.command.list()` lists existing commands (collision check).
 - `$.ui.status(text)` (status line entry), `$.ui.toast(text)`, `$.ui.log(text)`, `$.ui.notify(text)`; `AbovePrompt` band via `ui.render` [V-TYPES].
-- Plugins cannot ship a `statusLine` setting [V-DOCS] — so SessionRelay cannot overwrite the user's status line, satisfying FR-17 by construction. `$.ui.status` renders on its own line under the prompt as `⚠ <plugin-name>: <text>`, directly above an unchanged custom `statusLine` [V-LIVE S-06]. The `⚠ <name>:` prefix is the engine's; status text should not repeat the name.
+- Plugins cannot ship a `statusLine` setting [V-DOCS] — so Jeeves cannot overwrite the user's status line, satisfying FR-17 by construction. `$.ui.status` renders on its own line under the prompt as `⚠ <plugin-name>: <text>`, directly above an unchanged custom `statusLine` [V-LIVE S-06]. The `⚠ <name>:` prefix is the engine's; status text should not repeat the name.
 - `userConfig` fields become `/config` rows and are passed to `register` as `options` [V-TYPES ref].
 
 ### 2.8 Errors (FR-12, AC-23)
@@ -96,7 +96,7 @@ All facts below are tagged:
 ### 2.9 Distribution
 
 - Install: `/plugin install <mod> --marketplace <owner>/<repo>` or `claude plugin install …`; a repo becomes a marketplace with `.claude-plugin/marketplace.json` [V-DOCS][V-TYPES ref].
-- Org controls that can stop SessionRelay: `allowManagedModsOnly`, `allowManagedHooksOnly`, `disableAllHooks`, `disableSideloadFlags` [V-DOCS]. Detect and explain (FR-01).
+- Org controls that can stop Jeeves: `allowManagedModsOnly`, `allowManagedHooksOnly`, `disableAllHooks`, `disableSideloadFlags` [V-DOCS]. Detect and explain (FR-01).
 - Plugin directory submission requires README and LICENSE, recommends an icon [V-LIVE `claude plugin validate`].
 - Naming: "you can't use the Claude Code or Anthropic names or logos as part of your own product, feature, or company name" [V-DOCS legal].
 
@@ -148,7 +148,7 @@ Total spend for S-02…S-06: 7 model-calling PTY runs on Haiku, well under US$1.
 | A-02 | `context.percent` reflects only the main conversation | T-INT-03 | Open (S-02 saw the reading unchanged at 6% while a subagent ran, but the subagent was too short to count) |
 | A-03 | Model follows the Stop-block handover instruction and emits the sentinel block | S-05, T-E2E-01 | **Retired for format [V-LIVE S-05]**: 10/10 first try on Haiku. Quality on long tasks/other models stays with T-E2E-01 |
 | A-04 | `mv` and `mkdir` via `$.process.run` run without permission prompts like `git` did | M1 story ST-1.4 integration test | **Retired [V-LIVE S-06]**; ST-1.4 keeps the integration test |
-| A-05 | `$.store`/files under the chosen state root are writable from the mod sandbox | ST-1.3 | Partly: `$.fs.write` to a scratch dir worked, nested dirs created [V-LIVE S-06]; OS state root itself untested → ST-1.3. **ST-1.3 (2026-11-07):** storage code verified on a real disk (P layer: 50 concurrent appends, write-once, hash check, `chmod 700`); a live write to `~/Library/Application Support/SessionRelay` is still pending (it is outside the repo, so it needs the maintainer's OK). Live runs use the test-only `SESSIONRELAY_STATE_DIR` (with `SESSIONRELAY_TEST=1`) |
+| A-05 | `$.store`/files under the chosen state root are writable from the mod sandbox | ST-1.3 | Partly: `$.fs.write` to a scratch dir worked, nested dirs created [V-LIVE S-06]; OS state root itself untested → ST-1.3. **ST-1.3 (2026-11-07):** storage code verified on a real disk (P layer: 50 concurrent appends, write-once, hash check, `chmod 700`); a live write to `~/Library/Application Support/Jeeves` is still pending (it is outside the repo, so it needs the maintainer's OK). Live runs use the test-only `JEEVES_STATE_DIR` (with `JEEVES_TEST=1`) |
 | A-06 | Haiku-based spike results hold for Opus/Sonnet (mechanisms are model-independent; only handover quality differs) | E2E on default model in M7 | Open |
 | A-07 | Hidden user rows via `$.session.append` reach the model mid-turn | S-03 | **Retired [V-LIVE S-03]**: 5/5, 0 further tool calls |
 | A-08 | A plugin can rely on `claude plugin validate` to catch API misuse | — | **False [V-LIVE S-05]**: it does not type-check. CI must run `tsc` with the engine's types (ST-1.1) |

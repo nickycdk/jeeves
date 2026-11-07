@@ -13,7 +13,7 @@ Rule from PRD §13: every AC has an automated test or reproducible manual eviden
 | **Manual Cursor (M)** | M0, M6, M7 | scripted checklist §6, screen recording | terminal fidelity in Cursor | ~30 min |
 | **Compatibility (C)** | per supported Claude Code version, release | `claude plugin validate/test` + one PTY rotation smoke | API drift (A-01) | per version |
 
-The test-only threshold override (`SESSIONRELAY_TEST=1` + `SESSIONRELAY_TEST_THRESHOLD_OVERRIDE`) exists so E2E rotations happen at a few percent, keeping cost low. It is ignored unless both variables are set, and `/relay status` shows "TEST OVERRIDE" when active. At least one release run (ST-9.2) uses the real 50% default.
+The test-only threshold override (`JEEVES_TEST=1` + `JEEVES_TEST_THRESHOLD_OVERRIDE`) exists so E2E rotations happen at a few percent, keeping cost low. It is ignored unless both variables are set, and `/relay status` shows "TEST OVERRIDE" when active. At least one release run (ST-9.2) uses the real 50% default.
 
 ## 2. Fixtures
 
@@ -96,7 +96,7 @@ Setup: macOS, Cursor stable, integrated terminal, fixture `six-steps`, `claude -
 Before rotation and again after each rotation:
 1. Type while Claude is working; text appears in the prompt box and is queued (during rotation: held message shown).
 2. Resize the terminal pane narrower (≤ 50 cols) and wider; no garbled layout; status still readable.
-3. Ctrl+C at idle clears input; Esc interrupts a running turn; no SessionRelay prompt follows an interrupt.
+3. Ctrl+C at idle clears input; Esc interrupts a running turn; no Jeeves prompt follows an interrupt.
 4. Trigger a Bash permission prompt; approve and deny once each; behaviour identical to without the plugin.
 5. Paste Unicode (æøå, emoji, CJK) into a prompt; renders correctly.
 6. `/help`, `/config`, `/mcp` open normally; keyboard shortcuts (e.g. history up-arrow) work.

@@ -2,7 +2,7 @@
 
 ## 1. Repository
 
-- **Host:** public GitHub repo under the maintainer's account/org, name = final product name (working: `sessionrelay`). No "claude" in the repo, package or product name ([V-DOCS] legal: "you can't use the Claude Code or Anthropic names or logos as part of your own product, feature, or company name"). Descriptive use is fine: "A session-continuity plugin for Claude Code".
+- **Host:** public GitHub repo under the maintainer's account/org, name `jeeves` (the product name, D-22). No "claude" in the repo, package or product name ([V-DOCS] legal: "you can't use the Claude Code or Anthropic names or logos as part of your own product, feature, or company name"). Descriptive use is fine: "A session-continuity plugin for Claude Code".
 - **Layout:** as in 02 §3, plus `docs/`, `fixtures/`, `tests/`, `.github/`.
 - The repository root is both the plugin and its marketplace (`.claude-plugin/plugin.json` + `.claude-plugin/marketplace.json` with `"source": "./"`), so the install line is one command.
 
@@ -26,11 +26,11 @@
 
 At the Claude Code prompt:
 ```
-/plugin install sessionrelay --marketplace <owner>/sessionrelay
+/plugin install jeeves --marketplace <owner>/jeeves
 ```
-From a shell: `claude plugin install sessionrelay --marketplace <owner>/sessionrelay`.
-Update: `claude plugin update sessionrelay@<marketplace>` (third-party marketplaces do not auto-update by default [V-DOCS]).
-Uninstall: `claude plugin uninstall sessionrelay`. State is not deleted by uninstall; README gives the path and `/relay purge --all` (run before uninstall) or manual deletion.
+From a shell: `claude plugin install jeeves --marketplace <owner>/jeeves`.
+Update: `claude plugin update jeeves@<marketplace>` (third-party marketplaces do not auto-update by default [V-DOCS]).
+Uninstall: `claude plugin uninstall jeeves`. State is not deleted by uninstall; README gives the path and `/relay purge --all` (run before uninstall) or manual deletion.
 
 No npm package, no CLI, no API key, no service.
 

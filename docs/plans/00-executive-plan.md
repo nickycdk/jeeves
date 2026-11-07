@@ -1,4 +1,6 @@
-# 00 — Executive Plan: SessionRelay
+# 00 — Executive Plan: Jeeves
+
+Jeeves was called SessionRelay until 2026-11-07 (D-22); the PRD file and older evidence keep the old name.
 
 **Date:** 2026-11-07 · **Source:** `docs/specs/sessionrelay-product-engineering-spec.md` (PRD v1.0) · **Verified against:** Claude Code 2.1.319 (macOS, Darwin 23.6) · **Status:** Approved (D-15). M0, M1, M2 and M3 solved; M4 (Fresh session & continuation) is next. Progress per milestone: `05-delivery-milestones.md` § Status.
 
@@ -25,7 +27,7 @@ Evidence: `docs/plans/evidence/spike-01-mod-rotation/` (spike mod, PTY driver, e
 Because the process is never restarted or wrapped, the user's terminal, keyboard, Ctrl+C, permission prompts, MCP and auth are untouched **by construction**. No supervisor, no PTY wrapper, no second install. That removes the PRD's two Critical risks (R-01, R-02) rather than mitigating them.
 
 **Conditions on the GO:**
-1. The mods API is marked *early access, may change between releases without notice* in the 2.1.319 type declarations. SessionRelay must pin a tested version range, probe capabilities at startup, and degrade to an honestly labelled **assisted mode** if a primitive is missing (ADR-002).
+1. The mods API is marked *early access, may change between releases without notice* in the 2.1.319 type declarations. Jeeves must pin a tested version range, probe capabilities at startup, and degrade to an honestly labelled **assisted mode** if a primitive is missing (ADR-002).
 2. The spike ran in a scripted pseudo-terminal, not physically in Cursor. A manual Cursor E2E (M0 exit gate) is still required before the architecture is frozen.
 3. Five follow-up spikes (S-02…S-06 in `01-technical-feasibility.md`) must pass in M0. None is expected to change the architecture; each has a documented fallback.
 

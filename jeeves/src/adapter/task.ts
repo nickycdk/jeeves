@@ -1,0 +1,324 @@
+// Managed-task wiring (02 §3): find the task, then read state -> reduce -> write state -> run effects.
+// Task state lives only in files; every cycle re-reads state.json inside the runtime's serial queue.
+import { capturedFacts, toolRecord, type ToolOutcome } from '../core/evidence.ts'
+import { parseHandover } from '../core/handover/parse.ts'
+import { handoverFile, renderHandover, roundTrips } from '../core/handover/render.ts'
+import { handoverInstruction, QUIESCE_NOTE, retryInstruction, type CapturedFacts } from '../core/handover/template.ts'
+import { mentionedPaths, validateHandover } from '../core/handover/validate.ts'
+import { isSafe, reduce, type Input } from '../core/machine.ts'
+import { newRotationId, newTaskId } from '../core/ids.ts'
+import { join } from '../core/paths.ts'
+import { foldTask, newTaskState, parseRevision, renderChange, revFile, type ChangeKind, type TaskView } from '../core/task.ts'
+import { DEFAULT_CONFIG, type ReasonCode, type State } from '../core/types.ts'
+import { runEffects, type EffectResult } from './effects.ts'
+import { gitFacts } from './git.ts'
+import type { Runtime } from './runtime.ts'
+
+export type Task = { state: State; dir: string }
+
+/** Statuses after which a task no longer claims the project. */
+const ENDED = new Set<State['status']>(['DISABLED', 'COMPLETED', 'FAILED'])
+const random6 = () => crypto.getRandomValues(new Uint8Array(6))
+const recentFirst = (a: Task, b: Task) => b.state.updatedAt.localeCompare(a.state.updatedAt)
+
+/** Every readable task of this project, most recently updated first; unreadable ones as errors. */
+export async function projectTasks(rt: Runtime): Promise<{ tasks: Task[]; errors: string[] }> {
+  if (!rt.projectDir) return { tasks: [], errors: [] }
+  // shortcut: reads every task's state.json per call; cache the owned task's folder if task counts grow large.
+  const tasksDir = join(rt.projectDir, 'tasks')
+  const tasks: Task[] = [], errors: string[] = []
+  for (const name of await rt.port.listDirs(tasksDir)) {
+    const dir = join(tasksDir, name)
+    const r = await rt.storage.readState(dir).catch(err => ({ ok: false as const, errors: [String(err)] }))
+    if (r === null) continue
+    if (r.ok) tasks.push({ state: r.value, dir })
+    else errors.push(`${name}: ${r.errors[0] ?? 'invalid'}`)
+  }
+  return { tasks: tasks.sort(recentFirst), errors }
+}
+
+/** The task this session owns (not DISABLED), if any. */
+export const ownTask = (tasks: Task[], sessionId: string) => tasks.find(t => t.state.activeSessionId === sessionId && t.state.status !== 'DISABLED') ?? null
+/** The most recent task that still claims the project (not off, completed or failed). */
+export const liveTask = (tasks: Task[]) => tasks.find(t => !ENDED.has(t.state.status)) ?? null
+
+export type Applied = { state: State; forHook: EffectResult['forHook'] }
+
+/** One transition from `prev`, inside the serial queue: write state, then run effects; feeds back follow-up inputs. */
+async function transition(rt: Runtime, dir: string, prev: State, input: Input): Promise<Applied> {
+  let state = prev
+  const forHook: Applied['forHook'] = []
+  for (const queue = [input]; queue.length;) {
+    const now = await rt.port.now()
+    const out = reduce(state, queue.shift()!, { now, config: DEFAULT_CONFIG, newRotationId: newRotationId(now, random6()), ...(rt.thresholdOverride ? { thresholdOverride: rt.thresholdOverride } : {}) })
+    if (out.ignored) rt.port.log(`jeeves: ${out.ignored}`)
+    if (out.state === state) continue
+    state = out.state
+    await rt.storage.writeState(dir, state)
+    const r = await runEffects(out.effects, { port: rt.port, storage: rt.storage, taskDir: dir, state })
+    for (const f of r.failed) rt.port.log(`jeeves: effect ${f.effect.type} failed: ${f.error}`)
+    forHook.push(...r.forHook)
+    queue.push(...r.followUps)
+  }
+  return { state, forHook }
+}
+
+/** Apply an input to the task in `dir`; null when its state cannot be read. */
+export function apply(rt: Runtime, dir: string, input: Input): Promise<Applied | null> {
+  return rt.serial(async () => {
+    const r = await rt.storage.readState(dir)
+    return r?.ok ? transition(rt, dir, r.value, input) : null
+  })
+}
+
+/**
+ * Apply an input to this session's own task; null when it has none. The task is looked up inside the queue,
+ * so inputs keep the order their hooks fired in (a tool's ledger entry is in before the Stop that follows).
+ */
+export async function applyOwn(rt: Runtime, input: Input): Promise<Applied | null> {
+  const sessionId = await rt.port.sessionId()
+  return rt.serial(async () => {
+    const own = ownTask((await projectTasks(rt)).tasks, sessionId)
+    return own ? transition(rt, own.dir, own.state, input) : null
+  })
+}
+
+/** `tool.call` finished: its ledger entry, and the main loop's soft-quiesce point (ST-3.1, ST-3.2). */
+export async function recordTool(rt: Runtime, o: ToolOutcome): Promise<Applied | null> {
+  const entry = toolRecord(o)
+  const main = o.agentId === undefined
+  // Nothing to record and not a quiesce point: skip the disk reads entirely.
+  if (!entry && !main) return null
+  const r = await applyOwn(rt, { type: 'TOOL_RESULT', main, ...(entry ? { entry } : {}) })
+  if (r?.forHook.some(f => f.type === 'APPEND_NOTE')) await rt.port.appendHiddenNote(QUIESCE_NOTE)
+  return r
+}
+
+/** Own the task's lock: take it when free or stale (owner silent past STALE_MS). False when another live session holds it. */
+export async function claim(rt: Runtime, dir: string, sessionId: string): Promise<boolean> {
+  const now = await rt.port.now(), at = new Date(now).toISOString()
+  const r = await rt.storage.acquireLock(dir, sessionId, at, now)
+  if (r.ok) return true
+  return r.stale && (await rt.storage.takeoverLock(dir, sessionId, at, now)).ok
+}
+
+/** True when a session other than `sessionId` holds a live (not stale) lock on the task. */
+export async function heldByOther(rt: Runtime, dir: string, sessionId: string): Promise<boolean> {
+  const l = await rt.storage.readLock(dir, await rt.port.now())
+  return l.kind === 'held' && !l.stale && l.owner?.ownerSessionId !== sessionId
+}
+
+/** Create a task owned by this session: lock, rev 1 when the goal is given, state MONITORING. */
+export async function startTask(rt: Runtime, sessionId: string, goal: string | null): Promise<Applied & { dir: string }> {
+  const now = await rt.port.now(), at = new Date(now).toISOString()
+  const taskId = newTaskId(now, random6())
+  const dir = join(rt.projectDir!, 'tasks', taskId)
+  const facts = await gitFacts(rt.port, rt.identity)
+  const lock = await rt.storage.acquireLock(dir, sessionId, at, now)
+  let state = newTaskState({ taskId, projectId: rt.projectId!, thresholdPercent: DEFAULT_CONFIG.thresholdPercent, taskStartHead: facts.kind === 'git' ? facts.head : null, at })
+  if (goal !== null && lock.ok) {
+    await rt.storage.writeImmutable(join(dir, revFile(1)), goal)
+    state = { ...state, taskRevision: 1 }
+  }
+  const applied = await rt.serial(() => transition(rt, dir, state, { type: 'ON', mode: rt.probe.mode, lockAcquired: lock.ok, sessionId }))
+  return { ...applied, dir }
+}
+
+/**
+ * A revision file whose state write then failed is already the next revision: record it before writing a new one,
+ * so a retry never hits "already exists" and the task never sticks (write-once files, read the file as the truth).
+ */
+async function adoptLeftovers(rt: Runtime, dir: string, s: State): Promise<State> {
+  while (await rt.port.exists(join(dir, revFile(s.taskRevision + 1)))) {
+    const next = (await transition(rt, dir, s, { type: 'REVISED', revision: s.taskRevision + 1 })).state
+    if (next.taskRevision === s.taskRevision) break
+    s = next
+  }
+  return s
+}
+
+/** `prompt.submit` (composer): while this session's task waits for its first prompt, store it as rev 1, byte for byte. */
+export async function captureFirstPrompt(rt: Runtime, text: string): Promise<void> {
+  const own = ownTask((await projectTasks(rt)).tasks, await rt.port.sessionId())
+  if (!own || own.state.taskRevision !== 0) return
+  await rt.serial(async () => {
+    const r = await rt.storage.readState(own.dir)
+    if (!r?.ok) return
+    const s = await adoptLeftovers(rt, own.dir, r.value)
+    if (s.taskRevision !== 0) return
+    await rt.storage.writeImmutable(join(own.dir, revFile(1)), text)
+    await transition(rt, own.dir, s, { type: 'REVISED', revision: 1 })
+  })
+}
+
+/** Heartbeat for the lock of the task this session owns (ADR-005). */
+export async function heartbeat(rt: Runtime): Promise<void> {
+  const me = await rt.port.sessionId()
+  const own = ownTask((await projectTasks(rt)).tasks, me)
+  if (own && !(await rt.storage.heartbeat(own.dir, me, new Date(await rt.port.now()).toISOString()))) rt.port.log(`jeeves: lost the lock of ${own.state.taskId}`)
+}
+
+/** A user command's change as the next write-once revision (FR-05). Null while rev 1 (the original prompt) is not captured yet. */
+export function addRevision(rt: Runtime, dir: string, kind: ChangeKind, text: string): Promise<number | null> {
+  return rt.serial(async () => {
+    const r = await rt.storage.readState(dir)
+    if (!r?.ok) return null
+    const s = await adoptLeftovers(rt, dir, r.value)
+    if (s.taskRevision < 1) return null
+    const n = s.taskRevision + 1
+    await rt.storage.writeImmutable(join(dir, revFile(n)), renderChange(n, kind, text, new Date(await rt.port.now()).toISOString()))
+    await transition(rt, dir, s, { type: 'REVISED', revision: n })
+    return n
+  })
+}
+
+/** Every revision up to the state's, folded. A file that is missing or not ours is reported, never guessed. */
+export async function readTask(rt: Runtime, dir: string, state: State): Promise<{ view: TaskView; errors: string[] }> {
+  const revs = [], errors: string[] = []
+  for (let n = 1; n <= state.taskRevision; n++) {
+    const text = await rt.port.read(join(dir, revFile(n))).catch(() => null)
+    const rev = text === null ? null : parseRevision(n, text)
+    if (rev) revs.push(rev)
+    else errors.push(`${revFile(n)} is ${text === null ? 'missing' : 'not a Jeeves revision'}`)
+  }
+  return { view: foldTask(revs), errors }
+}
+
+/** `session.measure` with a context change: the main conversation's `usage().context` (FR-02). Missing percent stays unknown. */
+export async function measure(rt: Runtime, c: { percent?: number; tokens?: number; window: number }): Promise<Applied | null> {
+  const sessionId = await rt.port.sessionId()
+  return applyOwn(rt, { type: 'MEASURE', window: c.window, sessionId, ...(c.percent !== undefined ? { percent: c.percent } : {}), ...(c.tokens !== undefined ? { tokens: c.tokens } : {}) })
+}
+
+/** The session ends for good (exit, logout, resume elsewhere): give up its lock so the next session can resume at once. Task state is kept. */
+export async function releaseOnExit(rt: Runtime, sessionId: string): Promise<void> {
+  for (const t of (await projectTasks(rt)).tasks) if (t.state.activeSessionId === sessionId) await rt.storage.releaseLock(t.dir, sessionId)
+}
+
+/**
+ * The user typed /clear: the process goes on under a new session id, so the task would lose its owner silently.
+ * Pause it (USER_CLEAR, ADR-010) and give up the old id's lock, so the new conversation can see it and end it.
+ * A rotation's own /clear (ROTATING) is left to the rotation (M4): the reducer ignores it there.
+ */
+export async function onUserClear(rt: Runtime, oldSessionId: string): Promise<void> {
+  const own = ownTask((await projectTasks(rt)).tasks, oldSessionId)
+  if (!own) return
+  const r = await apply(rt, own.dir, { type: 'SESSION_END', reason: 'clear', sessionId: oldSessionId })
+  if (r?.state.status === 'PAUSED' && r.state.reason === 'USER_CLEAR') await rt.storage.releaseLock(own.dir, oldSessionId)
+}
+
+/** What the Stop hook passes in (classic.Stop on the main loop). */
+export type StopInfo = { backgroundTasks: number; crons: readonly { id: string; schedule: string; recurring: boolean; prompt: string }[]; message: string }
+
+/** Rotation states in which a Stop matters. */
+const STOP_STATES = new Set<State['status']>(['ROTATION_REQUESTED', 'QUIESCING', 'HANDOVER_GENERATING'])
+
+/** The facts snapshot taken at the safe Stop (ADR-003 verified section; ADR-004 A1 crons). */
+export const factsFile = (rotationId: string) => `history/facts-${rotationId}.json`
+
+/**
+ * classic.Stop (ST-3.3): at a safe boundary ask for the handover; otherwise count the wait (QUIESCING) until the
+ * quiesce limit pauses the task. Returns the Stop `block` text, or null to let Claude stop. Throws only on failure:
+ * the hook then lets Claude stop (fail open for the user) and nothing advances (fail closed for the rotation).
+ */
+export async function onStop(rt: Runtime, info: StopInfo): Promise<string | null> {
+  const own = ownTask((await projectTasks(rt)).tasks, await rt.port.sessionId())
+  if (!own || !STOP_STATES.has(own.state.status)) return null
+  if (own.state.status === 'HANDOVER_GENERATING') return handoverStop(rt, own, info)
+  // An agent list that cannot be read counts as one running agent: unsafe, so the quiesce limit still ends the wait.
+  const runningAgents = await rt.port.runningAgents().catch(() => 1)
+  const r = await applyOwn(rt, { type: 'STOP', backgroundTasks: info.backgroundTasks, runningAgents })
+  if (!r) return null
+  const rotationId = r.state.rotation?.rotationId
+  let captured: CapturedFacts | null = null
+  if (rotationId && r.forHook.some(f => f.type === 'CAPTURE_FACTS')) {
+    const git = await gitFacts(rt.port, rt.identity, r.state.taskStartHead)
+    captured = capturedFacts(git, r.state.ledger)
+    const snapshot = { schemaVersion: 1, rotationId, capturedAt: r.state.updatedAt, git, crons: info.crons }
+    // A snapshot that cannot be saved is logged; the handover is checked against fresh facts anyway.
+    await rt.storage.writeImmutable(join(own.dir, factsFile(rotationId)), JSON.stringify(snapshot, null, 2) + '\n')
+      .catch(err => rt.port.log(`jeeves: facts snapshot not saved: ${why(err)}`))
+  }
+  const block = r.forHook.find(f => f.type === 'BLOCK_STOP')
+  if (block?.type === 'BLOCK_STOP' && block.kind === 'handover-request' && rotationId) {
+    return handoverInstruction({ taskId: r.state.taskId, rotationId, maxChars: DEFAULT_CONFIG.handoverMaxChars, facts: captured })
+  }
+  return null
+}
+
+export const why = (err: unknown) => (err instanceof Error ? err.message : String(err)).slice(0, 200)
+
+/** The next unused `history/handover-NNN.md` (write-once: a number is never reused). */
+async function nextHandoverNumber(rt: Runtime, dir: string): Promise<number> {
+  let n = 1
+  while (await rt.port.exists(join(dir, handoverFile(n)))) n++
+  return n
+}
+
+/** The branch in the rotation's facts snapshot; undefined when there is none to compare with. */
+async function snapshotBranch(rt: Runtime, dir: string, rotationId: string): Promise<string | null | undefined> {
+  try {
+    const snap = JSON.parse(await rt.port.read(join(dir, factsFile(rotationId)))) as { git?: { kind?: string; branch?: string | null } }
+    return snap.git?.kind === 'git' ? (snap.git.branch ?? null) : undefined
+  } catch { return undefined }
+}
+
+/**
+ * The Stop that carries Claude's handover (ST-3.8): parse, validate against fresh facts, render the merged file and
+ * check it parses back; then the reducer decides. Valid: write history/handover-NNN.md once (SHA-256 read back) and
+ * only then record HANDOVER_PERSISTED, the one way to ROTATING, so no /clear can come before a verified file.
+ * Invalid: block with the errors up to maxHandoverRetries, then NEEDS_REVIEW(HANDOVER_INVALID) with nothing written.
+ */
+async function handoverStop(rt: Runtime, own: Task, info: StopInfo): Promise<string | null> {
+  const s = own.state, rotation = s.rotation!
+  const base = rt.identity?.kind === 'git' ? rt.identity.worktree : rt.identity?.kind === 'none' ? rt.identity.cwd : await rt.port.cwd()
+  const git = await gitFacts(rt.port, rt.identity, s.taskStartHead)
+  const parsed = parseHandover(info.message)
+  const existing = new Set<string>()
+  if (parsed.ok) for (const p of mentionedPaths(parsed.value)) if (await rt.port.exists(p.startsWith('/') ? p : join(base, p))) existing.add(p)
+  const v = validateHandover(info.message, {
+    taskId: s.taskId, rotationId: rotation.rotationId, maxChars: DEFAULT_CONFIG.handoverMaxChars, git,
+    capturedBranch: await snapshotBranch(rt, own.dir, rotation.rotationId), ledger: s.ledger, existing,
+  })
+  let merged: string | null = null, n = 0
+  let outcome: { ok: true } | { ok: false; errors: string[]; fatal?: ReasonCode }
+  if (v.ok) {
+    n = await nextHandoverNumber(rt, own.dir)
+    const { view } = await readTask(rt, own.dir, s)
+    merged = renderHandover({
+      n, taskId: s.taskId, rotationId: rotation.rotationId, trigger: rotation.trigger, sourceSessionId: s.activeSessionId,
+      at: new Date(await rt.port.now()).toISOString(), contextPercent: s.lastContext?.percent ?? null, retries: rotation.retries,
+      taskRevision: s.taskRevision, dod: view.dod, checks: view.checks, taskStartHead: s.taskStartHead, git, crons: info.crons,
+      ledger: s.ledger, narrative: v.narrative,
+    })
+    outcome = roundTrips(merged, v.narrative) ? { ok: true } : { ok: false, errors: ['the merged handover file did not parse back'], fatal: 'HANDOVER_INVALID' }
+  } else {
+    outcome = { ok: false, errors: v.errors.map(e => e.message), ...(v.fatal ? { fatal: v.fatal } : {}) }
+  }
+  // ADR-004 holds at the handover Stop too: work Claude started while writing it must end before anything rotates.
+  const runningAgents = await rt.port.runningAgents().catch(() => 1)
+  if (!isSafe({ backgroundTasks: info.backgroundTasks, runningAgents })) {
+    const busy = `${info.backgroundTasks} background task(s) and ${runningAgents} running agent(s) are still in flight; wait for them, run no new tool, then reply with the handover again`
+    outcome = { ok: false, errors: [busy, ...(outcome.ok ? [] : outcome.errors)], ...(!outcome.ok && outcome.fatal ? { fatal: outcome.fatal } : {}) }
+    merged = null
+  }
+  const r = await applyOwn(rt, { type: 'STOP', backgroundTasks: info.backgroundTasks, runningAgents: 0, handover: outcome })
+  if (!r) return null
+  if (merged !== null && r.forHook.some(f => f.type === 'PERSIST_HANDOVER')) {
+    let ref: string | null = null
+    try {
+      ref = `${handoverFile(n)}#sha256:${await rt.storage.writeImmutable(join(own.dir, handoverFile(n)), merged)}`
+      // handover.md is a convenience copy; the verified history file is what counts.
+      await rt.storage.replaceFile(join(own.dir, 'handover.md'), merged).catch(err => rt.port.log(`jeeves: handover.md not updated: ${why(err)}`))
+    } catch (err) {
+      rt.port.log(`jeeves: handover not saved: ${why(err)}`)
+    }
+    await applyOwn(rt, ref ? { type: 'HANDOVER_PERSISTED', ok: true, ref } : { type: 'HANDOVER_PERSISTED', ok: false })
+    return null
+  }
+  const retry = r.forHook.find(f => f.type === 'BLOCK_STOP' && f.kind === 'handover-retry')
+  return retry?.type === 'BLOCK_STOP' ? retryInstruction({ taskId: s.taskId, rotationId: rotation.rotationId, errors: retry.errors }) : null
+}
+
+/** A main-loop turn the user interrupted: a handover in progress pauses (USER_INTERRUPT); nothing else changes. */
+export const onAbortedTurn = (rt: Runtime) => applyOwn(rt, { type: 'TURN_COMPLETE', reason: 'aborted' })

@@ -44,6 +44,6 @@ ST-0.7 → ST-1.1 → ST-1.2 → ST-1.3 → ST-1.4 → ST-1.7 → ST-1.8 → ST-
 
 ## Stop/kill criteria
 
-- If S-01 reveals Claude Code itself misbehaves after `/clear` in Cursor (not a SessionRelay bug): report upstream, keep building on PTY evidence, but v0.1 cannot claim AC-02 until fixed.
+- If S-01 reveals Claude Code itself misbehaves after `/clear` in Cursor (not a Jeeves bug): report upstream, keep building on PTY evidence, but v0.1 cannot claim AC-02 until fixed.
 - If a Claude Code update removes plugin-invoked `/clear` before release: ship assisted mode only, labelled as such (AC-25), and re-plan.
 - If S-05 parse reliability < 90% even with the tool fallback: re-scope handover to the plugin-generated verified section plus a shorter free-text "next actions" field, and re-run.

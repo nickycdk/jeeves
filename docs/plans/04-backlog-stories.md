@@ -169,7 +169,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 ### ST-1.9 `/relay` router, `status`, `help` — S
 - **Status:** Solved (e3367c2).
 - **Cites:** §4.2, FR-14.
-- **Scope:** register `relay` (fallback `sessionrelay` on collision); parse subcommands; unknown subcommand → help; `status` shows mode, task, state, context (or unknown), threshold, rotation count, last success/error, state path.
+- **Scope:** register `relay` (fallback `jeeves` on collision); parse subcommands; unknown subcommand → help; `status` shows mode, task, state, context (or unknown), threshold, rotation count, last success/error, state path.
 - **Depends on:** ST-1.8.
 - **AC:** (1) `/relay status` works with no task ("No managed task. Start with /relay on"); (2) collision fallback announced; (3) output ≤ 8 lines, fits 40 columns.
 - **Tests:** plugin test via `command.run`.
@@ -318,7 +318,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **Cites:** FR-08, §7 invariants.
 - **Scope:** `session.end(reason clear)` while ROTATING → record `sourceSessionId`, write `sessions/NNN.json`; `classic.SessionStart(source clear)` → `targetSessionId`, lock owner := new id, state RESTORING.
 - **Depends on:** ST-4.1.
-- **AC:** (1) source ≠ target asserted; (2) `/clear` not initiated by SessionRelay is not treated as rotation (→ ST-6.3); (3) session file immutable.
+- **AC:** (1) source ≠ target asserted; (2) `/clear` not initiated by Jeeves is not treated as rotation (→ ST-6.3); (3) session file immutable.
 - **Tests:** plugin tests raising `$.classic.SessionStart({source:'clear'})` with/without pending rotation.
 - **DoD:** standard.
 
@@ -332,7 +332,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 
 ### ST-4.4 Held prompts during rotation — S
 - **Cites:** ADR-010.
-- **Scope:** `prompt.submit` composer prompts during HANDOVER_GENERATING…RESTORING → `{ drop: "Held by SessionRelay…" }`, stored (redacted copy for events, full text in state for delivery), appended to continuation.
+- **Scope:** `prompt.submit` composer prompts during HANDOVER_GENERATING…RESTORING → `{ drop: "Held by Jeeves…" }`, stored (redacted copy for events, full text in state for delivery), appended to continuation.
 - **Depends on:** ST-4.3, ST-0.6.
 - **AC:** (1) typed prompt is neither lost nor sent to the old conversation; (2) delivered once; (3) slash commands like `/relay pause` still work during rotation; (4) the composer draft is cleared after holding (`$.prompt.fill` replace with empty text), because the engine leaves dropped text in the box (S-06); (5) the continuation quotes held prompts verbatim as the user's own words (ADR-010 A1).
 - **Tests:** plugin tests.
@@ -356,7 +356,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 
 ### ST-4.7 Manual `/relay rotate` — S
 - **Cites:** FR-11, AC-15; Flow C.
-- **Scope:** sets ROTATION_REQUESTED(MANUAL); identical pipeline; if idle, the next Stop happens only after a turn, so `rotate` while idle submits a tiny plugin prompt ("SessionRelay: prepare handover") to obtain a Stop.
+- **Scope:** sets ROTATION_REQUESTED(MANUAL); identical pipeline; if idle, the next Stop happens only after a turn, so `rotate` while idle submits a tiny plugin prompt ("Jeeves: prepare handover") to obtain a Stop.
 - **Depends on:** ST-4.3.
 - **AC:** (1) same effects sequence as threshold path (asserted by comparing effect logs); (2) no restart before validated handover.
 - **Tests:** plugin test comparing effect traces.
@@ -364,7 +364,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 
 ### ST-4.8 Fixture task and two-rotation PTY E2E harness — L
 - **Cites:** AC-10, AC-11, AC-12; §14.3.
-- **Scope:** `fixtures/build-repo.ts` (creates git repos: clean, dirty, detached, worktrees, failing tests); fixture task "implement 6 small functions with tests in order, one per step" sized to force rotations; `tests/pty/driver.ts` (generalised spike driver) with env flag `SESSIONRELAY_TEST_THRESHOLD_OVERRIDE` honoured only when `SESSIONRELAY_TEST=1` so rotations happen at low % cheaply; assertions on event log + git state.
+- **Scope:** `fixtures/build-repo.ts` (creates git repos: clean, dirty, detached, worktrees, failing tests); fixture task "implement 6 small functions with tests in order, one per step" sized to force rotations; `tests/pty/driver.ts` (generalised spike driver) with env flag `JEEVES_TEST_THRESHOLD_OVERRIDE` honoured only when `JEEVES_TEST=1` so rotations happen at low % cheaply; assertions on event log + git state.
 - **Depends on:** ST-4.5, ST-5.2 (for clean end) — harness can start earlier with rotation-only assertions.
 - **AC:** (1) ≥ 2 rotations, distinct session IDs, each start % < end %; (2) no function implemented twice (git log/diff check), final tests pass; (3) zero keystrokes after the initial prompt; (4) run cost noted.
 - **Tests:** this is the test.
@@ -376,7 +376,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 
 ### ST-5.1 Completion block and DoD evaluator — M
 - **Cites:** FR-10, AC-13; ADR-007.
-- **Scope:** parse `<<<SESSIONRELAY-COMPLETE v1 … >>>`; evaluate each verification command: last ledger entry with exact command, exit 0, timestamp after last edit; blockers list empty.
+- **Scope:** parse `<<<JEEVES-COMPLETE v1 … >>>`; evaluate each verification command: last ledger entry with exact command, exit 0, timestamp after last edit; blockers list empty.
 - **Depends on:** ST-3.1, ST-2.2.
 - **AC:** (1) "done" without block → nothing; (2) block without evidence → missing list; (3) edit after passing test invalidates evidence.
 - **Tests:** unit tables.
@@ -485,7 +485,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 
 ### ST-8.1 Marketplace, install/uninstall, purge — M
 - **Cites:** FR-15, AC-01, AC-20; §10 cleanup.
-- **Scope:** `.claude-plugin/marketplace.json`; README install line; verify `claude plugin uninstall` leaves `~/.claude/settings.json` without SessionRelay entries beyond what Claude itself manages; `/relay purge [--task id|--project|--all]` with typed confirmation; uninstall never touches the state dir (documented manual delete path).
+- **Scope:** `.claude-plugin/marketplace.json`; README install line; verify `claude plugin uninstall` leaves `~/.claude/settings.json` without Jeeves entries beyond what Claude itself manages; `/relay purge [--task id|--project|--all]` with typed confirmation; uninstall never touches the state dir (documented manual delete path).
 - **Depends on:** ST-7.3.
 - **AC:** clean machine install → working `/relay status` in < 5 minutes; uninstall diff of settings = only plugin enable entry removed; purge requires confirmation and scope.
 - **Tests:** scripted clean-user (`HOME=$(mktemp -d)`) install/uninstall where auth allows; manual on clean macOS user.
