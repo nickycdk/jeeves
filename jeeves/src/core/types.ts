@@ -98,8 +98,8 @@ export type State = {
   sessionSequence: number
   activeSessionId: string | null
   /** When the active session took the task, and its first known context reading (for `sessions/NNN.json`). */
-  /** `skipped`: relative test threshold only (D-25): the session's first tool reading was seen and passed over. */
-  sessionStart?: { at: Iso; pct: number | null; skipped?: boolean }
+  /** `firstPct`: relative test threshold only (D-25): the session's first tool reading, passed over as its start. */
+  sessionStart?: { at: Iso; pct: number | null; firstPct?: number }
   rotation: Rotation | null
   lastValidatedHandover: string | null
   rotationCount: number

@@ -626,14 +626,15 @@ test('ST-4.8 reading: the loop margin is 10 points, 0.5 point only under the (de
 
 const toolReading = (percent: number, sessionId = 'sess-a'): Input => ({ type: 'MEASURE', window: 1_000_000, sessionId, percent, fromTool: true })
 
-test('D-25 relative override: the start is the second tool-result reading; request at start + d', () => {
+test('D-25 relative override: the start is the first tool reading that differs from the first one; request at start + d', () => {
   const c = ctx({ thresholdRelative: 0.8 })
   const fresh = st('MONITORING', { sessionStart: { at: AT, pct: null } })
-  // live runs 6, 7: readings before the first model call and at the first tool result are ~2.4 points low: no start
-  const early = run(run(fresh, measure(3.7), c).state, toolReading(3.76), c)
-  assert.deepEqual([early.state.status, early.state.sessionStart], ['MONITORING', { at: AT, pct: null, skipped: true }])
+  // live runs 6-9: a fresh session's first response is ~2.4 points smaller than the next, and each of its tool results
+  // reads the same figure (run 9: two calls, both 3.76): no start until the figure moves
+  const early = run(run(run(fresh, measure(3.7), c).state, toolReading(3.76), c).state, toolReading(3.76), c)
+  assert.deepEqual([early.state.status, early.state.sessionStart], ['MONITORING', { at: AT, pct: null, firstPct: 3.76 }])
   const first = run(early.state, toolReading(30), c)
-  assert.deepEqual([first.state.status, first.state.sessionStart], ['MONITORING', { at: AT, pct: 30 }], 'the second tool reading only sets the start')
+  assert.deepEqual([first.state.status, first.state.sessionStart], ['MONITORING', { at: AT, pct: 30 }], 'the moved reading only sets the start')
   assert.equal(run(first.state, measure(30.79), c).state.status, 'MONITORING')
   assert.equal(run(first.state, measure(30.8), c).state.status, 'ROTATION_REQUESTED', 'any later reading may cross it')
   // the task threshold (50) and the absolute override play no part
@@ -649,12 +650,12 @@ test('D-25 relative: the source session end reading becomes the guard at its /cl
   assert.equal(run(s, end).state.rotation?.guardPct, undefined, 'absolute mode stores nothing new')
 })
 
-test('D-25 relative loop guard: the fresh session rearms at its start (second tool) reading only below the source end reading', () => {
+test('D-25 relative loop guard: the fresh session rearms at its start reading only below the source end reading', () => {
   const c = ctx({ thresholdRelative: 0.8 })
   const s0 = st('CONTINUING', { rotation: rot({ step: 'CONTINUED', guardPct: 6.9 }), sessionStart: { at: AT, pct: null } })
   assert.equal(run(s0, measure(3.7), c).state.status, 'CONTINUING', 'an early reading neither rearms nor trips')
-  const s = run(s0, toolReading(3.76), c).state
-  assert.equal(s.status, 'CONTINUING', 'nor does the first tool reading')
+  const s = run(run(s0, toolReading(3.76), c).state, toolReading(3.76), c).state
+  assert.equal(s.status, 'CONTINUING', 'nor do tool readings of the first response')
   const ok = run(s, toolReading(6.6), c)
   assert.deepEqual([ok.state.status, ok.state.sessionStart?.pct], ['MONITORING', 6.6])
   assert.equal(run(ok.state, measure(7.39), c).state.status, 'MONITORING')
@@ -663,7 +664,7 @@ test('D-25 relative loop guard: the fresh session rearms at its start (second to
   assert.deepEqual([loop.state.status, loop.state.reason], ['FAILED', 'POSSIBLE_LOOP'])
   assert.ok(loop.effects.some(e => e.type === 'TOAST' && e.text.includes('(threshold 6.9%)')))
   // no source reading recorded: nothing to guard, rearm
-  assert.equal(run(st('CONTINUING', { rotation: rot({ step: 'CONTINUED' }), sessionStart: { at: AT, pct: null, skipped: true } }), toolReading(40), c).state.status, 'MONITORING')
+  assert.equal(run(st('CONTINUING', { rotation: rot({ step: 'CONTINUED' }), sessionStart: { at: AT, pct: null, firstPct: 3.76 } }), toolReading(40), c).state.status, 'MONITORING')
 })
 
 test('QUEUE_CHANGE: only before rev 1 (max 20); a pending REVISED drops the first queued change', () => {

@@ -1,0 +1,2 @@
+six-steps fixture
+step 1: double

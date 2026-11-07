@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "taskId": "t_20261107_cwn3ux",
+  "projectId": "4b81ab302742e425",
+  "status": "MONITORING",
+  "reason": null,
+  "mode": "full",
+  "taskRevision": 2,
+  "sessionSequence": 2,
+  "activeSessionId": "20b91c24-2e67-44df-bf9e-8afeca4afc24",
+  "rotation": null,
+  "lastValidatedHandover": "history/handover-001.md#sha256:d4419ea46efe7d47502d4be60f304b9c7a064491f2d8a7700e7cc93842ccbe16",
+  "rotationCount": 1,
+  "consecutiveFailures": 0,
+  "thresholdPercent": 50,
+  "lastContext": {
+    "window": 1000000,
+    "at": "2026-11-07T20:40:47.695Z"
+  },
+  "armedFired": false,
+  "warnedSessionId": null,
+  "heldPrompts": [],
+  "pauseRequested": false,
+  "taskStartHead": "11fbff316286d2eed774c62181b323a0c05a159d",
+  "lastErrorCode": null,
+  "ledger": [
+    {
+      "kind": "cmd",
+      "command": "cat SPEC.md && ls -la && ls src tests && git log --oneline && cat verify.sh && git status",
+      "ok": true,
+      "exit": 0,
+      "agent": null,
+      "at": "2026-11-07T20:39:46.445Z"
+    },
+    {
+      "kind": "cmd",
+      "command": "cat src/step1.js && echo ---- && cat tests/step1.test.js && echo ---- && cat package.json .gitignore && node --version",
+      "ok": true,
+      "exit": 0,
+      "agent": null,
+      "at": "2026-11-07T20:39:48.603Z"
+    },
+    {
+      "kind": "cmd",
+      "command": "cat > src/step1.js <<'EOF' // Step 1: see SPEC.md. export function double(n) { return n * 2 } EOF ./verify.sh; echo \"exit=$?\"",
+      "ok": true,
+      "exit": 0,
+      "agent": null,
+      "at": "2026-11-07T20:39:52.595Z"
+    },
+    {
+      "kind": "cmd",
+      "command": "git add -A && git commit -q -m \"step 1: double\" && git log --oneline | head -2 && cat src/step2.js && cat tests/step2.test.js | grep -v \"^ \\[\"",
+      "ok": true,
+      "exit": 0,
+      "agent": null,
+      "at": "2026-11-07T20:39:55.411Z"
+    },
+    {
+      "kind": "cmd",
+      "command": "wc -l tests/step2.test.js && grep \"^ \\[\" tests/step2.test.js | awk 'length($0)<200' | head -150; grep -c \"^ \\[\" tests/step2.test.js; grep \"^ \\[\" tests/step2.test.js | grep -v '^ \\[\"[a-z]*\", *true\\]' | grep -v '^ \\[\"[a-z]*\", *false\\]' | head -60",
+      "ok": true,
+      "exit": 0,
+      "agent": null,
+      "at": "2026-11-07T20:39:58.298Z"
+    },
+    {
+      "kind": "cmd",
+      "command": "git status --porcelain && git log --oneline | head -3 && cat src/step2.js && echo ---- && cat SPEC.md && echo ---- && cat verify.sh",
+      "ok": true,
+      "exit": 0,
+      "agent": null,
+      "at": "2026-11-07T20:40:26.272Z"
+    },
+    {
+      "kind": "cmd",
+      "command": "wc -l tests/step2.test.js && head -30 tests/step2.test.js && echo ---- && grep -v '^ \\[' tests/step2.test.js",
+      "ok": true,
+      "exit": 0,
+      "agent": null,
+      "at": "2026-11-07T20:40:26.610Z"
+    }
+  ],
+  "updatedAt": "2026-11-07T20:40:47.695Z",
+  "sessionStart": {
+    "at": "2026-11-07T20:40:22.166Z",
+    "pct": 3.76
+  },
+  "pendingChanges": [],
+  "completionAsked": false
+}

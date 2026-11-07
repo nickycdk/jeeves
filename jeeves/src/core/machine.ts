@@ -179,13 +179,14 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
     const reading = { window: input.window, at, ...(input.percent !== undefined ? { percent: input.percent } : {}), ...(input.tokens !== undefined ? { tokens: input.tokens } : {}) }
     next = { ...next, lastContext: reading, updatedAt: at }
     const p = input.percent
-    // D-25 (relative only): a session's start is its second tool-result reading. A fresh session's readings before its
-    // first model call, and at its first tool result, read ~2.4 points low (live runs 6, 7); the next one is its real level.
+    // D-25 (relative only): a session's start is its first tool reading that differs from its first one. A fresh session's
+    // first model call really is ~2.4 points smaller than the next (live runs 6-9: 37.5K tokens, then ~64K), and every tool
+    // result of that first response reads the same figure (run 9: two tool calls, both 3.76%).
     let isStart = false
     const ss = next.sessionStart
     if (p !== undefined && ss && ss.pct === null && input.sessionId === state.activeSessionId) {
-      if (rel === undefined || (input.fromTool && ss.skipped)) { next = { ...next, sessionStart: { at: ss.at, pct: p } }; isStart = true }
-      else if (input.fromTool) next = { ...next, sessionStart: { ...ss, skipped: true } }
+      if (rel === undefined || (input.fromTool && ss.firstPct !== undefined && p !== ss.firstPct)) { next = { ...next, sessionStart: { at: ss.at, pct: p } }; isStart = true }
+      else if (input.fromTool && ss.firstPct === undefined) next = { ...next, sessionStart: { ...ss, firstPct: p } }
     }
     const counts = rel === undefined || isStart
     if (state.status === 'MONITORING') {

@@ -78,7 +78,7 @@ const ledgerEntry: Guard = (v, p, e) => {
 const stateShape = obj<State>({
   schemaVersion: ver, taskId: str({ nonEmpty: true, max: 100 }), projectId: str({ nonEmpty: true, max: 100 }),
   status: oneOf(STATUSES), reason, mode: oneOf(MODES), taskRevision: int(0), sessionSequence: int(0),
-  activeSessionId: nullable(str({ nonEmpty: true })), sessionStart: { optional: obj<NonNullable<State['sessionStart']>>({ at: iso, pct: nullable(num(0, 100)), skipped: { optional: bool } }) },
+  activeSessionId: nullable(str({ nonEmpty: true })), sessionStart: { optional: obj<NonNullable<State['sessionStart']>>({ at: iso, pct: nullable(num(0, 100)), firstPct: { optional: num(0, 100) } }) },
   rotation: nullable(rotation),
   lastValidatedHandover: nullable(str({ nonEmpty: true })), rotationCount: int(0), consecutiveFailures: int(0),
   thresholdPercent: int(20, 90), lastContext: nullable(contextReading), armedFired: bool,

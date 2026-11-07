@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "rotationId": "r_20261107_5bti2e",
+  "capturedAt": "2026-11-07T20:40:02.650Z",
+  "git": {
+    "kind": "git",
+    "worktree": "/private/tmp/claude-501/-Users-user-Desktop-Projects-jeeves/66bf19ad-4728-4030-97f6-d413f8b6c6e1/scratchpad/run9/repo",
+    "branch": "main",
+    "detached": false,
+    "head": "ea88d85603b84e80755da3bb02b8aa8b426e2584",
+    "status": [],
+    "changedSinceStart": [
+      "src/step1.js"
+    ]
+  },
+  "crons": []
+}
