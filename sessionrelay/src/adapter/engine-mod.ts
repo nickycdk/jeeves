@@ -38,6 +38,7 @@ export function enginePort($: EngineInterface): EnginePort {
     },
     runCommand: async name => { await $.command.run({ command: name, args: '' }) },
     submitPrompt: async text => { await $.prompt.submit({ text }) },
+    submitPromptSoon: (text, onError) => { $.clock.after(0, () => { $.prompt.submit({ text }).catch(onError) }) },
     appendHiddenNote: async text => { await $.session.append({ message: { type: 'user', content: [{ type: 'text', text }] } }) },
     status: text => $.ui.status(text),
     toast: text => $.ui.toast(text),

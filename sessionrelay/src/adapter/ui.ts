@@ -26,6 +26,7 @@ export function statusText(v: StatusView): string {
   else {
     const s = v.task.state
     const pct = s.lastContext?.percent
+    if (s.taskRevision === 0) lines.push('Waiting for your first prompt')
     lines.push(
       `Task: ${s.taskId}`,
       `State: ${s.status}${s.reason ? ` (${s.reason})` : ''}`,
@@ -41,7 +42,28 @@ export function statusText(v: StatusView): string {
 
 export const HELP = [
   'SessionRelay commands:',
-  '/relay status  mode, task, context',
-  '/relay help    this list',
-  'More commands come in later versions.',
+  '/relay on [goal]  start a managed task',
+  '/relay off        stop it (files kept)',
+  '/relay status     mode, task, context',
+  '/relay help       this list',
 ].join('\n')
+
+const short = (s: string) => s.replace(/\s+/g, ' ').slice(0, 120)
+
+/** Replies to /relay commands. Plain text, no colour or emoji meaning (FR-14). */
+export const MSG = {
+  userOnly: 'Only you can change a SessionRelay task: type the /relay command yourself.',
+  unsupported: 'This Claude Code version is not supported, so SessionRelay stays off.',
+  noTask: 'No managed task. Start with /relay on',
+  noProject: (stateRootError: string | null) => stateRootError
+    ? `SessionRelay has no state folder (${stateRootError}). Set stateDir in /config.`
+    : 'SessionRelay could not tell which project this is (git did not answer). Try again.',
+  alreadyOn: (s: State) => `Already on: task ${s.taskId} (${s.status}). /relay status shows it.`,
+  lockHeld: (taskId: string) => `Another running session owns task ${taskId} here (LOCK_HELD). /relay status shows it read-only.`,
+  leftBehind: (s: State) => `Task ${s.taskId} from an earlier session is ${s.status} here. ${s.status === 'PAUSED' ? '/relay resume continues it, or ' : ''}/relay off ends it.`,
+  turnedOn: (taskId: string, withGoal: boolean) => withGoal
+    ? `SessionRelay on: task ${taskId}. Your goal is saved word for word and sent as the first prompt.`
+    : `SessionRelay on: task ${taskId}. Your next prompt is saved word for word as the task.`,
+  turnedOff: (taskId: string, dir: string) => `SessionRelay off. Task ${taskId} is kept, nothing was deleted: ${dir}`,
+  submitFailed: (err: unknown) => `SessionRelay could not send your goal (${short(String(err))}). Type it as your next prompt.`,
+}

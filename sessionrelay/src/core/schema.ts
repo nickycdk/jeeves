@@ -69,7 +69,7 @@ const reason = nullable(oneOf(REASON_CODES))
 
 const stateShape = obj<State>({
   schemaVersion: ver, taskId: str({ nonEmpty: true, max: 100 }), projectId: str({ nonEmpty: true, max: 100 }),
-  status: oneOf(STATUSES), reason, mode: oneOf(MODES), taskRevision: int(1), sessionSequence: int(0),
+  status: oneOf(STATUSES), reason, mode: oneOf(MODES), taskRevision: int(0), sessionSequence: int(0),
   activeSessionId: nullable(str({ nonEmpty: true })), rotation: nullable(rotation),
   lastValidatedHandover: nullable(str({ nonEmpty: true })), rotationCount: int(0), consecutiveFailures: int(0),
   thresholdPercent: int(20, 90), lastContext: nullable(contextReading), armedFired: bool,

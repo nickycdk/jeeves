@@ -3,9 +3,10 @@ import type { EngineInterface } from 'claude-code'
 import type { Probe } from '../core/probe.ts'
 import { enginePort } from './engine-mod.ts'
 import type { EnginePort } from './ports.ts'
-import { repoIdentity } from './git.ts'
+import type { RepoIdentity } from '../core/git.ts'
+import { projectDir, projectId, repoIdentity } from './git.ts'
 import { runProbe } from './probe.ts'
-import { createStorage, resolveStateRoot, StorageError, type Storage } from './storage.ts'
+import { createQueue, createStorage, resolveStateRoot, StorageError, type Storage } from './storage.ts'
 
 export type Runtime = {
   port: EnginePort
@@ -14,6 +15,13 @@ export type Runtime = {
   /** null with `stateRootError` when no usable state folder could be set up. */
   stateRoot: string | null
   stateRootError: string | null
+  /** This cwd's repo identity; null when git did not answer. */
+  identity: RepoIdentity | null
+  /** `projects/<projectId>` under the state root; null without a state root or identity. */
+  projectId: string | null
+  projectDir: string | null
+  /** Serialises each read -> reduce -> write -> effects cycle, so concurrent hooks never act on the same old state. */
+  serial: ReturnType<typeof createQueue>
 }
 
 export type Options = { stateDir?: string | undefined }
@@ -31,13 +39,17 @@ async function build($: EngineInterface, options: Options): Promise<Runtime> {
   const storage = createStorage(port)
   const probe = await runProbe($, true)
   let stateRoot: string | null = null, stateRootError: string | null = null
+  const id = await port.cwd().then(cwd => repoIdentity(port, cwd)).catch(() => null)
   try {
-    const id = await repoIdentity(port, await port.cwd())
     stateRoot = (await resolveStateRoot(port, { override: options.stateDir, repoRoot: id?.kind === 'git' ? id.worktree : null })).root
     await storage.ensureRoot(stateRoot)
   } catch (err) {
     stateRoot = null
     stateRootError = err instanceof StorageError ? `${err.code}: ${err.message}` : String(err)
   }
-  return { port, storage, probe, stateRoot, stateRootError }
+  const pid = id ? await projectId(id) : null
+  return {
+    port, storage, probe, stateRoot, stateRootError, identity: id, projectId: pid,
+    projectDir: stateRoot && pid ? projectDir(stateRoot, pid) : null, serial: createQueue(),
+  }
 }

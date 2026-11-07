@@ -89,6 +89,7 @@ export type State = {
   status: Status
   reason: ReasonCode | null
   mode: Mode
+  /** Revisions written so far; 0 while `/relay on` waits for the first prompt to capture. */
   taskRevision: number
   sessionSequence: number
   activeSessionId: string | null

@@ -3,7 +3,10 @@ import { INERT, ROTATION_STATES, type Config, type Mode, type ReasonCode, type R
 
 export type Input =
   | { type: 'ON'; mode: Mode; lockAcquired: boolean; sessionId: string }
-  | { type: 'OFF' }
+  /** `sessionId`: the session turning it off, which now holds the lock it releases. */
+  | { type: 'OFF'; sessionId: string }
+  /** A user command wrote task revision `revision` (FR-05; never model text). */
+  | { type: 'REVISED'; revision: number }
   | { type: 'MEASURE'; percent?: number; tokens?: number; window: number; sessionId: string }
   | { type: 'ROTATE_CMD' }
   | { type: 'COMPACTED' }
@@ -79,6 +82,12 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
   const setRotation = (patch: Partial<Rotation>) => { next = { ...next, rotation: { ...next.rotation!, ...patch }, updatedAt: at } }
   const key = (step: RotationStep | string) => `${next.rotation?.rotationId ?? rid}:${step}`
   const done = (): Output => ({ state: next, effects })
+  // A change that keeps the status (revision, threshold); logged as from = to.
+  const edit = (patch: Partial<State>, what: string, detail: string): Output => {
+    next = { ...next, ...patch, updatedAt: at }
+    effects.push({ type: 'LOG_EVENT', key: `${rid}:${what}`, rotationId: state.rotation?.rotationId ?? null, from: state.status, to: state.status, code: null, detail })
+    return done()
+  }
 
   const request = (trigger: Trigger): Output => {
     const rotation: Rotation = {
@@ -131,9 +140,14 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
 
     case 'OFF':
       if (state.status === 'DISABLED') return ignore('already off')
-      go('DISABLED', null, { rotation: null })
+      go('DISABLED', null, { rotation: null, activeSessionId: input.sessionId })
       effects.push({ type: 'RELEASE_LOCK', key: key('release') })
       return done()
+
+    case 'REVISED':
+      if (state.status === 'DISABLED') return ignore('no active task')
+      if (input.revision !== state.taskRevision + 1) return ignore(`revision ${input.revision} after ${state.taskRevision}`)
+      return edit({ taskRevision: input.revision }, `rev-${input.revision}`, `task revision ${input.revision}`)
 
     case 'ROTATE_CMD':
     case 'COMPACTED':

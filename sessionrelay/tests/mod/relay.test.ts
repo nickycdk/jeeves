@@ -10,7 +10,6 @@ const sha16 = async (s: string) => [...new Uint8Array(await crypto.subtle.digest
 
 test('/relay status with no task: mode full and how to start, within 8 lines x 40 columns', async ($, on) => {
   const h = memHost(on, { HOME: '/home/t' })
-  on('session.start', (_, e) => ({ cwd: e.cwd }))
   await startSession($)
   expect(h.registered).toEqual(['relay'])
   const r = await $.command.run(typed('relay', 'status'))
@@ -23,7 +22,6 @@ test('/relay status with no task: mode full and how to start, within 8 lines x 4
 
 test('/relay status reads the task state through $.fs', async ($, on) => {
   const h = memHost(on, { HOME: '/home/t' })
-  on('session.start', (_, e) => ({ cwd: e.cwd }))
   const dir = `${ROOT}/projects/${await sha16('nogit|/work/proj')}/tasks/t_20261107_k3m9qa`
   h.files.set(`${dir}/state.json`, JSON.stringify({
     schemaVersion: 1, taskId: 't_20261107_k3m9qa', projectId: 'p', status: 'MONITORING', reason: null, mode: 'full', taskRevision: 1,
@@ -41,7 +39,6 @@ test('/relay status reads the task state through $.fs', async ($, on) => {
 
 test('unknown subcommand shows help; help lists the commands', async ($, on) => {
   memHost(on)
-  on('session.start', (_, e) => ({ cwd: e.cwd }))
   await startSession($)
   const unknown = (await $.command.run(typed('relay', 'frobnicate now'))).text ?? ''
   expect(unknown).toContain('Unknown command "frobnicate".')
@@ -52,7 +49,6 @@ test('unknown subcommand shows help; help lists the commands', async ($, on) => 
 test('name collision: falls back to /sessionrelay and says so; /relay stays the other owner\'s', async ($, on) => {
   const h = memHost(on)
   h.commands = [{ name: 'relay', description: 'someone else', source: 'plugin', plugin: 'other' }]
-  on('session.start', (_, e) => ({ cwd: e.cwd }))
   on('command.run', (_, e) => ({ text: `engine ran /${e.command}` }))
   await startSession($)
   expect(h.registered).toEqual(['sessionrelay'])
@@ -63,7 +59,6 @@ test('name collision: falls back to /sessionrelay and says so; /relay stays the 
 
 test('a state root failure is reported in status, not thrown', async ($, on) => {
   memHost(on, {})
-  on('session.start', (_, e) => ({ cwd: e.cwd }))
   await startSession($)
   const text = (await $.command.run(typed('relay', 'status'))).text ?? ''
   expect(text).toContain('State folder: error')

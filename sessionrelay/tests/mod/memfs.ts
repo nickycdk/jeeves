@@ -1,5 +1,6 @@
 // An in-memory host for mod tests: answers $.fs, $.process (mkdir/mv/chmod/uname) and $.env beneath the plugin.
 import type { On } from 'claude-code'
+import { mock, type MockClock } from 'claude-code/testing'
 
 export type MemHost = {
   toasts: string[]
@@ -13,17 +14,27 @@ export type MemHost = {
   env: Record<string, string>
   argv: string[][]
   failWrite: ((path: string) => boolean) | null
+  sessionId: string
+  clock: MockClock
 }
 
 const parent = (p: string) => p.replace(/\/[^/]+$/, '') || '/'
 const yieldTicks = async (n: number) => { for (let i = 0; i < n; i++) await Promise.resolve() }
 
+/** The mock clock starts here, so timestamps in assertions are readable. */
+export const T0 = Date.parse('2026-11-07T08:00:00.000Z')
+
 export function memHost(on: On, env: Record<string, string> = { HOME: '/home/t' }): MemHost {
-  const h: MemHost = { commands: [], registered: [], toasts: [], status: [], version: '2.1.319', failProcess: false, files: new Map(), dirs: new Set(['/']), env, argv: [], failWrite: null }
+  const h: MemHost = {
+    commands: [], registered: [], toasts: [], status: [], version: '2.1.319', failProcess: false, files: new Map(), dirs: new Set(['/']), env, argv: [], failWrite: null,
+    sessionId: 'sess-test', clock: mock.clock(on, { now: T0 }),
+  }
+  mock.store(on)
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
   on('session.version', () => ({ value: { version: h.version } }))
   on('session.usage', () => ({ value: { startedAt: 0, context: { window: 1_000_000 }, rateLimits: [] } }))
   on('session.cwd', () => ({ value: '/work/proj' }))
-  on('session.id', () => ({ value: 'sess-test' }))
+  on('session.id', () => ({ value: h.sessionId }))
   on('ui.toast', (_, e) => { h.toasts.push(e.text); return { value: undefined } })
   on('ui.status', (_, e) => { h.status.push(e.text); return { value: undefined } })
   on('fs.stat', (_, e) => {

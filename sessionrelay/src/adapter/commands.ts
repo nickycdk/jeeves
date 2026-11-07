@@ -1,9 +1,8 @@
-// /relay parsing and answers (ST-1.9). Later subcommands (on, off, rotate, ...) arrive with their stories.
-import { join } from '../core/paths.ts'
+// /relay parsing and answers (ST-1.9, E2). Commands that change a task run only when the user typed them (FR-05).
 import type { State } from '../core/types.ts'
-import { projectDir, projectId, repoIdentity } from './git.ts'
 import type { Runtime } from './runtime.ts'
-import { HELP, statusText } from './ui.ts'
+import { apply, claim, heldByOther, liveTask, ownTask, projectTasks, startTask, type Task } from './task.ts'
+import { HELP, MSG, statusText } from './ui.ts'
 
 export const PLUGIN = 'sessionrelay'
 export const PRIMARY = 'relay'
@@ -21,30 +20,54 @@ export function pickTask<T extends { state: State }>(tasks: T[], sessionId: stri
   return mine ?? live.sort((a, b) => b.state.updatedAt.localeCompare(a.state.updatedAt))[0] ?? null
 }
 
-async function currentTask(rt: Runtime): Promise<{ task: { state: State; dir: string } | null; error: string | null }> {
-  if (!rt.stateRoot) return { task: null, error: null }
-  const id = await repoIdentity(rt.port, await rt.port.cwd())
-  if (!id) return { task: null, error: 'git did not answer; task unknown' }
-  const tasksDir = join(projectDir(rt.stateRoot, await projectId(id)), 'tasks')
-  const found: { state: State; dir: string }[] = []
-  let error: string | null = null
-  for (const name of await rt.port.listDirs(tasksDir)) {
-    const dir = join(tasksDir, name)
-    const r = await rt.storage.readState(dir).catch(err => ({ ok: false as const, errors: [String(err)] }))
-    if (r === null) continue
-    if (r.ok) found.push({ state: r.value, dir })
-    else error = `${name}: ${r.errors[0] ?? 'invalid'}`
-  }
-  const task = pickTask(found, await rt.port.sessionId())
-  return { task, error: task ? null : error }
-}
+/** `origin.kind === 'composer'`: the person pressed Enter. Anything else (a plugin, a peer, the model) may only read. */
+export type Caller = { userTyped: boolean }
 
-export async function relay(rt: Runtime, args: string): Promise<string> {
-  const sub = args.trim().split(/\s+/)[0]?.toLowerCase() ?? ''
+const CHANGES = new Set(['on', 'off'])
+
+export async function relay(rt: Runtime, args: string, caller: Caller): Promise<string> {
+  const m = /^\s*(\S*)\s?([\s\S]*)$/.exec(args)!
+  const sub = m[1]!.toLowerCase(), rest = m[2]!
   if (sub === '' || sub === 'status') {
-    const { task, error } = await currentTask(rt)
-    return statusText({ probe: rt.probe, stateRoot: rt.stateRoot, stateRootError: rt.stateRootError, task, taskError: error })
+    const { tasks, errors } = await projectTasks(rt)
+    const task = pickTask(tasks, await rt.port.sessionId())
+    return statusText({ probe: rt.probe, stateRoot: rt.stateRoot, stateRootError: rt.stateRootError, task, taskError: task ? null : errors[0] ?? null })
   }
   if (sub === 'help') return HELP
-  return `Unknown command "${sub.slice(0, 20)}".\n${HELP}`
+  if (!CHANGES.has(sub)) return `Unknown command "${sub.slice(0, 20)}".\n${HELP}`
+  if (!caller.userTyped) return MSG.userOnly
+  if (!rt.projectDir) return MSG.noProject(rt.stateRootError)
+  const me = await rt.port.sessionId()
+  const { tasks } = await projectTasks(rt)
+  switch (sub) {
+    case 'on': return on(rt, tasks, me, rest)
+    default: return off(rt, tasks, me)
+  }
+}
+
+async function on(rt: Runtime, tasks: Task[], me: string, rest: string): Promise<string> {
+  if (rt.probe.mode === 'unsupported') return rt.probe.message ?? MSG.unsupported
+  const own = ownTask(tasks, me)
+  if (own) return MSG.alreadyOn(own.state)
+  const other = liveTask(tasks)
+  if (other) return (await heldByOther(rt, other.dir, me)) ? MSG.lockHeld(other.state.taskId) : MSG.leftBehind(other.state)
+  // The goal is everything after "on " as typed; only the separating whitespace is dropped.
+  const goal = rest.replace(/^\s+/, '')
+  const r = await startTask(rt, me, goal.trim() ? goal : null)
+  if (r.state.status !== 'MONITORING') return MSG.lockHeld(r.state.taskId)
+  if (goal.trim()) rt.port.submitPromptSoon(goal, err => rt.port.toast(MSG.submitFailed(err)))
+  return [MSG.turnedOn(r.state.taskId, goal.trim() !== ''), ...(await firstActivationNotice(rt))].join('\n')
+}
+
+async function off(rt: Runtime, tasks: Task[], me: string): Promise<string> {
+  const target = ownTask(tasks, me) ?? tasks.find(t => t.state.status !== 'DISABLED') ?? null
+  if (!target) return MSG.noTask
+  if (!(await claim(rt, target.dir, me))) return MSG.lockHeld(target.state.taskId)
+  await apply(rt, target.dir, { type: 'OFF', sessionId: me })
+  return MSG.turnedOff(target.state.taskId, target.dir)
+}
+
+/** First `/relay on` on this machine: the notice of ST-7.3. Hook point; the text and the once-only flag land there. */
+async function firstActivationNotice(_rt: Runtime): Promise<string[]> {
+  return []
 }

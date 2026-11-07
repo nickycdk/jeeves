@@ -238,7 +238,7 @@ test('rows 24-25: MONITORING/CONTINUING + COMPLETE block -> COMPLETED with evide
 
 test('row 26: any + /relay off -> DISABLED, state kept, lock released', () => {
   for (const s of STATUSES.filter(s => s !== 'DISABLED')) {
-    const o = run(st(s, { rotationCount: 3 }), { type: 'OFF' })
+    const o = run(st(s, { rotationCount: 3 }), { type: 'OFF', sessionId: 'sess-a' })
     assert.equal(o.state.status, 'DISABLED', s)
     assert.equal(o.state.rotationCount, 3)
     assert.ok(types(o.effects).includes('RELEASE_LOCK'))
@@ -277,7 +277,7 @@ test('forbidden transitions are no-ops with a reason', () => {
     ['ROTATION_REQUESTED', { type: 'ROTATE_CMD' }], ['MONITORING', { type: 'CLEAR_FAILED' }], ['MONITORING', { type: 'CONTEXT_READY' }],
     ['MONITORING', { type: 'HANDOVER_PERSISTED', ok: true, ref: 'x' }], ['MONITORING', stop()], ['PAUSED', stop()],
     ['MONITORING', { type: 'RESUME', lockOk: true, sessionId: 's' }], ['MONITORING', { type: 'ON', mode: 'full', lockAcquired: true, sessionId: 's' }],
-    ['DISABLED', { type: 'OFF' }], ['NEEDS_REVIEW', { type: 'PAUSE' }], ['FAILED', { type: 'STOP_FAILURE', error: 'rate_limit' }],
+    ['DISABLED', { type: 'OFF', sessionId: 'sess-a' }], ['NEEDS_REVIEW', { type: 'PAUSE' }], ['FAILED', { type: 'STOP_FAILURE', error: 'rate_limit' }],
     ['ROTATING', { type: 'COMPLETE_BLOCK', evidenceOk: true, missing: [] }], ['MONITORING', { type: 'SESSION_START_CLEAR', sessionId: 'b' }],
   ]
   for (const [s, i] of cases) {
@@ -322,7 +322,7 @@ test('property: 300 seeded random walks of 200 inputs keep every invariant (02 Â
     const sid = rnd.pick(sessions)
     switch (rnd.int(19)) {
       case 0: return { type: 'ON', mode: rnd.pick(['full', 'assisted', 'unsupported'] as const), lockAcquired: rnd.next() < 0.8, sessionId: sid }
-      case 1: return rnd.next() < 0.2 ? { type: 'OFF' } : measure(rnd.int(101), sid)
+      case 1: return rnd.next() < 0.2 ? { type: 'OFF', sessionId: sid } : measure(rnd.int(101), sid)
       case 2: case 3: return rnd.next() < 0.15 ? measure(undefined, sid) : measure(rnd.int(101), sid)
       case 4: return { type: 'ROTATE_CMD' }
       case 5: return { type: 'COMPACTED' }

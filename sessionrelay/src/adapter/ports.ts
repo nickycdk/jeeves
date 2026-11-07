@@ -33,6 +33,8 @@ export interface EnginePort extends FsPort {
   usage(): Promise<Usage>
   runCommand(name: 'clear'): Promise<void>
   submitPrompt(text: string): Promise<void>
+  /** Submit once the current hook has returned (a command.run hook may not submit: it holds the turn). */
+  submitPromptSoon(text: string, onError: (err: unknown) => void): void
   appendHiddenNote(text: string): Promise<void>
   status(text?: string): void
   toast(text: string): void

@@ -156,6 +156,9 @@ export function createStorage(port: FsPort, opts: { eventLogMaxBytes?: number } 
     /** Take the task lock (`mkdir` is atomic). Re-entrant for the same session (a reload reruns session.start). */
     acquireLock: (taskDir: string, sessionId: string, nowIso: string, nowMs: number) => enqueue(() => acquire(taskDir, sessionId, nowIso, nowMs)),
 
+    /** Who holds the lock, read-only. */
+    readLock: (taskDir: string, nowMs: number) => lockState(taskDir, nowMs),
+
     /** Refresh heartbeatAt; false when this session no longer owns the lock. */
     heartbeat: (taskDir: string, sessionId: string, nowIso: string) => enqueue(async () => {
       const owner = await readOwner(taskDir)
