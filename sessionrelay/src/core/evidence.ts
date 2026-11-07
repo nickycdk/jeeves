@@ -26,7 +26,8 @@ export function toolRecord(o: ToolOutcome): LedgerRecord | null {
   const agent = o.agentId ?? null
   if (o.tool === 'Bash') {
     const raw = typeof o.args.command === 'string' ? o.args.command : ''
-    const command = redact(raw).replace(/\s+/g, ' ').trim().slice(0, LEDGER_COMMAND_MAX)
+    // Cut before redacting (a heredoc can be megabytes), with room past the cap so a secret is never cut in half at it.
+    const command = redact(raw.slice(0, 4000)).replace(/\s+/g, ' ').trim().slice(0, LEDGER_COMMAND_MAX)
     const ok = !o.denied && !o.isError
     const code = o.isError ? /Exit code (\d+)/.exec(o.text ?? '')?.[1] : undefined
     // A backgrounded command has not ended: no exit status is known yet.

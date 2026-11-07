@@ -121,3 +121,13 @@ test('crash between the handover write and the state swap: file verified on disk
   expect(stateOf(h, dir).status).toBe('VALIDATING')
   expect(clears).toEqual([])
 })
+
+test('review fix 2: a background task started while the handover was written blocks it; nothing is saved until it ends', async ($, on) => {
+  const { h, dir, taskId, rotationId } = await generating($, on)
+  const busy = await $.classic.Stop({ stop_hook_active: true, last_assistant_message: handover(taskId, rotationId), background_tasks: [{ id: 'b1', type: 'shell', status: 'running', description: 'npm test' }], session_crons: [] })
+  expect(busy.block).toContain('1 background task(s) and 0 running agent(s) are still in flight')
+  expect(stateOf(h, dir).status).toBe('HANDOVER_GENERATING')
+  expect(h.files.has(`${dir}/history/handover-001.md`)).toBe(false)
+  expect(await stop($, handover(taskId, rotationId))).toEqual({})
+  expect(stateOf(h, dir).status).toBe('ROTATING')
+})

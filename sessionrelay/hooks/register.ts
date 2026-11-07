@@ -3,10 +3,9 @@ import type { CommandRunInput, EngineInterface, Register, Timer, ToolCallInput, 
 import type { ToolOutcome } from '../src/core/evidence.ts'
 import { chooseCommandName, FALLBACK, PRIMARY, relay } from '../src/adapter/commands.ts'
 import { runtime, type Options } from '../src/adapter/runtime.ts'
-import { captureFirstPrompt, heartbeat, measure, onAbortedTurn, onStop, onUserClear, recordTool, releaseOnExit } from '../src/adapter/task.ts'
+import { captureFirstPrompt, heartbeat, measure, onAbortedTurn, onStop, onUserClear, recordTool, releaseOnExit, why } from '../src/adapter/task.ts'
 import { HEARTBEAT_MS } from '../src/core/lock.ts'
 
-const why = (err: unknown) => (err instanceof Error ? err.message : String(err)).slice(0, 200)
 
 async function answer($: EngineInterface, opts: Options, e: CommandRunInput) {
   try { return { text: await relay(await runtime($, opts), e.args, { userTyped: e.origin.kind === 'composer' }) } } catch (err) {

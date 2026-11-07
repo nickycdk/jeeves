@@ -1,12 +1,11 @@
 // Managed-task wiring (02 §3): find the task, then read state -> reduce -> write state -> run effects.
 // Task state lives only in files; every cycle re-reads state.json inside the runtime's serial queue.
-import { toolRecord, type ToolOutcome } from '../core/evidence.ts'
-import { capturedFacts } from '../core/evidence.ts'
+import { capturedFacts, toolRecord, type ToolOutcome } from '../core/evidence.ts'
 import { parseHandover } from '../core/handover/parse.ts'
 import { handoverFile, renderHandover, roundTrips } from '../core/handover/render.ts'
 import { handoverInstruction, QUIESCE_NOTE, retryInstruction, type CapturedFacts } from '../core/handover/template.ts'
 import { mentionedPaths, validateHandover } from '../core/handover/validate.ts'
-import { reduce, type Input } from '../core/machine.ts'
+import { isSafe, reduce, type Input } from '../core/machine.ts'
 import { newRotationId, newTaskId } from '../core/ids.ts'
 import { join } from '../core/paths.ts'
 import { foldTask, newTaskState, parseRevision, renderChange, revFile, type ChangeKind, type TaskView } from '../core/task.ts'
@@ -238,7 +237,7 @@ export async function onStop(rt: Runtime, info: StopInfo): Promise<string | null
     const snapshot = { schemaVersion: 1, rotationId, capturedAt: r.state.updatedAt, git, crons: info.crons }
     // A snapshot that cannot be saved is logged; the handover is checked against fresh facts anyway.
     await rt.storage.writeImmutable(join(own.dir, factsFile(rotationId)), JSON.stringify(snapshot, null, 2) + '\n')
-      .catch(err => rt.port.log(`sessionrelay: facts snapshot not saved: ${err instanceof Error ? err.message : String(err)}`))
+      .catch(err => rt.port.log(`sessionrelay: facts snapshot not saved: ${why(err)}`))
   }
   const block = r.forHook.find(f => f.type === 'BLOCK_STOP')
   if (block?.type === 'BLOCK_STOP' && block.kind === 'handover-request' && rotationId) {
@@ -247,7 +246,7 @@ export async function onStop(rt: Runtime, info: StopInfo): Promise<string | null
   return null
 }
 
-const why = (err: unknown) => (err instanceof Error ? err.message : String(err)).slice(0, 200)
+export const why = (err: unknown) => (err instanceof Error ? err.message : String(err)).slice(0, 200)
 
 /** The next unused `history/handover-NNN.md` (write-once: a number is never reused). */
 async function nextHandoverNumber(rt: Runtime, dir: string): Promise<number> {
@@ -295,6 +294,13 @@ async function handoverStop(rt: Runtime, own: Task, info: StopInfo): Promise<str
     outcome = roundTrips(merged, v.narrative) ? { ok: true } : { ok: false, errors: ['the merged handover file did not parse back'], fatal: 'HANDOVER_INVALID' }
   } else {
     outcome = { ok: false, errors: v.errors.map(e => e.message), ...(v.fatal ? { fatal: v.fatal } : {}) }
+  }
+  // ADR-004 holds at the handover Stop too: work Claude started while writing it must end before anything rotates.
+  const runningAgents = await rt.port.runningAgents().catch(() => 1)
+  if (!isSafe({ backgroundTasks: info.backgroundTasks, runningAgents })) {
+    const busy = `${info.backgroundTasks} background task(s) and ${runningAgents} running agent(s) are still in flight; wait for them, run no new tool, then reply with the handover again`
+    outcome = { ok: false, errors: [busy, ...(outcome.ok ? [] : outcome.errors)], ...(!outcome.ok && outcome.fatal ? { fatal: outcome.fatal } : {}) }
+    merged = null
   }
   const r = await applyOwn(rt, { type: 'STOP', backgroundTasks: info.backgroundTasks, runningAgents: 0, handover: outcome })
   if (!r) return null

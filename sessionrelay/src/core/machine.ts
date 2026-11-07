@@ -302,7 +302,8 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
     }
 
     case 'PAUSE':
-      if (HELD_STATES.includes(state.status)) {
+      // VALIDATING with nothing cleared yet (a state write failed after the handover was saved): pause at once.
+      if (HELD_STATES.includes(state.status) && state.status !== 'VALIDATING') {
         if (state.pauseRequested) return ignore('pause already requested')
         return edit({ pauseRequested: true }, 'pause-requested', 'pause requested; applies after the continuation')
       }

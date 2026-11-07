@@ -4,6 +4,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { toolRecord } from '../../src/core/evidence.ts'
 import { findSecrets, redact } from '../../src/core/redact.ts'
 import { prng } from './helpers.ts'
 
@@ -69,4 +70,16 @@ test('AC (2): false positives on normal code and handovers stay under 1 per 10,0
   const per10k = (changed.length / lines.length) * 10_000
   console.log(`# redaction false positives: ${changed.length} in ${lines.length} lines (${per10k.toFixed(2)} per 10K)`)
   assert.ok(per10k < 1, changed.slice(0, 5).join('\n'))
+})
+
+test('review fix 1: linear on hostile input; a 1 MB heredoc command is cut first and a secret near its start is still masked', () => {
+  let t = performance.now()
+  redact('x=' + 'a.'.repeat(100_000))
+  redact('postgres://' + 'a.'.repeat(100_000))
+  assert.ok(performance.now() - t < 1000, `${performance.now() - t} ms`)
+  const key = `ghp_${pick(ALNUM, 36)}`
+  t = performance.now()
+  const rec = toolRecord({ tool: 'Bash', args: { command: `GH=${key} cat > f <<'EOF'\n${'a.'.repeat(500_000)}\nEOF` }, denied: false, isError: false, backgrounded: false })
+  assert.ok(performance.now() - t < 200)
+  assert.ok(rec?.kind === 'cmd' && !rec.command.includes(key) && rec.command.length <= 300)
 })

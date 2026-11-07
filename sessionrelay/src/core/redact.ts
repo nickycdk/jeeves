@@ -11,14 +11,15 @@ const PATTERNS: [string, RegExp, boolean][] = [
   ['stripe-key', /\b(sk|rk)_(live|test)_[A-Za-z0-9]{16,}|\bwhsec_[A-Za-z0-9]{20,}/g, true],
   ['slack-token', /\bxox[abprs]-[A-Za-z0-9-]{10,}/g, true],
   ['jwt', /\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}/g, true],
-  ['url-credentials', /\b([a-z][a-z0-9+.-]*:\/\/)[^\s/:@]+:[^\s/@]+@/gi, true],
+  // Runs are bounded ({0,40}, {0,80}) so a long dotted token cannot make a pattern rescan quadratically.
+  ['url-credentials', /\b([a-z][a-z0-9+.-]{0,40}:\/\/)[^\s/:@]{1,200}:[^\s/@]{1,200}@/gi, true],
   ['bearer', /\bBearer\s+[A-Za-z0-9._~+/-]{16,}=*/g, false],
   // After "token" a value counts only when it holds a digit ("token cancellationRequested" is prose).
   ['bearer', /\btoken\s+(?=[A-Za-z._~+/-]*\d)[A-Za-z0-9._~+/-]{16,}=*/gi, false],
 ]
 
 /** A key-like name (`API_KEY`, `aws_secret_access_key`, `"password"`), then `=` or `:`, then a value. */
-const ASSIGNMENT = /(["']?\b[A-Za-z0-9_.-]*?(?:secret|password|passwd|pwd|token|api[_-]?key|access[_-]?key|private[_-]?key|credential)[A-Za-z0-9_.-]*["']?)(\s*[=:]\s*)("[^"\n]*"|'[^'\n]*'|[^\s,;}]+)/gi
+const ASSIGNMENT = /(["']?\b[A-Za-z0-9_.-]{0,80}?(?:secret|password|passwd|pwd|token|api[_-]?key|access[_-]?key|private[_-]?key|credential)[A-Za-z0-9_.-]{0,80}["']?)(\s*[=:]\s*)("[^"\n]*"|'[^'\n]*'|[^\s,;}]+)/gi
 
 /**
  * Whether an assigned value looks like a secret rather than code. Quoted: 6+ characters, no spaces, and not a plain
