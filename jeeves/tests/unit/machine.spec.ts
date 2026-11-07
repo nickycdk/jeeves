@@ -522,3 +522,42 @@ test('ST-4.4: HOLD_PROMPT appends in HANDOVER_GENERATING..RESTORING only, up to 
   const full = st('ROTATING', { heldPrompts: Array.from({ length: HELD_MAX }, (_, i) => `m${i}`) })
   assert.ok(run(full, { type: 'HOLD_PROMPT', text: 'one more' }).ignored, 'cap')
 })
+
+// ---- ST-4.5: rearm, loop guard, rotation cap, consecutive failures (one test per rule) ----
+
+test('ST-4.5 rearm: CONTINUING + reading < T-10 -> MONITORING, armedFired=false, sessionSequence+1; the next crossing rotates again', () => {
+  const s = st('CONTINUING', { rotation: rot({ step: 'CONTINUED' }), armedFired: true, sessionSequence: 2, rotationCount: 1 })
+  const o = run(s, measure(39))
+  assert.deepEqual([o.state.status, o.state.armedFired, o.state.sessionSequence], ['MONITORING', false, 3])
+  assert.equal(run(o.state, measure(50), ctx({ newRotationId: 'r2' })).state.rotation?.rotationId, 'r2')
+})
+
+test('ST-4.5 loop guard: CONTINUING never rotates on a reading; >= T-10 -> FAILED(POSSIBLE_LOOP)', () => {
+  for (let p = 40; p <= 100; p += 5) {
+    const o = run(st('CONTINUING', { rotation: rot({ step: 'CONTINUED' }) }), measure(p))
+    assert.deepEqual([o.state.status, o.state.reason], ['FAILED', 'POSSIBLE_LOOP'], `p=${p}`)
+  }
+})
+
+test('ST-4.5 max rotations: rotationCount >= maxRotationsPerTask -> PAUSED(MAX_ROTATIONS), threshold, manual and compaction alike', () => {
+  const max = DEFAULT_CONFIG.maxRotationsPerTask
+  for (const i of [measure(60), { type: 'ROTATE_CMD' }, { type: 'COMPACTED' }] as const) {
+    const o = run(st('MONITORING', { rotationCount: max }), i)
+    assert.deepEqual([o.state.status, o.state.reason, o.state.rotation], ['PAUSED', 'MAX_ROTATIONS', null], i.type)
+    assert.ok(o.effects.some(e => e.type === 'TOAST'))
+  }
+  assert.equal(run(st('MONITORING', { rotationCount: max - 1 }), measure(60)).state.status, 'ROTATION_REQUESTED')
+})
+
+test('ST-4.5 consecutive failures: each failed rotation counts, a continued one resets; at the max the next request -> FAILED', () => {
+  const max = DEFAULT_CONFIG.maxConsecutiveFailures
+  const failed = run(st('HANDOVER_GENERATING', { rotation: rot({ step: 'HANDOVER_REQUESTED', retries: 2 }) }), stop(0, 0, { ok: false, errors: ['x'] }))
+  assert.equal(failed.state.consecutiveFailures, 1)
+  const unsafe = run(st('QUIESCING', { rotation: rot({ quiesceCount: 3 }), consecutiveFailures: 1 }), stop(1, 0))
+  assert.deepEqual([unsafe.state.reason, unsafe.state.consecutiveFailures], ['UNSAFE_BOUNDARY', 2])
+  const o = run(st('MONITORING', { consecutiveFailures: max, lastErrorCode: 'UNSAFE_BOUNDARY' }), measure(60))
+  assert.deepEqual([o.state.status, o.state.reason, o.state.rotation], ['FAILED', 'UNSAFE_BOUNDARY', null])
+  const ok = run(st('RESTORING', { rotation: rot({ step: 'RESTORED' }), consecutiveFailures: 1 }), { type: 'CONTEXT_READY' })
+  assert.equal(ok.state.consecutiveFailures, 0)
+  assert.equal(run(st('MONITORING'), { type: 'PAUSE' }).state.consecutiveFailures, 0, 'a user pause is not a failure')
+})

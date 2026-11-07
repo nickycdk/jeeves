@@ -102,6 +102,8 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
     // A user's own pause or /clear is not an error.
     const isError = code !== null && !code.startsWith('USER_') && to !== 'MONITORING' && to !== 'COMPLETED' && to !== 'CONTINUING' && !ROTATION_STATES.includes(to)
     if (isError) next.lastErrorCode = code
+    // A rotation that ended in an error counts towards maxConsecutiveFailures; a continued rotation resets it.
+    if (isError && (ROTATION_STATES.includes(from) || from === 'CONTINUING')) next.consecutiveFailures = state.consecutiveFailures + 1
     // The rotation this line is about, even when the transition just ended it.
     const r = next.rotation?.rotationId ?? rid
     effects.push({ type: 'LOG_EVENT', key: `${r}:${to}`, rotationId: r === '-' ? null : r, from, to, code, detail })
@@ -117,6 +119,18 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
   }
 
   const request = (trigger: Trigger): Output => {
+    // ST-4.5 guards, before anything is asked of Claude.
+    if (state.consecutiveFailures >= ctx.config.maxConsecutiveFailures) {
+      const last = state.lastErrorCode ?? 'API_ERROR'
+      go('FAILED', last, { rotation: null }, `${state.consecutiveFailures} failed rotations in a row`)
+      effects.push({ type: 'TOAST', key: `-:failed:${state.consecutiveFailures}`, text: `Stopped: ${state.consecutiveFailures} handovers in a row failed (last ${last}). Run /relay status.` })
+      return done()
+    }
+    if (state.rotationCount >= ctx.config.maxRotationsPerTask) {
+      go('PAUSED', 'MAX_ROTATIONS', { rotation: null, armedFired: false }, `${state.rotationCount} rotations`)
+      effects.push({ type: 'TOAST', key: `-:max:${state.rotationCount}`, text: `Paused: this task reached ${state.rotationCount} rotations, the limit (MAX_ROTATIONS). /relay off ends it.` })
+      return done()
+    }
     const rotation: Rotation = {
       rotationId: ctx.newRotationId, trigger, requestedAt: at, sourceSessionId: null, targetSessionId: null,
       step: 'REQUESTED', retries: 0, quiesceCount: 0, noteAppended: false,
