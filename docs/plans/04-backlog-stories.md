@@ -143,9 +143,9 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 ### ST-1.8 Engine port, mod adapter, register wiring, capability probe — M
 - **Cites:** FR-01, NFR-06; ADR-002, ADR-008.
 - **Scope:** `ports.ts`, `engine-mod.ts`, `effects.ts`, `probe.ts`; `register.ts` subscribes to all events used later but forwards only `session.start` for now; probe result stored and shown.
-- **Approach:** version check via `$.session.version()`; feature checks by `typeof`; supported range constant.
+- **Approach:** version check via `$.session.version()`; feature checks by harmless calls (not `typeof`: the 2.1.319 scanner refuses `$` nouns as values; ADR-002 A1); supported range constant.
 - **Depends on:** ST-1.4, ST-1.7.
-- **AC:** (1) supported version → `full`; (2) below range → `unsupported` with exact required version and no automation (FR-01 acceptance); (3) missing primitive → `assisted`; (4) never edits Claude settings.
+- **AC:** (1) supported version → `full`; (2) below range → `unsupported` with exact required version and no automation (FR-01 acceptance); (3) missing primitive → `assisted` (amended, ADR-002 A1: `session.usage`/`process.run` probed by a harmless call at startup; `command.run`/`prompt.submit` at first use); (4) never edits Claude settings.
 - **Tests:** plugin tests with mocked version/nouns.
 - **DoD:** standard.
 

@@ -3,6 +3,9 @@
 export type ProcResult = { exitCode: number; stdout: string; stderr: string }
 export type RunOptions = { cwd?: string; timeoutMs?: number }
 
+/** The only environment variables SessionRelay reads (the engine wants literal names). */
+export type EnvName = 'HOME' | 'XDG_STATE_HOME' | 'CLAUDE_PLUGIN_DATA' | 'SESSIONRELAY_TEST' | 'SESSIONRELAY_STATE_DIR'
+
 export interface FsPort {
   /** Whole file as UTF-8 text; rejects when it does not exist. */
   read(path: string): Promise<string>
@@ -15,5 +18,22 @@ export interface FsPort {
   mtimeMs(path: string): Promise<number | null>
   /** A host command by argv, no shell. */
   run(argv: string[], opts?: RunOptions): Promise<ProcResult>
-  env(name: string): Promise<string | undefined>
+  env(name: EnvName): Promise<string | undefined>
+}
+
+export type Usage = { percent?: number; tokens?: number; window: number }
+
+/** Everything the core's effects need from the engine. */
+export interface EnginePort extends FsPort {
+  version(): Promise<{ version: string; base?: string }>
+  sessionId(): Promise<string>
+  cwd(): Promise<string>
+  usage(): Promise<Usage>
+  runCommand(name: 'clear'): Promise<void>
+  submitPrompt(text: string): Promise<void>
+  appendHiddenNote(text: string): Promise<void>
+  status(text?: string): void
+  toast(text: string): void
+  log(text: string): void
+  now(): Promise<number>
 }

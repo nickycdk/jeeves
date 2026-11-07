@@ -2,6 +2,10 @@
 import type { On } from 'claude-code'
 
 export type MemHost = {
+  toasts: string[]
+  status: (string | undefined)[]
+  version: string
+  failProcess: boolean
   files: Map<string, string>
   dirs: Set<string>
   env: Record<string, string>
@@ -13,7 +17,17 @@ const parent = (p: string) => p.replace(/\/[^/]+$/, '') || '/'
 const yieldTicks = async (n: number) => { for (let i = 0; i < n; i++) await Promise.resolve() }
 
 export function memHost(on: On, env: Record<string, string> = { HOME: '/home/t' }): MemHost {
-  const h: MemHost = { files: new Map(), dirs: new Set(['/']), env, argv: [], failWrite: null }
+  const h: MemHost = { toasts: [], status: [], version: '2.1.319', failProcess: false, files: new Map(), dirs: new Set(['/']), env, argv: [], failWrite: null }
+  on('session.version', () => ({ value: { version: h.version } }))
+  on('session.usage', () => ({ value: { startedAt: 0, context: { window: 1_000_000 }, rateLimits: [] } }))
+  on('session.cwd', () => ({ value: '/work/proj' }))
+  on('session.id', () => ({ value: 'sess-test' }))
+  on('ui.toast', (_, e) => { h.toasts.push(e.text); return { value: undefined } })
+  on('ui.status', (_, e) => { h.status.push(e.text); return { value: undefined } })
+  on('fs.stat', (_, e) => {
+    if (!h.files.has(e.path) && !h.dirs.has(e.path)) return { deny: `ENOENT: ${e.path}` }
+    return { value: { kind: h.dirs.has(e.path) ? 'dir' : 'file', size: 0, mtimeMs: 0, isLink: false, ...(e.resolve ? { realPath: e.path } : {}) } }
+  })
   const mkdirs = (d: string) => { for (let p = d; !h.dirs.has(p); p = parent(p)) h.dirs.add(p) }
   on('fs.read', async (_, e) => {
     await yieldTicks(3) // lets concurrent callers interleave, as a real disk does
@@ -34,6 +48,9 @@ export function memHost(on: On, env: Record<string, string> = { HOME: '/home/t' 
     h.argv.push(argv)
     const ok = { exitCode: 0, stdout: '', stderr: '', isStdoutTruncated: false, isStderrTruncated: false }
     const [cmd, ...rest] = argv
+    if (h.failProcess) return { deny: 'process.run unavailable' }
+    if (cmd === 'true') return { value: ok }
+    if (cmd === 'git') return { value: { ...ok, exitCode: 128, stderr: 'fatal: not a git repository' } }
     if (cmd === 'uname') return { value: { ...ok, stdout: 'Linux\n' } }
     if (cmd === 'chmod') return { value: ok }
     if (cmd === 'mkdir') {

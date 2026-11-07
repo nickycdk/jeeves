@@ -15,7 +15,7 @@ const check = (file, re, why) => {
 
 for (const f of files(join(root, 'src/core'))) {
   check(f, /\bDate\.now\(|new Date\(\)|Math\.random\(/, 'core must be pure: pass time and randomness in')
-  check(f, /from 'claude-code'|\$\./, 'core must not touch the engine')
+  check(f, /from 'claude-code'|\(\$[,)]|\$: EngineInterface/, 'core must not touch the engine')
   check(f, /from 'node:/, 'core must not import Node modules')
 }
 for (const f of [...files(join(root, 'src')), ...files(join(root, 'hooks'))]) {

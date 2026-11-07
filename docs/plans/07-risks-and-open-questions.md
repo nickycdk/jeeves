@@ -47,6 +47,7 @@ Owner roles: **M** = maintainer, **L** = lead engineer (implementing agent/devel
 | D-12 | Held prompts: what else is needed? (amends ADR-010) | Clear the composer draft after `{ drop }`; quote held prompts verbatim as the user's words in the continuation | S-06 (live) | Accepted 2026-11-07 |
 | D-15 | M0 gate sign-off | ADR-001…010 Accepted (incl. ADR-004 A1, ADR-010 A1); all 10 PRD changes in §4 approved; licence MIT; git init + one local commit per story, no push | Maintainer answers, 2026-11-07 | Accepted |
 | D-14 | S-01 Cursor run: accept partial evidence? | **Yes.** 4 rotations in Cursor 3.27.14 worked (new session, unprompted continuation, mode kept). Typing mid-turn, permission prompt and Unicode were not exercised in Cursor; PTY evidence covers them; ST-9.2 must show them in Cursor before AC-02 is claimed | `evidence/s-01-cursor/RESULT.md` | Accepted by maintainer, 2026-11-07 |
+| D-16 | How the probe detects a missing primitive (amends ADR-002) | Version gate + harmless startup calls to `$.session.usage` and `$.process.run`; `$.command.run`/`$.prompt.submit` checked at first use (rejection → assisted). `typeof` checks are impossible: the 2.1.319 scanner refuses `$` nouns used as values | `claude plugin validate` error in ST-1.8 | Accepted by maintainer, 2026-11-07 |
 | D-13 | Handover channel (ADR-003 record) | `additionalContext` at SessionStart(clear); prompt `text` on the restore path; never `$.prompt.submit({ context })` | S-05 (live) | Accepted 2026-11-07 |
 
 ## 3. Open questions

@@ -5,5 +5,13 @@
   "license": "MIT",
   "author": {
     "name": "SessionRelay contributors"
+  },
+  "userConfig": {
+    "stateDir": {
+      "type": "string",
+      "title": "State folder",
+      "description": "Absolute path where SessionRelay keeps task state and handovers. Empty uses the OS default (macOS: ~/Library/Application Support/SessionRelay). Never inside a repository unless you set it here.",
+      "default": ""
+    }
   }
 }
