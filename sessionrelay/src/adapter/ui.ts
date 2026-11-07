@@ -41,11 +41,14 @@ export function statusText(v: StatusView): string {
 }
 
 export const HELP = [
-  'SessionRelay commands:',
-  '/relay on [goal]  start a managed task',
-  '/relay off        stop it (files kept)',
-  '/relay status     mode, task, context',
-  '/relay help       this list',
+  'SessionRelay commands (/relay ...):',
+  'on [goal]     start a managed task',
+  'off           stop it (files kept)',
+  'task          original task + changes',
+  'dod <text>    add a done criterion',
+  'check <cmd>   add a check (never run)',
+  'status        mode, task, context',
+  'help          this list',
 ].join('\n')
 
 const short = (s: string) => s.replace(/\s+/g, ' ').slice(0, 120)
@@ -55,6 +58,9 @@ export const MSG = {
   userOnly: 'Only you can change a SessionRelay task: type the /relay command yourself.',
   unsupported: 'This Claude Code version is not supported, so SessionRelay stays off.',
   noTask: 'No managed task. Start with /relay on',
+  waitingForPrompt: 'The task has no original prompt yet: type it as your next prompt first.',
+  reviseUsage: (kind: 'dod' | 'check') => kind === 'dod' ? 'Usage: /relay dod <what must be true when the task is done>' : 'Usage: /relay check <command that verifies the task, e.g. npm test>',
+  revised: (n: number, kind: 'dod' | 'check') => `Saved as task revision ${n} (${kind === 'dod' ? 'Definition of Done' : 'verification command, stored as text, never run by SessionRelay'}). /relay task shows all changes.`,
   noProject: (stateRootError: string | null) => stateRootError
     ? `SessionRelay has no state folder (${stateRootError}). Set stateDir in /config.`
     : 'SessionRelay could not tell which project this is (git did not answer). Try again.',

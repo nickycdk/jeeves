@@ -8,3 +8,4 @@
 - `/relay on [goal]` starts a managed task. With a goal, that text is saved word for word and sent as the first prompt; without one, your next typed prompt is saved word for word (`task-rev-001.md`). Slash commands are never captured. Nothing is recorded without `/relay on`.
 - `/relay off` stops the task and releases its lock; no file is deleted.
 - A task belongs to one session at a time: another running session gets `LOCK_HELD`. Only commands you type yourself can change a task.
+- `/relay dod <text>` and `/relay check <command>` add a task revision (a new `task-rev-NNN.md`, never an edit). Verification commands are stored as text; SessionRelay never runs them. `/relay task` shows the original prompt, every change since and the current Definition of Done. Text from Claude, other plugins or other sessions never changes the task.

@@ -47,7 +47,8 @@ test('unsupported and assisted modes and a broken state folder still fit', () =>
   shape(broken)
   assert.ok(broken.includes('State folder: error'))
   shape(statusText(view({ taskError: 't1: schemaVersion: version 9 is newer than this SessionRelay supports (1); update' })))
-  shape(HELP)
+  // Help may run longer than status, but stays 40 columns wide and ASCII.
+  for (const l of HELP.split('\n')) assert.ok(l.length <= WIDTH && /^[\x20-\x7e]*$/.test(l), l)
 })
 
 test('command name: relay unless someone else has it', () => {

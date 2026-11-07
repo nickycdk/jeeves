@@ -42,8 +42,8 @@ test('unknown subcommand shows help; help lists the commands', async ($, on) => 
   await startSession($)
   const unknown = (await $.command.run(typed('relay', 'frobnicate now'))).text ?? ''
   expect(unknown).toContain('Unknown command "frobnicate".')
-  expect(unknown).toContain('/relay status')
-  expect((await $.command.run(typed('relay', 'help'))).text).toContain('SessionRelay commands:')
+  expect(unknown).toContain('status        mode, task, context')
+  expect((await $.command.run(typed('relay', 'help'))).text).toContain('SessionRelay commands (/relay ...):')
 })
 
 test('name collision: falls back to /sessionrelay and says so; /relay stays the other owner\'s', async ($, on) => {

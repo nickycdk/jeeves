@@ -26,3 +26,21 @@ test('REVISED moves the revision forward by exactly one and logs it; never on a 
   assert.ok(reduce(r1.state, { type: 'REVISED', revision: 3 }, ctx).ignored)
   assert.ok(reduce(fresh(), { type: 'REVISED', revision: 1 }, ctx).ignored)
 })
+
+test('revisions: N changes give N+1 files; each parses back exactly, and the fold is the current task', async () => {
+  const { renderChange, parseRevision, foldTask, taskText } = await import('../../src/core/task.ts')
+  const original = 'Build it.\nWith 🚀.'
+  const files = [original, renderChange(2, 'dod', 'all tests pass\n  even slow ones', AT), renderChange(3, 'check', 'npm test -- --grep "a b"', AT), renderChange(4, 'dod', 'README updated', AT)]
+  const revs = files.map((f, i) => parseRevision(i + 1, f))
+  assert.ok(revs.every(Boolean))
+  const v = foldTask(revs.map(r => r!))
+  assert.equal(v.original, original)
+  assert.deepEqual(v.dod, ['all tests pass\n  even slow ones', 'README updated'])
+  assert.deepEqual(v.checks, ['npm test -- --grep "a b"'])
+  const text = taskText('t1', v)
+  assert.ok(text.includes('Task t1, revision 4'))
+  assert.ok(text.includes('task-rev-003.md  check: npm test -- --grep "a b"'))
+  // A file that is not ours, or a revision number that does not match its header, is refused.
+  assert.equal(parseRevision(2, 'hello'), null)
+  assert.equal(parseRevision(3, files[1]!), null)
+})

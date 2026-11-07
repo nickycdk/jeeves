@@ -1,28 +1,7 @@
 // ST-2.1: /relay on|off and verbatim capture of the first prompt, through the plugin's own hooks.
-import type { On, PromptOrigin } from 'claude-code'
-import { expect, test, type Engine } from 'claude-code/testing'
-import { memHost, T0, type MemHost } from './memfs.ts'
-
-type Kit = Engine
-const start = ($: Kit) => $.session.start({ cwd: '/work/proj', surface: 'terminal', isInteractive: true })
-const typed = (args: string, kind: 'composer' | 'plugin' = 'composer') => ({
-  command: 'relay', args, origin: (kind === 'composer' ? { kind } : { kind, name: 'other' }) as PromptOrigin, presentation: { isFullscreen: false, columns: 80 },
-})
-const relay = async ($: Kit, args: string, kind: 'composer' | 'plugin' = 'composer') => (await $.command.run(typed(args, kind))).text ?? ''
-const submit = ($: Kit, text: string, origin: PromptOrigin = { kind: 'composer' }, command?: { name: string; args: string }) =>
-  $.prompt.submit({ text, origin, wait: false, ...(command ? { command } : {}) })
-
-/** Task folders the host holds, with what is in them. */
-const taskDirs = (h: MemHost) => [...new Set([...h.files.keys()].filter(f => f.includes('/tasks/')).map(f => f.replace(/(\/tasks\/[^/]+)\/.*$/, '$1')))]
-const stateOf = (h: MemHost, dir: string) => JSON.parse(h.files.get(`${dir}/state.json`)!)
-/** Everything after the first prompt the engine received, by origin. */
-const bottom = (on: On) => {
-  const got: { text: string; origin: string }[] = []
-  on('prompt.submit', (_, e) => { got.push({ text: e.text, origin: e.origin.kind }); return { text: e.text } })
-  return got
-}
-
-const PROMPT = 'Build the parser.\n\n  - keep CRLF?\r\n  - emoji: 🚀 ✅ — ÆØÅ  \n\ttrailing tab\t'
+import { expect, test } from 'claude-code/testing'
+import { bottom, PROMPT, relay, start, stateOf, submit, taskDirs, until } from './kit.ts'
+import { memHost, T0 } from './memfs.ts'
 
 test('/relay on, then the next typed prompt is stored byte for byte as task-rev-001.md and passes unchanged', async ($, on) => {
   const h = memHost(on)
@@ -138,6 +117,7 @@ test('the lock heartbeat runs every 30 s while this session owns a task', async 
   const beat = () => JSON.parse(h.files.get(`${dir}/lock.d/owner.json`)!).heartbeatAt
   expect(beat()).toBe(new Date(T0).toISOString())
   await h.clock.advance(30_000)
+  await until(h, () => beat() !== new Date(T0).toISOString())
   expect(beat()).toBe(new Date(T0 + 30_000).toISOString())
 })
 

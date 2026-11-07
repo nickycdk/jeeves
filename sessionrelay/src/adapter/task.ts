@@ -3,7 +3,7 @@
 import { reduce, type Input } from '../core/machine.ts'
 import { newRotationId, newTaskId } from '../core/ids.ts'
 import { join } from '../core/paths.ts'
-import { newTaskState, revFile } from '../core/task.ts'
+import { foldTask, newTaskState, parseRevision, renderChange, revFile, type ChangeKind, type TaskView } from '../core/task.ts'
 import { DEFAULT_CONFIG, type State } from '../core/types.ts'
 import { runEffects, type EffectResult } from './effects.ts'
 import { gitFacts } from './git.ts'
@@ -120,4 +120,28 @@ export async function heartbeat(rt: Runtime): Promise<void> {
   const me = await rt.port.sessionId()
   const own = ownTask((await projectTasks(rt)).tasks, me)
   if (own && !(await rt.storage.heartbeat(own.dir, me, new Date(await rt.port.now()).toISOString()))) rt.port.log(`sessionrelay: lost the lock of ${own.state.taskId}`)
+}
+
+/** A user command's change as the next write-once revision (FR-05). Null while rev 1 (the original prompt) is not captured yet. */
+export function addRevision(rt: Runtime, dir: string, kind: ChangeKind, text: string): Promise<number | null> {
+  return rt.serial(async () => {
+    const r = await rt.storage.readState(dir)
+    if (!r?.ok || r.value.taskRevision < 1) return null
+    const n = r.value.taskRevision + 1
+    await rt.storage.writeImmutable(join(dir, revFile(n)), renderChange(n, kind, text, new Date(await rt.port.now()).toISOString()))
+    await transition(rt, dir, r.value, { type: 'REVISED', revision: n })
+    return n
+  })
+}
+
+/** Every revision up to the state's, folded. A file that is missing or not ours is reported, never guessed. */
+export async function readTask(rt: Runtime, dir: string, state: State): Promise<{ view: TaskView; errors: string[] }> {
+  const revs = [], errors: string[] = []
+  for (let n = 1; n <= state.taskRevision; n++) {
+    const text = await rt.port.read(join(dir, revFile(n))).catch(() => null)
+    const rev = text === null ? null : parseRevision(n, text)
+    if (rev) revs.push(rev)
+    else errors.push(`${revFile(n)} is ${text === null ? 'missing' : 'not a SessionRelay revision'}`)
+  }
+  return { view: foldTask(revs), errors }
 }

@@ -1,7 +1,8 @@
 // /relay parsing and answers (ST-1.9, E2). Commands that change a task run only when the user typed them (FR-05).
+import { taskText } from '../core/task.ts'
 import type { State } from '../core/types.ts'
 import type { Runtime } from './runtime.ts'
-import { apply, claim, heldByOther, liveTask, ownTask, projectTasks, startTask, type Task } from './task.ts'
+import { addRevision, apply, claim, heldByOther, liveTask, ownTask, projectTasks, readTask, startTask, type Task } from './task.ts'
 import { HELP, MSG, statusText } from './ui.ts'
 
 export const PLUGIN = 'sessionrelay'
@@ -23,7 +24,7 @@ export function pickTask<T extends { state: State }>(tasks: T[], sessionId: stri
 /** `origin.kind === 'composer'`: the person pressed Enter. Anything else (a plugin, a peer, the model) may only read. */
 export type Caller = { userTyped: boolean }
 
-const CHANGES = new Set(['on', 'off'])
+const CHANGES = new Set(['on', 'off', 'dod', 'check'])
 
 export async function relay(rt: Runtime, args: string, caller: Caller): Promise<string> {
   const m = /^\s*(\S*)\s?([\s\S]*)$/.exec(args)!
@@ -34,6 +35,13 @@ export async function relay(rt: Runtime, args: string, caller: Caller): Promise<
     return statusText({ probe: rt.probe, stateRoot: rt.stateRoot, stateRootError: rt.stateRootError, task, taskError: task ? null : errors[0] ?? null })
   }
   if (sub === 'help') return HELP
+  if (sub === 'task') {
+    const own = ownTask((await projectTasks(rt)).tasks, await rt.port.sessionId())
+    if (!own) return MSG.noTask
+    if (own.state.taskRevision === 0) return MSG.waitingForPrompt
+    const { view, errors } = await readTask(rt, own.dir, own.state)
+    return [taskText(own.state.taskId, view), ...errors.map(e => `Warning: ${e}`)].join('\n')
+  }
   if (!CHANGES.has(sub)) return `Unknown command "${sub.slice(0, 20)}".\n${HELP}`
   if (!caller.userTyped) return MSG.userOnly
   if (!rt.projectDir) return MSG.noProject(rt.stateRootError)
@@ -41,7 +49,8 @@ export async function relay(rt: Runtime, args: string, caller: Caller): Promise<
   const { tasks } = await projectTasks(rt)
   switch (sub) {
     case 'on': return on(rt, tasks, me, rest)
-    default: return off(rt, tasks, me)
+    case 'off': return off(rt, tasks, me)
+    default: return revise(rt, tasks, me, sub as 'dod' | 'check', rest)
   }
 }
 
@@ -65,6 +74,15 @@ async function off(rt: Runtime, tasks: Task[], me: string): Promise<string> {
   if (!(await claim(rt, target.dir, me))) return MSG.lockHeld(target.state.taskId)
   await apply(rt, target.dir, { type: 'OFF', sessionId: me })
   return MSG.turnedOff(target.state.taskId, target.dir)
+}
+
+async function revise(rt: Runtime, tasks: Task[], me: string, kind: 'dod' | 'check', text: string): Promise<string> {
+  if (!text.trim()) return MSG.reviseUsage(kind)
+  const own = ownTask(tasks, me)
+  if (!own) return MSG.noTask
+  // Stored exactly as typed after the subcommand; a check command is text only and is never run here (FR-16).
+  const n = await addRevision(rt, own.dir, kind, text.replace(/^\s+/, ''))
+  return n === null ? MSG.waitingForPrompt : MSG.revised(n, kind)
 }
 
 /** First `/relay on` on this machine: the notice of ST-7.3. Hook point; the text and the once-only flag land there. */
