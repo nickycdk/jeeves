@@ -1,18 +1,24 @@
 // Minimal secret redaction (ST-1.5); ST-3.7 extends the pattern list. Pure.
 
-const PATTERNS: [string, RegExp][] = [
-  ['private-key', /-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?(-----END [A-Z ]*PRIVATE KEY-----|$)/g],
-  ['anthropic-key', /\bsk-ant-[A-Za-z0-9_-]{10,}/g],
-  ['openai-key', /\bsk-(proj-)?[A-Za-z0-9_-]{20,}/g],
-  ['github-token', /\b(gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,})/g],
-  ['aws-key-id', /\b(AKIA|ASIA)[A-Z0-9]{16}\b/g],
-  ['slack-token', /\bxox[abprs]-[A-Za-z0-9-]{10,}/g],
-  ['jwt', /\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}/g],
-  ['bearer', /\b(Bearer|token)\s+[A-Za-z0-9._~+/-]{16,}=*/gi],
-  ['assignment', /\b([A-Z0-9_]*(SECRET|TOKEN|PASSWORD|PASSWD|API_?KEY|PRIVATE_KEY)[A-Z0-9_]*)\s*[=:]\s*("[^"]*"|'[^']*'|\S+)/g],
-  ['assignment', /(["']?\b(password|passwd|secret|api[_-]?key|access[_-]?token|auth[_-]?token|client[_-]?secret)["']?)\s*[=:]\s*("[^"]*"|'[^']*'|[^\s,;}]+)/gi],
-  ['url-credentials', /\b([a-z][a-z0-9+.-]*:\/\/)[^\s/:@]+:[^\s/@]+@/gi],
+/** [name, pattern, high]: `high` patterns are specific enough to reject a handover that contains one (ST-3.6). */
+const PATTERNS: [string, RegExp, boolean][] = [
+  ['private-key', /-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?(-----END [A-Z ]*PRIVATE KEY-----|$)/g, true],
+  ['anthropic-key', /\bsk-ant-[A-Za-z0-9_-]{10,}/g, true],
+  ['openai-key', /\bsk-(proj-)?[A-Za-z0-9_-]{20,}/g, true],
+  ['github-token', /\b(gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,})/g, true],
+  ['aws-key-id', /\b(AKIA|ASIA)[A-Z0-9]{16}\b/g, true],
+  ['slack-token', /\bxox[abprs]-[A-Za-z0-9-]{10,}/g, true],
+  ['jwt', /\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}/g, true],
+  ['bearer', /\b(Bearer|token)\s+[A-Za-z0-9._~+/-]{16,}=*/gi, false],
+  ['assignment', /\b([A-Z0-9_]*(SECRET|TOKEN|PASSWORD|PASSWD|API_?KEY|PRIVATE_KEY)[A-Z0-9_]*)\s*[=:]\s*("[^"]*"|'[^']*'|\S+)/g, false],
+  ['assignment', /(["']?\b(password|passwd|secret|api[_-]?key|access[_-]?token|auth[_-]?token|client[_-]?secret)["']?)\s*[=:]\s*("[^"]*"|'[^']*'|[^\s,;}]+)/gi, false],
+  ['url-credentials', /\b([a-z][a-z0-9+.-]*:\/\/)[^\s/:@]+:[^\s/@]+@/gi, true],
 ]
+
+/** Names of the high-confidence secret formats found in `text` (empty when none). */
+export function findSecrets(text: string): string[] {
+  return [...new Set(PATTERNS.filter(([, re, high]) => high && new RegExp(re.source, re.flags.replace('g', '')).test(text)).map(([name]) => name))]
+}
 
 export function redact(text: string): string {
   let out = text

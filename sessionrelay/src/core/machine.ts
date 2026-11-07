@@ -16,7 +16,8 @@ export type Input =
   /** A tool call finished: `entry` goes to the ledger; on the main loop it is also the soft-quiesce point. */
   | { type: 'TOOL_RESULT'; main: boolean; entry?: LedgerRecord }
   /** Main-loop classic.Stop. `handover` is the parse+validate outcome of the last message (HANDOVER_GENERATING only). */
-  | { type: 'STOP'; backgroundTasks: number; runningAgents: number; handover?: { ok: true } | { ok: false; errors: string[] } }
+  /** `fatal`: the handover cannot become valid by asking again (the branch moved, git did not answer): stop at once. */
+  | { type: 'STOP'; backgroundTasks: number; runningAgents: number; handover?: { ok: true } | { ok: false; errors: string[]; fatal?: ReasonCode } }
   | { type: 'HANDOVER_PERSISTED'; ok: boolean; ref?: string }
   | { type: 'TURN_COMPLETE'; reason: 'answer' | 'aborted' | 'refusal' | 'error' }
   | { type: 'SESSION_END'; reason: string; sessionId: string }
@@ -208,6 +209,11 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
         if (h.ok) {
           go('VALIDATING', r.trigger)
           effects.push({ type: 'PERSIST_HANDOVER', key: key('persist') })
+          return done()
+        }
+        if (h.fatal) {
+          go('NEEDS_REVIEW', h.fatal, { rotation: null, armedFired: true }, h.errors.slice(0, 3).join('; '))
+          effects.push({ type: 'TOAST', key: key('fatal'), text: `Handover stopped (${h.fatal}): ${h.errors[0] ?? 'see /relay status'}. Nothing was cleared.` })
           return done()
         }
         if (r.retries < ctx.config.maxHandoverRetries) {

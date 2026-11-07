@@ -434,3 +434,9 @@ test('property: 300 seeded random walks of 200 inputs keep every invariant (02 Â
 test('isSafe truth table (ADR-004 + A1): only no background task and no running agent is safe', () => {
   for (const [bg, ag, want] of [[0, 0, true], [1, 0, false], [0, 1, false], [2, 3, false]] as const) assert.equal(isSafe({ backgroundTasks: bg, runningAgents: ag }), want)
 })
+
+test('HANDOVER_GENERATING + a fatal handover outcome -> NEEDS_REVIEW(code) at once, no retry, nothing to clear', () => {
+  const o = run(st('HANDOVER_GENERATING', { rotation: rot({ step: 'HANDOVER_REQUESTED' }) }), { type: 'STOP', backgroundTasks: 0, runningAgents: 0, handover: { ok: false, errors: ['the branch changed'], fatal: 'REPO_MISMATCH' } })
+  assert.deepEqual([o.state.status, o.state.reason, o.state.rotation], ['NEEDS_REVIEW', 'REPO_MISMATCH', null])
+  assert.deepEqual(types(o.effects), ['LOG_EVENT', 'TOAST'])
+})
