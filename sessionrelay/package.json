@@ -13,7 +13,8 @@
     "lint": "tsc -p tsconfig.core.json && node scripts/lint.mjs",
     "test": "node --test --experimental-strip-types --no-warnings \"tests/unit/**/*.spec.ts\"",
     "test:mod": "claude plugin test .",
-    "validate": "claude plugin validate . --strict"
+    "validate": "claude plugin validate . --strict",
+    "docs:state": "node scripts/state-diagram.mjs"
   },
   "devDependencies": {
     "typescript": "7.0.2"
