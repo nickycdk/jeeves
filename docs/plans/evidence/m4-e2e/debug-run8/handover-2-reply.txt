@@ -1,0 +1,35 @@
+<<<JEEVES-HANDOVER v1 task=t_20261107_hwnzi7 rotation=r_20261107_p3ymg2
+## Completed since last handover
+- [verified] Step 3 implemented in `src/step3.js` (`sumDigits(n)` sums digits of `Math.abs(n)`) and committed as ea22754 "step 3: sumDigits" / [verified] `./verify.sh` after it showed `ok 3 - step 3: sumDigits`.
+- [verified] Step 4 implemented in `src/step4.js` (`wordCount(s)` splits on `/\s+/` and filters empties) and committed as c54822d "step 4: wordCount" / [verified] `./verify.sh` after it showed `ok 4 - step 4: wordCount`.
+- [verified] Step 5 implemented in `src/step5.js` (`fizzbuzz(n)`) and committed as 664df76 "step 5: fizzbuzz" / [verified] `./verify.sh` after it showed `ok 5 - step 5: fizzbuzz`.
+- [verified] Step 6 implemented in `src/step6.js` (`roman(n)`, greedy subtractive table) and committed as 9cb8332 "step 6: roman" / [verified] `./verify.sh` after it showed `ok 6 - step 6: roman`, with `# pass 1843` and `# fail 0`.
+- [verified] `git status --short` was clean after the step 6 commit.
+- [inferred] All six steps are committed on branch main, with HEAD at 9cb8332.
+
+## Decisions and constraints
+- [verified] Task rule from `task-rev-001.md`: implement one step at a time in order, touch only `src/stepk.js` per step, and never change a committed step.
+- [verified] Commit format is `git add -A && git commit -m "step k: <name>"`.
+- [verified] Completion requires all six steps committed and `./verify.sh` exiting 0.
+- [unknown] Whether the user wants whitespace other than spaces stripped in `isPalindrome`; the spec only says spaces, and step 2 was left as committed.
+
+## Tests and checks
+- [verified] Per-step `./verify.sh` runs after steps 3, 4, 5 and 6 each showed the matching `ok k` line, and the run after step 6 showed `# pass 1843` and `# fail 0`.
+- [verified] A later full `./verify.sh` run (no grep filter) produced about 46KB of output, saved to a persisted tool-results file. Its exit code was not captured, and I did not read the end of its output.
+- [unknown] Whether the full `./verify.sh` exits 0. This is the one open check before the completion block.
+
+## Open work and blockers
+- [verified] Nothing is blocked on a known problem; all six step files are implemented and committed.
+- [inferred] The only remaining work is confirming the full `./verify.sh` exit code is 0, then writing the completion block.
+- [unknown] Whether the full run's exit code is 0; the run was made without capturing `$?`.
+
+## Exact next actions
+1. [inferred] Run `./verify.sh` as its own Bash command with nothing before or after it, and confirm it exits 0 (its output is large, so pipe nothing into it and avoid reading the whole output).
+2. [inferred] If it exits 0, write the completion block with `./verify.sh` under Checks run and "none" under Blockers. If it does not, report the failing step under Blockers and fix it only within that step's own file.
+
+## Do not repeat / do not change
+- [verified] Do not modify `src/step1.js` through `src/step6.js` now; all six are committed and pass their tests.
+- [verified] Do not edit `verify.sh`, `SPEC.md`, `package.json`, or any file under `tests/`.
+- [verified] `.verify.log` is gitignored, so `git add -A` does not stage it.
+- [inferred] Do not re-read the full case tables in `tests/step*.test.js`; the handover needs no more than their pass/fail results.
+JEEVES-HANDOVER>>>

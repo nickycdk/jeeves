@@ -99,5 +99,5 @@ test('outside git: paths are still checked, branch claims are not', () => {
 
 test('asPath: file names yes; commands, code, URLs, dotted identifiers no', () => {
   for (const yes of ['calc.js', 'src/a.ts', 'src/a.ts:12', './x/y.md', 'docs/', 'package.json', 'a.test.ts,']) assert.ok(asPath(yes), yes)
-  for (const no of ['npm test', 'a + b', 'console.log', 'obj.map', 'https://x.io/a.js', 'v1.2.3', 'f(x).js', '--flag', '~/.zshrc', 'sub', 'e.g']) assert.equal(asPath(no), null, no)
+  for (const no of ['npm test', 'a + b', 'console.log', 'obj.map', 'https://x.io/a.js', 'v1.2.3', 'f(x).js', '--flag', '~/.zshrc', 'sub', 'e.g', '/\\s+/', 'src\\a.js']) assert.equal(asPath(no), null, no)
 })

@@ -386,7 +386,9 @@ async function handoverStop(rt: Runtime, own: Task, info: StopInfo): Promise<str
   const git = await gitFacts(rt.port, rt.identity, s.taskStartHead)
   const parsed = parseHandover(info.message)
   const existing = new Set<string>()
-  if (parsed.ok) for (const p of mentionedPaths(parsed.value)) if (await rt.port.exists(p.startsWith('/') ? p : join(base, p))) existing.add(p)
+  // A lookup the engine refuses counts as missing: validation then asks Claude to fix that bullet, instead of the
+  // whole Stop throwing and the rotation waiting for ever (live run 8). Untested: the mod kit skips a throwing hook.
+  if (parsed.ok) for (const p of mentionedPaths(parsed.value)) if (await rt.port.exists(p.startsWith('/') ? p : join(base, p)).catch(() => false)) existing.add(p)
   const v = validateHandover(info.message, {
     taskId: s.taskId, rotationId: rotation.rotationId, maxChars: DEFAULT_CONFIG.handoverMaxChars, git,
     capturedBranch: await snapshotBranch(rt, own.dir, rotation.rotationId), ledger: s.ledger, existing,

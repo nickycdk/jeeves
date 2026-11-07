@@ -37,7 +37,9 @@ def main():
 
     env = {'JEEVES_TEST': '1', 'JEEVES_STATE_DIR': state_dir, 'JEEVES_TEST_THRESHOLD_OVERRIDE': a.override}
     # acceptEdits + Bash allowed: a permission dialog would need a keystroke, which the run must not need.
-    c = Claude(out, PLUGIN, repo, ['--permission-mode', 'acceptEdits', '--allowedTools', 'Bash'], env)
+    # The debug file stays in the scratch folder; only Jeeves's own lines go into the evidence.
+    debug = f"{sp}/claude-debug.log"
+    c = Claude(out, PLUGIN, repo, ['--permission-mode', 'acceptEdits', '--allowedTools', 'Bash', '--debug-file', debug], env)
 
     def task_dir():
         d = glob.glob(f"{state_dir}/projects/*/tasks/*")
@@ -78,13 +80,17 @@ def main():
     run_end = c.now()
     r['keystrokes_after_setup'] = [t for t in c.typed[typed_at_setup:] if t[0] <= run_end]
     r['dialog'] = dialog
-    c.pump(8)
     # After the run (not part of it): the last conversation's cost (each /clear starts the counter over, S-04).
-    c.line('/cost')
-    c.pump(4)
+    try:
+        c.pump(8)
+        c.line('/cost')
+        c.pump(4)
+    except OSError:
+        c.note('claude already exited; no /cost')
     costs = re.findall(r'Total cost:\s*\$(\d+\.\d+)', c.plain())
     r['final_session_cost'] = float(costs[-1]) if costs else None
-    c.close()
+    try: c.close()
+    except OSError: pass
 
     d, s = task_dir(), state()
     r['final'] = {k: s.get(k) for k in ('status', 'reason', 'rotationCount', 'sessionSequence', 'taskRevision', 'mode', 'lastErrorCode')}
@@ -120,6 +126,8 @@ def main():
         for sub in ('sessions', 'history'):
             if os.path.isdir(f"{d}/{sub}"): shutil.copytree(f"{d}/{sub}", f"{out}/{sub}", dirs_exist_ok=True)
     open(f"{out}/git-log.txt", 'w').write('\n'.join(log) + '\n')
+    if os.path.exists(debug):
+        open(f"{out}/jeeves-debug.log", 'w').writelines(l for l in open(debug, errors='replace') if 'jeeves' in l.lower())
     json.dump(r, open(f"{out}/result.json", 'w'), indent=1, ensure_ascii=False)
     lines = [f"# PTY E2E six-steps: {'PASS' if all(checks.values()) else 'FAIL'}", '',
              f"Claude Code {r['claude_version']} · model haiku · threshold override {a.override}% · case tables {a.chars} chars per step",

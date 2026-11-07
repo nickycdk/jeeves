@@ -42,7 +42,8 @@ const FILE_EXT = /\.(c|cc|cfg|cjs|conf|cpp|cs|css|csv|cts|go|gradle|h|hpp|html?|
 /** A backticked token that names a file: no spaces or code characters, not a URL; a trailing `:line` is dropped. */
 export function asPath(token: string): string | null {
   const t = token.trim().replace(/[.,;]+$/, '').replace(/:\d+(:\d+)?$/, '')
-  if (!t || /[\s()[\]{}<>=$*?"'|;,&!]/.test(t) || t.includes('://') || t.startsWith('-') || t.startsWith('~')) return null
+  // A backslash is code (a regex like `/\s+/`, live run 8), never a POSIX path.
+  if (!t || /[\s()[\]{}<>=$*?"'|;,&!\\]/.test(t) || t.includes('://') || t.startsWith('-') || t.startsWith('~')) return null
   if (t.includes('/')) return /[A-Za-z0-9]/.test(t) ? t : null
   return /^[\w@.-]*[\w-]\.[A-Za-z][A-Za-z0-9]*$/.test(t) && FILE_EXT.test(t) ? t : null
 }
