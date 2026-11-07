@@ -1,8 +1,9 @@
 // Storage (ADR-005): state root, one serial write queue per process, write-once files verified by SHA-256.
 import { isStale, STALE_MS } from '../core/lock.ts'
 import { isInside, join } from '../core/paths.ts'
+import { eventDetail } from '../core/redact.ts'
 import { check, parseJson, type Result } from '../core/schema.ts'
-import { SCHEMA_VERSION, type LockOwner, type State } from '../core/types.ts'
+import { SCHEMA_VERSION, type EventLine, type LockOwner, type State } from '../core/types.ts'
 import type { FsPort } from './ports.ts'
 
 export type StorageErrorCode = 'DISK' | 'IMMUTABLE_EXISTS' | 'BAD_STATE_ROOT' | 'INVALID'
@@ -35,6 +36,9 @@ const randomTag = () => [...crypto.getRandomValues(new Uint8Array(6))].map(b => 
 export type LockResult =
   | { ok: true; owner: LockOwner }
   | { ok: false; code: 'LOCK_HELD'; owner: LockOwner | null; stale: boolean }
+
+/** events.jsonl rolls to events-NNN.jsonl past this size (the engine reads at most 4 MiB). */
+export const EVENT_LOG_MAX_BYTES = 1024 * 1024
 
 export type StateRootSource = 'config' | 'test-env' | 'plugin-data' | 'os-default'
 
@@ -73,7 +77,8 @@ export async function resolveStateRoot(
   return found
 }
 
-export function createStorage(port: FsPort) {
+export function createStorage(port: FsPort, opts: { eventLogMaxBytes?: number } = {}) {
+  const eventLogMax = opts.eventLogMaxBytes ?? EVENT_LOG_MAX_BYTES
   const enqueue = createQueue()
 
   const runOk = async (argv: string[]) => {
@@ -114,6 +119,38 @@ export function createStorage(port: FsPort) {
 
     /** Unqueued verified write, for callers already inside `enqueue`. */
     writeVerified,
+
+    /** One line per transition; `detail` is redacted and capped here, whatever the caller passed. */
+    appendEvent: (taskDir: string, e: EventLine) => enqueue(async () => {
+      const line = JSON.stringify({ ...e, detail: eventDetail(e.detail) })
+      const valid = check('event', JSON.parse(line))
+      if (!valid.ok) throw new StorageError('INVALID', `refusing to log an invalid event: ${valid.errors.slice(0, 3).join('; ')}`)
+      const path = join(taskDir, 'events.jsonl')
+      let prev = (await disk(`exists ${path}`, () => port.exists(path))) ? await disk(`read ${path}`, () => port.read(path)) : ''
+      const bytes = (t: string) => new TextEncoder().encode(t).length
+      if (prev && bytes(prev) + bytes(line) + 1 > eventLogMax) {
+        let n = 1
+        const rolled = (k: number) => join(taskDir, `events-${String(k).padStart(3, '0')}.jsonl`)
+        while (await disk('exists', () => port.exists(rolled(n)))) n++
+        await runOk(['mv', path, rolled(n)])
+        prev = ''
+      }
+      await disk(`write ${path}`, () => port.write(path, prev + line + '\n'))
+    }),
+
+    /** All events in order: rolled files by number, then the current file. */
+    readEvents: async (taskDir: string): Promise<string[]> => {
+      const files: string[] = []
+      for (let n = 1; ; n++) {
+        const f = join(taskDir, `events-${String(n).padStart(3, '0')}.jsonl`)
+        if (!(await disk('exists', () => port.exists(f)))) break
+        files.push(f)
+      }
+      const cur = join(taskDir, 'events.jsonl')
+      if (await disk('exists', () => port.exists(cur))) files.push(cur)
+      const texts = await Promise.all(files.map(f => disk(`read ${f}`, () => port.read(f))))
+      return texts.flatMap(t => t.split('\n').filter(Boolean))
+    },
 
     /** Atomic pointer swap: tmp file, read-back hash check, then `mv -f` (POSIX rename). */
     writeState: (taskDir: string, state: State) => enqueue(async () => {
