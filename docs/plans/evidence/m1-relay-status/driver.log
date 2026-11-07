@@ -1,0 +1,7 @@
+[    0.0s] spawn claude --plugin-dir ~/Desktop/Projects/jeeves/sessionrelay --model haiku
+[    2.0s] key Down
+[    3.0s] trust dialog selected 'Yes,Itrustthisfolder'
+[    3.0s] key Enter
+[    6.4s] state folder created by session.start True
+[   10.4s] type '/relay status'
+[   12.1s] key Enter

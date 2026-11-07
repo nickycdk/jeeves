@@ -1,0 +1,9 @@
+/relay status
+✽Unraveling…
+❯
+ · ← for agents
+✻
+  ⎿  sessionrelay:SessionRelaymode:full
+Nomanagedtask.Startwith/relayon
+Path:...891706/scratchpad/m1-live/state
+❯

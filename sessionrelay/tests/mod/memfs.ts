@@ -3,6 +3,8 @@ import type { On } from 'claude-code'
 
 export type MemHost = {
   toasts: string[]
+  commands: { name: string; description: string; source: 'builtin' | 'plugin' | 'user' | 'mcp'; plugin?: string }[]
+  registered: string[]
   status: (string | undefined)[]
   version: string
   failProcess: boolean
@@ -17,7 +19,7 @@ const parent = (p: string) => p.replace(/\/[^/]+$/, '') || '/'
 const yieldTicks = async (n: number) => { for (let i = 0; i < n; i++) await Promise.resolve() }
 
 export function memHost(on: On, env: Record<string, string> = { HOME: '/home/t' }): MemHost {
-  const h: MemHost = { toasts: [], status: [], version: '2.1.319', failProcess: false, files: new Map(), dirs: new Set(['/']), env, argv: [], failWrite: null }
+  const h: MemHost = { commands: [], registered: [], toasts: [], status: [], version: '2.1.319', failProcess: false, files: new Map(), dirs: new Set(['/']), env, argv: [], failWrite: null }
   on('session.version', () => ({ value: { version: h.version } }))
   on('session.usage', () => ({ value: { startedAt: 0, context: { window: 1_000_000 }, rateLimits: [] } }))
   on('session.cwd', () => ({ value: '/work/proj' }))
@@ -39,8 +41,18 @@ export function memHost(on: On, env: Record<string, string> = { HOME: '/home/t' 
     if (h.failWrite?.(e.path)) return { deny: `EIO: ${e.path}` }
     mkdirs(parent(e.path))
     h.files.set(e.path, e.text)
+    mkdirs(parent(e.path))
     return { value: undefined }
   })
+  on('fs.list', (_, e) => {
+    const prefix = e.path.endsWith('/') ? e.path : `${e.path}/`
+    const names = new Map<string, 'file' | 'dir'>()
+    for (const d of h.dirs) if (d.startsWith(prefix) && d !== prefix) names.set(d.slice(prefix.length).split('/')[0]!, 'dir')
+    for (const f of h.files.keys()) if (f.startsWith(prefix)) { const rest = f.slice(prefix.length).split('/'); names.set(rest[0]!, rest.length > 1 ? 'dir' : 'file') }
+    return { value: [...names].map(([name, kind]) => ({ name, kind, size: 0, mtimeMs: 0, isLink: false })) }
+  })
+  on('command.list', () => ({ value: h.commands }))
+  on('command.register', (_, e) => { h.registered.push(e.name); return { value: { command: e.name } } })
   on('fs.exists', (_, e) => ({ value: h.files.has(e.path) || h.dirs.has(e.path) }))
   on('env.get', (_, e) => ({ value: h.env[e.name] }))
   on('process.run', (_, e) => {

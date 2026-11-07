@@ -7,6 +7,7 @@ export function fsPort($: EngineInterface): FsPort {
     read: path => $.fs.read(path),
     write: (path, text) => $.fs.write(path, text),
     exists: path => $.fs.exists(path),
+    listDirs: path => $.fs.list(path).then(es => es.filter(e => e.kind === 'dir').map(e => e.name), () => []),
     realPath: path => $.fs.stat(path, { resolve: true }).then(st => st.realPath ?? null, () => null),
     mtimeMs: path => $.fs.stat(path).then(st => st.mtimeMs, () => null),
     run: async (argv, opts = {}) => {
