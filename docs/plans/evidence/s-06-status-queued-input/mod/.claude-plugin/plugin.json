@@ -1,0 +1,1 @@
+{ "name": "relay-spike-s06", "version": "0.0.1", "description": "Throwaway spike S-06: ui.status beside a custom statusLine, prompts typed during a queued rotation, a dialog during rotation, data dir discovery" }

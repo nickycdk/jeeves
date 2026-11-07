@@ -1,0 +1,9 @@
+[driver] [    0.0s] spawn claude --plugin-dir <scratch>/mod --model haiku --permission-mode acceptEdits --allowedTools Bash(sleep:*)
+[driver] [    1.2s] key Down
+[driver] [    2.2s] trust dialog selected 'Yes,Itrustthisfolder'
+[driver] [    2.2s] key Enter
+[driver] [    9.7s] type 'Start two background jobs, then end your turn without waiting: (1) call the Bash'
+[driver] [   85.5s] key Enter
+[driver] [   92.5s] ps while deferred ["38468 34690 /bin/zsh -c source <home>/.claude/shell-snapshots/snapshot-zsh-1794042065172-utusy9.sh 2>/dev/null || true && export CODEX_COMPANION_SESSION_ID='82f49353-1d0b-4bd0-8b8b-35cecca9009f'\\012export CODEX_COMPANION_TRANSCRIPT_PATH='<home>/.claude/projects/<scratch-slug>-s02-repo/82f49353-1d0b-4bd0-8b8b-35cecca9009f.jsonl'\\012export CLAUDE_PLUGIN_DATA='<home>/.claude/plugins/data/codex-openai-codex'\\012: && setopt NO_EXTENDED_GLOB NO_BARE_GLOB_QUAL 2>/dev/null || true && { \\builtin unalias -- 'which'; \\builtin unset -f -- 'which'; } >/dev/null 2>&1 || true && { \\builtin unalias -- 'unsetenv'; \\builtin unset -f -- 'unsetenv'; } >/dev/null 2>&1 || true && eval 'sleep 45' < /dev/null && pwd -P >| <tmp-cwd>", "38469 38468 sleep 45"]
+[driver] [  146.0s] ps after rotation []
+[driver] events: ['session.start', 'classic.Stop', 'boundary.defer', 'turn.complete', 'turn.complete.sub', 'classic.Stop', 'boundary.defer', 'turn.complete', 'classic.Stop', 'boundary.safe', 'turn.complete', 'session.end', 'clear.resolved', 'submit.resolved', 'classic.Stop', 'turn.complete', 'session.end']

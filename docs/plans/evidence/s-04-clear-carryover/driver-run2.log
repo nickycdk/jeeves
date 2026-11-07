@@ -1,0 +1,80 @@
+[driver] [    0.0s] spawn claude --plugin-dir <scratch>/mod --model haiku --permission-mode default
+[driver] [    5.0s] type 'Run the Bash command `touch perm_probe_1.txt`, then reply DONE1.'
+[driver] [    6.1s] key Enter
+[driver] [    8.5s] options [["1", "Yes"], ["2", "Yes,andalwaysallowaccessto<scratch>/s04/repofromthisproject"], ["3", "Yes,andswitchtoautomode\u00b7automodehandlesthesepromptsforyou"]]
+[driver] [    8.5s] permission dialog (pre: touch) ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌touchperm_probe_1.txt╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌Doyouwanttoproceed?❯1.Yes2.Yes,andalwaysallowaccessto<tmp>
+[driver] [    8.5s] key b'1'
+[driver] [   14.0s] settings.local.json after grant None
+[driver] [   14.0s] type '/srspike'
+[driver] [   14.6s] key Enter
+[driver] [   18.0s] permission dialog (post: touch) ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌touchperm_probe_2.txt&&ls-lperm_probe_2.txt╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌Doyouwanttoproceed?❯1.Yes2.Yes,andalwaysallowaccessto<tmp>
+[driver] [   18.0s] key b'\x1b'
+[driver] [   21.4s] permission dialog (post: touch) ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌touchperm_probe_2.txt&&ls-lperm_probe_2.txt╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌Doyouwanttoproceed?❯1.Yes2.Yes,andalwaysallowaccessto<tmp>
+[driver] [   21.4s] key b'\x1b'
+[driver] [   24.8s] permission dialog (post: touch) ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌touchperm_probe_2.txt&&ls-lperm_probe_2.txt╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌Doyouwanttoproceed?❯1.Yes2.Yes,andalwaysallowaccessto<tmp>
+[driver] [   24.8s] key b'\x1b'
+[driver] [   28.2s] permission dialog (post: touch) ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌touchperm_probe_2.txt&&ls-lperm_probe_2.txt╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌Doyouwanttoproceed?❯1.Yes2.Yes,andalwaysallowaccessto<tmp>
+[driver] [   28.2s] key b'\x1b'
+[driver] [   31.6s] permission dialog (post: touch) ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌touchperm_probe_2.txt&&ls-lperm_probe_2.txt╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌Doyouwanttoproceed?❯1.Yes2.Yes,andalwaysallowaccessto<tmp>
+[driver] [   31.6s] key b'\x1b'
+[driver] [   35.0s] permission dialog (post: touch) ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌touchperm_probe_2.txt&&ls-lperm_probe_2.txt╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌Doyouwanttoproceed?❯1.Yes2.Yes,andalwaysallowaccessto<tmp>
+[driver] [   35.0s] key b'\x1b'
+[driver] [   38.5s] permission dialog (post: touch) ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌touchperm_probe_2.txt&&ls-lperm_probe_2.txt╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌Doyouwanttoproceed?❯1.Yes2.Yes,andalwaysallowaccessto<tmp>
+[driver] [   38.5s] key b'\x1b'
+[driver] [   41.9s] permission dialog (post: touch) ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌touchperm_probe_2.txt&&ls-lperm_probe_2.txt╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌Doyouwanttoproceed?❯1.Yes2.Yes,andalwaysallowaccessto<tmp>
+[driver] [   41.9s] key b'\x1b'
+[driver] [   45.3s] permission dialog (post: touch) ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌touchperm_probe_2.txt&&ls-lperm_probe_2.txt╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌Doyouwanttoproceed?❯1.Yes2.Yes,andalwaysallowaccessto<tmp>
+[driver] [   45.3s] key b'\x1b'
+[driver] [   48.7s] permission dialog (post: touch) ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌touchperm_probe_2.txt&&ls-lperm_probe_2.txt╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌Doyouwanttoproceed?❯1.Yes2.Yes,andalwaysallowaccessto<tmp>
+[driver] [   48.7s] key b'\x1b'
+[driver] [   52.1s] permission dialog (post: touch) ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌touchperm_probe_2.txt&&ls-lperm_probe_2.txt╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌Doyouwanttoproceed?❯1.Yes2.Yes,andalwaysallowaccessto<tmp>
+[driver] [   52.1s] key b'\x1b'
+[driver] [   55.5s] permission dialog (post: touch) ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌touchperm_probe_2.txt&&ls-lperm_probe_2.txt╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌Doyouwanttoproceed?❯1.Yes2.Yes,andalwaysallowaccessto<tmp>
+[driver] [   55.5s] key b'\x1b'
+[driver] [   59.0s] permission dialog (post: touch) ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌touchperm_probe_2.txt&&ls-lperm_probe_2.txt╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌Doyouwanttoproceed?❯1.Yes2.Yes,andalwaysallowaccessto<tmp>
+[driver] [   59.0s] key b'\x1b'
+[driver] [   62.4s] permission dialog (post: touch) ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌touchperm_probe_2.txt&&ls-lperm_probe_2.txt╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌Doyouwanttoproceed?❯1.Yes2.Yes,andalwaysallowaccessto<tmp>
+[driver] [   62.4s] key b'\x1b'
+[driver] [   65.8s] permission dialog (post: touch) ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌touchperm_probe_2.txt&&ls-lperm_probe_2.txt╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌Doyouwanttoproceed?❯1.Yes2.Yes,andalwaysallowaccessto<tmp>
+[driver] [   65.8s] key b'\x1b'
+[driver] [   69.2s] permission dialog (post: touch) ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌touchperm_probe_2.txt&&ls-lperm_probe_2.txt╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌Doyouwanttoproceed?❯1.Yes2.Yes,andalwaysallowaccessto<tmp>
+[driver] [   69.2s] key b'\x1b'
+[driver] [   72.6s] permission dialog (post: touch) ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌touchperm_probe_2.txt&&ls-lperm_probe_2.txt╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌Doyouwanttoproceed?❯1.Yes2.Yes,andalwaysallowaccessto<tmp>
+[driver] [   72.6s] key b'\x1b'
+[driver] [   76.0s] permission dialog (post: touch) ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌touchperm_probe_2.txt&&ls-lperm_probe_2.txt╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌Doyouwanttoproceed?❯1.Yes2.Yes,andalwaysallowaccessto<tmp>
+[driver] [   76.0s] key b'\x1b'
+[driver] [   79.4s] permission dialog (post: touch) ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌touchperm_probe_2.txt&&ls-lperm_probe_2.txt╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌Doyouwanttoproceed?❯1.Yes2.Yes,andalwaysallowaccessto<tmp>
+[driver] [   79.4s] key b'\x1b'
+[driver] [   82.9s] permission dialog (post: touch) ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌touchperm_probe_2.txt&&ls-lperm_probe_2.txt╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌Doyouwanttoproceed?❯1.Yes2.Yes,andalwaysallowaccessto<tmp>
+[driver] [   82.9s] key b'\x1b'
+[driver] [   86.3s] permission dialog (post: touch) ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌touchperm_probe_2.txt&&ls-lperm_probe_2.txt╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌Doyouwanttoproceed?❯1.Yes2.Yes,andalwaysallowaccessto<tmp>
+[driver] [   86.3s] key b'\x1b'
+[driver] [   89.7s] permission dialog (post: touch) ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌touchperm_probe_2.txt&&ls-lperm_probe_2.txt╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌Doyouwanttoproceed?❯1.Yes2.Yes,andalwaysallowaccessto<tmp>
+[driver] [   89.7s] key b'\x1b'
+[driver] [   93.1s] permission dialog (post: touch) ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌touchperm_probe_2.txt&&ls-lperm_probe_2.txt╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌Doyouwanttoproceed?❯1.Yes2.Yes,andalwaysallowaccessto<tmp>
+[driver] [   93.1s] key b'\x1b'
+[driver] [   96.5s] permission dialog (post: touch) ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌touchperm_probe_2.txt&&ls-lperm_probe_2.txt╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌Doyouwanttoproceed?❯1.Yes2.Yes,andalwaysallowaccessto<tmp>
+[driver] [   96.5s] key b'\x1b'
+[driver] [   99.9s] permission dialog (post: touch) ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌touchperm_probe_2.txt&&ls-lperm_probe_2.txt╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌Doyouwanttoproceed?❯1.Yes2.Yes,andalwaysallowaccessto<tmp>
+[driver] [   99.9s] key b'\x1b'
+[driver] [  103.3s] permission dialog (post: touch) ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌touchperm_probe_2.txt&&ls-lperm_probe_2.txt╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌Doyouwanttoproceed?❯1.Yes2.Yes,andalwaysallowaccessto<tmp>
+[driver] [  103.3s] key b'\x1b'
+[driver] [  106.8s] permission dialog (post: touch) ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌touchperm_probe_2.txt&&ls-lperm_probe_2.txt╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌Doyouwanttoproceed?❯1.Yes2.Yes,andalwaysallowaccessto<tmp>
+[driver] [  106.8s] key b'\x1b'
+[driver] [  110.2s] permission dialog (post: touch) ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌touchperm_probe_2.txt&&ls-lperm_probe_2.txt╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌Doyouwanttoproceed?❯1.Yes2.Yes,andalwaysallowaccessto<tmp>
+[driver] [  110.2s] key b'\x1b'
+[driver] [  113.6s] permission dialog (post: touch) ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌touchperm_probe_2.txt&&ls-lperm_probe_2.txt╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌Doyouwanttoproceed?❯1.Yes2.Yes,andalwaysallowaccessto<tmp>
+[driver] [  113.6s] key b'\x1b'
+[driver] [  117.0s] permission dialog (post: touch) ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌touchperm_probe_2.txt&&ls-lperm_probe_2.txt╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌Doyouwanttoproceed?❯1.Yes2.Yes,andalwaysallowaccessto<tmp>
+[driver] [  117.0s] key b'\x1b'
+[driver] [  120.4s] permission dialog (post: touch) ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌touchperm_probe_2.txt&&ls-lperm_probe_2.txt╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌Doyouwanttoproceed?❯1.Yes2.Yes,andalwaysallowaccessto<tmp>
+[driver] [  120.4s] key b'\x1b'
+[driver] [  123.8s] permission dialog (post: touch) ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌touchperm_probe_2.txt&&ls-lperm_probe_2.txt╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌Doyouwanttoproceed?❯1.Yes2.Yes,andalwaysallowaccessto<tmp>
+[driver] [  123.8s] key b'\x1b'
+[driver] [  127.2s] permission dialog (post: touch) ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌touchperm_probe_2.txt&&ls-lperm_probe_2.txt╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌Doyouwanttoproceed?❯1.Yes2.Yes,andalwaysallowaccessto<tmp>
+[driver] [  127.2s] key b'\x1b'
+[driver] [  130.6s] permission dialog (post: touch) ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌touchperm_probe_2.txt&&ls-lperm_probe_2.txt╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌Doyouwanttoproceed?❯1.Yes2.Yes,andalwaysallowaccessto<tmp>
+[driver] [  130.6s] key b'\x1b'
+[driver] [  134.1s] permission dialog (post: touch) ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌touchperm_probe_2.txt&&ls-lperm_probe_2.txt╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌Doyouwanttoproceed?❯1.Yes2.Yes,andalwaysallowaccessto<tmp>
+[driver] [  134.1s] key b'\x1b'
+[driver] [  137.5s] TIMEOUT post: touch

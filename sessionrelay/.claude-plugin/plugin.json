@@ -1,0 +1,9 @@
+{
+  "name": "sessionrelay",
+  "version": "0.0.0",
+  "description": "Session continuity for Claude Code: rotates a long task into fresh conversations with a verified handover.",
+  "license": "MIT",
+  "author": {
+    "name": "SessionRelay contributors"
+  }
+}

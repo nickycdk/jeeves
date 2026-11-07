@@ -1,0 +1,157 @@
+[driver] [    0.0s] spawn claude --plugin-dir <scratch>/mod --model haiku --permission-mode acceptEdits
+[driver] [    1.0s] key Down
+[driver] [    2.0s] trust dialog selected 'Yes,Itrustthisfolder'
+[driver] [    2.0s] key Enter
+[driver] [    9.4s] type 'In calc.js add an exported function sub(a, b) returning a - b. Use the Edit tool'
+[driver] [   11.0s] key Enter
+[driver] [   28.0s] type '/clear'
+[driver] [   29.0s] key Enter
+[driver] [   33.4s] type 'In calc.js add an exported function mul(a, b) returning a * b. Use the Edit tool'
+[driver] [   35.1s] key Enter
+[driver] [   52.0s] type '/clear'
+[driver] [   53.1s] key Enter
+[driver] [   57.5s] type 'In calc.js add an exported function div(a, b) returning a / b and throwing on b '
+[driver] [   59.3s] key Enter
+[driver] [   76.3s] type '/clear'
+[driver] [   77.3s] key Enter
+[driver] [   81.8s] type 'In calc.js add an exported function pow(a, b) returning a ** b. Use the Edit too'
+[driver] [   83.4s] key Enter
+[driver] [  101.8s] type '/clear'
+[driver] [  102.9s] key Enter
+[driver] [  107.3s] type 'In calc.js add an exported function mod(a, b) returning a % b. Use the Edit tool'
+[driver] [  108.9s] key Enter
+[driver] [  125.9s] type '/clear'
+[driver] [  126.9s] key Enter
+[driver] [  131.3s] type 'In calc.js add an exported function max(a, b) returning the larger value. Use th'
+[driver] [  133.1s] key Enter
+[driver] [  148.5s] type '/clear'
+[driver] [  149.6s] key Enter
+[driver] [  154.0s] type 'In calc.js add an exported function min(a, b) returning the smaller value. Use t'
+[driver] [  155.7s] key Enter
+[driver] [  171.2s] type '/clear'
+[driver] [  172.2s] key Enter
+[driver] [  176.6s] type 'In calc.js add an exported function avg(a, b) returning the mean. Use the Edit t'
+[driver] [  178.3s] key Enter
+[driver] [  195.3s] type '/clear'
+[driver] [  196.3s] key Enter
+[driver] [  200.7s] type 'In calc.js add an exported function abs(a) returning the absolute value. Use the'
+[driver] [  202.5s] key Enter
+[driver] [  220.9s] type '/clear'
+[driver] [  222.0s] key Enter
+[driver] [  226.4s] type 'In calc.js add an exported function clamp(x, lo, hi) clamping x into [lo, hi]. U'
+[driver] [  228.2s] key Enter
+[driver] [  245.1s] type '/clear'
+[driver] [  246.2s] key Enter
+[
+{
+"t": 1794042788144,
+"ev": "trial.result",
+"sid": "482beb76-4dea-40b0-8acf-276062e7e39f",
+"pct": 6,
+"usd": 0.00850026,
+"trial": 1,
+"firstTry": true,
+"okWithin2Retries": true,
+"attempts": 1
+},
+{
+"t": 1794042812488,
+"ev": "trial.result",
+"sid": "6c69b9e7-c443-4b34-8054-1b042997e0b6",
+"pct": 6,
+"usd": 0.008104370000000001,
+"trial": 2,
+"firstTry": true,
+"okWithin2Retries": true,
+"attempts": 1
+},
+{
+"t": 1794042837205,
+"ev": "trial.result",
+"sid": "7d4e81fd-5e2f-483f-94d2-289d22e15d80",
+"pct": 6,
+"usd": 0.008281189999999999,
+"trial": 3,
+"firstTry": true,
+"okWithin2Retries": true,
+"attempts": 1
+},
+{
+"t": 1794042862311,
+"ev": "trial.result",
+"sid": "14096ecf-28a4-4e39-b49f-dcd0a1f840a8",
+"pct": 6,
+"usd": 0.00807562,
+"trial": 4,
+"firstTry": true,
+"okWithin2Retries": true,
+"attempts": 1
+},
+{
+"t": 1794042886710,
+"ev": "trial.result",
+"sid": "d43b277d-84b2-4b10-8afc-34d5e8913d15",
+"pct": 6,
+"usd": 0.008268520000000001,
+"trial": 5,
+"firstTry": true,
+"okWithin2Retries": true,
+"attempts": 1
+},
+{
+"t": 1794042909728,
+"ev": "trial.result",
+"sid": "b6f57ffa-720c-4fb4-980f-0406088c0480",
+"pct": 6,
+"usd": 0.00806187,
+"trial": 6,
+"firstTry": true,
+"okWithin2Retries": true,
+"attempts": 1
+},
+{
+"t": 1794042932017,
+"ev": "trial.result",
+"sid": "f25690ce-0869-4d64-979b-68a78d976f83",
+"pct": 6,
+"usd": 0.00804276,
+"trial": 7,
+"firstTry": true,
+"okWithin2Retries": true,
+"attempts": 1
+},
+{
+"t": 1794042955468,
+"ev": "trial.result",
+"sid": "6d0ef30d-ce2c-4225-900b-8e1100c741b3",
+"pct": 6,
+"usd": 0.0082299,
+"trial": 8,
+"firstTry": true,
+"okWithin2Retries": true,
+"attempts": 1
+},
+{
+"t": 1794042981032,
+"ev": "trial.result",
+"sid": "c6b72797-29e6-4333-b71a-0cfe264aae55",
+"pct": 6,
+"usd": 0.008218000000000001,
+"trial": 9,
+"firstTry": true,
+"okWithin2Retries": true,
+"attempts": 1
+},
+{
+"t": 1794043006661,
+"ev": "trial.result",
+"sid": "f702d60b-8ac7-430a-85d7-3c5ae380f86a",
+"pct": 6,
+"usd": 0.00836096,
+"trial": 10,
+"firstTry": true,
+"okWithin2Retries": true,
+"attempts": 1
+}
+]
+firstTry 10 / 10  within2 10 / 10

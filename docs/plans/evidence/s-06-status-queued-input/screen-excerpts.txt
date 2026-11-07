@@ -1,0 +1,10 @@
+Whitespace-squashed text excerpts from the PTY stream (the TUI positions text with cursor moves, so spaces are lost).
+
+## idle frame (status 42% + user status line)
+───────────────────────────────────────────⚠relay-spike-s06:SR-STATUS:relayspikemonitoring42%🤖Haiku5.5|💪medium|🧠0%|💰$0.00|⏱️📁repo|🌳noworktree|🌿mainYou
+
+## after rotation (status 3% + user status line)
+──────────────────────────────────────────❯⚠relay-spike-s06:SR-STATUS:relayspikemonitoring3%🤖Haiku5.5|💪medium|🧠3%|💰$0.00|⏱️5h███░░░░░░░32%resets1:20PM
+
+## held prompt notice
+Honking…⎿Tip:Use/feedbacktohelpusimprove!❯╭───│r…│H…│…╰───⏺Promptdroppedbyahook:HeldbySessionRelay—willbedeliveredtothefreshsession❯TYPED-DURING-ROTATION:pleasereplywiththewordHELD-OK╭─────────│relay-

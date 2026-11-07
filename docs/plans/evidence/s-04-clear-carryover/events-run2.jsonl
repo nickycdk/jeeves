@@ -1,0 +1,11 @@
+{"t":1794042462595,"ev":"classic.SessionStart","sid":"1e4c5adf-3df2-4957-b49a-ec0fc2da35c2","pct":null,"usd":0,"source":"startup","permission_mode":null}
+{"t":1794042462700,"ev":"session.start","sid":"1e4c5adf-3df2-4957-b49a-ec0fc2da35c2","pct":null,"usd":0,"surface":"terminal"}
+{"t":1794042470849,"ev":"tool","sid":"1e4c5adf-3df2-4957-b49a-ec0fc2da35c2","pct":6,"usd":0.00547988,"tool":"Bash","deny":null,"isError":null,"text":"(Bash completed with no output)"}
+{"t":1794042472461,"ev":"classic.Stop","sid":"1e4c5adf-3df2-4957-b49a-ec0fc2da35c2","pct":6,"usd":0.00609021,"permission_mode":"default","session_crons":[],"background_tasks":[],"last":"DONE1\n\nDidn't check: that `perm_probe_1.txt` exists in the working directory, since `touch` returned no output."}
+{"t":1794042476238,"ev":"rotate.requested","sid":"1e4c5adf-3df2-4957-b49a-ec0fc2da35c2","pct":6,"usd":0.00609021,"n":1}
+{"t":1794042476862,"ev":"session.end","sid":"1e4c5adf-3df2-4957-b49a-ec0fc2da35c2","pct":6,"usd":0.00609021,"reason":"clear"}
+{"t":1794042476886,"ev":"classic.SessionStart","sid":"ea488091-ba80-4bbc-9ba8-1971e21203f9","pct":null,"usd":0,"source":"clear","permission_mode":null}
+{"t":1794042476894,"ev":"clear.resolved","sid":"ea488091-ba80-4bbc-9ba8-1971e21203f9","pct":null,"usd":0,"n":1,"before":"1e4c5adf-3df2-4957-b49a-ec0fc2da35c2"}
+{"t":1794042477008,"ev":"submit.resolved","sid":"ea488091-ba80-4bbc-9ba8-1971e21203f9","pct":null,"usd":0,"n":1}
+{"t":1794042479716,"ev":"tool","sid":"ea488091-ba80-4bbc-9ba8-1971e21203f9","pct":3,"usd":0.00090518,"tool":"Bash","deny":null,"isError":true,"text":"The user doesn't want to proceed with this tool use. The tool use was rejected (eg. if it was a file edit, the new_string was NOT written to the file). STOP wha"}
+{"t":1794042607117,"ev":"session.end","sid":"ea488091-ba80-4bbc-9ba8-1971e21203f9","pct":null,"usd":0.00090518,"reason":"other"}

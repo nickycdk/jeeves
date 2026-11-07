@@ -1,0 +1,3 @@
+claude: 2.1.319 (Claude Code)
+macOS: 14.6.1
+cursor: 

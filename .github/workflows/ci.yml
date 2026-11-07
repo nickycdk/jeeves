@@ -1,0 +1,43 @@
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  core:
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: sessionrelay
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: sessionrelay/package-lock.json
+      - run: npm ci
+      # Engine types are not redistributable, so CI checks src/core only; full typecheck runs locally.
+      - run: npm run typecheck -- --core-only
+      - run: npm run lint
+      - run: npm test
+  mod:
+    # claude plugin validate/test need no model calls; auth requirement unverified (ST-8.3).
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: sessionrelay
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install -g @anthropic-ai/claude-code@2.1.319
+      - run: claude --version
+      - run: claude plugin validate . --strict
+      - run: claude plugin test .

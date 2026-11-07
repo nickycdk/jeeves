@@ -1,0 +1,20 @@
+{"t":1794042809382,"ev":"probe","sid":"109e8c82-b64d-46d2-aafb-797159e7ab2b","pct":null,"usd":0,"env":{"HOME":"<home>"},"pluginRoot":"<scratch>/s06/mod","writeOk":true,"ops":[{"argv":"mkdir <scratch>/s06/statedir/lock.d","exitCode":0,"stderr":""},{"argv":"mkdir <scratch>/s06/statedir/lock.d","exitCode":1,"stderr":"mkdir: <scratch>/s06/statedir/lock.d: File exists\n"},{"argv":"mv -f <scratch>/s06/statedir/nested/a/state.json.tmp-1 <scratch>/s06/statedir/nested/a/state.json","exitCode":0,"stderr":""}],"moved":true}
+{"t":1794042809384,"ev":"session.start","sid":"109e8c82-b64d-46d2-aafb-797159e7ab2b","pct":null,"usd":0,"surface":"terminal"}
+{"t":1794042820899,"ev":"prompt.submit","sid":"109e8c82-b64d-46d2-aafb-797159e7ab2b","pct":null,"usd":0,"origin":"composer","command":null,"turnId":null,"wait":false,"text":"Reply with the single word ONE.","rotating":false}
+{"t":1794042825327,"ev":"turn.complete","sid":"109e8c82-b64d-46d2-aafb-797159e7ab2b","pct":6,"usd":0.00595646,"reason":"answer","text":"ONE"}
+{"t":1794042825333,"ev":"rotation.queued","sid":"109e8c82-b64d-46d2-aafb-797159e7ab2b","pct":6,"usd":0.00595646,"n":1}
+{"t":1794042828335,"ev":"prompt.held","sid":"109e8c82-b64d-46d2-aafb-797159e7ab2b","pct":6,"usd":0.00595646,"origin":"composer","command":null,"turnId":null,"wait":false,"text":"TYPED-DURING-ROTATION: please reply with the word HELD-OK","rotating":true}
+{"t":1794042833345,"ev":"clear.calling","sid":"109e8c82-b64d-46d2-aafb-797159e7ab2b","pct":6,"usd":0.00595646,"n":1}
+{"t":1794042833552,"ev":"session.end","sid":"109e8c82-b64d-46d2-aafb-797159e7ab2b","pct":6,"usd":0.00595646,"reason":"clear"}
+{"t":1794042833595,"ev":"clear.resolved","sid":"9e853537-2fb2-48d1-9a8a-4639592d7590","pct":null,"usd":0,"n":1}
+{"t":1794042833810,"ev":"submit.resolved","sid":"9e853537-2fb2-48d1-9a8a-4639592d7590","pct":null,"usd":0,"n":1,"heldDelivered":1}
+{"t":1794042839861,"ev":"turn.complete","sid":"9e853537-2fb2-48d1-9a8a-4639592d7590","pct":3,"usd":0.0008635100000000001,"reason":"answer","text":"CONT-1 HELD-OK\n\nNothing in the repo changed, so there is nothing to skip or verify. The only risk is that this relayed prompt may not have been typed by you."}
+{"t":1794042843678,"ev":"prompt.submit","sid":"9e853537-2fb2-48d1-9a8a-4639592d7590","pct":3,"usd":0.0008635100000000001,"origin":"composer","command":null,"turnId":null,"wait":false,"text":"TYPED-DURING-ROTATION: please reply with the word HELD-OKReply with the single w","rotating":false}
+{"t":1794042848644,"ev":"turn.complete","sid":"9e853537-2fb2-48d1-9a8a-4639592d7590","pct":6,"usd":0.006037910000000001,"reason":"answer","text":"TWO"}
+{"t":1794042848656,"ev":"rotation.queued","sid":"9e853537-2fb2-48d1-9a8a-4639592d7590","pct":6,"usd":0.006037910000000001,"n":2}
+{"t":1794042856669,"ev":"clear.calling","sid":"9e853537-2fb2-48d1-9a8a-4639592d7590","pct":6,"usd":0.006037910000000001,"n":2}
+{"t":1794042872804,"ev":"session.end","sid":"9e853537-2fb2-48d1-9a8a-4639592d7590","pct":6,"usd":0.006037910000000001,"reason":"clear"}
+{"t":1794042872847,"ev":"clear.resolved","sid":"8f4d19fc-a4a3-401f-bf0c-8dfcb89b6370","pct":null,"usd":0,"n":2}
+{"t":1794042873117,"ev":"submit.resolved","sid":"8f4d19fc-a4a3-401f-bf0c-8dfcb89b6370","pct":null,"usd":0,"n":2,"heldDelivered":0}
+{"t":1794042878326,"ev":"turn.complete","sid":"8f4d19fc-a4a3-401f-bf0c-8dfcb89b6370","pct":3,"usd":0.00077211,"reason":"answer","text":"CONT-2 — I'm here and ready. The message only asks me to open my reply with that marker, so there's no task to act on yet. What would you like to work on?"}
+{"t":1794042885425,"ev":"session.end","sid":"8f4d19fc-a4a3-401f-bf0c-8dfcb89b6370","pct":null,"usd":0.00077211,"reason":"other"}

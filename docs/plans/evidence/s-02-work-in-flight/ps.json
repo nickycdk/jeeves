@@ -1,0 +1,7 @@
+{
+ "while_deferred": [
+  "38468 34690 /bin/zsh -c source <home>/.claude/shell-snapshots/snapshot-zsh-1794042065172-utusy9.sh 2>/dev/null || true && export CODEX_COMPANION_SESSION_ID='82f49353-1d0b-4bd0-8b8b-35cecca9009f'\\012export CODEX_COMPANION_TRANSCRIPT_PATH='<home>/.claude/projects/<scratch-slug>-s02-repo/82f49353-1d0b-4bd0-8b8b-35cecca9009f.jsonl'\\012export CLAUDE_PLUGIN_DATA='<home>/.claude/plugins/data/codex-openai-codex'\\012: && setopt NO_EXTENDED_GLOB NO_BARE_GLOB_QUAL 2>/dev/null || true && { \\builtin unalias -- 'which'; \\builtin unset -f -- 'which'; } >/dev/null 2>&1 || true && { \\builtin unalias -- 'unsetenv'; \\builtin unset -f -- 'unsetenv'; } >/dev/null 2>&1 || true && eval 'sleep 45' < /dev/null && pwd -P >| <tmp-cwd>",
+  "38469 38468 sleep 45"
+ ],
+ "after_rotation": []
+}

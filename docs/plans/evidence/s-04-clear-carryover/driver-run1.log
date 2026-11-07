@@ -1,0 +1,16 @@
+[driver] [    0.0s] spawn claude --plugin-dir <scratch>/mod --model haiku --permission-mode default --add-dir <scratch>/extra
+[driver] [    1.0s] key Down
+[driver] [    2.0s] trust dialog selected 'Yes,Itrustthisfolder'
+[driver] [    2.0s] key Enter
+[driver] [    9.4s] type 'Read the file <tmp>'
+[driver] [   12.4s] key Enter
+[driver] [   21.9s] type 'Use the CronCreate tool (load it with ToolSearch first if needed) to schedule a '
+[driver] [   24.0s] key Enter
+[driver] [   32.0s] type '/srspike'
+[driver] [   32.6s] key Enter
+[driver] [   46.0s] key Shift+Tab
+[driver] [   47.4s] key Shift+Tab
+[driver] [   48.8s] mode line ng…10s·↓74tokens)Channeling…Channeling…✻Channeling…Channeling…✶✳✢Channeling…Channeling…·Channeling…1Channeling…Channeling…✢Channeling…Channeling…✳✶11s·↓774token)✻Sautéedfor11s·done10:06AM❯⏵⏵accepteditson(shift+tabtocycle)⏸planmodeon(shift+tabocycle)Sonnet5.5|💪medium|🧠6%|💰$0.01|⏱️5h█░30%resets1:20PM
+[driver] [   48.8s] type '/srspike'
+[driver] [   49.4s] key Enter
+[driver] [   56.9s] mode line after rotation 2 HECKRuminating…runningSphooks…0/2·2s·↓2tokens)Ruminating…41Ruminating…6✢Ruminating…7✳Ruminating…932✶✻Ruminating…3✽Ruminating…Ruminating…Ruminating…Ruminating…✻Ruminating…✶Ruminating…✳✢Ruminating…4·Ruminating…Ruminating…Ruminating…✢Ruminating…Ruminating…✳Ruminating…4s·↓9kens)✻Cookedfor4s·done10:06AM❯

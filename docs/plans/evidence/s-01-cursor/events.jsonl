@@ -1,0 +1,16 @@
+{"t":1794046245627,"ev":"session.start","sid":"47b8adf1-dfab-47d2-b638-cf45a6aa9c4e","pct":null,"model":"claude-haiku-5-5","surface":"terminal"}
+{"t":1794046247634,"ev":"classic.SessionStart","sid":"47b8adf1-dfab-47d2-b638-cf45a6aa9c4e","pct":null,"model":"claude-haiku-5-5","source":"startup"}
+{"t":1794046258494,"ev":"rotate.requested","sid":"47b8adf1-dfab-47d2-b638-cf45a6aa9c4e","pct":null,"model":"claude-haiku-5-5","session":1}
+{"t":1794046259113,"ev":"session.end","sid":"47b8adf1-dfab-47d2-b638-cf45a6aa9c4e","pct":null,"model":"claude-haiku-5-5","reason":"clear"}
+{"t":1794046259182,"ev":"clear.resolved","sid":"8f851b89-55a1-4a4f-8530-b1bb1978e3af","pct":null,"model":"claude-haiku-5-5","before":"47b8adf1-dfab-47d2-b638-cf45a6aa9c4e"}
+{"t":1794046259270,"ev":"classic.SessionStart","sid":"8f851b89-55a1-4a4f-8530-b1bb1978e3af","pct":null,"model":"claude-haiku-5-5","source":"clear"}
+{"t":1794046259390,"ev":"submit.resolved","sid":"8f851b89-55a1-4a4f-8530-b1bb1978e3af","pct":null,"model":"claude-haiku-5-5"}
+{"t":1794046264171,"ev":"classic.Stop","sid":"8f851b89-55a1-4a4f-8530-b1bb1978e3af","pct":3,"model":"claude-haiku-5-5","permission_mode":"default","background_tasks":[]}
+{"t":1794046370030,"ev":"rotate.requested","sid":"8f851b89-55a1-4a4f-8530-b1bb1978e3af","pct":3,"model":"claude-haiku-5-5","session":2}
+{"t":1794046370649,"ev":"session.end","sid":"8f851b89-55a1-4a4f-8530-b1bb1978e3af","pct":3,"model":"claude-haiku-5-5","reason":"clear"}
+{"t":1794046370675,"ev":"clear.resolved","sid":"33cd0491-9626-4d81-9be8-f8cc680eb75d","pct":null,"model":"claude-haiku-5-5","before":"8f851b89-55a1-4a4f-8530-b1bb1978e3af"}
+{"t":1794046370767,"ev":"classic.SessionStart","sid":"33cd0491-9626-4d81-9be8-f8cc680eb75d","pct":null,"model":"claude-haiku-5-5","source":"clear"}
+{"t":1794046370845,"ev":"submit.resolved","sid":"33cd0491-9626-4d81-9be8-f8cc680eb75d","pct":null,"model":"claude-haiku-5-5"}
+{"t":1794046374351,"ev":"classic.Stop","sid":"33cd0491-9626-4d81-9be8-f8cc680eb75d","pct":3,"model":"claude-haiku-5-5","permission_mode":"default","background_tasks":[]}
+{"t":1794046393752,"ev":"classic.Stop","sid":"33cd0491-9626-4d81-9be8-f8cc680eb75d","pct":6,"model":"claude-haiku-5-5","permission_mode":"default","background_tasks":[]}
+{"t":1794046468406,"ev":"session.end","sid":"33cd0491-9626-4d81-9be8-f8cc680eb75d","pct":null,"model":"claude-haiku-5-5","reason":"prompt_input_exit"}

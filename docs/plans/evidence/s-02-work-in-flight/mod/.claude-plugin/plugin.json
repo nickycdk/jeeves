@@ -1,0 +1,1 @@
+{ "name": "relay-spike-s02", "version": "0.0.1", "description": "Throwaway spike S-02: Stop fields with background work in flight; defer rotation until idle" }

@@ -1,0 +1,13 @@
+[driver] [    0.0s] spawn claude --plugin-dir <scratch>/mod --model haiku --permission-mode acceptEdits
+[driver] [    4.0s] type '/srsize 4000 ctx'
+[driver] [    4.7s] key Enter
+[driver] [   14.6s] type '/srsize 12000 ctx'
+[driver] [   15.3s] key Enter
+[driver] [   25.2s] type '/srsize 30000 ctx'
+[driver] [   25.9s] key Enter
+[driver] [   37.4s] type '/srsize 30000 submit'
+[driver] [   38.1s] key Enter
+{"ev": "size.result", "pct": 4, "usd": 0.00121162, "tokens": 35451, "n": 4000, "channel": "ctx", "modelFirstOk": true, "modelLastOk": true, "modelLastLOk": true, "expectLastL": "L0054", "reply": "SPIKE-PAYLOAD size=4000 START-MARK\nEND-MARK-4000-OSPREY\nL0054", "transcriptHasFirst": true, "transcriptHasLast": true, "transcriptHasFullPayload": true, "transcriptMentions": [], "transcriptLen": 302404}
+{"ev": "size.result", "pct": 4, "usd": 0.0016016300000000002, "tokens": 38286, "n": 12000, "channel": "ctx", "modelFirstOk": true, "modelLastOk": true, "modelLastLOk": true, "expectLastL": "L0163", "reply": "SPIKE-PAYLOAD size=12000 START-MARK\nEND-MARK-12000-JUNIPER\nL0163", "transcriptHasFirst": true, "transcriptHasLast": true, "transcriptHasFullPayload": true, "transcriptMentions": [], "transcriptLen": 326544}
+{"ev": "size.result", "pct": 4, "usd": 0.00291003, "tokens": 44708, "n": 30000, "channel": "ctx", "modelFirstOk": true, "modelLastOk": true, "modelLastLOk": true, "expectLastL": "L0410", "reply": "SPIKE-PAYLOAD size=30000 START-MARK\nEND-MARK-30000-QUARTZ\nL0410", "transcriptHasFirst": true, "transcriptHasLast": true, "transcriptHasFullPayload": true, "transcriptMentions": [], "transcriptLen": 382206}
+{"ev": "size.result", "pct": 4, "usd": 0.00319082, "tokens": 44697, "n": 30000, "channel": "submit", "modelFirstOk": true, "modelLastOk": true, "modelLastLOk": true, "expectLastL": "L0410", "reply": "SPIKE-PAYLOAD size=30000 START-MARK\nEND-MARK-30000-MAGENTA\nL0410", "transcriptHasFirst": true, "transcriptHasLast": true, "transcriptHasFullPayload": true, "transcriptMentions": [], "transcriptLen": 381649}
