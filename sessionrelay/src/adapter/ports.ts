@@ -4,7 +4,7 @@ export type ProcResult = { exitCode: number; stdout: string; stderr: string }
 export type RunOptions = { cwd?: string; timeoutMs?: number; env?: Record<string, string> }
 
 /** The only environment variables SessionRelay reads (the engine wants literal names). */
-export type EnvName = 'HOME' | 'XDG_STATE_HOME' | 'CLAUDE_PLUGIN_DATA' | 'SESSIONRELAY_TEST' | 'SESSIONRELAY_STATE_DIR'
+export type EnvName = 'HOME' | 'XDG_STATE_HOME' | 'CLAUDE_PLUGIN_DATA' | 'SESSIONRELAY_TEST' | 'SESSIONRELAY_STATE_DIR' | 'SESSIONRELAY_TEST_THRESHOLD_OVERRIDE'
 
 export interface FsPort {
   /** Whole file as UTF-8 text; rejects when it does not exist. */

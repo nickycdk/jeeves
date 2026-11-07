@@ -15,6 +15,8 @@ export type StatusView = {
   task: { state: State; dir: string } | null
   /** A state.json that could not be read (corrupt or too new). */
   taskError: string | null
+  /** The test-only threshold when active (06 §1). */
+  thresholdOverride?: number | null
 }
 
 export function statusText(v: StatusView): string {
@@ -30,7 +32,8 @@ export function statusText(v: StatusView): string {
     lines.push(
       `Task: ${s.taskId}`,
       `State: ${s.status}${s.reason ? ` (${s.reason})` : ''}`,
-      `Context: ${pct === undefined ? 'unknown' : `${pct}%`}  Threshold: ${s.thresholdPercent}%`,
+      `Context: ${pct === undefined ? 'unknown' : `${pct}%`}  Threshold: ${v.thresholdOverride ?? s.thresholdPercent}%`,
+      ...(v.thresholdOverride ? [`TEST OVERRIDE (task setting ${s.thresholdPercent}%)`] : []),
       `Rotations: ${s.rotationCount}  Session: ${s.sessionSequence}`,
       `Last: ${s.lastValidatedHandover ? s.lastValidatedHandover.split('#')[0]!.replace(/^history\//, '') : 'no handover yet'}${s.lastErrorCode ? `, error ${s.lastErrorCode}` : ''}`,
     )
@@ -44,6 +47,7 @@ export const HELP = [
   'SessionRelay commands (/relay ...):',
   'on [goal]     start a managed task',
   'off           stop it (files kept)',
+  'threshold <n> hand over at n% (20-90)',
   'task          original task + changes',
   'dod <text>    add a done criterion',
   'check <cmd>   add a check (never run)',
@@ -70,6 +74,8 @@ export const MSG = {
   turnedOn: (taskId: string, withGoal: boolean) => withGoal
     ? `SessionRelay on: task ${taskId}. Your goal is saved word for word and sent as the first prompt.`
     : `SessionRelay on: task ${taskId}. Your next prompt is saved word for word as the task.`,
+  thresholdRange: (arg: string, min: number, max: number) => `Threshold must be a whole number from ${min} to ${max} (got "${short(arg).slice(0, 20)}"). Example: /relay threshold 60`,
+  thresholdSet: (n: number, override: number | null) => `Threshold set to ${n}%: SessionRelay warns at ${n - 5}% and hands over at ${n}%.${override ? ` TEST OVERRIDE ${override}% is active in this run.` : ''}`,
   turnedOff: (taskId: string, dir: string) => `SessionRelay off. Task ${taskId} is kept, nothing was deleted: ${dir}`,
   submitFailed: (err: unknown) => `SessionRelay could not send your goal (${short(String(err))}). Type it as your next prompt.`,
 }

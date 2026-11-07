@@ -1,4 +1,5 @@
 // /relay parsing and answers (ST-1.9, E2). Commands that change a task run only when the user typed them (FR-05).
+import { isThreshold, THRESHOLD_MAX, THRESHOLD_MIN } from '../core/machine.ts'
 import { taskText } from '../core/task.ts'
 import type { State } from '../core/types.ts'
 import type { Runtime } from './runtime.ts'
@@ -24,7 +25,7 @@ export function pickTask<T extends { state: State }>(tasks: T[], sessionId: stri
 /** `origin.kind === 'composer'`: the person pressed Enter. Anything else (a plugin, a peer, the model) may only read. */
 export type Caller = { userTyped: boolean }
 
-const CHANGES = new Set(['on', 'off', 'dod', 'check'])
+const CHANGES = new Set(['on', 'off', 'dod', 'check', 'threshold'])
 
 export async function relay(rt: Runtime, args: string, caller: Caller): Promise<string> {
   const m = /^\s*(\S*)\s?([\s\S]*)$/.exec(args)!
@@ -35,7 +36,7 @@ export async function relay(rt: Runtime, args: string, caller: Caller): Promise<
     const picked = pickTask(tasks, me)
     // In the owning session show the live reading (never a stale one); another session's task shows its last stored reading.
     const task = picked?.state.activeSessionId === me ? { ...picked, state: { ...picked.state, lastContext: { ...(await rt.port.usage()), at: new Date(await rt.port.now()).toISOString() } } } : picked
-    return statusText({ probe: rt.probe, stateRoot: rt.stateRoot, stateRootError: rt.stateRootError, task, taskError: task ? null : errors[0] ?? null })
+    return statusText({ probe: rt.probe, stateRoot: rt.stateRoot, stateRootError: rt.stateRootError, task, taskError: task ? null : errors[0] ?? null, thresholdOverride: rt.thresholdOverride })
   }
   if (sub === 'help') return HELP
   if (sub === 'task') {
@@ -53,6 +54,7 @@ export async function relay(rt: Runtime, args: string, caller: Caller): Promise<
   switch (sub) {
     case 'on': return on(rt, tasks, me, rest)
     case 'off': return off(rt, tasks, me)
+    case 'threshold': return threshold(rt, tasks, me, rest.trim())
     default: return revise(rt, tasks, me, sub as 'dod' | 'check', rest)
   }
 }
@@ -77,6 +79,15 @@ async function off(rt: Runtime, tasks: Task[], me: string): Promise<string> {
   if (!(await claim(rt, target.dir, me))) return MSG.lockHeld(target.state.taskId)
   await apply(rt, target.dir, { type: 'OFF', sessionId: me })
   return MSG.turnedOff(target.state.taskId, target.dir)
+}
+
+async function threshold(rt: Runtime, tasks: Task[], me: string, arg: string): Promise<string> {
+  const n = /^\d+$/.test(arg) ? Number(arg) : NaN
+  if (!isThreshold(n)) return MSG.thresholdRange(arg, THRESHOLD_MIN, THRESHOLD_MAX)
+  const own = ownTask(tasks, me)
+  if (!own) return MSG.noTask
+  await apply(rt, own.dir, { type: 'SET_THRESHOLD', percent: n })
+  return MSG.thresholdSet(n, rt.thresholdOverride)
 }
 
 async function revise(rt: Runtime, tasks: Task[], me: string, kind: 'dod' | 'check', text: string): Promise<string> {

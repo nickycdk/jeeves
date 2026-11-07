@@ -45,7 +45,7 @@ async function transition(rt: Runtime, dir: string, prev: State, input: Input): 
   const forHook: Applied['forHook'] = []
   for (const queue = [input]; queue.length;) {
     const now = await rt.port.now()
-    const out = reduce(state, queue.shift()!, { now, config: DEFAULT_CONFIG, newRotationId: newRotationId(now, random6()) })
+    const out = reduce(state, queue.shift()!, { now, config: DEFAULT_CONFIG, newRotationId: newRotationId(now, random6()), ...(rt.thresholdOverride ? { thresholdOverride: rt.thresholdOverride } : {}) })
     if (out.ignored) { ignored = out.ignored; rt.port.log(`sessionrelay: ${out.ignored}`) }
     if (out.state === state) continue
     state = out.state

@@ -10,3 +10,5 @@
 - A task belongs to one session at a time: another running session gets `LOCK_HELD`. Only commands you type yourself can change a task.
 - `/relay dod <text>` and `/relay check <command>` add a task revision (a new `task-rev-NNN.md`, never an edit). Verification commands are stored as text; SessionRelay never runs them. `/relay task` shows the original prompt, every change since and the current Definition of Done. Text from Claude, other plugins or other sessions never changes the task.
 - While a task is on, SessionRelay reads the main conversation's context fill (the status line's figure). A missing figure shows as "unknown", never 0%, and triggers nothing. Rate-limit changes never count as context.
+- The handover is requested once when context reaches the threshold (default 50%), with one warning 5 points before. Repeated or simultaneous readings past it do not request again. `/relay threshold <20-90>` sets it per task.
+- Test runs only: `SESSIONRELAY_TEST=1` with `SESSIONRELAY_TEST_THRESHOLD_OVERRIDE=<n>` uses n% instead; `/relay status` then says `TEST OVERRIDE`.

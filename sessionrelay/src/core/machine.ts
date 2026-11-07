@@ -7,6 +7,8 @@ export type Input =
   | { type: 'OFF'; sessionId: string }
   /** A user command wrote task revision `revision` (FR-05; never model text). */
   | { type: 'REVISED'; revision: number }
+  /** `/relay threshold <n>`, n a whole number 20..90 (FR-03). */
+  | { type: 'SET_THRESHOLD'; percent: number }
   | { type: 'MEASURE'; percent?: number; tokens?: number; window: number; sessionId: string }
   | { type: 'ROTATE_CMD' }
   | { type: 'COMPACTED' }
@@ -43,12 +45,16 @@ export type Effect = Keyed & (
   | { type: 'RELEASE_LOCK' }
 )
 
-export type Ctx = { now: number; config: Config; newRotationId: string }
+/** `thresholdOverride`: the test-only threshold (06 §1); used in place of the task's, never stored. */
+export type Ctx = { now: number; config: Config; newRotationId: string; thresholdOverride?: number }
 
 /** `ignored` says why an input changed nothing (forbidden or irrelevant here); the adapter logs it. */
 export type Output = { state: State; effects: Effect[]; ignored?: string }
 
 const ACTIVE = (s: Status) => !INERT.includes(s)
+export const THRESHOLD_MIN = 20
+export const THRESHOLD_MAX = 90
+export const isThreshold = (n: number) => Number.isInteger(n) && n >= THRESHOLD_MIN && n <= THRESHOLD_MAX
 const HELD_STATES: readonly Status[] = ['HANDOVER_GENERATING', 'VALIDATING', 'ROTATING', 'RESTORING']
 
 export function stopFailureCode(error: string): ReasonCode {
@@ -63,7 +69,7 @@ export function stopFailureCode(error: string): ReasonCode {
 
 export function reduce(state: State, input: Input, ctx: Ctx): Output {
   const at = new Date(ctx.now).toISOString()
-  const T = state.thresholdPercent
+  const T = ctx.thresholdOverride ?? state.thresholdPercent
   const rid = state.rotation?.rotationId ?? '-'
   const effects: Effect[] = []
   let next: State = state
@@ -148,6 +154,11 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
       if (state.status === 'DISABLED') return ignore('no active task')
       if (input.revision !== state.taskRevision + 1) return ignore(`revision ${input.revision} after ${state.taskRevision}`)
       return edit({ taskRevision: input.revision }, `rev-${input.revision}`, `task revision ${input.revision}`)
+
+    case 'SET_THRESHOLD':
+      if (state.status === 'DISABLED') return ignore('no active task')
+      if (!isThreshold(input.percent)) return ignore(`threshold ${input.percent} is outside ${THRESHOLD_MIN}..${THRESHOLD_MAX}`)
+      return edit({ thresholdPercent: input.percent }, `threshold-${input.percent}`, `threshold ${input.percent}%`)
 
     case 'ROTATE_CMD':
     case 'COMPACTED':

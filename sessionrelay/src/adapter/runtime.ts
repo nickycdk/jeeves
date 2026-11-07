@@ -22,6 +22,8 @@ export type Runtime = {
   projectDir: string | null
   /** Serialises each read -> reduce -> write -> effects cycle, so concurrent hooks never act on the same old state. */
   serial: ReturnType<typeof createQueue>
+  /** Test-only threshold (06 §1): set only when SESSIONRELAY_TEST=1 and the override is a whole number 1..99. */
+  thresholdOverride: number | null
 }
 
 export type Options = { stateDir?: string | undefined }
@@ -48,8 +50,10 @@ async function build($: EngineInterface, options: Options): Promise<Runtime> {
     stateRootError = err instanceof StorageError ? `${err.code}: ${err.message}` : String(err)
   }
   const pid = id ? await projectId(id) : null
+  const override = (await port.env('SESSIONRELAY_TEST')) === '1' ? Number(await port.env('SESSIONRELAY_TEST_THRESHOLD_OVERRIDE') ?? NaN) : NaN
   return {
     port, storage, probe, stateRoot, stateRootError, identity: id, projectId: pid,
     projectDir: stateRoot && pid ? projectDir(stateRoot, pid) : null, serial: createQueue(),
+    thresholdOverride: Number.isInteger(override) && override >= 1 && override <= 99 ? override : null,
   }
 }

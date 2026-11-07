@@ -21,6 +21,7 @@ export function fsPort($: EngineInterface): FsPort {
         case 'CLAUDE_PLUGIN_DATA': return $.env.get('CLAUDE_PLUGIN_DATA')
         case 'SESSIONRELAY_TEST': return $.env.get('SESSIONRELAY_TEST')
         case 'SESSIONRELAY_STATE_DIR': return $.env.get('SESSIONRELAY_STATE_DIR')
+        case 'SESSIONRELAY_TEST_THRESHOLD_OVERRIDE': return $.env.get('SESSIONRELAY_TEST_THRESHOLD_OVERRIDE')
       }
     },
   }
