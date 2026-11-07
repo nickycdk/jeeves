@@ -1,0 +1,142 @@
+{
+ "override": "+0.8",
+ "chars": "6000",
+ "claude_version": "2.1.319 (Claude Code)",
+ "trust": true,
+ "on": true,
+ "check_queued": true,
+ "check_saved": true,
+ "keystrokes_after_setup": [],
+ "dialog": null,
+ "final_session_cost": 0.0087,
+ "final": {
+  "status": "COMPLETED",
+  "reason": "COMPLETED",
+  "rotationCount": 4,
+  "sessionSequence": 5,
+  "taskRevision": 2,
+  "mode": "full",
+  "lastErrorCode": null
+ },
+ "checks": {
+  "AC-10/12 rotations >= 2": true,
+  "AC-10 distinct session ids (>= 3)": true,
+  "AC-10 each session start% < end%": true,
+  "AC-11 zero keystrokes after setup": true,
+  "AC-11 no permission dialog": true,
+  "AC-12 each step committed exactly once": true,
+  "AC-12 each step file changed in exactly one commit": true,
+  "AC-12 task revision unchanged (rev 1 + the check)": true,
+  "final ./verify.sh exits 0": true,
+  "AC-13 COMPLETED": true
+ },
+ "step_commits": {
+  "1": 1,
+  "2": 1,
+  "3": 1,
+  "4": 1,
+  "5": 1,
+  "6": 1
+ },
+ "step_files_touched": {
+  "1": 1,
+  "2": 1,
+  "3": 1,
+  "4": 1,
+  "5": 1,
+  "6": 1
+ },
+ "git_log": [
+  "six-steps fixture",
+  "step 1: double",
+  "step 2: isPalindrome",
+  "step 3: sumDigits",
+  "step 4: wordCount",
+  "step 5: fizzbuzz",
+  "step 6: roman"
+ ],
+ "sessions": [
+  {
+   "schemaVersion": 1,
+   "sessionId": "0d6a18bd-74f1-41ba-bad8-48ac978b774f",
+   "startedAt": "2026-11-07T21:04:15.759Z",
+   "endedAt": "2026-11-07T21:05:18.951Z",
+   "endReason": "clear",
+   "startPct": 5.83,
+   "endPct": 7.38,
+   "costUsd": 0.019028319999999998
+  },
+  {
+   "schemaVersion": 1,
+   "sessionId": "f86342bf-de1b-4898-b25d-fc063fb73c59",
+   "startedAt": "2026-11-07T21:05:19.009Z",
+   "endedAt": "2026-11-07T21:06:14.354Z",
+   "endReason": "clear",
+   "startPct": 6.19,
+   "endPct": 8.66,
+   "costUsd": 0.0204747
+  },
+  {
+   "schemaVersion": 1,
+   "sessionId": "1fb80c4b-0d8c-4ba7-8ea4-e4ef1c1dd76e",
+   "startedAt": "2026-11-07T21:06:14.384Z",
+   "endedAt": "2026-11-07T21:06:53.295Z",
+   "endReason": "clear",
+   "startPct": 6.27,
+   "endPct": 7.89,
+   "costUsd": 0.015497870000000002
+  },
+  {
+   "schemaVersion": 1,
+   "sessionId": "052dedaa-0bae-47d2-b20f-1ddd0fdc8e87",
+   "startedAt": "2026-11-07T21:06:53.329Z",
+   "endedAt": "2026-11-07T21:07:53.908Z",
+   "endReason": "clear",
+   "startPct": 6.66,
+   "endPct": 7.89,
+   "costUsd": 0.022648650000000003
+  }
+ ],
+ "events": [
+  "DISABLED>MONITORING  None% ",
+  "MONITORING>MONITORING  None% queued check until the first prompt",
+  "MONITORING>MONITORING  None% task revision 1",
+  "MONITORING>MONITORING  None% task revision 2",
+  "MONITORING>ROTATION_REQUESTED THRESHOLD 6.81% context 6.81%",
+  "ROTATION_REQUESTED>HANDOVER_GENERATING THRESHOLD 6.81% ",
+  "HANDOVER_GENERATING>VALIDATING THRESHOLD 6.81% ",
+  "VALIDATING>ROTATING THRESHOLD 6.81% ",
+  "ROTATING>RESTORING THRESHOLD 7.38% ",
+  "RESTORING>CONTINUING THRESHOLD 7.38% ",
+  "CONTINUING>MONITORING  6.19% rearmed at 6.19%",
+  "MONITORING>ROTATION_REQUESTED THRESHOLD 7.62% context 7.62%",
+  "ROTATION_REQUESTED>HANDOVER_GENERATING THRESHOLD 7.62% ",
+  "HANDOVER_GENERATING>VALIDATING THRESHOLD 7.62% ",
+  "VALIDATING>ROTATING THRESHOLD 7.62% ",
+  "ROTATING>RESTORING THRESHOLD 8.66% ",
+  "RESTORING>CONTINUING THRESHOLD 8.66% ",
+  "CONTINUING>MONITORING  6.27% rearmed at 6.27%",
+  "MONITORING>ROTATION_REQUESTED THRESHOLD 7.57% context 7.57%",
+  "ROTATION_REQUESTED>HANDOVER_GENERATING THRESHOLD 7.57% ",
+  "HANDOVER_GENERATING>VALIDATING THRESHOLD 7.57% ",
+  "VALIDATING>ROTATING THRESHOLD 7.57% ",
+  "ROTATING>RESTORING THRESHOLD 7.89% ",
+  "RESTORING>CONTINUING THRESHOLD 7.89% ",
+  "CONTINUING>MONITORING  6.66% rearmed at 6.66%",
+  "MONITORING>ROTATION_REQUESTED THRESHOLD 7.6% context 7.6%",
+  "ROTATION_REQUESTED>HANDOVER_GENERATING THRESHOLD 7.6% ",
+  "HANDOVER_GENERATING>VALIDATING THRESHOLD 7.6% ",
+  "VALIDATING>ROTATING THRESHOLD 7.6% ",
+  "ROTATING>RESTORING THRESHOLD 7.89% ",
+  "RESTORING>CONTINUING THRESHOLD 7.89% ",
+  "CONTINUING>MONITORING  6.45% rearmed at 6.45%",
+  "MONITORING>COMPLETED COMPLETED 6.45% completed after 4 rotation(s) in 5 session(s); checks passed: `./verify.sh`"
+ ],
+ "setup_seconds": 18.8,
+ "run_seconds": 225.6,
+ "cost_usd": {
+  "sessions_before_final": 0.0776,
+  "final_session": 0.0087,
+  "total": 0.0863
+ }
+}
