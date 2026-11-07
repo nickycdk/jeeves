@@ -1,7 +1,8 @@
 // Managed-task wiring (02 §3): find the task, then read state -> reduce -> write state -> run effects.
 // Task state lives only in files; every cycle re-reads state.json inside the runtime's serial queue.
 import { toolRecord, type ToolOutcome } from '../core/evidence.ts'
-import { handoverInstruction, QUIESCE_NOTE } from '../core/handover/template.ts'
+import { capturedFacts } from '../core/evidence.ts'
+import { handoverInstruction, QUIESCE_NOTE, type CapturedFacts } from '../core/handover/template.ts'
 import { reduce, type Input } from '../core/machine.ts'
 import { newRotationId, newTaskId } from '../core/ids.ts'
 import { join } from '../core/paths.ts'
@@ -226,8 +227,10 @@ export async function onStop(rt: Runtime, info: StopInfo): Promise<string | null
   const r = await applyOwn(rt, { type: 'STOP', backgroundTasks: info.backgroundTasks, runningAgents })
   if (!r) return null
   const rotationId = r.state.rotation?.rotationId
+  let captured: CapturedFacts | null = null
   if (rotationId && r.forHook.some(f => f.type === 'CAPTURE_FACTS')) {
     const git = await gitFacts(rt.port, rt.identity, r.state.taskStartHead)
+    captured = capturedFacts(git, r.state.ledger)
     const snapshot = { schemaVersion: 1, rotationId, capturedAt: r.state.updatedAt, git, crons: info.crons }
     // A snapshot that cannot be saved is logged; the handover is checked against fresh facts anyway.
     await rt.storage.writeImmutable(join(own.dir, factsFile(rotationId)), JSON.stringify(snapshot, null, 2) + '\n')
@@ -235,7 +238,7 @@ export async function onStop(rt: Runtime, info: StopInfo): Promise<string | null
   }
   const block = r.forHook.find(f => f.type === 'BLOCK_STOP')
   if (block?.type === 'BLOCK_STOP' && block.kind === 'handover-request' && rotationId) {
-    return handoverInstruction({ taskId: r.state.taskId, rotationId, maxChars: DEFAULT_CONFIG.handoverMaxChars })
+    return handoverInstruction({ taskId: r.state.taskId, rotationId, maxChars: DEFAULT_CONFIG.handoverMaxChars, facts: captured })
   }
   return null
 }

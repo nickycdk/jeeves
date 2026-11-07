@@ -7,15 +7,33 @@ export const HEADINGS = ['Completed since last handover', 'Decisions and constra
 export const OPEN = '<<<SESSIONRELAY-HANDOVER v1'
 export const CLOSE = 'SESSIONRELAY-HANDOVER>>>'
 
-/** The Stop `block` text that asks Claude for the handover (ADR-003). */
-export function handoverInstruction(p: { taskId: string; rotationId: string; maxChars: number }): string {
+/** What SessionRelay already recorded, listed so Claude does not restate it. */
+export type CapturedFacts = { branch: string | null; head: string | null; changedFiles: number | null; commands: number; edits: number }
+
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`
+
+export function factsLine(f: CapturedFacts | null): string {
+  if (!f) return 'SessionRelay records git status, branch, HEAD, edited files and command exit codes itself.'
+  const where = f.branch ? `branch ${f.branch}` : 'a detached HEAD'
+  const head = f.head ? ` at ${f.head.slice(0, 12)}` : ''
+  const changed = f.changedFiles === null ? '' : `, ${plural(f.changedFiles, 'changed file')}`
+  return `SessionRelay already recorded: ${where}${head}${changed}, ${plural(f.commands, 'command')} with exit codes, ${plural(f.edits, 'edit')}.`
+}
+
+/** The Stop `block` text that asks Claude for the handover (ST-3.4, ADR-003). Deterministic; at most HANDOVER_INSTRUCTION_MAX characters. */
+export function handoverInstruction(p: { taskId: string; rotationId: string; maxChars: number; facts: CapturedFacts | null }): string {
   return [
     'SessionRelay: this conversation will be replaced by a fresh one to free context. Write a handover so the next conversation can continue the task without repeating work.',
-    'Rules: do not run any new tool or command now; summarise only. Never include secrets, tokens, passwords or .env contents.',
+    'Rules: do not run any new tool or command now; summarise only. Write only task-relevant facts. Never include secrets, tokens, passwords or .env contents.',
+    `${factsLine(p.facts)} Do not restate raw diffs or command output; name files and commands instead, in \`backticks\`.`,
     `Reply with exactly one block in this exact format, nothing inside it but the six sections, at most ${p.maxChars} characters:`,
     '',
     `${OPEN} task=${p.taskId} rotation=${p.rotationId}`,
     ...HEADINGS.flatMap(h => [`## ${h}`, h === 'Exact next actions' ? '1. [inferred] <first concrete step>' : '- [verified] <fact you checked> / [inferred] <your conclusion> / [unknown] <open question>']),
     CLOSE,
+    '',
+    'Every bullet starts with one tag: [verified] (you saw it in tool output this session), [inferred], or [unknown]. Every section has at least one bullet; write "- [verified] none" if empty. "Exact next actions" is a numbered list with at least one item. A [verified] bullet that names a file or claims a check passed is checked against the repository and the command record. Copy the first and last line of the block exactly.',
   ].join('\n')
 }
+
+export const HANDOVER_INSTRUCTION_MAX = 2500

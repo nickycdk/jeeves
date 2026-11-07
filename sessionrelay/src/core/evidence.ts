@@ -1,6 +1,8 @@
 // Evidence ledger (ST-3.1, FR-06): what a finished tool call adds to the ledger. Pure.
 import { redact } from './redact.ts'
-import { LEDGER_COMMAND_MAX, type CommandEntry, type EditEntry } from './types.ts'
+import type { GitFacts } from './git.ts'
+import type { CapturedFacts } from './handover/template.ts'
+import { LEDGER_COMMAND_MAX, type CommandEntry, type EditEntry, type LedgerEntry } from './types.ts'
 
 /** A ledger entry before the reducer stamps its time. */
 export type LedgerRecord = Omit<CommandEntry, 'at'> | Omit<EditEntry, 'at'>
@@ -35,4 +37,13 @@ export function toolRecord(o: ToolOutcome): LedgerRecord | null {
   const path = field ? o.args[field] : undefined
   if (typeof path !== 'string' || !path || o.denied || o.isError) return null
   return { kind: 'edit', path: path.slice(0, 4096), agent }
+}
+
+/** The summary the handover instruction lists (git facts plus ledger counts); null when git facts are unknown. */
+export function capturedFacts(git: GitFacts, ledger: readonly LedgerEntry[]): CapturedFacts | null {
+  const commands = ledger.filter(e => e.kind === 'cmd').length
+  const edits = ledger.length - commands
+  if (git.kind === 'unknown') return null
+  if (git.kind === 'none') return { branch: null, head: null, changedFiles: null, commands, edits }
+  return { branch: git.branch, head: git.head, changedFiles: (git.changedSinceStart ?? git.status.map(e => e.path)).length, commands, edits }
 }
