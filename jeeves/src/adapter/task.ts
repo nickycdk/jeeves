@@ -92,7 +92,10 @@ export async function recordTool(rt: Runtime, o: ToolOutcome): Promise<Applied |
   const main = o.agentId === undefined
   // Nothing to record and not a quiesce point: skip the disk reads entirely.
   if (!entry && !main) return null
-  const r = await applyOwn(rt, { type: 'TOOL_RESULT', main, ...(entry ? { entry } : {}) })
+  // Main loop: the context as it stands after this call, in the same write as the ledger entry.
+  const u = main ? await rt.port.usage().catch(() => null) : null
+  const reading = u && u.percent !== undefined ? { window: u.window, sessionId: await rt.port.sessionId(), percent: exactPercent(u)!, ...(u.tokens !== undefined ? { tokens: u.tokens } : {}) } : undefined
+  const r = await applyOwn(rt, { type: 'TOOL_RESULT', main, ...(entry ? { entry } : {}), ...(reading ? { reading } : {}) })
   if (r?.forHook.some(f => f.type === 'APPEND_NOTE')) await rt.port.appendHiddenNote(QUIESCE_NOTE)
   return r
 }
@@ -222,11 +225,14 @@ export async function readTask(rt: Runtime, dir: string, state: State): Promise<
   return { view: foldTask(revs), errors }
 }
 
+/** The engine's percent is a whole number (10K tokens on a 1M window); with tokens known, the exact figure. */
+const exactPercent = (c: { percent?: number; tokens?: number; window: number }) =>
+  c.percent !== undefined && c.tokens !== undefined && c.window > 0 ? Math.round((c.tokens / c.window) * 10_000) / 100 : c.percent
+
 /** `session.measure` with a context change: the main conversation's `usage().context` (FR-02). Missing percent stays unknown. */
 export async function measure(rt: Runtime, c: { percent?: number; tokens?: number; window: number }): Promise<Applied | null> {
   const sessionId = await rt.port.sessionId()
-  // The engine's percent is a whole number (10K tokens on a 1M window); with tokens known, use the exact figure.
-  const percent = c.percent !== undefined && c.tokens !== undefined && c.window > 0 ? Math.round((c.tokens / c.window) * 10_000) / 100 : c.percent
+  const percent = exactPercent(c)
   return applyOwn(rt, { type: 'MEASURE', window: c.window, sessionId, ...(percent !== undefined ? { percent } : {}), ...(c.tokens !== undefined ? { tokens: c.tokens } : {}) })
 }
 

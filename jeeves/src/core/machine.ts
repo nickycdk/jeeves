@@ -18,7 +18,8 @@ export type Input =
   | { type: 'ROTATE_CMD' }
   | { type: 'COMPACTED' }
   /** A tool call finished: `entry` goes to the ledger; on the main loop it is also the soft-quiesce point. */
-  | { type: 'TOOL_RESULT'; main: boolean; entry?: LedgerRecord }
+  /** `reading`: the main conversation's context read at this tool result (mid-turn readings, see TOOL_RESULT). */
+  | { type: 'TOOL_RESULT'; main: boolean; entry?: LedgerRecord; reading?: { percent?: number; tokens?: number; window: number; sessionId: string } }
   /** Main-loop classic.Stop. `handover` is the parse+validate outcome of the last message (HANDOVER_GENERATING only). */
   /** `fatal`: the handover cannot become valid by asking again (the branch moved, git did not answer): stop at once. */
   | { type: 'STOP'; backgroundTasks: number; runningAgents: number; handover?: { ok: true } | { ok: false; errors: string[]; fatal?: ReasonCode } }
@@ -234,6 +235,14 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
 
     case 'TOOL_RESULT':
       if (state.status === 'DISABLED') return ignore('no active task')
+      if (input.reading) {
+        // The engine sends few session.measure events in a long turn (debug run 3: one in 60 s), so each main-loop
+        // tool result also carries a reading: applied first, so a request it makes gets its quiesce note right here.
+        const { reading, ...rest } = input
+        const m = reduce(state, { type: 'MEASURE', ...reading }, ctx)
+        const t = reduce(m.state, rest, ctx)
+        return { state: t.state, effects: [...m.effects, ...t.effects] }
+      }
       // Recorded without an event line: the ledger is evidence, not a transition.
       if (input.entry) next = { ...next, ledger: [...state.ledger, { ...input.entry, at }].slice(-LEDGER_MAX), updatedAt: at }
       if (input.main && state.status === 'ROTATION_REQUESTED' && !state.rotation!.noteAppended) {

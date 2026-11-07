@@ -55,3 +55,18 @@ test('never during PAUSED', async ($, on) => {
   expect(stateOf(h, dir).status).toBe('PAUSED')
   expect(notes).toEqual([])
 })
+
+test('debug run 3: with no session.measure at all, the reading at a main tool result requests the rotation and the note goes out there', async ($, on) => {
+  const { h, dir, notes } = await onTask($, on)
+  await bash($, 'echo 1')
+  await until(h, () => stateOf(h, dir).ledger.length === 1)
+  expect(stateOf(h, dir).status).toBe('MONITORING')
+  h.usage = { window: 1_000_000, percent: 51, tokens: 505_000 }
+  await bash($, 'echo 2')
+  await until(h, () => notes.length === 1)
+  const s = stateOf(h, dir)
+  expect([s.status, s.lastContext.percent, s.ledger.length]).toEqual(['ROTATION_REQUESTED', 50.5, 2])
+  await bash($, 'echo 3')
+  await until(h, () => stateOf(h, dir).ledger.length === 3)
+  expect(notes).toEqual([QUIESCE_NOTE])
+})

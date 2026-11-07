@@ -1,0 +1,73 @@
+{
+ "override": "8.5",
+ "chars": "6000",
+ "claude_version": "2.1.319 (Claude Code)",
+ "trust": true,
+ "on": true,
+ "check_queued": true,
+ "check_saved": true,
+ "keystrokes_after_setup": [],
+ "dialog": null,
+ "final_session_cost": 0.0245,
+ "final": {
+  "status": "COMPLETED",
+  "reason": "COMPLETED",
+  "rotationCount": 0,
+  "sessionSequence": 1,
+  "taskRevision": 2,
+  "mode": "full",
+  "lastErrorCode": null
+ },
+ "checks": {
+  "AC-10/12 rotations >= 2": false,
+  "AC-10 distinct session ids (>= 3)": false,
+  "AC-10 each session start% < end%": false,
+  "AC-11 zero keystrokes after setup": true,
+  "AC-11 no permission dialog": true,
+  "AC-12 each step committed exactly once": true,
+  "AC-12 each step file changed in exactly one commit": true,
+  "AC-12 task revision unchanged (rev 1 + the check)": true,
+  "final ./verify.sh exits 0": true,
+  "AC-13 COMPLETED": true
+ },
+ "step_commits": {
+  "1": 1,
+  "2": 1,
+  "3": 1,
+  "4": 1,
+  "5": 1,
+  "6": 1
+ },
+ "step_files_touched": {
+  "1": 1,
+  "2": 1,
+  "3": 1,
+  "4": 1,
+  "5": 1,
+  "6": 1
+ },
+ "git_log": [
+  "six-steps fixture",
+  "step 1: double",
+  "step 2: isPalindrome",
+  "step 3: sumDigits",
+  "step 4: wordCount",
+  "step 5: fizzbuzz",
+  "step 6: roman"
+ ],
+ "sessions": [],
+ "events": [
+  "DISABLED>MONITORING  None% ",
+  "MONITORING>MONITORING  None% queued check until the first prompt",
+  "MONITORING>MONITORING  None% task revision 1",
+  "MONITORING>MONITORING  None% task revision 2",
+  "MONITORING>COMPLETED COMPLETED 6.76% completed after 0 rotation(s) in 1 session(s); checks passed: `./verify.sh`"
+ ],
+ "setup_seconds": 19.2,
+ "run_seconds": 65.1,
+ "cost_usd": {
+  "sessions_before_final": 0,
+  "final_session": 0.0245,
+  "total": 0.0245
+ }
+}

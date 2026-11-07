@@ -636,3 +636,15 @@ test('QUEUE_CHANGE: only before rev 1 (max 20); a pending REVISED drops the firs
   assert.equal(r1.state.pendingChanges?.length, 1)
   assert.deepEqual(run(r1.state, { type: 'REVISED', revision: 2, pending: true }).state.pendingChanges, [])
 })
+
+test('a main tool result carrying a reading past T requests the rotation and appends the quiesce note in the same step', () => {
+  const entry = { kind: 'cmd' as const, command: './verify.sh', ok: true, exit: 0, agent: null }
+  const o = run(st('MONITORING'), { type: 'TOOL_RESULT', main: true, entry, reading: { percent: 50.4, tokens: 504_000, window: 1_000_000, sessionId: 'sess-a' } })
+  assert.equal(o.state.status, 'ROTATION_REQUESTED')
+  assert.deepEqual(types(o.effects), ['LOG_EVENT', 'APPEND_NOTE'])
+  assert.equal(o.state.ledger.length, 1)
+  assert.equal(o.state.lastContext?.percent, 50.4)
+  const below = run(st('MONITORING'), { type: 'TOOL_RESULT', main: true, reading: { percent: 30, window: 1_000_000, sessionId: 'sess-a' } })
+  assert.deepEqual([below.state.status, below.state.lastContext?.percent, below.effects], ['MONITORING', 30, []])
+  assert.ok(run(st('DISABLED'), { type: 'TOOL_RESULT', main: true, reading: { percent: 90, window: 1, sessionId: 'a' } }).ignored)
+})
