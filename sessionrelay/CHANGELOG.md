@@ -14,3 +14,5 @@
 - Test runs only: `SESSIONRELAY_TEST=1` with `SESSIONRELAY_TEST_THRESHOLD_OVERRIDE=<n>` uses n% instead; `/relay status` then says `TEST OVERRIDE`.
 - `/relay pause` stops any handover until `/relay resume`; the pause is kept across restarts. A pause while a handover is only requested cancels it; during a handover it takes effect once the fresh conversation has the task. Leaving Claude Code normally releases the task's lock, so `/relay resume` in the next session works at once (after a crash, after 2 minutes).
 - The first `/relay on` on a machine explains, in three lines, where task state is kept, that a fresh conversation will start by itself, and how to pause. `/relay status` explains the reason code of a stopped task in one line.
+- Typing `/clear` during a task pauses it (`USER_CLEAR`) and says so; `/relay off` then ends it. Continuing it in the fresh conversation comes with the rotation work.
+- A disk error while saving a task revision no longer blocks later revisions.

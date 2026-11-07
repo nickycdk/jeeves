@@ -98,3 +98,14 @@ test('pause and resume answer plainly when there is nothing to do', async ($, on
   expect(await relay($, 'pause', 'plugin')).toContain('Only you can change')
   expect(stateOf(h, taskDirs(h)[0]!).status).toBe('MONITORING')
 })
+
+test('resume from another session while the owner is alive: LOCK_HELD, and the owner\'s state is not written', async ($, on) => {
+  const { h, dir } = await onTask($, on)
+  await relay($, 'pause')
+  const before = h.files.get(`${dir}/state.json`)
+  const toasts = h.toasts.length
+  h.sessionId = 'sess-other'
+  expect(await relay($, 'resume')).toContain('(LOCK_HELD)')
+  expect(h.files.get(`${dir}/state.json`)).toBe(before)
+  expect(h.toasts.length).toBe(toasts)
+})

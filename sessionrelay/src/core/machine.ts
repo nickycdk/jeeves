@@ -247,7 +247,7 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
       }
       if (!ACTIVE(state.status) && state.status !== 'PAUSED') return ignore('no active task')
       go('PAUSED', 'USER_CLEAR', { rotation: null, armedFired: false }, 'conversation cleared by the user')
-      effects.push({ type: 'TOAST', key: `-:user-clear:${input.sessionId}`, text: 'You cleared the conversation, so SessionRelay paused this task. /relay resume continues it here.' })
+      effects.push({ type: 'TOAST', key: `-:user-clear:${input.sessionId}`, text: 'You cleared the conversation, so SessionRelay paused this task. /relay status shows it.' })
       return done()
 
     case 'SESSION_START_CLEAR': {

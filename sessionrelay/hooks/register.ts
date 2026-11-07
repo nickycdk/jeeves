@@ -2,7 +2,7 @@
 import type { CommandRunInput, EngineInterface, Register, Timer } from 'claude-code'
 import { chooseCommandName, FALLBACK, PRIMARY, relay } from '../src/adapter/commands.ts'
 import { runtime, type Options } from '../src/adapter/runtime.ts'
-import { captureFirstPrompt, heartbeat, measure, releaseOnExit } from '../src/adapter/task.ts'
+import { captureFirstPrompt, heartbeat, measure, onUserClear, releaseOnExit } from '../src/adapter/task.ts'
 import { HEARTBEAT_MS } from '../src/core/lock.ts'
 
 const why = (err: unknown) => (err instanceof Error ? err.message : String(err)).slice(0, 200)
@@ -43,25 +43,25 @@ export const register: Register = (on, options) => {
   on('command.run', { command: 'sessionrelay' }, async ($, e, next) => (commandName === FALLBACK ? answer($, opts, e) : next(e)))
     .catch(($, e, next) => (next.called ? next(e) : { text: 'SessionRelay could not answer (internal error).' }))
 
-  // Subscribed now, forwarded unchanged until the stories that use them (M2-M5).
   // ST-2.3: only a context change counts; rate-limit or cost changes never move the reading (AC-04).
   on('session.measure', async ($, e, next) => {
     if (e.changed.includes('context')) await quietly($, opts, 'measure', rt => measure(rt, e.context))
     return next(e)
   })
-  on('tool.call', ($, e, next) => next(e))
-  on('turn.complete', ($, e, next) => next(e))
-  // A /clear keeps the process and the lock (M4 transfers it); any other end gives the lock up, state untouched.
+  // A user's /clear pauses the task (USER_CLEAR); any other end gives the lock up, state untouched.
   on('session.end', async ($, e, next) => {
-    if (e.reason !== 'clear') await quietly($, opts, 'release lock', rt => releaseOnExit(rt, e.sessionId))
+    await quietly($, opts, 'session end', rt => (e.reason === 'clear' ? onUserClear(rt, e.sessionId) : releaseOnExit(rt, e.sessionId)))
     return next(e)
   })
-  on('session.compact', ($, e, next) => next(e))
   // ST-2.1: the person's first prompt after `/relay on` (no goal) is the task, byte for byte. Slash commands are not.
   on('prompt.submit', async ($, e, next) => {
     if (e.origin.kind === 'composer' && !e.command && !e.isMeta) await quietly($, opts, 'capture', rt => captureFirstPrompt(rt, e.text))
     return next(e)
   }).catch(($, e, next) => next(e))
+  // Subscribed now, forwarded unchanged until the stories that use them (M3-M5).
+  on('tool.call', ($, e, next) => next(e))
+  on('turn.complete', ($, e, next) => next(e))
+  on('session.compact', ($, e, next) => next(e))
   on('classic.Stop', ($, e, next) => next(e))
   on('classic.StopFailure', ($, e, next) => next(e))
   on('classic.SessionStart', ($, e, next) => next(e))

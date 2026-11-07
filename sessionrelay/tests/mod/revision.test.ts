@@ -72,3 +72,27 @@ test('edits wait for the original prompt, need text, and need a task', async ($,
   const [dir] = taskDirs(h)
   expect(revFiles(h, dir!)).toEqual([])
 })
+
+test('a failed state write after a revision file was written never blocks later revisions', async ($, on) => {
+  const h = memHost(on)
+  bottom(on)
+  await start($)
+  await relay($, 'on')
+  const [dir] = taskDirs(h)
+  const failStateOnce = () => { let n = 0; h.failWrite = p => p.includes('/state.json.tmp-') && n++ === 0 }
+  // The first prompt's file is written, its state write fails: the next prompt adopts it instead of failing forever.
+  failStateOnce()
+  await submit($, PROMPT)
+  expect(stateOf(h, dir!).taskRevision).toBe(0)
+  await submit($, 'a later prompt')
+  expect(stateOf(h, dir!).taskRevision).toBe(1)
+  expect(h.files.get(`${dir}/task-rev-001.md`)).toBe(PROMPT)
+  // Same for /relay dod: the failed one is kept as rev 2, the next becomes rev 3.
+  failStateOnce()
+  expect(await relay($, 'dod first')).toContain('SessionRelay could not answer')
+  expect(await relay($, 'dod second')).toContain('Saved as task revision 3')
+  expect(stateOf(h, dir!).taskRevision).toBe(3)
+  const text = await relay($, 'task')
+  expect(text).toContain('task-rev-002.md  DoD: first')
+  expect(text).toContain('task-rev-003.md  DoD: second')
+})

@@ -73,7 +73,8 @@ export const MSG = {
     : 'SessionRelay could not tell which project this is (git did not answer). Try again.',
   alreadyOn: (s: State) => `Already on: task ${s.taskId} (${s.status}). /relay status shows it.`,
   lockHeld: (taskId: string) => `Another running session owns task ${taskId} here (LOCK_HELD). /relay status shows it read-only.`,
-  leftBehind: (s: State) => `Task ${s.taskId} from an earlier session is ${s.status} here. ${s.status === 'PAUSED' ? '/relay resume continues it, or ' : ''}/relay off ends it.`,
+  leftBehind: (s: State) => `Task ${s.taskId} from an earlier session is ${s.status} here. ${s.status === 'PAUSED' && s.reason !== 'USER_CLEAR' ? '/relay resume continues it, or ' : ''}/relay off ends it.`,
+  resumeAfterClearLater: (taskId: string) => `Task ${taskId} was paused by your /clear. Continuing it in a fresh conversation comes in a later version; for now /relay off ends it and /relay on starts a new one.`,
   turnedOn: (taskId: string, withGoal: boolean) => withGoal
     ? `SessionRelay on: task ${taskId}. Your goal is saved word for word and sent as the first prompt.`
     : `SessionRelay on: task ${taskId}. Your next prompt is saved word for word as the task.`,

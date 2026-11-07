@@ -37,16 +37,16 @@ export const ownTask = (tasks: Task[], sessionId: string) => tasks.find(t => t.s
 /** The most recent task that still claims the project (not off, completed or failed). */
 export const liveTask = (tasks: Task[]) => tasks.find(t => !ENDED.has(t.state.status)) ?? null
 
-export type Applied = { state: State; ignored?: string; forHook: EffectResult['forHook'] }
+export type Applied = { state: State; forHook: EffectResult['forHook'] }
 
 /** One transition from `prev`, inside the serial queue: write state, then run effects; feeds back follow-up inputs. */
 async function transition(rt: Runtime, dir: string, prev: State, input: Input): Promise<Applied> {
-  let state = prev, ignored: string | undefined
+  let state = prev
   const forHook: Applied['forHook'] = []
   for (const queue = [input]; queue.length;) {
     const now = await rt.port.now()
     const out = reduce(state, queue.shift()!, { now, config: DEFAULT_CONFIG, newRotationId: newRotationId(now, random6()), ...(rt.thresholdOverride ? { thresholdOverride: rt.thresholdOverride } : {}) })
-    if (out.ignored) { ignored = out.ignored; rt.port.log(`sessionrelay: ${out.ignored}`) }
+    if (out.ignored) rt.port.log(`sessionrelay: ${out.ignored}`)
     if (out.state === state) continue
     state = out.state
     await rt.storage.writeState(dir, state)
@@ -55,7 +55,7 @@ async function transition(rt: Runtime, dir: string, prev: State, input: Input): 
     forHook.push(...r.forHook)
     queue.push(...r.followUps)
   }
-  return { state, forHook, ...(ignored ? { ignored } : {}) }
+  return { state, forHook }
 }
 
 /** Apply an input to the task in `dir`; null when its state cannot be read. */
@@ -102,16 +102,30 @@ export async function startTask(rt: Runtime, sessionId: string, goal: string | n
   return { ...applied, dir }
 }
 
+/**
+ * A revision file whose state write then failed is already the next revision: record it before writing a new one,
+ * so a retry never hits "already exists" and the task never sticks (write-once files, read the file as the truth).
+ */
+async function adoptLeftovers(rt: Runtime, dir: string, s: State): Promise<State> {
+  while (await rt.port.exists(join(dir, revFile(s.taskRevision + 1)))) {
+    const next = (await transition(rt, dir, s, { type: 'REVISED', revision: s.taskRevision + 1 })).state
+    if (next.taskRevision === s.taskRevision) break
+    s = next
+  }
+  return s
+}
+
 /** `prompt.submit` (composer): while this session's task waits for its first prompt, store it as rev 1, byte for byte. */
-export async function captureFirstPrompt(rt: Runtime, text: string): Promise<boolean> {
+export async function captureFirstPrompt(rt: Runtime, text: string): Promise<void> {
   const own = ownTask((await projectTasks(rt)).tasks, await rt.port.sessionId())
-  if (!own || own.state.taskRevision !== 0) return false
-  return rt.serial(async () => {
+  if (!own || own.state.taskRevision !== 0) return
+  await rt.serial(async () => {
     const r = await rt.storage.readState(own.dir)
-    if (!r?.ok || r.value.taskRevision !== 0) return false
+    if (!r?.ok) return
+    const s = await adoptLeftovers(rt, own.dir, r.value)
+    if (s.taskRevision !== 0) return
     await rt.storage.writeImmutable(join(own.dir, revFile(1)), text)
-    await transition(rt, own.dir, r.value, { type: 'REVISED', revision: 1 })
-    return true
+    await transition(rt, own.dir, s, { type: 'REVISED', revision: 1 })
   })
 }
 
@@ -126,10 +140,12 @@ export async function heartbeat(rt: Runtime): Promise<void> {
 export function addRevision(rt: Runtime, dir: string, kind: ChangeKind, text: string): Promise<number | null> {
   return rt.serial(async () => {
     const r = await rt.storage.readState(dir)
-    if (!r?.ok || r.value.taskRevision < 1) return null
-    const n = r.value.taskRevision + 1
+    if (!r?.ok) return null
+    const s = await adoptLeftovers(rt, dir, r.value)
+    if (s.taskRevision < 1) return null
+    const n = s.taskRevision + 1
     await rt.storage.writeImmutable(join(dir, revFile(n)), renderChange(n, kind, text, new Date(await rt.port.now()).toISOString()))
-    await transition(rt, dir, r.value, { type: 'REVISED', revision: n })
+    await transition(rt, dir, s, { type: 'REVISED', revision: n })
     return n
   })
 }
@@ -155,4 +171,16 @@ export async function measure(rt: Runtime, c: { percent?: number; tokens?: numbe
 /** The session ends for good (exit, logout, resume elsewhere): give up its lock so the next session can resume at once. Task state is kept. */
 export async function releaseOnExit(rt: Runtime, sessionId: string): Promise<void> {
   for (const t of (await projectTasks(rt)).tasks) if (t.state.activeSessionId === sessionId) await rt.storage.releaseLock(t.dir, sessionId)
+}
+
+/**
+ * The user typed /clear: the process goes on under a new session id, so the task would lose its owner silently.
+ * Pause it (USER_CLEAR, ADR-010) and give up the old id's lock, so the new conversation can see it and end it.
+ * A rotation's own /clear (ROTATING) is left to the rotation (M4): the reducer ignores it there.
+ */
+export async function onUserClear(rt: Runtime, oldSessionId: string): Promise<void> {
+  const own = ownTask((await projectTasks(rt)).tasks, oldSessionId)
+  if (!own) return
+  const r = await apply(rt, own.dir, { type: 'SESSION_END', reason: 'clear', sessionId: oldSessionId })
+  if (r?.state.status === 'PAUSED' && r.state.reason === 'USER_CLEAR') await rt.storage.releaseLock(own.dir, oldSessionId)
 }
