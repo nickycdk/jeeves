@@ -166,12 +166,38 @@ test('D-23: IDLE in ROTATION_REQUESTED -> one nudge per rotation; nowhere else',
   for (const status of ['MONITORING', 'QUIESCING', 'HANDOVER_GENERATING', 'ROTATING', 'PAUSED', 'CONTINUING'] as const) assert.ok(run(st(status), { type: 'IDLE' }).ignored, status)
 })
 
-test('row 15: ROTATING + session.end(clear) -> sourceSessionId recorded', () => {
-  const s = st('ROTATING', { rotation: rot({ step: 'CLEAR_SCHEDULED' }), lastValidatedHandover: 'h#sha256:1' })
+test('row 15: ROTATING + session.end(clear) -> sourceSessionId recorded, session record written once', () => {
+  const s = st('ROTATING', { rotation: rot({ step: 'CLEAR_SCHEDULED' }), lastValidatedHandover: 'h#sha256:1', sessionSequence: 2,
+    sessionStart: { at: '2026-11-07T07:00:00.000Z', pct: 4 }, lastContext: { percent: 51, window: 1, at: AT } })
   const o = run(s, { type: 'SESSION_END', reason: 'clear', sessionId: 'sess-a' })
   assert.equal(o.state.status, 'ROTATING')
   assert.equal(o.state.rotation?.sourceSessionId, 'sess-a')
   assert.equal(o.state.rotation?.step, 'CLEARED')
+  const w = o.effects.find(e => e.type === 'WRITE_SESSION')
+  assert.ok(w?.type === 'WRITE_SESSION')
+  assert.equal(w.n, 2)
+  assert.deepEqual(w.record, { schemaVersion: 1, sessionId: 'sess-a', startedAt: '2026-11-07T07:00:00.000Z', endedAt: new Date(T0 + 1000).toISOString(), endReason: 'clear', startPct: 4, endPct: 51 })
+  assert.ok(check('session', w.record).ok)
+  assert.ok(run(o.state, { type: 'SESSION_END', reason: 'clear', sessionId: 'sess-a' }).ignored, 'a second end changes nothing')
+})
+
+test('ST-4.2: a /clear before Jeeves scheduled one is the user\'s (USER_CLEAR); a fresh session with the old id is refused', () => {
+  const s = st('ROTATING', { rotation: rot({ step: 'HANDOVER_PERSISTED' }), lastValidatedHandover: 'h#sha256:1' })
+  const o = run(s, { type: 'SESSION_END', reason: 'clear', sessionId: 'sess-a' })
+  assert.deepEqual([o.state.status, o.state.reason, o.state.rotation], ['PAUSED', 'USER_CLEAR', null])
+  assert.ok(!types(o.effects).includes('WRITE_SESSION'))
+  const same = run(st('ROTATING', { rotation: rot({ step: 'CLEARED', sourceSessionId: 'sess-a' }) }), { type: 'SESSION_START_CLEAR', sessionId: 'sess-a' })
+  assert.ok(same.ignored, 'source must differ from target')
+})
+
+test('ST-4.2: the session start is recorded at ON and in the fresh session; its first reading becomes startPct', () => {
+  const on = run(st('DISABLED', { activeSessionId: null }), { type: 'ON', mode: 'full', lockAcquired: true, sessionId: 'sess-a' })
+  assert.deepEqual(on.state.sessionStart, { at: new Date(T0 + 1000).toISOString(), pct: null })
+  const m = run(on.state, measure(7))
+  assert.equal(m.state.sessionStart?.pct, 7)
+  assert.equal(run(m.state, measure(9)).state.sessionStart?.pct, 7, 'first reading only')
+  const fresh = run(st('ROTATING', { rotation: rot({ step: 'CLEARED', sourceSessionId: 'sess-a' }), sessionStart: { at: AT, pct: 7 } }), { type: 'SESSION_START_CLEAR', sessionId: 'sess-b' })
+  assert.equal(fresh.state.sessionStart?.pct, null)
 })
 
 test('row 16: ROTATING + SessionStart(clear) -> RESTORING, target id, lock to new id, inject context', () => {
@@ -343,7 +369,7 @@ test('a whole rotation runs MONITORING -> ... -> MONITORING with effects in orde
   step({ type: 'SESSION_END', reason: 'clear', sessionId: 'sess-a' }); step({ type: 'SESSION_START_CLEAR', sessionId: 'sess-b' })
   step({ type: 'CONTEXT_READY' }); step(measure(undefined, 'sess-b')); step(measure(3, 'sess-b'))
   assert.equal(s.status, 'MONITORING')
-  assert.deepEqual(seen, ['APPEND_NOTE', 'CAPTURE_FACTS', 'BLOCK_STOP', 'PERSIST_HANDOVER', 'RUN_CLEAR', 'TRANSFER_LOCK', 'INJECT_CONTEXT', 'SUBMIT_CONTINUATION'])
+  assert.deepEqual(seen, ['APPEND_NOTE', 'CAPTURE_FACTS', 'BLOCK_STOP', 'PERSIST_HANDOVER', 'RUN_CLEAR', 'WRITE_SESSION', 'TRANSFER_LOCK', 'INJECT_CONTEXT', 'SUBMIT_CONTINUATION'])
   assert.equal(s.rotationCount, 1)
   assert.equal(s.activeSessionId, 'sess-b')
 })

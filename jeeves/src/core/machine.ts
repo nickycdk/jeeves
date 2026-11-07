@@ -1,6 +1,6 @@
 // The state machine (02 §4): reduce(state, input, ctx) -> { state, effects }. Pure: time and IDs come in through ctx.
 import type { LedgerRecord } from './evidence.ts'
-import { INERT, LEDGER_MAX, ROTATION_STATES, type Config, type Mode, type ReasonCode, type Rotation, type RotationStep, type State, type Status, type Trigger } from './types.ts'
+import { INERT, LEDGER_MAX, ROTATION_STATES, SCHEMA_VERSION, type Config, type Mode, type ReasonCode, type Rotation, type RotationStep, type SessionRecord, type State, type Status, type Trigger } from './types.ts'
 
 export type Input =
   | { type: 'ON'; mode: Mode; lockAcquired: boolean; sessionId: string }
@@ -49,6 +49,8 @@ export type Effect = Keyed & (
   | { type: 'SUBMIT_CONTINUATION'; heldPrompts: string[] }
   | { type: 'TRANSFER_LOCK'; from: string | null; to: string }
   | { type: 'RELEASE_LOCK' }
+  /** Write `sessions/NNN.json` once for the session that just ended (ST-4.2). */
+  | { type: 'WRITE_SESSION'; n: number; record: SessionRecord }
 )
 
 /** `thresholdOverride`: the test-only threshold (06 §1); used in place of the task's, never stored. */
@@ -120,6 +122,7 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
     const reading = { window: input.window, at, ...(input.percent !== undefined ? { percent: input.percent } : {}), ...(input.tokens !== undefined ? { tokens: input.tokens } : {}) }
     next = { ...next, lastContext: reading, updatedAt: at }
     const p = input.percent
+    if (p !== undefined && next.sessionStart && next.sessionStart.pct === null && input.sessionId === state.activeSessionId) next = { ...next, sessionStart: { ...next.sessionStart, pct: p } }
     if (state.status === 'MONITORING') {
       if (p === undefined) return done()
       if (p >= T && !state.armedFired) return request('THRESHOLD')
@@ -151,7 +154,7 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
         effects.push({ type: 'TOAST', key: '-:lock-held', text: 'Another session owns this task (LOCK_HELD). /relay status shows it read-only.' })
         return done()
       }
-      go('MONITORING', null, { mode: input.mode, activeSessionId: input.sessionId, armedFired: false, rotation: null })
+      go('MONITORING', null, { mode: input.mode, activeSessionId: input.sessionId, armedFired: false, rotation: null, sessionStart: { at, pct: null } })
       return done()
     }
 
@@ -271,12 +274,18 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
 
     case 'SESSION_END':
       if (input.reason !== 'clear') return ignore(`end reason ${input.reason}`)
-      if (state.status === 'ROTATING') {
+      if (state.status === 'ROTATING' && state.rotation!.step === 'CLEARED') return ignore('already cleared')
+      if (state.status === 'ROTATING' && state.rotation!.step === 'CLEAR_SCHEDULED') {
         const r = state.rotation!
-        if (r.step !== 'CLEAR_SCHEDULED') return ignore(`clear at step ${r.step}`)
+        const record: SessionRecord = {
+          schemaVersion: SCHEMA_VERSION, sessionId: input.sessionId, startedAt: state.sessionStart?.at ?? r.requestedAt, endedAt: at,
+          endReason: 'clear', startPct: state.sessionStart?.pct ?? null, endPct: state.lastContext?.percent ?? null,
+        }
         setRotation({ step: 'CLEARED', sourceSessionId: r.sourceSessionId ?? input.sessionId })
+        effects.push({ type: 'WRITE_SESSION', key: key('session'), n: state.sessionSequence, record })
         return done()
       }
+      // A /clear Jeeves did not schedule (ROTATING before CLEAR_SCHEDULED) is the user's: pause, never a rotation (ST-4.2 AC 2).
       if (!ACTIVE(state.status) && state.status !== 'PAUSED') return ignore('no active task')
       go('PAUSED', 'USER_CLEAR', { rotation: null, armedFired: false }, 'conversation cleared by the user')
       effects.push({ type: 'TOAST', key: `-:user-clear:${input.sessionId}`, text: 'You cleared the conversation, so Jeeves paused this task. /relay status shows it.' })
@@ -288,7 +297,8 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
       if (r.step !== 'CLEAR_SCHEDULED' && r.step !== 'CLEARED') return ignore(`fresh session at step ${r.step}`)
       if (r.targetSessionId !== null) return ignore('target session already set')
       const source = r.sourceSessionId ?? state.activeSessionId
-      go('RESTORING', r.trigger, { activeSessionId: input.sessionId })
+      if (input.sessionId === source) return ignore('the fresh session has the old id')
+      go('RESTORING', r.trigger, { activeSessionId: input.sessionId, sessionStart: { at, pct: null } })
       setRotation({ step: 'RESTORED', sourceSessionId: source, targetSessionId: input.sessionId })
       effects.push(
         { type: 'TRANSFER_LOCK', key: key('lock'), from: state.activeSessionId, to: input.sessionId },
@@ -342,14 +352,14 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
           rotationId: ctx.newRotationId, trigger: 'MANUAL', requestedAt: at, sourceSessionId: state.activeSessionId,
           targetSessionId: input.sessionId, step: 'RESTORED', retries: 0, quiesceCount: 0, noteAppended: false,
         }
-        go('RESTORING', 'MANUAL', { rotation, activeSessionId: input.sessionId }, 'resume after user /clear')
+        go('RESTORING', 'MANUAL', { rotation, activeSessionId: input.sessionId, sessionStart: { at, pct: null } }, 'resume after user /clear')
         effects.push(
           { type: 'TRANSFER_LOCK', key: key('lock'), from: state.activeSessionId, to: input.sessionId },
           { type: 'INJECT_CONTEXT', key: key('RESTORED'), via: 'append' },
         )
         return done()
       }
-      go('MONITORING', null, { armedFired: false, activeSessionId: input.sessionId })
+      go('MONITORING', null, { armedFired: false, activeSessionId: input.sessionId, ...(input.sessionId !== state.activeSessionId ? { sessionStart: { at, pct: null } } : {}) })
       return done()
     }
 

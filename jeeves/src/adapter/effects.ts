@@ -1,6 +1,7 @@
 // Executes core effects (02 §3). Effects whose answer belongs to a hook (block a Stop, inject context, ...)
 // are handed back to that hook as `forHook`; the stories that add those hooks (M3, M4) consume them.
 import type { Effect, Input } from '../core/machine.ts'
+import { join } from '../core/paths.ts'
 import type { State } from '../core/types.ts'
 import type { EnginePort } from './ports.ts'
 import type { Storage } from './storage.ts'
@@ -37,6 +38,9 @@ export async function runEffects(effects: Effect[], deps: { port: EnginePort; st
           break
         case 'RELEASE_LOCK':
           if (state.activeSessionId) await storage.releaseLock(taskDir, state.activeSessionId)
+          break
+        case 'WRITE_SESSION':
+          await storage.writeImmutable(join(taskDir, `sessions/${String(effect.n).padStart(3, '0')}.json`), JSON.stringify(effect.record, null, 2) + '\n')
           break
         case 'TRANSFER_LOCK':
           if (effect.from && !(await storage.transferLock(taskDir, effect.from, effect.to, state.updatedAt))) throw new Error(`lock not owned by ${effect.from}`)

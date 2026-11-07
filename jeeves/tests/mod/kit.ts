@@ -28,6 +28,14 @@ export const turnStart = ($: Kit, turnId = 't1') => $.turn.start({ text: 'x', tu
 export const turnEnd = ($: Kit, reason: 'answer' | 'aborted' = 'answer', turnId = 't1') =>
   $.turn.complete({ answer: 'ok', durationMs: 1, isAborted: reason === 'aborted', turnId, reason })
 
+/** What /clear does in 2.1.319 (S-04): session.end(clear) for the old id, then SessionStart(clear) under the new one. */
+export async function engineClear($: Kit, h: MemHost, to: string) {
+  const from = h.sessionId
+  await $.session.end({ reason: 'clear', sessionId: from, resume: { id: from } })
+  h.sessionId = to
+  return $.classic.SessionStart({ source: 'clear', session_id: to })
+}
+
 export const PROMPT = 'Build the parser.\n\n  - keep CRLF?\r\n  - emoji: 🚀 ✅ — ÆØÅ  \n\ttrailing tab\t'
 
 
@@ -62,10 +70,12 @@ export async function generating($: Kit, on: Parameters<typeof memHost>[0]) {
   const h = memHost(on)
   const prompts = bottom(on)
   const clears: string[] = []
-  const ctl = { rejectClear: false }
-  on('command.run', (_, e) => {
+  /** `onClear`: what the engine does while /clear runs (session.end, the fresh SessionStart), before it resolves. */
+  const ctl: { rejectClear: boolean; onClear: (() => Promise<void>) | null } = { rejectClear: false, onClear: null }
+  on('command.run', async (_, e) => {
     if (ctl.rejectClear) throw new Error('clear is not allowed here')
     clears.push(e.command)
+    await ctl.onClear?.()
     return { text: '' }
   })
   on('tool.call', (_, e) => (((e as { command?: string }).command ?? '').startsWith('npm test')

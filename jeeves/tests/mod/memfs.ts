@@ -37,6 +37,7 @@ export function memHost(on: On, env: Record<string, string> = { HOME: '/home/t' 
   on('session.start', (_, e) => ({ cwd: e.cwd }))
   on('session.measure', (_, e) => ({ changed: e.changed }))
   on('classic.Stop', () => ({}))
+  on('classic.SessionStart', () => ({}))
   on('turn.start', (_, e) => ({ turnId: e.turnId }))
   on('turn.complete', (_, e) => ({ text: e.answer }))
   on('session.end', (_, e) => ({ sessionId: e.sessionId }))

@@ -3,7 +3,7 @@ import type { CommandRunInput, EngineInterface, Register, Timer, ToolCallInput, 
 import type { ToolOutcome } from '../src/core/evidence.ts'
 import { chooseCommandName, FALLBACK, PRIMARY, relay } from '../src/adapter/commands.ts'
 import { runtime, type Options } from '../src/adapter/runtime.ts'
-import { captureFirstPrompt, heartbeat, measure, nudgeIfWaiting, onStop, onTurnComplete, onUserClear, recordTool, releaseOnExit, why } from '../src/adapter/task.ts'
+import { captureFirstPrompt, heartbeat, measure, nudgeIfWaiting, onFreshSession, onStop, onTurnComplete, onUserClear, recordTool, releaseOnExit, why } from '../src/adapter/task.ts'
 import { HEARTBEAT_MS } from '../src/core/lock.ts'
 
 
@@ -105,5 +105,10 @@ export const register: Register = (on, options) => {
     return block === null ? base : { ...base, block }
   }).catch(($, e, next) => next(e))
   on('classic.StopFailure', ($, e, next) => next(e))
-  on('classic.SessionStart', ($, e, next) => next(e))
+  // ST-4.2: the fresh conversation of a rotation. ADR-003: the rotation is read and applied before next(e),
+  // because $.command.run('clear') can resolve first.
+  on('classic.SessionStart', async ($, e, next) => {
+    if (e.source === 'clear') await quietly($, opts, 'fresh session', rt => onFreshSession(rt, e.session_id))
+    return next(e)
+  }).catch(($, e, next) => next(e))
 }

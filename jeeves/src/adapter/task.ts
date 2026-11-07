@@ -197,15 +197,31 @@ export async function releaseOnExit(rt: Runtime, sessionId: string): Promise<voi
 }
 
 /**
- * The user typed /clear: the process goes on under a new session id, so the task would lose its owner silently.
- * Pause it (USER_CLEAR, ADR-010) and give up the old id's lock, so the new conversation can see it and end it.
- * A rotation's own /clear (ROTATING) is left to the rotation (M4): the reducer ignores it there.
+ * session.end(clear). Jeeves's own /clear (ROTATING, CLEAR_SCHEDULED) records the source session and writes its
+ * `sessions/NNN.json`; the lock stays for the fresh session to take. A user's /clear pauses the task (USER_CLEAR,
+ * ADR-010) and gives up the old id's lock, so the new conversation can see it and end it.
  */
 export async function onUserClear(rt: Runtime, oldSessionId: string): Promise<void> {
   const own = ownTask((await projectTasks(rt)).tasks, oldSessionId)
   if (!own) return
   const r = await apply(rt, own.dir, { type: 'SESSION_END', reason: 'clear', sessionId: oldSessionId })
   if (r?.state.status === 'PAUSED' && r.state.reason === 'USER_CLEAR') await rt.storage.releaseLock(own.dir, oldSessionId)
+}
+
+/** A rotation of this project whose /clear is under way: the next fresh session belongs to it. */
+const clearing = (t: Task) => t.state.status === 'ROTATING' && (t.state.rotation?.step === 'CLEAR_SCHEDULED' || t.state.rotation?.step === 'CLEARED')
+
+/**
+ * classic.SessionStart(source clear) (ST-4.2): the fresh conversation takes the task: target id, lock, RESTORING.
+ * Returns the task when it now waits for its context (INJECT_CONTEXT), else null (a user's /clear, or no rotation).
+ * shortcut: any clearing rotation in the project is taken as this process's; a second process clearing in the same
+ * millisecond could take it (ST-6.6 adds process identity).
+ */
+export async function onFreshSession(rt: Runtime, sessionId: string): Promise<Applied & { dir: string } | null> {
+  const t = (await projectTasks(rt)).tasks.find(clearing)
+  if (!t) return null
+  const r = await apply(rt, t.dir, { type: 'SESSION_START_CLEAR', sessionId })
+  return r?.forHook.some(f => f.type === 'INJECT_CONTEXT') ? { ...r, dir: t.dir } : null
 }
 
 /** What the Stop hook passes in (classic.Stop on the main loop). */

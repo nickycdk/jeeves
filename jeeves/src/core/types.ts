@@ -95,6 +95,8 @@ export type State = {
   taskRevision: number
   sessionSequence: number
   activeSessionId: string | null
+  /** When the active session took the task, and its first known context reading (for `sessions/NNN.json`). */
+  sessionStart?: { at: Iso; pct: number | null }
   rotation: Rotation | null
   lastValidatedHandover: string | null
   rotationCount: number
