@@ -25,15 +25,16 @@ Layout: `src/core` is pure TypeScript (no `$`, no I/O, no clock); `src/adapter` 
 ## PTY end-to-end run (costs model usage)
 
 ```sh
-npm run e2e:pty -- <scratch dir> [--override 10] [--pad 400] [--minutes 30] [--out <evidence dir>]
+npm run e2e:pty -- <scratch dir> [--override 9] [--chars 28000] [--minutes 30] [--out <evidence dir>]
 ```
 
 `tests/pty/driver.py` (Python: Node has no pseudo-terminal without a native dependency) builds the `six-steps`
 fixture with `tests/fixtures/build-repo.ts`, starts `claude --plugin-dir . --model haiku` in it with
 `JEEVES_TEST=1`, `JEEVES_STATE_DIR` in the scratch folder and the test threshold override, types only the setup
-(`/relay on`, the task, `/relay check ./verify.sh`) and then nothing until the task ends. It needs `claude` on PATH,
-logged in. The fixture's `verify.sh` prints a padding report (`--pad` lines) so context grows quickly enough to
-rotate within a few steps; under the override the loop guard uses a 1-point margin (see `docs/state-machine.md`).
+(`/relay on`, `/relay check ./verify.sh`, then the task) and then nothing until the task ends. It needs `claude` on
+PATH, logged in. Each step's test file holds a table of reference cases (`--chars` per file) that Claude reads to do
+the step, so context grows enough to rotate within a few steps (a padded `verify.sh` did not work: the model sent its
+output to /dev/null). Under the override the loop guard uses a 1-point margin (see `docs/state-machine.md`).
 
 Evidence lands in `<out>` (default `<scratch>/evidence`): `RESULT.md` (pass/fail per assertion, Claude Code version,
 cost), `result.json`, `events.jsonl`, `sessions/`, `history/` (handovers), `git-log.txt`, `driver.log` (every

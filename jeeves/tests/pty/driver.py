@@ -1,8 +1,8 @@
 # PTY E2E (ST-4.8; AC-10, AC-11, AC-12, AC-13): a real interactive `claude` runs the `six-steps` fixture under a low
-# test threshold, so the task crosses it several times. The driver types only the setup (/relay on, the task prompt,
-# /relay check ./verify.sh), then nothing until the task ends, and checks the result on disk.
+# test threshold, so the task crosses it several times. The driver types only the setup (/relay on, /relay check
+# ./verify.sh, then the task prompt), then nothing until the task ends, and checks the result on disk.
 #
-#   npm run e2e:pty -- <scratch dir> [--override 10] [--pad 400] [--minutes 30] [--out <evidence dir>]
+#   npm run e2e:pty -- <scratch dir> [--override 9] [--chars 28000] [--minutes 30] [--out <evidence dir>]
 #
 # Needs `claude` on PATH and logged in; costs a few haiku turns per session (recorded in RESULT.md).
 # Evidence format (06 §5): <out>/RESULT.md (assertions, cost), result.json, events.jsonl, sessions/, handovers,
@@ -20,8 +20,8 @@ TERMINAL = ('COMPLETED', 'NEEDS_REVIEW', 'FAILED', 'PAUSED', 'DISABLED')
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('scratch')
-    ap.add_argument('--override', default='10')
-    ap.add_argument('--pad', default='400')
+    ap.add_argument('--override', default='9')
+    ap.add_argument('--chars', default='28000')
     ap.add_argument('--minutes', type=float, default=30)
     ap.add_argument('--out', default=None)
     a = ap.parse_args()
@@ -29,7 +29,7 @@ def main():
     out = os.path.abspath(a.out or f"{sp}/evidence")
     repo, state_dir = f"{sp}/repo", f"{sp}/state"
     for d in (out, state_dir): shutil.rmtree(d, ignore_errors=True); os.makedirs(d)
-    build = ['node', '--experimental-strip-types', '--no-warnings', f"{PLUGIN}/tests/fixtures/build-repo.ts", 'six-steps', repo, '--pad', a.pad]
+    build = ['node', '--experimental-strip-types', '--no-warnings', f"{PLUGIN}/tests/fixtures/build-repo.ts", 'six-steps', repo, '--chars', a.chars]
     subprocess.run(build, check=True, capture_output=True)
     task = subprocess.run(['node', '--experimental-strip-types', '--no-warnings', '-e',
                            f"import('{PLUGIN}/tests/fixtures/build-repo.ts').then(m => process.stdout.write(m.SIX_STEPS_TASK))"],
@@ -48,16 +48,18 @@ def main():
         try: return json.load(open(f"{d}/state.json")) if d else {}
         except (OSError, ValueError): return {}
 
-    r = {'override': a.override, 'pad': a.pad, 'claude_version': subprocess.run(['claude', '--version'], capture_output=True, text=True).stdout.strip()}
+    r = {'override': a.override, 'chars': a.chars, 'claude_version': subprocess.run(['claude', '--version'], capture_output=True, text=True).stdout.strip()}
     r['trust'] = c.accept_trust()
     c.pump(4)
     c.line('/relay on')
     r['on'] = c.wait(lambda: 'Jeeveson:task' in c.squeezed(4000), 30, label='/relay on')
     c.pump(1)
-    c.line(task)
-    r['captured'] = c.wait(lambda: state().get('taskRevision', 0) >= 1, 30, label='task captured')
+    # The check goes before the prompt: a command typed while Claude works waits for the turn to end (debug run 1).
     c.line('/relay check ./verify.sh')
-    r['check_saved'] = c.wait(lambda: state().get('taskRevision', 0) >= 2, 120, label='check saved')
+    r['check_queued'] = c.wait(lambda: len(state().get('pendingChanges') or []) == 1, 30, label='check queued')
+    c.pump(1)
+    c.line(task)
+    r['check_saved'] = c.wait(lambda: state().get('taskRevision', 0) >= 2, 30, label='task and check saved')
     setup_end = c.now()
     typed_at_setup = len(c.typed)
     c.note('setup done', f'{typed_at_setup} keystrokes; none allowed from here')
@@ -119,7 +121,7 @@ def main():
     open(f"{out}/git-log.txt", 'w').write('\n'.join(log) + '\n')
     json.dump(r, open(f"{out}/result.json", 'w'), indent=1, ensure_ascii=False)
     lines = [f"# PTY E2E six-steps: {'PASS' if all(checks.values()) else 'FAIL'}", '',
-             f"Claude Code {r['claude_version']} · model haiku · threshold override {a.override}% · verify pad {a.pad} lines",
+             f"Claude Code {r['claude_version']} · model haiku · threshold override {a.override}% · case tables {a.chars} chars per step",
              f"Setup {r['setup_seconds']} s, run {r['run_seconds']} s · cost about US${r['cost_usd']['total']} (sessions {r['cost_usd']['sessions_before_final']} + final {r['cost_usd']['final_session']})", '',
              '| Check | Result |', '|---|---|', *[f"| {k} | {'PASS' if v else 'FAIL'} |" for k, v in checks.items()], '',
              f"Final state: {json.dumps(r['final'])}", '', 'Sessions:', *[f"- {x['sessionId'][:8]} {x['startPct']}% -> {x['endPct']}% (US${x.get('costUsd')})" for x in sessions],

@@ -107,6 +107,8 @@ export type State = {
   /** Session in which the T−5 warning was shown (warn once per session). */
   warnedSessionId: string | null
   heldPrompts: string[]
+  /** `/relay dod|check` typed before the first prompt: written as revisions 2.. right after rev 1 is captured. */
+  pendingChanges?: { kind: 'dod' | 'check'; text: string }[]
   /** A completion block already got its one "run the missing checks" Stop block in this session (ST-5.2). */
   completionAsked?: boolean
   /** `/relay pause` during a handover: pause once the fresh conversation has its task (ST-2.5). */

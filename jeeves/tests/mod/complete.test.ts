@@ -100,3 +100,16 @@ test('the system prompt carries the completion block with the exact checks while
   await relay($, 'pause')
   expect((await compose($)).sections.map(s => s.id)).toEqual(['intro'])
 })
+
+test('review fix 2: /relay done from another live session is LOCK_HELD; after this process\'s own /clear it hands the lock on', async ($, on) => {
+  const { h, dir, taskId } = await task($, on, null)
+  await stopWith($, complete(taskId))
+  expect(stateOf(h, dir).reason).toBe('DOD_UNMET')
+  h.sessionId = 'sess-other-process'
+  expect(await relay($, 'done')).toBe(`Another running session owns task ${taskId} here (LOCK_HELD). /relay status shows it read-only.`)
+  expect(stateOf(h, dir).status).toBe('NEEDS_REVIEW')
+  h.sessionId = 'sess-test'
+  await $.session.end({ reason: 'clear', sessionId: 'sess-test', resume: { id: 'sess-test' } })
+  h.sessionId = 'sess-2'
+  expect(await relay($, 'done')).toBe(`Task ${taskId} marked done by you (recorded as your decision, not verified by checks).`)
+})

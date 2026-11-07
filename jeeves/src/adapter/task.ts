@@ -105,9 +105,12 @@ export async function claim(rt: Runtime, dir: string, sessionId: string): Promis
   return r.stale && (await rt.storage.takeoverLock(dir, sessionId, at, now)).ok
 }
 
-/** Take the task's lock for `me`: hand it over from the task's previous session (same process, after /clear), else claim it. */
-export async function takeLock(rt: Runtime, dir: string, previous: string | null, me: string): Promise<boolean> {
-  if (previous && previous !== me && (await rt.storage.transferLock(dir, previous, me, new Date(await rt.port.now()).toISOString()))) return true
+/**
+ * Take the task's lock for `me`: hand it over from the task's previous session only when this process ended that
+ * session itself (after /clear its lock is not stale yet), else claim it, which refuses a live owner (D-18).
+ */
+export async function takeLock(rt: Runtime, dir: string, previous: string | null, me: string, endedHere: ReadonlySet<string>): Promise<boolean> {
+  if (previous && previous !== me && endedHere.has(previous) && (await rt.storage.transferLock(dir, previous, me, new Date(await rt.port.now()).toISOString()))) return true
   return claim(rt, dir, me)
 }
 
@@ -156,7 +159,13 @@ export async function captureFirstPrompt(rt: Runtime, text: string): Promise<voi
     const s = await adoptLeftovers(rt, own.dir, r.value)
     if (s.taskRevision !== 0) return
     await rt.storage.writeImmutable(join(own.dir, revFile(1)), text)
-    await transition(rt, own.dir, s, { type: 'REVISED', revision: 1 })
+    let next = (await transition(rt, own.dir, s, { type: 'REVISED', revision: 1 })).state
+    // Changes typed before this prompt become revisions 2.., in the order typed (FR-05).
+    for (const c of next.pendingChanges ?? []) {
+      const n = next.taskRevision + 1
+      await rt.storage.writeImmutable(join(own.dir, revFile(n)), renderChange(n, c.kind, c.text, new Date(await rt.port.now()).toISOString()))
+      next = (await transition(rt, own.dir, next, { type: 'REVISED', revision: n, pending: true })).state
+    }
   })
 }
 
@@ -181,13 +190,19 @@ export async function heartbeat(rt: Runtime): Promise<void> {
   if (own && !(await rt.storage.heartbeat(own.dir, me, new Date(await rt.port.now()).toISOString()))) rt.port.log(`jeeves: lost the lock of ${own.state.taskId}`)
 }
 
-/** A user command's change as the next write-once revision (FR-05). Null while rev 1 (the original prompt) is not captured yet. */
-export function addRevision(rt: Runtime, dir: string, kind: ChangeKind, text: string): Promise<number | null> {
+/**
+ * A user command's change as the next write-once revision (FR-05). Before rev 1 (the original prompt) is captured it
+ * is queued and written right after it: 'pending'. Null when the task cannot be read or the queue is full.
+ */
+export function addRevision(rt: Runtime, dir: string, kind: ChangeKind, text: string): Promise<number | 'pending' | null> {
   return rt.serial(async () => {
     const r = await rt.storage.readState(dir)
     if (!r?.ok) return null
     const s = await adoptLeftovers(rt, dir, r.value)
-    if (s.taskRevision < 1) return null
+    if (s.taskRevision < 1) {
+      const q = await transition(rt, dir, s, { type: 'QUEUE_CHANGE', kind, text })
+      return (q.state.pendingChanges?.length ?? 0) > (s.pendingChanges?.length ?? 0) ? 'pending' : null
+    }
     const n = s.taskRevision + 1
     await rt.storage.writeImmutable(join(dir, revFile(n)), renderChange(n, kind, text, new Date(await rt.port.now()).toISOString()))
     await transition(rt, dir, s, { type: 'REVISED', revision: n })
@@ -397,7 +412,7 @@ async function readVerified(rt: Runtime, dir: string, ref: string | null): Promi
   const text = await rt.port.read(join(dir, m[1]!)).catch(() => null)
   return text !== null && (await sha256Hex(text)) === m[2] ? text : null
 }
-export const handoverIntact = async (rt: Runtime, dir: string, ref: string | null) => (await readVerified(rt, dir, ref)) !== null
+const handoverIntact = async (rt: Runtime, dir: string, ref: string | null) => (await readVerified(rt, dir, ref)) !== null
 
 /** The task's latest handover. `ok` false: there is one but it cannot be read back or no longer matches its hash. */
 type Latest = { ok: boolean; file: string | null; text: string | null }
@@ -462,7 +477,7 @@ async function runClear(rt: Runtime, dir: string): Promise<void> {
   try {
     await rt.port.submitPrompt(continuationFor(r.state, await latestHandover(rt, dir, r.state), submit.heldPrompts))
   } catch (err) {
-    await apply(rt, dir, { type: 'SUBMIT_FAILED' })
+    await apply(rt, dir, { type: 'SUBMIT_FAILED', heldPrompts: submit.heldPrompts })
     rt.port.log(`jeeves: continuation rejected: ${why(err)}`)
   }
 }
@@ -486,7 +501,7 @@ export async function restoreHere(rt: Runtime, dir: string, input: Input): Promi
   // A command.run hook may not submit (D-19): it goes out once the hook has returned.
   rt.port.submitPromptSoon(text, err => {
     rt.port.log(`jeeves: continuation rejected: ${why(err)}`)
-    void apply(rt, dir, { type: 'SUBMIT_FAILED' })
+    void apply(rt, dir, { type: 'SUBMIT_FAILED', heldPrompts: submit.heldPrompts })
   })
   return 'restored'
 }

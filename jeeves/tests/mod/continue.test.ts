@@ -66,12 +66,15 @@ test('a handover changed between /clear and the fresh SessionStart: nothing inje
 test('a rejected continuation prompt -> NEEDS_REVIEW(ROTATE_UNAVAILABLE), assisted, handover kept', async ($, on) => {
   const g = await generating($, on)
   const { h, dir, ctl, refuse } = g
+  expect((await submit($, 'keep these words')).drop).toBeDefined()
   expect(await stop($, handover(g.taskId, g.rotationId))).toEqual({})
   refuse.drop = text => text.startsWith('Jeeves: you are session')
   ctl.onClear = async () => { await engineClear($, h, 'sess-2') }
   await turnEnd($)
   await until(h, () => stateOf(h, dir).status === 'NEEDS_REVIEW')
   expect([stateOf(h, dir).reason, stateOf(h, dir).mode]).toEqual(['ROTATE_UNAVAILABLE', 'assisted'])
+  // Review fix 1: the held words are kept for /relay continue, not lost with the refused prompt.
+  expect(stateOf(h, dir).heldPrompts).toEqual(['keep these words'])
 })
 
 test('restore path: /relay resume after the user\'s /clear continues here with the context inside the prompt', async ($, on) => {

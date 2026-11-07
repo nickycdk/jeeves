@@ -1,0 +1,72 @@
+{
+ "override": "9",
+ "pad": "380",
+ "claude_version": "2.1.319 (Claude Code)",
+ "trust": true,
+ "on": true,
+ "captured": true,
+ "check_saved": true,
+ "keystrokes_after_setup": [],
+ "dialog": null,
+ "final_session_cost": 0.0154,
+ "final": {
+  "status": "NEEDS_REVIEW",
+  "reason": "DOD_UNMET",
+  "rotationCount": 0,
+  "sessionSequence": 1,
+  "taskRevision": 2,
+  "mode": "full",
+  "lastErrorCode": "DOD_UNMET"
+ },
+ "checks": {
+  "AC-10/12 rotations >= 2": false,
+  "AC-10 distinct session ids (>= 3)": false,
+  "AC-10 each session start% < end%": false,
+  "AC-11 zero keystrokes after setup": true,
+  "AC-11 no permission dialog": true,
+  "AC-12 each step committed exactly once": true,
+  "AC-12 each step file changed in exactly one commit": true,
+  "AC-12 task revision unchanged (rev 1 + the check)": true,
+  "final ./verify.sh exits 0": true,
+  "AC-13 COMPLETED": false
+ },
+ "step_commits": {
+  "1": 1,
+  "2": 1,
+  "3": 1,
+  "4": 1,
+  "5": 1,
+  "6": 1
+ },
+ "step_files_touched": {
+  "1": 1,
+  "2": 1,
+  "3": 1,
+  "4": 1,
+  "5": 1,
+  "6": 1
+ },
+ "git_log": [
+  "six-steps fixture",
+  "step 1: double",
+  "step 2: isPalindrome",
+  "step 3: sumDigits",
+  "step 4: wordCount",
+  "step 5: fizzbuzz",
+  "step 6: roman"
+ ],
+ "sessions": [],
+ "events": [
+  "DISABLED>MONITORING  None% ",
+  "MONITORING>MONITORING  None% task revision 1",
+  "MONITORING>NEEDS_REVIEW DOD_UNMET None% Claude reports done; the task has no verification commands",
+  "NEEDS_REVIEW>NEEDS_REVIEW  None% task revision 2"
+ ],
+ "setup_seconds": 63.3,
+ "run_seconds": 5.0,
+ "cost_usd": {
+  "sessions_before_final": 0,
+  "final_session": 0.0154,
+  "total": 0.0154
+ }
+}

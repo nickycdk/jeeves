@@ -25,8 +25,9 @@ export function pickTask<T extends { state: State }>(tasks: T[], sessionId: stri
 /**
  * `userTyped` (`origin.kind === 'composer'`): the person pressed Enter; anything else (a plugin, a peer, the model) may
  * only read. `idle`: no main-loop turn is open, so a requested handover needs the nudge to get a Stop (ST-4.7).
+ * `endedHere`: session ids this process ended (by /clear), whose locks it may hand on.
  */
-export type Caller = { userTyped: boolean; idle?: boolean }
+export type Caller = { userTyped: boolean; idle?: boolean; endedHere?: ReadonlySet<string> }
 
 const CHANGES = new Set(['on', 'off', 'dod', 'check', 'threshold', 'pause', 'resume', 'continue', 'rotate', 'done'])
 
@@ -60,9 +61,9 @@ export async function relay(rt: Runtime, args: string, caller: Caller): Promise<
     case 'threshold': return threshold(rt, tasks, me, rest.trim())
     case 'pause': return pause(rt, tasks, me)
     case 'resume': return resume(rt, tasks, me)
-    case 'continue': return continueHere(rt, tasks, me)
+    case 'continue': return continueHere(rt, tasks, me, caller.endedHere ?? new Set())
     case 'rotate': return rotate(rt, tasks, me, caller.idle === true)
-    case 'done': return confirmDone(rt, tasks, me)
+    case 'done': return confirmDone(rt, tasks, me, caller.endedHere ?? new Set())
     default: return revise(rt, tasks, me, sub as 'dod' | 'check', rest)
   }
 }
@@ -127,20 +128,20 @@ async function rotate(rt: Runtime, tasks: Task[], me: string, idle: boolean): Pr
 }
 
 /** ST-5.2 / ADR-007: the user confirms a completion that checks could not verify (recorded as the user's decision). */
-async function confirmDone(rt: Runtime, tasks: Task[], me: string): Promise<string> {
+async function confirmDone(rt: Runtime, tasks: Task[], me: string, endedHere: ReadonlySet<string>): Promise<string> {
   const target = tasks.find(t => t.state.status === 'NEEDS_REVIEW' && t.state.reason === 'DOD_UNMET')
   if (!target) return MSG.nothingToConfirm
-  if (!(await takeLock(rt, target.dir, target.state.activeSessionId, me))) return MSG.lockHeld(target.state.taskId)
+  if (!(await takeLock(rt, target.dir, target.state.activeSessionId, me, endedHere))) return MSG.lockHeld(target.state.taskId)
   const r = await apply(rt, target.dir, { type: 'DONE_CMD', sessionId: me })
   return r?.state.status === 'COMPLETED' ? MSG.confirmedDone(target.state.taskId) : MSG.nothingToConfirm
 }
 
 /** Assisted mode (ST-4.6, ADR-002): after the user's /clear, continue the task whose handover waits, in this fresh conversation. */
-async function continueHere(rt: Runtime, tasks: Task[], me: string): Promise<string> {
+async function continueHere(rt: Runtime, tasks: Task[], me: string, endedHere: ReadonlySet<string>): Promise<string> {
   const target = tasks.find(t => t.state.status === 'NEEDS_REVIEW' && t.state.reason === 'ROTATE_UNAVAILABLE')
   if (!target) return MSG.nothingToContinue
   if ((await rt.port.turns()) > 0) return MSG.continueNeedsFresh
-  if (!(await takeLock(rt, target.dir, target.state.activeSessionId, me))) return MSG.lockHeld(target.state.taskId)
+  if (!(await takeLock(rt, target.dir, target.state.activeSessionId, me, endedHere))) return MSG.lockHeld(target.state.taskId)
   const r = await restoreHere(rt, target.dir, { type: 'CONTINUE_CMD', sessionId: me })
   return r === 'restored' ? MSG.restored(target.state.taskId) : r === 'unverified' ? MSG.handoverUnverified : MSG.nothingToContinue
 }
@@ -160,7 +161,7 @@ async function revise(rt: Runtime, tasks: Task[], me: string, kind: 'dod' | 'che
   if (!own) return MSG.noTask
   // Stored exactly as typed after the subcommand; a check command is text only and is never run here (FR-16).
   const n = await addRevision(rt, own.dir, kind, text.replace(/^\s+/, ''))
-  return n === null ? MSG.waitingForPrompt : MSG.revised(n, kind)
+  return n === null ? MSG.waitingForPrompt : n === 'pending' ? MSG.revisePending(kind) : MSG.revised(n, kind)
 }
 
 /** First `/relay on` on this machine (spec §4.1): where state lives, that a fresh conversation starts by itself, how to pause. */

@@ -237,11 +237,12 @@ test('ST-4.3: a fresh session whose handover no longer verifies takes the task b
 })
 
 test('ST-4.3: a rejected continuation prompt -> NEEDS_REVIEW(ROTATE_UNAVAILABLE), assisted, /relay continue offered', () => {
-  const o = run(st('CONTINUING', { rotation: rot({ step: 'CONTINUED' }) }), { type: 'SUBMIT_FAILED' })
+  const o = run(st('CONTINUING', { rotation: rot({ step: 'CONTINUED' }) }), { type: 'SUBMIT_FAILED', heldPrompts: ['fix the typo too'] })
   assert.deepEqual([o.state.status, o.state.reason, o.state.mode], ['NEEDS_REVIEW', 'ROTATE_UNAVAILABLE', 'assisted'])
+  assert.deepEqual(o.state.heldPrompts, ['fix the typo too'], 'review fix 1: the user\'s held words survive a refused continuation')
   const t = o.effects.find(e => e.type === 'TOAST')
   assert.match(t?.type === 'TOAST' ? t.text : '', /\/relay continue/)
-  assert.ok(run(st('MONITORING'), { type: 'SUBMIT_FAILED' }).ignored)
+  assert.ok(run(st('MONITORING'), { type: 'SUBMIT_FAILED', heldPrompts: [] }).ignored)
 })
 
 test('row 19: CONTINUING + fresh measure < T-10 -> MONITORING, rearmed, sessionSequence++', () => {
@@ -447,7 +448,7 @@ test('property: 300 seeded random walks of 200 inputs keep every invariant (02 Â
       case 10: return rnd.next() < 0.2 ? { type: 'IDLE' } : { type: 'TURN_COMPLETE', reason: rnd.pick(['answer', 'aborted', 'refusal', 'error'] as const), handoverVerified: rnd.next() < 0.9 }
       case 11: return { type: 'SESSION_END', reason: rnd.pick(['clear', 'clear', 'exit']), sessionId: sid }
       case 12: return { type: 'SESSION_START_CLEAR', sessionId: sid, handoverOk: rnd.next() < 0.9 }
-      case 13: return rnd.next() < 0.3 ? { type: 'SUBMIT_FAILED' } : { type: 'CLEAR_FAILED' }
+      case 13: return rnd.next() < 0.3 ? { type: 'SUBMIT_FAILED', heldPrompts: [] } : { type: 'CLEAR_FAILED' }
       case 14: return { type: 'CONTEXT_READY' }
       case 15: return { type: 'PAUSE' }
       case 16: return { type: 'RESUME', lockOk: rnd.next() < 0.8, sessionId: sid }
@@ -619,4 +620,17 @@ test('ST-4.8 reading: the loop margin is 10 points, 1 point only under the test 
   assert.equal(run(s, measure(40)).state.status, 'FAILED')
   assert.equal(run(s, measure(8), ctx({ thresholdOverride: 10 })).state.status, 'MONITORING')
   assert.deepEqual([run(s, measure(9), ctx({ thresholdOverride: 10 })).state.status, run(s, measure(9), ctx({ thresholdOverride: 10 })).state.reason], ['FAILED', 'POSSIBLE_LOOP'])
+})
+
+test('QUEUE_CHANGE: only before rev 1 (max 20); a pending REVISED drops the first queued change', () => {
+  const waiting = st('MONITORING', { taskRevision: 0 })
+  const q = run(waiting, { type: 'QUEUE_CHANGE', kind: 'check', text: './verify.sh' })
+  assert.deepEqual(q.state.pendingChanges, [{ kind: 'check', text: './verify.sh' }])
+  assert.ok(run(st('MONITORING'), { type: 'QUEUE_CHANGE', kind: 'dod', text: 'x' }).ignored, 'rev 1 exists: write a revision instead')
+  assert.ok(run(st('DISABLED', { taskRevision: 0 }), { type: 'QUEUE_CHANGE', kind: 'dod', text: 'x' }).ignored)
+  const full = st('MONITORING', { taskRevision: 0, pendingChanges: Array.from({ length: 20 }, () => ({ kind: 'dod' as const, text: 'x' })) })
+  assert.ok(run(full, { type: 'QUEUE_CHANGE', kind: 'dod', text: 'y' }).ignored)
+  const r1 = run(q.state, { type: 'REVISED', revision: 1 })
+  assert.equal(r1.state.pendingChanges?.length, 1)
+  assert.deepEqual(run(r1.state, { type: 'REVISED', revision: 2, pending: true }).state.pendingChanges, [])
 })

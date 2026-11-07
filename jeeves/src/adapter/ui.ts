@@ -74,6 +74,7 @@ export const MSG = {
   noTask: 'No managed task. Start with /relay on',
   waitingForPrompt: 'The task has no original prompt yet: type it as your next prompt first.',
   reviseUsage: (kind: 'dod' | 'check') => kind === 'dod' ? 'Usage: /relay dod <what must be true when the task is done>' : 'Usage: /relay check <command that verifies the task, e.g. npm test>',
+  revisePending: (kind: 'dod' | 'check') => `Noted (${kind === 'dod' ? 'Definition of Done' : 'verification command, stored as text, never run by Jeeves'}). It is saved as a task revision right after your first prompt.`,
   revised: (n: number, kind: 'dod' | 'check') => `Saved as task revision ${n} (${kind === 'dod' ? 'Definition of Done' : 'verification command, stored as text, never run by Jeeves'}). /relay task shows all changes.`,
   noProject: (stateRootError: string | null) => stateRootError
     ? `Jeeves has no state folder (${stateRootError}). Set stateDir in /config.`

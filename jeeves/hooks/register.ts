@@ -8,8 +8,8 @@ import { HEARTBEAT_MS } from '../src/core/lock.ts'
 import { HELD_TEXT } from '../src/adapter/ui.ts'
 
 
-async function answer($: EngineInterface, opts: Options, e: CommandRunInput, idle: boolean) {
-  try { return { text: await relay(await runtime($, opts), e.args, { userTyped: e.origin.kind === 'composer', idle }) } } catch (err) {
+async function answer($: EngineInterface, opts: Options, e: CommandRunInput, idle: boolean, endedHere: ReadonlySet<string>) {
+  try { return { text: await relay(await runtime($, opts), e.args, { userTyped: e.origin.kind === 'composer', idle, endedHere }) } } catch (err) {
     return { text: `Jeeves could not answer: ${why(err)}` }
   }
 }
@@ -36,6 +36,8 @@ export const register: Register = (on, options) => {
   let beat: Timer | null = null
   // Whether a main-loop turn is open: engine state, not task state. Starts idle (a reload mid-turn at worst queues one nudge).
   let turnOpen = false
+  // Session ids this process ended (/clear): process identity, so a lock is handed on only from our own past session.
+  const endedHere = new Set<string>()
 
   on('session.start', async ($, e, next) => {
     const rt = await runtime($, opts, true)
@@ -51,9 +53,9 @@ export const register: Register = (on, options) => {
     return next(e)
   })
 
-  on('command.run', { command: 'relay' }, async ($, e, next) => (commandName === PRIMARY ? answer($, opts, e, !turnOpen) : next(e)))
+  on('command.run', { command: 'relay' }, async ($, e, next) => (commandName === PRIMARY ? answer($, opts, e, !turnOpen, endedHere) : next(e)))
     .catch(($, e, next) => (next.called ? next(e) : { text: 'Jeeves could not answer (internal error).' }))
-  on('command.run', { command: 'jeeves' }, async ($, e, next) => (commandName === FALLBACK ? answer($, opts, e, !turnOpen) : next(e)))
+  on('command.run', { command: 'jeeves' }, async ($, e, next) => (commandName === FALLBACK ? answer($, opts, e, !turnOpen, endedHere) : next(e)))
     .catch(($, e, next) => (next.called ? next(e) : { text: 'Jeeves could not answer (internal error).' }))
 
   // ST-2.3: only a context change counts; rate-limit or cost changes never move the reading (AC-04).
@@ -67,6 +69,7 @@ export const register: Register = (on, options) => {
   })
   // A user's /clear pauses the task (USER_CLEAR); any other end gives the lock up, state untouched.
   on('session.end', async ($, e, next) => {
+    endedHere.add(e.sessionId)
     await quietly($, opts, 'session end', rt => (e.reason === 'clear' ? onUserClear(rt, e.sessionId) : releaseOnExit(rt, e.sessionId)))
     return next(e)
   })

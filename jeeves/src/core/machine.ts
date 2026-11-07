@@ -8,7 +8,10 @@ export type Input =
   /** `sessionId`: the session turning it off, which now holds the lock it releases. */
   | { type: 'OFF'; sessionId: string }
   /** A user command wrote task revision `revision` (FR-05; never model text). */
-  | { type: 'REVISED'; revision: number }
+  /** `pending`: the revision wrote the first queued change (pendingChanges[0]), which is now done. */
+  | { type: 'REVISED'; revision: number; pending?: boolean }
+  /** `/relay dod|check` before the original prompt is captured (taskRevision 0): kept until rev 1 exists. */
+  | { type: 'QUEUE_CHANGE'; kind: 'dod' | 'check'; text: string }
   /** `/relay threshold <n>`, n a whole number 20..90 (FR-03). */
   | { type: 'SET_THRESHOLD'; percent: number }
   | { type: 'MEASURE'; percent?: number; tokens?: number; window: number; sessionId: string }
@@ -30,7 +33,7 @@ export type Input =
   | { type: 'SESSION_START_CLEAR'; sessionId: string; handoverOk: boolean }
   | { type: 'CLEAR_FAILED' }
   /** `$.prompt.submit` of the continuation rejected (ADR-002 A1: checked at first use). */
-  | { type: 'SUBMIT_FAILED' }
+  | { type: 'SUBMIT_FAILED'; heldPrompts: string[] }
   /** The fresh conversation holds the task context (after /clear resolved, or after the restore-path append). */
   | { type: 'CONTEXT_READY' }
   /** A prompt the user typed during a handover, held for the fresh conversation (ADR-010). */
@@ -210,7 +213,14 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
     case 'REVISED':
       if (state.status === 'DISABLED') return ignore('no active task')
       if (input.revision !== state.taskRevision + 1) return ignore(`revision ${input.revision} after ${state.taskRevision}`)
-      return edit({ taskRevision: input.revision }, `rev-${input.revision}`, `task revision ${input.revision}`)
+      return edit({ taskRevision: input.revision, ...(input.pending ? { pendingChanges: (state.pendingChanges ?? []).slice(1) } : {}) }, `rev-${input.revision}`, `task revision ${input.revision}`)
+
+    case 'QUEUE_CHANGE': {
+      if (state.status === 'DISABLED' || state.taskRevision !== 0) return ignore('only before the first prompt')
+      const queued = state.pendingChanges ?? []
+      if (queued.length >= 20) return ignore('20 changes already queued')
+      return edit({ pendingChanges: [...queued, { kind: input.kind, text: input.text }] }, `queued-${queued.length + 1}`, `queued ${input.kind} until the first prompt`)
+    }
 
     case 'SET_THRESHOLD':
       if (state.status === 'DISABLED') return ignore('no active task')
@@ -378,7 +388,8 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
 
     case 'SUBMIT_FAILED':
       if (state.status !== 'CONTINUING') return ignore('no continuation pending')
-      go('NEEDS_REVIEW', 'ROTATE_UNAVAILABLE', { rotation: null, mode: 'assisted' }, 'continuation prompt rejected')
+      // The held prompts were cleared for the continuation that did not go out: keep them for /relay continue.
+      go('NEEDS_REVIEW', 'ROTATE_UNAVAILABLE', { rotation: null, mode: 'assisted', heldPrompts: [...input.heldPrompts, ...state.heldPrompts] }, 'continuation prompt rejected')
       effects.push({ type: 'TOAST', key: key('assisted'), text: 'Jeeves could not send the continuation. The handover is saved: type /relay continue.' })
       return done()
 

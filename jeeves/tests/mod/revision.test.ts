@@ -61,16 +61,25 @@ test('a verification command is stored as text and never run by the plugin', asy
   expect(h.argv.flat().some(a => a.includes('pwned'))).toBe(false)
 })
 
-test('edits wait for the original prompt, need text, and need a task', async ($, on) => {
+test('edits typed before the original prompt are queued and become revisions 2.. right after it; they need text and a task', async ($, on) => {
   const h = memHost(on)
   bottom(on)
   await start($)
   expect(await relay($, 'dod x')).toBe('No managed task. Start with /relay on')
   await relay($, 'on')
-  expect(await relay($, 'dod x')).toBe('The task has no original prompt yet: type it as your next prompt first.')
+  expect(await relay($, 'check ./verify.sh')).toBe('Noted (verification command, stored as text, never run by Jeeves). It is saved as a task revision right after your first prompt.')
+  expect(await relay($, 'dod all six steps pass')).toContain('Noted (Definition of Done)')
   expect(await relay($, 'check   ')).toContain('Usage: /relay check')
   const [dir] = taskDirs(h)
   expect(revFiles(h, dir!)).toEqual([])
+  await submit($, PROMPT)
+  expect(revFiles(h, dir!).map(f => f.split('/').pop())).toEqual(['task-rev-001.md', 'task-rev-002.md', 'task-rev-003.md'])
+  expect(h.files.get(`${dir}/task-rev-001.md`)).toBe(PROMPT)
+  const s = JSON.parse(h.files.get(`${dir}/state.json`)!)
+  expect([s.taskRevision, s.pendingChanges]).toEqual([3, []])
+  const task = await relay($, 'task')
+  expect(task).toContain('task-rev-002.md  check: ./verify.sh')
+  expect(task).toContain('task-rev-003.md  DoD: all six steps pass')
 })
 
 test('a failed state write after a revision file was written never blocks later revisions', async ($, on) => {
