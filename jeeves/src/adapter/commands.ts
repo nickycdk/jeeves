@@ -3,7 +3,7 @@ import { isThreshold, THRESHOLD_MAX, THRESHOLD_MIN } from '../core/machine.ts'
 import { taskText } from '../core/task.ts'
 import type { State } from '../core/types.ts'
 import type { Runtime } from './runtime.ts'
-import { addRevision, apply, claim, heldByOther, liveTask, ownTask, projectTasks, readTask, restoreHere, startTask, takeLock, type Task } from './task.ts'
+import { addRevision, apply, claim, heldByOther, liveTask, ownTask, projectTasks, readTask, nudgeIfWaiting, restoreHere, startTask, takeLock, type Task } from './task.ts'
 import { firstActivationText, HELP, MSG, statusText } from './ui.ts'
 
 export const PLUGIN = 'jeeves'
@@ -22,10 +22,13 @@ export function pickTask<T extends { state: State }>(tasks: T[], sessionId: stri
   return mine ?? live.sort((a, b) => b.state.updatedAt.localeCompare(a.state.updatedAt))[0] ?? null
 }
 
-/** `origin.kind === 'composer'`: the person pressed Enter. Anything else (a plugin, a peer, the model) may only read. */
-export type Caller = { userTyped: boolean }
+/**
+ * `userTyped` (`origin.kind === 'composer'`): the person pressed Enter; anything else (a plugin, a peer, the model) may
+ * only read. `idle`: no main-loop turn is open, so a requested handover needs the nudge to get a Stop (ST-4.7).
+ */
+export type Caller = { userTyped: boolean; idle?: boolean }
 
-const CHANGES = new Set(['on', 'off', 'dod', 'check', 'threshold', 'pause', 'resume', 'continue'])
+const CHANGES = new Set(['on', 'off', 'dod', 'check', 'threshold', 'pause', 'resume', 'continue', 'rotate'])
 
 export async function relay(rt: Runtime, args: string, caller: Caller): Promise<string> {
   const m = /^\s*(\S*)\s?([\s\S]*)$/.exec(args)!
@@ -58,6 +61,7 @@ export async function relay(rt: Runtime, args: string, caller: Caller): Promise<
     case 'pause': return pause(rt, tasks, me)
     case 'resume': return resume(rt, tasks, me)
     case 'continue': return continueHere(rt, tasks, me)
+    case 'rotate': return rotate(rt, tasks, me, caller.idle === true)
     default: return revise(rt, tasks, me, sub as 'dod' | 'check', rest)
   }
 }
@@ -108,6 +112,17 @@ async function resume(rt: Runtime, tasks: Task[], me: string): Promise<string> {
   const r = await apply(rt, target.dir, { type: 'RESUME', lockOk: true, sessionId: me })
   if (!r) return MSG.noTask
   return MSG.resumed(target.state.thresholdPercent, rt.thresholdOverride)
+}
+
+/** ST-4.7 / FR-11: hand over now, through exactly the threshold's pipeline (same reducer path, same nudge when idle). */
+async function rotate(rt: Runtime, tasks: Task[], me: string, idle: boolean): Promise<string> {
+  const own = ownTask(tasks, me)
+  if (!own) return MSG.noTask
+  const r = await apply(rt, own.dir, { type: 'ROTATE_CMD' })
+  const requested = r?.state.status === 'ROTATION_REQUESTED' && r.state.rotation?.rotationId !== own.state.rotation?.rotationId
+  if (!requested) return MSG.notRotatable(r?.state.status ?? own.state.status)
+  if (idle) await nudgeIfWaiting(rt)
+  return MSG.rotateRequested
 }
 
 /** Assisted mode (ST-4.6, ADR-002): after the user's /clear, continue the task whose handover waits, in this fresh conversation. */

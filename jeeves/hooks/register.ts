@@ -8,8 +8,8 @@ import { HEARTBEAT_MS } from '../src/core/lock.ts'
 import { HELD_TEXT } from '../src/adapter/ui.ts'
 
 
-async function answer($: EngineInterface, opts: Options, e: CommandRunInput) {
-  try { return { text: await relay(await runtime($, opts), e.args, { userTyped: e.origin.kind === 'composer' }) } } catch (err) {
+async function answer($: EngineInterface, opts: Options, e: CommandRunInput, idle: boolean) {
+  try { return { text: await relay(await runtime($, opts), e.args, { userTyped: e.origin.kind === 'composer', idle }) } } catch (err) {
     return { text: `Jeeves could not answer: ${why(err)}` }
   }
 }
@@ -40,7 +40,7 @@ export const register: Register = (on, options) => {
   on('session.start', async ($, e, next) => {
     const rt = await runtime($, opts, true)
     commandName = chooseCommandName(await $.command.list())
-    await $.command.register({ name: commandName, description: 'Jeeves: keep a long task going across fresh conversations', argumentHint: 'on [goal] | off | pause | resume | threshold <n> | task | dod <text> | check <cmd> | status | help' })
+    await $.command.register({ name: commandName, description: 'Jeeves: keep a long task going across fresh conversations', argumentHint: 'on [goal] | off | pause | resume | rotate | continue | threshold <n> | task | dod <text> | check <cmd> | status | help' })
     if (commandName === FALLBACK) $.ui.toast('/relay is taken by another command, so Jeeves uses /jeeves.')
     if (rt.probe.mode !== 'full' && rt.probe.message) {
       $.ui.status(rt.probe.mode === 'unsupported' ? `off: needs ${rt.probe.missing[0]}` : 'assisted mode')
@@ -51,9 +51,9 @@ export const register: Register = (on, options) => {
     return next(e)
   })
 
-  on('command.run', { command: 'relay' }, async ($, e, next) => (commandName === PRIMARY ? answer($, opts, e) : next(e)))
+  on('command.run', { command: 'relay' }, async ($, e, next) => (commandName === PRIMARY ? answer($, opts, e, !turnOpen) : next(e)))
     .catch(($, e, next) => (next.called ? next(e) : { text: 'Jeeves could not answer (internal error).' }))
-  on('command.run', { command: 'jeeves' }, async ($, e, next) => (commandName === FALLBACK ? answer($, opts, e) : next(e)))
+  on('command.run', { command: 'jeeves' }, async ($, e, next) => (commandName === FALLBACK ? answer($, opts, e, !turnOpen) : next(e)))
     .catch(($, e, next) => (next.called ? next(e) : { text: 'Jeeves could not answer (internal error).' }))
 
   // ST-2.3: only a context change counts; rate-limit or cost changes never move the reading (AC-04).
