@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { isSafe, reduce, stopFailureCode, type Ctx, type Effect, type Input } from '../../src/core/machine.ts'
+import { HELD_MAX, isSafe, reduce, stopFailureCode, type Ctx, type Effect, type Input } from '../../src/core/machine.ts'
 import { check } from '../../src/core/schema.ts'
 import { DEFAULT_CONFIG, INERT, ROTATION_STATES, STATUSES, type Rotation, type State, type Status } from '../../src/core/types.ts'
 import { AT, prng, validState } from './helpers.ts'
@@ -509,4 +509,16 @@ test('review fix 3: /relay pause in VALIDATING (nothing cleared yet) pauses at o
   assert.deepEqual([v.state.status, v.state.reason, v.state.rotation], ['PAUSED', 'USER_PAUSE', null])
   const r = run(st('ROTATING', { rotation: rot({ step: 'HANDOVER_PERSISTED' }) }), { type: 'PAUSE' })
   assert.deepEqual([r.state.status, r.state.pauseRequested], ['ROTATING', true])
+})
+
+test('ST-4.4: HOLD_PROMPT appends in HANDOVER_GENERATING..RESTORING only, up to the cap; the event detail carries the text for redaction', () => {
+  for (const status of ['HANDOVER_GENERATING', 'VALIDATING', 'ROTATING', 'RESTORING'] as const) {
+    const o = run(st(status), { type: 'HOLD_PROMPT', text: 'hi' })
+    assert.deepEqual([o.state.status, o.state.heldPrompts], [status, ['hi']], status)
+    const e = o.effects.find(x => x.type === 'LOG_EVENT')
+    assert.ok(e?.type === 'LOG_EVENT' && e.detail === 'held prompt: hi' && e.from === status && e.to === status)
+  }
+  for (const status of ['MONITORING', 'ROTATION_REQUESTED', 'QUIESCING', 'CONTINUING', 'PAUSED'] as const) assert.ok(run(st(status), { type: 'HOLD_PROMPT', text: 'hi' }).ignored, status)
+  const full = st('ROTATING', { heldPrompts: Array.from({ length: HELD_MAX }, (_, i) => `m${i}`) })
+  assert.ok(run(full, { type: 'HOLD_PROMPT', text: 'one more' }).ignored, 'cap')
 })

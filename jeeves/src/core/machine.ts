@@ -31,6 +31,8 @@ export type Input =
   | { type: 'SUBMIT_FAILED' }
   /** The fresh conversation holds the task context (after /clear resolved, or after the restore-path append). */
   | { type: 'CONTEXT_READY' }
+  /** A prompt the user typed during a handover, held for the fresh conversation (ADR-010). */
+  | { type: 'HOLD_PROMPT'; text: string }
   | { type: 'PAUSE' }
   | { type: 'RESUME'; lockOk: boolean; sessionId: string }
   | { type: 'STOP_FAILURE'; error: string }
@@ -67,7 +69,9 @@ const ACTIVE = (s: Status) => !INERT.includes(s)
 export const THRESHOLD_MIN = 20
 export const THRESHOLD_MAX = 90
 export const isThreshold = (n: number) => Number.isInteger(n) && n >= THRESHOLD_MIN && n <= THRESHOLD_MAX
-const HELD_STATES: readonly Status[] = ['HANDOVER_GENERATING', 'VALIDATING', 'ROTATING', 'RESTORING']
+export const HELD_STATES: readonly Status[] = ['HANDOVER_GENERATING', 'VALIDATING', 'ROTATING', 'RESTORING']
+/** The schema's cap on held prompts; past it a prompt goes through to the conversation instead. */
+export const HELD_MAX = 50
 
 export function stopFailureCode(error: string): ReasonCode {
   switch (error) {
@@ -347,6 +351,12 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
       effects.push(submit)
       return done()
     }
+
+    case 'HOLD_PROMPT':
+      if (!HELD_STATES.includes(state.status)) return ignore('no handover in flight')
+      if (state.heldPrompts.length >= HELD_MAX) return ignore(`${HELD_MAX} prompts already held`)
+      // The event line gets a redacted, capped copy (storage); the full text waits in state for the continuation.
+      return edit({ heldPrompts: [...state.heldPrompts, input.text] }, `held-${state.heldPrompts.length + 1}`, `held prompt: ${input.text}`)
 
     case 'PAUSE':
       // VALIDATING with nothing cleared yet (a state write failed after the handover was saved): pause at once.

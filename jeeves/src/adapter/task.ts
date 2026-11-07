@@ -6,7 +6,7 @@ import { parseHandover } from '../core/handover/parse.ts'
 import { handoverFile, renderHandover, roundTrips } from '../core/handover/render.ts'
 import { handoverInstruction, NUDGE_PROMPT, QUIESCE_NOTE, retryInstruction, type CapturedFacts } from '../core/handover/template.ts'
 import { mentionedPaths, validateHandover } from '../core/handover/validate.ts'
-import { isSafe, reduce, type Input } from '../core/machine.ts'
+import { HELD_STATES, isSafe, reduce, type Input } from '../core/machine.ts'
 import { newRotationId, newTaskId } from '../core/ids.ts'
 import { join } from '../core/paths.ts'
 import { foldTask, newTaskState, parseRevision, renderChange, revFile, type ChangeKind, type TaskView } from '../core/task.ts'
@@ -151,6 +151,20 @@ export async function captureFirstPrompt(rt: Runtime, text: string): Promise<voi
     await rt.storage.writeImmutable(join(own.dir, revFile(1)), text)
     await transition(rt, own.dir, s, { type: 'REVISED', revision: 1 })
   })
+}
+
+/**
+ * A prompt the user typed while a handover is in flight (ADR-010): held for the fresh conversation instead of the
+ * old one. True when held; the hook then drops it and empties the box. The task is this session's, or the one whose
+ * /clear is under way (between session.end and the fresh SessionStart the new id owns nothing yet).
+ */
+export async function holdPrompt(rt: Runtime, text: string): Promise<boolean> {
+  const me = await rt.port.sessionId()
+  const { tasks } = await projectTasks(rt)
+  const t = ownTask(tasks, me) ?? tasks.find(clearing) ?? null
+  if (!t || !HELD_STATES.includes(t.state.status)) return false
+  const r = await apply(rt, t.dir, { type: 'HOLD_PROMPT', text })
+  return r !== null && r.state.heldPrompts.length > t.state.heldPrompts.length
 }
 
 /** Heartbeat for the lock of the task this session owns (ADR-005). */

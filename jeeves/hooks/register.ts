@@ -3,8 +3,9 @@ import type { CommandRunInput, EngineInterface, Register, Timer, ToolCallInput, 
 import type { ToolOutcome } from '../src/core/evidence.ts'
 import { chooseCommandName, FALLBACK, PRIMARY, relay } from '../src/adapter/commands.ts'
 import { runtime, type Options } from '../src/adapter/runtime.ts'
-import { captureFirstPrompt, heartbeat, measure, nudgeIfWaiting, onFreshSession, onStop, onTurnComplete, onUserClear, recordTool, releaseOnExit, why } from '../src/adapter/task.ts'
+import { captureFirstPrompt, heartbeat, holdPrompt, measure, nudgeIfWaiting, onFreshSession, onStop, onTurnComplete, onUserClear, recordTool, releaseOnExit, why } from '../src/adapter/task.ts'
 import { HEARTBEAT_MS } from '../src/core/lock.ts'
+import { HELD_TEXT } from '../src/adapter/ui.ts'
 
 
 async function answer($: EngineInterface, opts: Options, e: CommandRunInput) {
@@ -70,9 +71,19 @@ export const register: Register = (on, options) => {
     return next(e)
   })
   // ST-2.1: the person's first prompt after `/relay on` (no goal) is the task, byte for byte. Slash commands are not.
+  // ST-4.4: during a handover a typed prompt is held for the fresh conversation; slash commands still run.
   on('prompt.submit', async ($, e, next) => {
-    if (e.origin.kind === 'composer' && !e.command && !e.isMeta) await quietly($, opts, 'capture', rt => captureFirstPrompt(rt, e.text))
-    return next(e)
+    if (e.origin.kind !== 'composer' || e.command || e.isMeta) return next(e)
+    let held = false
+    await quietly($, opts, 'capture', async rt => {
+      held = await holdPrompt(rt, e.text)
+      if (!held) await captureFirstPrompt(rt, e.text)
+    })
+    if (!held) return next(e)
+    $.ui.toast(HELD_TEXT)
+    // ADR-010 A1: the engine leaves dropped text in the box; empty it once this hook has returned, or it may be sent twice.
+    $.clock.after(0, () => { $.prompt.fill({ text: '', mode: 'replace' }).catch(() => {}) })
+    return { drop: HELD_TEXT }
   }).catch(($, e, next) => next(e))
   // Subscribed now, forwarded unchanged until the stories that use them (M3-M5).
   // ST-3.1: record after the tool answered; the write runs after the hook returns, so it never delays, changes or blocks the call.

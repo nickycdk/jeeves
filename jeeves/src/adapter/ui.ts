@@ -60,6 +60,9 @@ export const HELP = [
 
 const short = (s: string) => s.replace(/\s+/g, ' ').slice(0, 120)
 
+/** Shown when a prompt typed during a handover is held (ADR-010). */
+export const HELD_TEXT = 'Held by Jeeves: your message will be delivered to the fresh conversation.'
+
 /** Replies to /relay commands. Plain text, no colour or emoji meaning (FR-14). */
 export const MSG = {
   userOnly: 'Only you can change a Jeeves task: type the /relay command yourself.',

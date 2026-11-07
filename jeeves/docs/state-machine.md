@@ -19,6 +19,7 @@ How `src/core/machine.ts` reads the table where it is open to interpretation:
 - Validation (D-20): file paths, branch/HEAD and "passed" claims are checked in `[verified]` bullets and under "Tests and checks"; `[inferred]`/`[unknown]` bullets are guesses and are not checked.
 - `turn.complete` (main loop): an interrupt in HANDOVER_GENERATING pauses (USER_INTERRUPT). In ROTATING at step HANDOVER_PERSISTED the adapter re-reads the saved handover and passes `handoverVerified`; only true gives RUN_CLEAR (run by the adapter from `$.clock.after(0)`, once per rotation by the persisted step), anything else gives NEEDS_REVIEW(HANDOVER_INVALID) (ST-4.1).
 - `IDLE` (D-23): the main loop has no open turn while ROTATION_REQUESTED, so no Stop will come by itself; the adapter submits one nudge prompt per rotation (`rotation.nudged`). It is raised after a normal turn end and after a reading taken with no turn open.
+- ADR-010: `HOLD_PROMPT` (a composer prompt, not a slash command) in HANDOVER_GENERATING..RESTORING keeps the status, stores the full text in `heldPrompts` (max 50; past that the prompt goes through) and logs a redacted copy. The hook drops it and empties the box from `$.clock.after(0)`. In the window after the old session ended, the clearing task holds it.
 - Every input not listed for a state is a no-op that returns a reason (`ignored`).
 
 ```mermaid
