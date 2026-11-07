@@ -15,3 +15,5 @@
 Screen excerpt: `screen-excerpt.txt` (the engine prefixes plugin output with `sessionrelay:`; the PTY capture drops spaces). Driver actions: `driver.log`.
 
 Not covered by this run: the `unsupported` path (needs an older Claude Code; covered by `tests/mod/probe.test.ts` with a mocked `$.session.version`), and a write to the real OS state root (A-05; this run used the test-only state folder).
+
+> After M3 the product was renamed Jeeves (D-22). The driver in this folder now sets `JEEVES_*` variables and waits for the `Jeeves` answers; the logs and results here are the runs as recorded, under the old names.

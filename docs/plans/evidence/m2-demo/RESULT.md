@@ -25,3 +25,5 @@ Files: `result-run1.json`, `result-run2.json` (state and events as read from dis
 Side effect outside the repo: the engine keeps the plugin's `$.store` in `~/.claude/plugins/store/sessionrelay_inline-684862ebb61b.json`; run 1 wrote `{"firstActivationShown": true}` there. Delete that file to see the notice again.
 
 Not covered live: `/relay on <goal>` (goal submitted from `$.clock.after(0)`, covered only by `claude plugin test`), pause/resume (mod tests), and the real 50% default (planned for ST-9.2).
+
+> After M3 the product was renamed Jeeves (D-22). The driver in this folder now sets `JEEVES_*` variables and waits for the `Jeeves` answers; the logs and results here are the runs as recorded, under the old names.

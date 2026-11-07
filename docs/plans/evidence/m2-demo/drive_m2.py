@@ -7,7 +7,7 @@ OVERRIDE = sys.argv[3] if len(sys.argv) > 3 else '6'
 FIRST = 'Reply with only the word OK. Demo task: parse ÆØÅ — 🚀 ✅ (two  spaces)'
 fresh_repo(SP)
 STATE = f"{SP}/state"
-c = Claude(SP, PLUGIN, [], extra_env={'SESSIONRELAY_TEST': '1', 'SESSIONRELAY_STATE_DIR': STATE, 'SESSIONRELAY_TEST_THRESHOLD_OVERRIDE': OVERRIDE})
+c = Claude(SP, PLUGIN, [], extra_env={'JEEVES_TEST': '1', 'JEEVES_STATE_DIR': STATE, 'JEEVES_TEST_THRESHOLD_OVERRIDE': OVERRIDE})
 def sq(n=4000): return re.sub(r'\s', '', c.tail(n))
 def task_dir():
     d = glob.glob(f"{STATE}/projects/*/tasks/*")
@@ -18,7 +18,7 @@ def state():
     except (OSError, ValueError): return None
 def status(label):
     c.typ('/relay status'); c.pump(1.5); c.enter()
-    c.wait(lambda: 'SessionRelaymode:' in sq(1500), 30, label=label)
+    c.wait(lambda: 'Jeevesmode:' in sq(1500), 30, label=label)
     c.pump(1.5)
     lines = [l.rstrip() for l in c.tail(3000).split('\n') if l.strip()]
     i = max((k for k, l in enumerate(lines) if 'mode:' in l), default=-1)
@@ -40,7 +40,7 @@ out = {}
 
 # 1. Turn on (no goal): the notice, then the first typed prompt is captured.
 c.typ('/relay on'); c.pump(1.5); c.enter()
-out['on_answered'] = c.wait(lambda: 'SessionRelayon:task' in sq(3000), 30, label='/relay on answer')
+out['on_answered'] = c.wait(lambda: 'Jeeveson:task' in sq(3000), 30, label='/relay on answer')
 c.pump(1.5)
 out['notice_shown'] = 'keepstaskstateonthismachineonly' in sq(4000)
 c.typ(FIRST); c.pump(0.8); c.enter()

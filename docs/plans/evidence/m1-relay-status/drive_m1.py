@@ -5,7 +5,7 @@ from ptylib import Claude, fresh_repo
 SP, PLUGIN = sys.argv[1], sys.argv[2]
 fresh_repo(SP)
 STATE = f"{SP}/state"
-c = Claude(SP, PLUGIN, [], extra_env={'SESSIONRELAY_TEST': '1', 'SESSIONRELAY_STATE_DIR': STATE})
+c = Claude(SP, PLUGIN, [], extra_env={'JEEVES_TEST': '1', 'JEEVES_STATE_DIR': STATE})
 def sq(n=4000): return re.sub(r'\s', '', c.tail(n))
 # Boot: accept the trust dialog (No is preselected in 2.1.319), wait for session.start to create the state folder.
 end = time.time() + 90
@@ -21,7 +21,7 @@ c.note('state folder created by session.start', str(os.path.isdir(STATE)))
 mode = oct(os.stat(STATE).st_mode & 0o777) if os.path.isdir(STATE) else None
 c.pump(4)
 c.typ('/relay status'); c.pump(1.5); c.enter()
-ok = c.wait(lambda: 'SessionRelaymode:' in sq(), 30, label='/relay status answer')
+ok = c.wait(lambda: 'Jeevesmode:' in sq(), 30, label='/relay status answer')
 c.pump(2)
 lines = [l.rstrip() for l in c.tail(5000).split('\n') if l.strip()]
 start = max((i for i, l in enumerate(lines) if 'SessionRelay' in l and 'mode:' in l), default=-1)
