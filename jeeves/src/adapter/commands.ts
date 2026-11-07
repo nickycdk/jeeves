@@ -3,7 +3,7 @@ import { isThreshold, THRESHOLD_MAX, THRESHOLD_MIN } from '../core/machine.ts'
 import { taskText } from '../core/task.ts'
 import type { State } from '../core/types.ts'
 import type { Runtime } from './runtime.ts'
-import { addRevision, apply, claim, heldByOther, liveTask, ownTask, projectTasks, readTask, startTask, type Task } from './task.ts'
+import { addRevision, apply, claim, heldByOther, liveTask, ownTask, projectTasks, readTask, restoreHere, startTask, type Task } from './task.ts'
 import { firstActivationText, HELP, MSG, statusText } from './ui.ts'
 
 export const PLUGIN = 'jeeves'
@@ -97,10 +97,13 @@ async function resume(rt: Runtime, tasks: Task[], me: string): Promise<string> {
   const own = ownTask(tasks, me)
   const target = own?.state.status === 'PAUSED' ? own : own ? null : tasks.find(t => t.state.status === 'PAUSED') ?? null
   if (!target) return own ? MSG.notPaused(own.state.status) : MSG.noTask
-  // shortcut: the restore path (inject the task into this fresh conversation) lands with ST-4.3; until then say so.
-  if (target.state.reason === 'USER_CLEAR') return MSG.resumeAfterClearLater(target.state.taskId)
   // Only the lock holder writes the task: a live owner elsewhere gets LOCK_HELD and nothing is written.
   if (!(await claim(rt, target.dir, me))) return MSG.lockHeld(target.state.taskId)
+  if (target.state.reason === 'USER_CLEAR') {
+    // Restore path: this conversation is fresh; the task and its last handover go in as the next prompt.
+    const r = await restoreHere(rt, target.dir, { type: 'RESUME', lockOk: true, sessionId: me })
+    return r === 'restored' ? MSG.restored(target.state.taskId) : r === 'unverified' ? MSG.handoverUnverified : MSG.noTask
+  }
   const r = await apply(rt, target.dir, { type: 'RESUME', lockOk: true, sessionId: me })
   if (!r) return MSG.noTask
   return MSG.resumed(target.state.thresholdPercent, rt.thresholdOverride)

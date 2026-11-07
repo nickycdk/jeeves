@@ -108,7 +108,9 @@ export const register: Register = (on, options) => {
   // ST-4.2: the fresh conversation of a rotation. ADR-003: the rotation is read and applied before next(e),
   // because $.command.run('clear') can resolve first.
   on('classic.SessionStart', async ($, e, next) => {
-    if (e.source === 'clear') await quietly($, opts, 'fresh session', rt => onFreshSession(rt, e.session_id))
-    return next(e)
+    let context: string | null = null
+    if (e.source === 'clear') await quietly($, opts, 'fresh session', async rt => { context = await onFreshSession(rt, e.session_id) })
+    const base = await next(e)
+    return context === null ? base : { ...base, additionalContext: [...(base.additionalContext ?? []), context] }
   }).catch(($, e, next) => next(e))
 }

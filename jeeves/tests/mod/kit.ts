@@ -17,9 +17,14 @@ export const submit = ($: Kit, text: string, origin: PromptOrigin = { kind: 'com
 export const taskDirs = (h: MemHost) => [...new Set([...h.files.keys()].filter(f => f.includes('/tasks/')).map(f => f.replace(/(\/tasks\/[^/]+)\/.*$/, '$1')))]
 export const stateOf = (h: MemHost, dir: string) => JSON.parse(h.files.get(`${dir}/state.json`)!)
 /** Every prompt that reached the engine beneath the plugin, with its origin. */
-export const bottom = (on: On) => {
+/** `ctl.drop`: a prompt the engine refuses (a test of a rejected submit). */
+export const bottom = (on: On, ctl: { drop?: (text: string) => boolean } = {}) => {
   const got: { text: string; origin: string }[] = []
-  on('prompt.submit', (_, e) => { got.push({ text: e.text, origin: e.origin.kind }); return { text: e.text } })
+  on('prompt.submit', (_, e) => {
+    if (ctl.drop?.(e.text)) return { drop: 'refused in this test' }
+    got.push({ text: e.text, origin: e.origin.kind })
+    return { text: e.text }
+  })
   return got
 }
 
@@ -68,7 +73,8 @@ export const stop = ($: Kit, message: string) => $.classic.Stop({ stop_hook_acti
 /** A task whose handover was just requested: the safe Stop already answered with the instruction. */
 export async function generating($: Kit, on: Parameters<typeof memHost>[0]) {
   const h = memHost(on)
-  const prompts = bottom(on)
+  const refuse: { drop?: (text: string) => boolean } = {}
+  const prompts = bottom(on, refuse)
   const clears: string[] = []
   /** `onClear`: what the engine does while /clear runs (session.end, the fresh SessionStart), before it resolves. */
   const ctl: { rejectClear: boolean; onClear: (() => Promise<void>) | null } = { rejectClear: false, onClear: null }
@@ -87,11 +93,13 @@ export async function generating($: Kit, on: Parameters<typeof memHost>[0]) {
   const dir = taskDirs(h)[0]!
   await $.tool.call({ tool: 'Bash', command: 'npm test' })
   await until(h, () => stateOf(h, dir).ledger.length === 1)
+  // The reading comes mid-turn, so that turn's Stop asks (no nudge); tests end the turn with turnEnd.
+  await turnStart($)
   await $.session.measure({ context: { window: 1_000_000, percent: 52 }, rateLimits: [], changed: ['context'] } satisfies SessionMeasureInput)
   const ask = await $.classic.Stop({ stop_hook_active: false, last_assistant_message: 'step done', background_tasks: [], session_crons: [] })
   expect(ask.block).toContain('JEEVES-HANDOVER')
   const s = stateOf(h, dir)
   expect(s.status).toBe('HANDOVER_GENERATING')
-  return { h, dir, clears, prompts, ctl, taskId: s.taskId as string, rotationId: s.rotation.rotationId as string }
+  return { h, dir, clears, prompts, ctl, refuse, taskId: s.taskId as string, rotationId: s.rotation.rotationId as string }
 }
 

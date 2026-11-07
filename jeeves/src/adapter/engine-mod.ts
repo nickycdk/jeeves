@@ -27,6 +27,10 @@ export function fsPort($: EngineInterface): FsPort {
   }
 }
 
+function refused(r: { drop?: string | undefined }): void {
+  if (r.drop !== undefined) throw new Error(`prompt refused: ${r.drop}`)
+}
+
 export function enginePort($: EngineInterface): EnginePort {
   return {
     ...fsPort($),
@@ -39,8 +43,9 @@ export function enginePort($: EngineInterface): EnginePort {
     },
     runCommand: async name => { await $.command.run({ command: name, args: '' }) },
     after: (ms, fn) => { $.clock.after(ms, fn) },
-    submitPrompt: async text => { await $.prompt.submit({ text }) },
-    submitPromptSoon: (text, onError) => { $.clock.after(0, () => { $.prompt.submit({ text }).catch(onError) }) },
+    // A refused prompt resolves { drop } rather than rejecting: count it as a failure.
+    submitPrompt: async text => { refused(await $.prompt.submit({ text })) },
+    submitPromptSoon: (text, onError) => { $.clock.after(0, () => { $.prompt.submit({ text }).then(refused).catch(onError) }) },
     appendHiddenNote: async text => { await $.session.append({ message: { type: 'user', content: [{ type: 'text', text }] } }) },
     runningAgents: async () => (await $.agent.list()).filter(a => a.status === 'running').length,
     status: text => $.ui.status(text),

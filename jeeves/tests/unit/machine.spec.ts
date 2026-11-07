@@ -186,7 +186,7 @@ test('ST-4.2: a /clear before Jeeves scheduled one is the user\'s (USER_CLEAR); 
   const o = run(s, { type: 'SESSION_END', reason: 'clear', sessionId: 'sess-a' })
   assert.deepEqual([o.state.status, o.state.reason, o.state.rotation], ['PAUSED', 'USER_CLEAR', null])
   assert.ok(!types(o.effects).includes('WRITE_SESSION'))
-  const same = run(st('ROTATING', { rotation: rot({ step: 'CLEARED', sourceSessionId: 'sess-a' }) }), { type: 'SESSION_START_CLEAR', sessionId: 'sess-a' })
+  const same = run(st('ROTATING', { rotation: rot({ step: 'CLEARED', sourceSessionId: 'sess-a' }) }), { type: 'SESSION_START_CLEAR', sessionId: 'sess-a', handoverOk: true })
   assert.ok(same.ignored, 'source must differ from target')
 })
 
@@ -196,20 +196,20 @@ test('ST-4.2: the session start is recorded at ON and in the fresh session; its 
   const m = run(on.state, measure(7))
   assert.equal(m.state.sessionStart?.pct, 7)
   assert.equal(run(m.state, measure(9)).state.sessionStart?.pct, 7, 'first reading only')
-  const fresh = run(st('ROTATING', { rotation: rot({ step: 'CLEARED', sourceSessionId: 'sess-a' }), sessionStart: { at: AT, pct: 7 } }), { type: 'SESSION_START_CLEAR', sessionId: 'sess-b' })
+  const fresh = run(st('ROTATING', { rotation: rot({ step: 'CLEARED', sourceSessionId: 'sess-a' }), sessionStart: { at: AT, pct: 7 } }), { type: 'SESSION_START_CLEAR', sessionId: 'sess-b', handoverOk: true })
   assert.equal(fresh.state.sessionStart?.pct, null)
 })
 
 test('row 16: ROTATING + SessionStart(clear) -> RESTORING, target id, lock to new id, inject context', () => {
   const s = st('ROTATING', { rotation: rot({ step: 'CLEARED', sourceSessionId: 'sess-a' }), lastValidatedHandover: 'h#sha256:1' })
-  const o = run(s, { type: 'SESSION_START_CLEAR', sessionId: 'sess-b' })
+  const o = run(s, { type: 'SESSION_START_CLEAR', sessionId: 'sess-b', handoverOk: true })
   assert.equal(o.state.status, 'RESTORING')
   assert.equal(o.state.rotation?.targetSessionId, 'sess-b')
   assert.equal(o.state.activeSessionId, 'sess-b')
   assert.deepEqual(types(o.effects), ['LOG_EVENT', 'TRANSFER_LOCK', 'INJECT_CONTEXT'])
   const t = o.effects.find(e => e.type === 'TRANSFER_LOCK')
   assert.ok(t?.type === 'TRANSFER_LOCK' && t.from === 'sess-a' && t.to === 'sess-b')
-  assert.ok(run(o.state, { type: 'SESSION_START_CLEAR', sessionId: 'sess-c' }).ignored, 'target id is immutable')
+  assert.ok(run(o.state, { type: 'SESSION_START_CLEAR', sessionId: 'sess-c', handoverOk: true }).ignored, 'target id is immutable')
 })
 
 test('row 17: ROTATING + runCommand rejects -> NEEDS_REVIEW(ROTATE_UNAVAILABLE), mode assisted', () => {
@@ -227,6 +227,21 @@ test('row 18: RESTORING + context ready -> CONTINUING, submit continuation with 
   assert.equal(o.state.rotationCount, 1)
   const sub = o.effects.find(e => e.type === 'SUBMIT_CONTINUATION')
   assert.deepEqual(sub?.type === 'SUBMIT_CONTINUATION' && sub.heldPrompts, ['also fix the typo'])
+})
+
+test('ST-4.3: a fresh session whose handover no longer verifies takes the task but injects nothing -> NEEDS_REVIEW', () => {
+  const s = st('ROTATING', { rotation: rot({ step: 'CLEARED', sourceSessionId: 'sess-a' }), lastValidatedHandover: 'h#sha256:1' })
+  const o = run(s, { type: 'SESSION_START_CLEAR', sessionId: 'sess-b', handoverOk: false })
+  assert.deepEqual([o.state.status, o.state.reason, o.state.activeSessionId, o.state.rotation], ['NEEDS_REVIEW', 'HANDOVER_INVALID', 'sess-b', null])
+  assert.deepEqual(types(o.effects), ['LOG_EVENT', 'TRANSFER_LOCK', 'TOAST'])
+})
+
+test('ST-4.3: a rejected continuation prompt -> NEEDS_REVIEW(ROTATE_UNAVAILABLE), assisted, /relay continue offered', () => {
+  const o = run(st('CONTINUING', { rotation: rot({ step: 'CONTINUED' }) }), { type: 'SUBMIT_FAILED' })
+  assert.deepEqual([o.state.status, o.state.reason, o.state.mode], ['NEEDS_REVIEW', 'ROTATE_UNAVAILABLE', 'assisted'])
+  const t = o.effects.find(e => e.type === 'TOAST')
+  assert.match(t?.type === 'TOAST' ? t.text : '', /\/relay continue/)
+  assert.ok(run(st('MONITORING'), { type: 'SUBMIT_FAILED' }).ignored)
 })
 
 test('row 19: CONTINUING + fresh measure < T-10 -> MONITORING, rearmed, sessionSequence++', () => {
@@ -272,7 +287,8 @@ test('row 22: PAUSED + /relay resume -> MONITORING, or RESTORING via the restore
   assert.equal(m.state.status, 'MONITORING')
   const r = run(st('PAUSED', { reason: 'USER_CLEAR', activeSessionId: 'old' }), { type: 'RESUME', lockOk: true, sessionId: 'new' })
   assert.equal(r.state.status, 'RESTORING')
-  assert.ok(r.effects.some(e => e.type === 'INJECT_CONTEXT' && e.via === 'append'))
+  assert.ok(r.effects.some(e => e.type === 'INJECT_CONTEXT' && e.via === 'prompt'))
+  assert.ok(!r.effects.some(e => e.type === 'TRANSFER_LOCK'), 'the command took the lock already')
   assert.equal(run(r.state, { type: 'CONTEXT_READY' }).state.status, 'CONTINUING')
   const held = run(st('PAUSED', { reason: 'USER_PAUSE' }), { type: 'RESUME', lockOk: false, sessionId: 'x' })
   assert.deepEqual([held.state.status, held.state.lastErrorCode], ['PAUSED', 'LOCK_HELD'])
@@ -338,7 +354,7 @@ test('forbidden transitions are no-ops with a reason', () => {
     ['MONITORING', { type: 'HANDOVER_PERSISTED', ok: true, ref: 'x' }], ['MONITORING', stop()], ['PAUSED', stop()],
     ['MONITORING', { type: 'RESUME', lockOk: true, sessionId: 's' }], ['MONITORING', { type: 'ON', mode: 'full', lockAcquired: true, sessionId: 's' }],
     ['DISABLED', { type: 'OFF', sessionId: 'sess-a' }], ['NEEDS_REVIEW', { type: 'PAUSE' }], ['FAILED', { type: 'STOP_FAILURE', error: 'rate_limit' }],
-    ['ROTATING', { type: 'COMPLETE_BLOCK', evidenceOk: true, missing: [] }], ['MONITORING', { type: 'SESSION_START_CLEAR', sessionId: 'b' }],
+    ['ROTATING', { type: 'COMPLETE_BLOCK', evidenceOk: true, missing: [] }], ['MONITORING', { type: 'SESSION_START_CLEAR', sessionId: 'b', handoverOk: true }],
   ]
   for (const [s, i] of cases) {
     const before = st(s)
@@ -366,7 +382,7 @@ test('a whole rotation runs MONITORING -> ... -> MONITORING with effects in orde
   const step = (i: Input) => { const o = run(s, i); s = o.state; seen.push(...o.effects.filter(e => e.type !== 'LOG_EVENT').map(e => e.type)) }
   step(measure(52)); step({ type: 'TOOL_RESULT', main: true }); step(stop()); step(stop(0, 0, { ok: true }))
   step({ type: 'HANDOVER_PERSISTED', ok: true, ref: 'history/handover-001.md#sha256:1' }); step({ type: 'TURN_COMPLETE', reason: 'answer', handoverVerified: true })
-  step({ type: 'SESSION_END', reason: 'clear', sessionId: 'sess-a' }); step({ type: 'SESSION_START_CLEAR', sessionId: 'sess-b' })
+  step({ type: 'SESSION_END', reason: 'clear', sessionId: 'sess-a' }); step({ type: 'SESSION_START_CLEAR', sessionId: 'sess-b', handoverOk: true })
   step({ type: 'CONTEXT_READY' }); step(measure(undefined, 'sess-b')); step(measure(3, 'sess-b'))
   assert.equal(s.status, 'MONITORING')
   assert.deepEqual(seen, ['APPEND_NOTE', 'CAPTURE_FACTS', 'BLOCK_STOP', 'PERSIST_HANDOVER', 'RUN_CLEAR', 'WRITE_SESSION', 'TRANSFER_LOCK', 'INJECT_CONTEXT', 'SUBMIT_CONTINUATION'])
@@ -391,8 +407,8 @@ test('property: 300 seeded random walks of 200 inputs keep every invariant (02 Â
       case 9: return { type: 'HANDOVER_PERSISTED', ok: rnd.next() < 0.9, ref: `history/handover-${rnd.int(9)}.md#sha256:x` }
       case 10: return rnd.next() < 0.2 ? { type: 'IDLE' } : { type: 'TURN_COMPLETE', reason: rnd.pick(['answer', 'aborted', 'refusal', 'error'] as const), handoverVerified: rnd.next() < 0.9 }
       case 11: return { type: 'SESSION_END', reason: rnd.pick(['clear', 'clear', 'exit']), sessionId: sid }
-      case 12: return { type: 'SESSION_START_CLEAR', sessionId: sid }
-      case 13: return { type: 'CLEAR_FAILED' }
+      case 12: return { type: 'SESSION_START_CLEAR', sessionId: sid, handoverOk: rnd.next() < 0.9 }
+      case 13: return rnd.next() < 0.3 ? { type: 'SUBMIT_FAILED' } : { type: 'CLEAR_FAILED' }
       case 14: return { type: 'CONTEXT_READY' }
       case 15: return { type: 'PAUSE' }
       case 16: return { type: 'RESUME', lockOk: rnd.next() < 0.8, sessionId: sid }
@@ -411,7 +427,7 @@ test('property: 300 seeded random walks of 200 inputs keep every invariant (02 Â
       case 'VALIDATING': return { type: 'HANDOVER_PERSISTED', ok: true, ref: 'history/handover-001.md#sha256:x' }
       case 'ROTATING': return s.rotation!.step === 'HANDOVER_PERSISTED' ? { type: 'TURN_COMPLETE', reason: 'answer', handoverVerified: true }
         : s.rotation!.step === 'CLEAR_SCHEDULED' ? { type: 'SESSION_END', reason: 'clear', sessionId: sid }
-        : { type: 'SESSION_START_CLEAR', sessionId: `${sid}+` }
+        : { type: 'SESSION_START_CLEAR', sessionId: `${sid}+`, handoverOk: true }
       case 'RESTORING': return { type: 'CONTEXT_READY' }
       case 'CONTINUING': return measure(rnd.next() < 0.9 ? rnd.int(20) : 45, sid)
       case 'PAUSED': return { type: 'RESUME', lockOk: true, sessionId: sid }

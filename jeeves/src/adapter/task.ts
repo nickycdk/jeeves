@@ -1,5 +1,6 @@
 // Managed-task wiring (02 §3): find the task, then read state -> reduce -> write state -> run effects.
 // Task state lives only in files; every cycle re-reads state.json inside the runtime's serial queue.
+import { changedFiles, continuationPrompt, freshContext } from '../core/continuation.ts'
 import { capturedFacts, toolRecord, type ToolOutcome } from '../core/evidence.ts'
 import { parseHandover } from '../core/handover/parse.ts'
 import { handoverFile, renderHandover, roundTrips } from '../core/handover/render.ts'
@@ -213,15 +214,17 @@ const clearing = (t: Task) => t.state.status === 'ROTATING' && (t.state.rotation
 
 /**
  * classic.SessionStart(source clear) (ST-4.2): the fresh conversation takes the task: target id, lock, RESTORING.
- * Returns the task when it now waits for its context (INJECT_CONTEXT), else null (a user's /clear, or no rotation).
+ * Returns the context to inject (task, DoD, verified handover), else null (a user's /clear, no rotation, or a handover
+ * that no longer verifies: then NEEDS_REVIEW and nothing is injected).
  * shortcut: any clearing rotation in the project is taken as this process's; a second process clearing in the same
  * millisecond could take it (ST-6.6 adds process identity).
  */
-export async function onFreshSession(rt: Runtime, sessionId: string): Promise<Applied & { dir: string } | null> {
+export async function onFreshSession(rt: Runtime, sessionId: string): Promise<string | null> {
   const t = (await projectTasks(rt)).tasks.find(clearing)
   if (!t) return null
-  const r = await apply(rt, t.dir, { type: 'SESSION_START_CLEAR', sessionId })
-  return r?.forHook.some(f => f.type === 'INJECT_CONTEXT') ? { ...r, dir: t.dir } : null
+  const h = await latestHandover(rt, t.dir, t.state)
+  const r = await apply(rt, t.dir, { type: 'SESSION_START_CLEAR', sessionId, handoverOk: h.ok && h.text !== null })
+  return r?.forHook.some(f => f.type === 'INJECT_CONTEXT') ? contextFor(rt, t.dir, r.state, h) : null
 }
 
 /** What the Stop hook passes in (classic.Stop on the main loop). */
@@ -337,12 +340,36 @@ async function handoverStop(rt: Runtime, own: Task, info: StopInfo): Promise<str
   return retry?.type === 'BLOCK_STOP' ? retryInstruction({ taskId: s.taskId, rotationId: rotation.rotationId, errors: retry.errors }) : null
 }
 
-/** The validated handover `ref` (`history/handover-NNN.md#sha256:<hex>`) is on disk and unchanged. */
-export async function handoverIntact(rt: Runtime, dir: string, ref: string | null): Promise<boolean> {
+/** The text of the validated handover `ref` (`history/handover-NNN.md#sha256:<hex>`) if it is on disk and unchanged. */
+async function readVerified(rt: Runtime, dir: string, ref: string | null): Promise<string | null> {
   const m = ref ? /^(.+)#sha256:([0-9a-f]{64})$/.exec(ref) : null
-  if (!m) return false
+  if (!m) return null
   const text = await rt.port.read(join(dir, m[1]!)).catch(() => null)
-  return text !== null && (await sha256Hex(text)) === m[2]
+  return text !== null && (await sha256Hex(text)) === m[2] ? text : null
+}
+export const handoverIntact = async (rt: Runtime, dir: string, ref: string | null) => (await readVerified(rt, dir, ref)) !== null
+
+/** The task's latest handover. `ok` false: there is one but it cannot be read back or no longer matches its hash. */
+type Latest = { ok: boolean; file: string | null; text: string | null }
+async function latestHandover(rt: Runtime, dir: string, s: State): Promise<Latest> {
+  if (!s.lastValidatedHandover) return { ok: true, file: null, text: null }
+  const text = await readVerified(rt, dir, s.lastValidatedHandover)
+  return { ok: text !== null, file: s.lastValidatedHandover.split('#')[0]!, text }
+}
+
+/** What the fresh conversation is given (ST-4.3). Its session number counts this new one (`sessionSequence` moves on at rearm). */
+async function contextFor(rt: Runtime, dir: string, s: State, h: Latest): Promise<string> {
+  const { view } = await readTask(rt, dir, s)
+  return freshContext({ taskId: s.taskId, session: s.sessionSequence + 1, view, handover: h.file && h.text ? { file: h.file, text: h.text } : null })
+}
+
+/** The continuation prompt (ST-4.3, D-23): generated from the validated handover, plus the prompts held during rotation. */
+function continuationFor(s: State, h: Latest, held: readonly string[], context?: string): string {
+  const parsed = h.text ? parseHandover(h.text) : null
+  return continuationPrompt({
+    taskId: s.taskId, session: s.sessionSequence + 1, handoverFile: h.file, narrative: parsed?.ok ? parsed.value : null,
+    changedFiles: h.text ? changedFiles(h.text) : null, heldPrompts: held, ...(context ? { context } : {}),
+  })
 }
 
 /**
@@ -355,7 +382,7 @@ export async function onTurnComplete(rt: Runtime, reason: 'answer' | 'aborted' |
   if (!own) return
   const handoverVerified = own.state.status === 'ROTATING' ? await handoverIntact(rt, own.dir, own.state.lastValidatedHandover) : undefined
   const r = await applyOwn(rt, { type: 'TURN_COMPLETE', reason, ...(handoverVerified !== undefined ? { handoverVerified } : {}) })
-  if (r?.forHook.some(f => f.type === 'RUN_CLEAR')) rt.port.after(0, () => void runClear(rt, own.dir))
+  if (r?.forHook.some(f => f.type === 'RUN_CLEAR')) rt.port.after(0, () => void runClear(rt, own.dir).catch(err => rt.port.log(`jeeves: rotation after /clear failed: ${why(err)}`)))
   else if (reason !== 'aborted') await nudgeIfWaiting(rt)
 }
 
@@ -365,12 +392,51 @@ export async function nudgeIfWaiting(rt: Runtime): Promise<void> {
   if (r?.forHook.some(f => f.type === 'SUBMIT_NUDGE')) rt.port.submitPromptSoon(NUDGE_PROMPT, err => rt.port.log(`jeeves: nudge not sent: ${why(err)}`))
 }
 
-/** The scheduled `/clear` (ST-4.1). A rejection means automatic rotation is unavailable here (ST-4.6). */
+/**
+ * The scheduled `/clear` (ST-4.1). It resolves after the fresh SessionStart took the task (RESTORING, context
+ * injected), so the continuation goes out now, with no keystroke (ST-4.3). A rejection means automatic rotation is
+ * unavailable here (ST-4.6).
+ */
 async function runClear(rt: Runtime, dir: string): Promise<void> {
   try {
     await rt.port.runCommand('clear')
   } catch (err) {
     rt.port.log(`jeeves: /clear rejected: ${why(err)}`)
     await apply(rt, dir, { type: 'CLEAR_FAILED' })
+    return
   }
+  const r = await apply(rt, dir, { type: 'CONTEXT_READY' })
+  const submit = r?.forHook.find(f => f.type === 'SUBMIT_CONTINUATION')
+  // shortcut: a /clear that resolved without its SessionStart leaves the task ROTATING; recovery is ST-6.1.
+  if (!r || submit?.type !== 'SUBMIT_CONTINUATION') return rt.port.log('jeeves: /clear resolved but the fresh session did not take the task')
+  try {
+    await rt.port.submitPrompt(continuationFor(r.state, await latestHandover(rt, dir, r.state), submit.heldPrompts))
+  } catch (err) {
+    rt.port.log(`jeeves: continuation rejected: ${why(err)}`)
+    await apply(rt, dir, { type: 'SUBMIT_FAILED' })
+  }
+}
+
+/**
+ * Restore path (02 §5.3, ADR-003): this conversation is already fresh (the user's /clear), so `input` (RESUME after
+ * USER_CLEAR) moves the task to RESTORING and the context goes into the continuation prompt itself. The lock must
+ * already be this session's. 'unverified': the saved handover cannot be verified, so nothing changed.
+ */
+export async function restoreHere(rt: Runtime, dir: string, input: Input): Promise<'restored' | 'unverified' | null> {
+  const before = await rt.storage.readState(dir)
+  if (!before?.ok) return null
+  const h = await latestHandover(rt, dir, before.value)
+  if (!h.ok) return 'unverified'
+  const r = await apply(rt, dir, input)
+  if (!r?.forHook.some(f => f.type === 'INJECT_CONTEXT')) return null
+  const ready = await apply(rt, dir, { type: 'CONTEXT_READY' })
+  const submit = ready?.forHook.find(f => f.type === 'SUBMIT_CONTINUATION')
+  if (!ready || submit?.type !== 'SUBMIT_CONTINUATION') return null
+  const text = continuationFor(ready.state, h, submit.heldPrompts, await contextFor(rt, dir, ready.state, h))
+  // A command.run hook may not submit (D-19): it goes out once the hook has returned.
+  rt.port.submitPromptSoon(text, err => {
+    rt.port.log(`jeeves: continuation rejected: ${why(err)}`)
+    void apply(rt, dir, { type: 'SUBMIT_FAILED' })
+  })
+  return 'restored'
 }

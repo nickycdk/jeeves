@@ -24,8 +24,11 @@ export type Input =
   /** The main loop is idle (no turn open), so no Stop will come by itself (D-23). */
   | { type: 'IDLE' }
   | { type: 'SESSION_END'; reason: string; sessionId: string }
-  | { type: 'SESSION_START_CLEAR'; sessionId: string }
+  /** `handoverOk`: the handover to inject was read back and matches its SHA-256 (or the task has none yet). */
+  | { type: 'SESSION_START_CLEAR'; sessionId: string; handoverOk: boolean }
   | { type: 'CLEAR_FAILED' }
+  /** `$.prompt.submit` of the continuation rejected (ADR-002 A1: checked at first use). */
+  | { type: 'SUBMIT_FAILED' }
   /** The fresh conversation holds the task context (after /clear resolved, or after the restore-path append). */
   | { type: 'CONTEXT_READY' }
   | { type: 'PAUSE' }
@@ -45,7 +48,8 @@ export type Effect = Keyed & (
   | { type: 'PERSIST_HANDOVER' }
   | { type: 'RUN_CLEAR' }
   | { type: 'SUBMIT_NUDGE' }
-  | { type: 'INJECT_CONTEXT'; via: 'session-start' | 'append' }
+  /** `prompt`: the restore path puts the context into the continuation prompt itself (ADR-003 channel note). */
+  | { type: 'INJECT_CONTEXT'; via: 'session-start' | 'prompt' }
   | { type: 'SUBMIT_CONTINUATION'; heldPrompts: string[] }
   | { type: 'TRANSFER_LOCK'; from: string | null; to: string }
   | { type: 'RELEASE_LOCK' }
@@ -298,6 +302,15 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
       if (r.targetSessionId !== null) return ignore('target session already set')
       const source = r.sourceSessionId ?? state.activeSessionId
       if (input.sessionId === source) return ignore('the fresh session has the old id')
+      if (!input.handoverOk) {
+        // Already cleared, so the fresh session takes the task, but nothing unverified is injected or continued.
+        go('NEEDS_REVIEW', 'HANDOVER_INVALID', { rotation: null, activeSessionId: input.sessionId, sessionStart: { at, pct: null } }, 'handover unreadable or changed at the fresh session')
+        effects.push(
+          { type: 'TRANSFER_LOCK', key: key('lock'), from: state.activeSessionId, to: input.sessionId },
+          { type: 'TOAST', key: key('changed'), text: 'The saved handover could not be verified, so Jeeves did not continue. Run /relay status.' },
+        )
+        return done()
+      }
       go('RESTORING', r.trigger, { activeSessionId: input.sessionId, sessionStart: { at, pct: null } })
       setRotation({ step: 'RESTORED', sourceSessionId: source, targetSessionId: input.sessionId })
       effects.push(
@@ -311,6 +324,12 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
       if (state.status !== 'ROTATING') return ignore('not rotating')
       go('NEEDS_REVIEW', 'ROTATE_UNAVAILABLE', { rotation: null, mode: 'assisted' })
       effects.push({ type: 'TOAST', key: key('assisted'), text: 'Automatic /clear is unavailable. The handover is saved. Run /clear, then type /relay continue.' })
+      return done()
+
+    case 'SUBMIT_FAILED':
+      if (state.status !== 'CONTINUING') return ignore('no continuation pending')
+      go('NEEDS_REVIEW', 'ROTATE_UNAVAILABLE', { rotation: null, mode: 'assisted' }, 'continuation prompt rejected')
+      effects.push({ type: 'TOAST', key: key('assisted'), text: 'Jeeves could not send the continuation. The handover is saved: type /relay continue.' })
       return done()
 
     case 'CONTEXT_READY': {
@@ -347,16 +366,14 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
         return done()
       }
       if (state.reason === 'USER_CLEAR') {
-        // Restore path (02 §5.3): this conversation is already fresh; inject by append, then continue.
+        // Restore path (02 §5.3): this conversation is already fresh; the context goes into the continuation prompt.
         const rotation: Rotation = {
           rotationId: ctx.newRotationId, trigger: 'MANUAL', requestedAt: at, sourceSessionId: state.activeSessionId,
           targetSessionId: input.sessionId, step: 'RESTORED', retries: 0, quiesceCount: 0, noteAppended: false,
         }
+        // The command took the lock before this input (claim), so there is nothing to transfer.
         go('RESTORING', 'MANUAL', { rotation, activeSessionId: input.sessionId, sessionStart: { at, pct: null } }, 'resume after user /clear')
-        effects.push(
-          { type: 'TRANSFER_LOCK', key: key('lock'), from: state.activeSessionId, to: input.sessionId },
-          { type: 'INJECT_CONTEXT', key: key('RESTORED'), via: 'append' },
-        )
+        effects.push({ type: 'INJECT_CONTEXT', key: key('RESTORED'), via: 'prompt' })
         return done()
       }
       go('MONITORING', null, { armedFired: false, activeSessionId: input.sessionId, ...(input.sessionId !== state.activeSessionId ? { sessionStart: { at, pct: null } } : {}) })
