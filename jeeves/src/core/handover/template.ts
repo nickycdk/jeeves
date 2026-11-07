@@ -35,7 +35,7 @@ export function handoverInstruction(p: { taskId: string; rotationId: string; max
     ...HEADINGS.flatMap(h => [`## ${h}`, h === 'Exact next actions' ? '1. [inferred] <first concrete step>' : '- [verified] <fact you checked> / [inferred] <your conclusion> / [unknown] <open question>']),
     CLOSE,
     '',
-    'Every bullet starts with one tag: [verified] (you saw it in tool output this session), [inferred], or [unknown]. Every section has at least one bullet; write "- [verified] none" if empty. "Exact next actions" is a numbered list with at least one item. A [verified] bullet that names a file or claims a check passed is checked against the repository and the command record. Copy the first and last line of the block exactly.',
+    'Every bullet starts with one tag: [verified] (you saw it in tool output this session), [inferred], or [unknown]. Every section has at least one bullet; write "- [verified] none" if empty. "Exact next actions" is a numbered list with at least one item. A [verified] bullet that names a file or claims a check passed is checked against the repository and the command record: name each file by its real path from the repository root, never a placeholder such as stepN or a path starting with ../. Copy the first and last line of the block exactly.',
   ].join('\n')
 }
 

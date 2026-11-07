@@ -36,7 +36,7 @@ export const STEPS: readonly { name: string; spec: string; ref: (x: never) => un
 ]
 
 /** The task the E2E driver types (the only prompt). */
-export const SIX_STEPS_TASK = 'Implement the six functions described in SPEC.md, strictly in order, one step at a time. For each step k: read tests/stepk.test.js (its case table shows the edge cases), implement only src/stepk.js, run ./verify.sh, then commit with: git add -A && git commit -m "step k: <function name>". Never change a step that is already committed. When all six steps are committed and ./verify.sh exits 0, the task is complete.'
+export const SIX_STEPS_TASK = 'Implement the six functions described in SPEC.md, strictly in order, one step at a time. Step 1 is src/step1.js with its tests in tests/step1.test.js, step 2 is src/step2.js with tests/step2.test.js, and so on up to src/step6.js with tests/step6.test.js. For each step: read its test file (its case table shows the edge cases), implement only its source file, run ./verify.sh, then commit with: git add -A && git commit -m "step 1: <function name>" (with the number of that step). Never change a step that is already committed. When all six steps are committed and ./verify.sh exits 0, the task is complete.'
 
 /** Deterministic cases, as many as fit in `chars` characters; verify.sh prints one line per case of each implemented step. */
 function caseTable(step: (typeof STEPS)[number], seed: number, chars: number): string {
@@ -56,7 +56,7 @@ function sixSteps(dir: string, chars: number) {
   const files: Record<string, string> = {
     'package.json': '{ "name": "six-steps", "private": true, "type": "module" }\n',
     '.gitignore': '.verify.log\n',
-    'SPEC.md': ['# Six steps', '', 'Implement one function per step, in this order. Each lives in its own file, `src/stepK.js`, and has its tests in `tests/stepK.test.js`, with a table of reference cases. `./verify.sh` runs all tests; it exits 0 only when all six pass.', '',
+    'SPEC.md': ['# Six steps', '', 'Implement one function per step, in this order. Each lives in its own file (`src/step1.js` to `src/step6.js`) and has its tests beside it by number (`tests/step1.test.js` to `tests/step6.test.js`), with a table of reference cases. `./verify.sh` runs all tests; it exits 0 only when all six pass.', '',
       ...STEPS.map((s, i) => `${i + 1}. \`src/step${i + 1}.js\`: ${s.spec}`), ''].join('\n'),
     // Prints a line per case of every implemented step: ordinary test output that grows with progress (the lever).
     'verify.sh': ['#!/bin/sh', '# Runs every step\'s tests and prints each result.', 'node --test tests/*.test.js > .verify.log 2>&1', 'code=$?', 'grep -E "^ *(not )?ok |^# (tests|pass|fail)" .verify.log',
