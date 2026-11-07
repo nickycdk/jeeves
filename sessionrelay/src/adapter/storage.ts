@@ -1,8 +1,11 @@
 // Storage (ADR-005): state root, one serial write queue per process, write-once files verified by SHA-256.
+import { isStale, STALE_MS } from '../core/lock.ts'
 import { isInside, join } from '../core/paths.ts'
+import { check, parseJson, type Result } from '../core/schema.ts'
+import { SCHEMA_VERSION, type LockOwner, type State } from '../core/types.ts'
 import type { FsPort } from './ports.ts'
 
-export type StorageErrorCode = 'DISK' | 'IMMUTABLE_EXISTS' | 'BAD_STATE_ROOT'
+export type StorageErrorCode = 'DISK' | 'IMMUTABLE_EXISTS' | 'BAD_STATE_ROOT' | 'INVALID'
 
 export class StorageError extends Error {
   readonly code: StorageErrorCode
@@ -26,6 +29,12 @@ export function createQueue() {
     return run
   }
 }
+
+const randomTag = () => [...crypto.getRandomValues(new Uint8Array(6))].map(b => b.toString(16).padStart(2, '0')).join('')
+
+export type LockResult =
+  | { ok: true; owner: LockOwner }
+  | { ok: false; code: 'LOCK_HELD'; owner: LockOwner | null; stale: boolean }
 
 export type StateRootSource = 'config' | 'test-env' | 'plugin-data' | 'os-default'
 
@@ -105,6 +114,102 @@ export function createStorage(port: FsPort) {
 
     /** Unqueued verified write, for callers already inside `enqueue`. */
     writeVerified,
+
+    /** Atomic pointer swap: tmp file, read-back hash check, then `mv -f` (POSIX rename). */
+    writeState: (taskDir: string, state: State) => enqueue(async () => {
+      const valid = check('state', state)
+      if (!valid.ok) throw new StorageError('INVALID', `refusing to write an invalid state: ${valid.errors.slice(0, 3).join('; ')}`)
+      await swap(join(taskDir, 'state.json'), JSON.stringify(state, null, 2) + '\n')
+    }),
+
+    /** null when there is no state file; otherwise the parse result (invalid or too new is not thrown). */
+    readState: async (taskDir: string): Promise<Result<State> | null> => {
+      const path = join(taskDir, 'state.json')
+      if (!(await disk(`exists ${path}`, () => port.exists(path)))) return null
+      return parseJson('state', await disk(`read ${path}`, () => port.read(path)))
+    },
+
+    /** Take the task lock (`mkdir` is atomic). Re-entrant for the same session (a reload reruns session.start). */
+    acquireLock: (taskDir: string, sessionId: string, nowIso: string, nowMs: number) => enqueue(() => acquire(taskDir, sessionId, nowIso, nowMs)),
+
+    /** Refresh heartbeatAt; false when this session no longer owns the lock. */
+    heartbeat: (taskDir: string, sessionId: string, nowIso: string) => enqueue(async () => {
+      const owner = await readOwner(taskDir)
+      if (owner?.ownerSessionId !== sessionId) return false
+      await swap(ownerPath(taskDir), JSON.stringify({ ...owner, heartbeatAt: nowIso }) + '\n')
+      return true
+    }),
+
+    /** Hand the lock to the new session after /clear (only the current owner may). */
+    transferLock: (taskDir: string, fromSessionId: string, toSessionId: string, nowIso: string) => enqueue(async () => {
+      const owner = await readOwner(taskDir)
+      if (owner?.ownerSessionId !== fromSessionId) return false
+      await swap(ownerPath(taskDir), JSON.stringify({ ...owner, ownerSessionId: toSessionId, heartbeatAt: nowIso }) + '\n')
+      return true
+    }),
+
+    /** Release only a lock this session owns. */
+    releaseLock: (taskDir: string, sessionId: string) => enqueue(async () => {
+      const owner = await readOwner(taskDir)
+      if (owner?.ownerSessionId !== sessionId) return false
+      await runOk(['rm', '-f', ownerPath(taskDir)])
+      await runOk(['rmdir', join(taskDir, 'lock.d')])
+      return true
+    }),
+
+    /**
+     * Take over a stale lock. Re-checks staleness first; the `mv` of lock.d is atomic, so of two
+     * racing takers only one moves it and the other gets LOCK_HELD.
+     */
+    takeoverLock: (taskDir: string, sessionId: string, nowIso: string, nowMs: number) => enqueue(async (): Promise<LockResult> => {
+      const lockDir = join(taskDir, 'lock.d')
+      const state = await lockState(taskDir, nowMs)
+      if (state.kind === 'free') return acquire(taskDir, sessionId, nowIso, nowMs)
+      if (!state.stale) return { ok: false, code: 'LOCK_HELD', owner: state.owner, stale: false }
+      const aside = `${lockDir}.stale-${randomTag()}`
+      if ((await port.run(['mv', lockDir, aside])).exitCode !== 0) return { ok: false, code: 'LOCK_HELD', owner: state.owner, stale: true }
+      const r = await acquire(taskDir, sessionId, nowIso, nowMs)
+      await port.run(['rm', '-rf', aside])
+      return r
+    }),
+  }
+
+  function ownerPath(taskDir: string) { return join(taskDir, 'lock.d/owner.json') }
+
+  async function swap(target: string, text: string) {
+    const tmp = `${target}.tmp-${randomTag()}`
+    await writeVerified(tmp, text)
+    await runOk(['mv', '-f', tmp, target])
+  }
+
+  async function readOwner(taskDir: string): Promise<LockOwner | null> {
+    const path = ownerPath(taskDir)
+    if (!(await disk(`exists ${path}`, () => port.exists(path)))) return null
+    const r = parseJson('lock', await disk(`read ${path}`, () => port.read(path)))
+    return r.ok ? r.value : null
+  }
+
+  /** A lock.d with no readable owner.json (a crash between mkdir and write) is stale once lock.d is older than STALE_MS. */
+  async function lockState(taskDir: string, nowMs: number): Promise<{ kind: 'free' } | { kind: 'held'; owner: LockOwner | null; stale: boolean }> {
+    const lockDir = join(taskDir, 'lock.d')
+    const mtime = await port.mtimeMs(lockDir)
+    if (mtime === null) return { kind: 'free' }
+    const owner = await readOwner(taskDir)
+    return { kind: 'held', owner, stale: owner ? isStale(owner, nowMs) : nowMs - mtime > STALE_MS }
+  }
+
+  async function acquire(taskDir: string, sessionId: string, nowIso: string, nowMs: number): Promise<LockResult> {
+    await runOk(['mkdir', '-p', taskDir])
+    const made = await port.run(['mkdir', join(taskDir, 'lock.d')])
+    if (made.exitCode !== 0) {
+      const state = await lockState(taskDir, nowMs)
+      if (state.kind === 'free') throw new StorageError('DISK', `mkdir lock.d failed (exit ${made.exitCode}): ${made.stderr.trim().slice(0, 200)}`)
+      if (state.owner?.ownerSessionId === sessionId) return { ok: true, owner: state.owner }
+      return { ok: false, code: 'LOCK_HELD', owner: state.owner, stale: state.stale }
+    }
+    const owner: LockOwner = { schemaVersion: SCHEMA_VERSION, ownerSessionId: sessionId, acquiredAt: nowIso, heartbeatAt: nowIso }
+    await writeVerified(ownerPath(taskDir), JSON.stringify(owner) + '\n')
+    return { ok: true, owner }
   }
 
   async function writeVerified(path: string, text: string): Promise<string> {

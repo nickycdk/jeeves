@@ -9,6 +9,8 @@ export interface FsPort {
   /** Whole-file write; creates missing parent directories. */
   write(path: string, text: string): Promise<void>
   exists(path: string): Promise<boolean>
+  /** Last modification in ms, or null when the path does not exist. */
+  mtimeMs(path: string): Promise<number | null>
   /** A host command by argv, no shell. */
   run(argv: string[], opts?: RunOptions): Promise<ProcResult>
   env(name: string): Promise<string | undefined>
