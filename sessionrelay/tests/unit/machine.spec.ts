@@ -199,12 +199,25 @@ test('row 20: CONTINUING + measure >= T-10 -> FAILED(POSSIBLE_LOOP), no rotation
   assert.equal(o.state.rotation, null)
 })
 
-test('row 21: any active + /relay pause -> PAUSED(USER_PAUSE) (refused while a handover is in flight)', () => {
+test('row 21: any active + /relay pause -> PAUSED(USER_PAUSE), cancelling a requested rotation; deferred while a handover is in flight', () => {
   for (const s of ['MONITORING', 'ROTATION_REQUESTED', 'QUIESCING', 'CONTINUING'] as const) {
     const o = run(st(s, s === 'CONTINUING' ? { rotation: rot({ step: 'CONTINUED' }) } : {}), { type: 'PAUSE' })
     assert.deepEqual([o.state.status, o.state.reason, o.state.rotation], ['PAUSED', 'USER_PAUSE', null], s)
   }
-  for (const s of ['HANDOVER_GENERATING', 'VALIDATING', 'ROTATING', 'RESTORING'] as const) assert.ok(run(st(s), { type: 'PAUSE' }).ignored, s)
+  for (const s of ['HANDOVER_GENERATING', 'VALIDATING', 'ROTATING', 'RESTORING'] as const) {
+    const d = run(st(s), { type: 'PAUSE' })
+    assert.deepEqual([d.state.status, d.state.pauseRequested, d.state.rotation?.rotationId], [s, true, 'r1'], s)
+    assert.ok(run(d.state, { type: 'PAUSE' }).ignored, `${s}: second pause`)
+  }
+  // The deferred pause applies after the continuation: the prompt is still submitted, then PAUSED(USER_PAUSE).
+  const restoring = run(st('RESTORING', { rotation: rot({ step: 'RESTORED' }) }), { type: 'PAUSE' }).state
+  const after = run(restoring, { type: 'CONTEXT_READY' })
+  assert.deepEqual([after.state.status, after.state.reason, after.state.pauseRequested, after.state.rotation], ['PAUSED', 'USER_PAUSE', false, null])
+  assert.ok(types(after.effects).includes('SUBMIT_CONTINUATION'))
+  assert.equal(after.state.rotationCount, 1)
+  // A pause in ROTATION_REQUESTED cancels the request, and a resume rearms.
+  const cancelled = run(st('ROTATION_REQUESTED', { armedFired: true }), { type: 'PAUSE' }).state
+  assert.deepEqual([cancelled.status, cancelled.rotation, cancelled.armedFired], ['PAUSED', null, false])
 })
 
 test('row 22: PAUSED + /relay resume -> MONITORING, or RESTORING via the restore path after USER_CLEAR', () => {

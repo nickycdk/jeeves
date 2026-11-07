@@ -26,7 +26,7 @@ test("/relay status reads another session's task state through $.fs (its stored 
   h.files.set(`${dir}/state.json`, JSON.stringify({
     schemaVersion: 1, taskId: 't_20261107_k3m9qa', projectId: 'p', status: 'MONITORING', reason: null, mode: 'full', taskRevision: 1,
     sessionSequence: 1, activeSessionId: 'sess-other', rotation: null, lastValidatedHandover: null, rotationCount: 0, consecutiveFailures: 0,
-    thresholdPercent: 50, lastContext: { window: 1000000, percent: 18, at: '2026-11-07T08:00:00Z' }, armedFired: false, warnedSessionId: null,
+    thresholdPercent: 50, lastContext: { window: 1000000, percent: 18, at: '2026-11-07T08:00:00Z' }, armedFired: false, warnedSessionId: null, pauseRequested: false,
     heldPrompts: [], taskStartHead: null, lastErrorCode: null, updatedAt: '2026-11-07T08:00:00Z',
   }))
   h.dirs.add(dir)

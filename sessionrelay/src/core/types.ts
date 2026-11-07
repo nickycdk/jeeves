@@ -103,6 +103,8 @@ export type State = {
   /** Session in which the T−5 warning was shown (warn once per session). */
   warnedSessionId: string | null
   heldPrompts: string[]
+  /** `/relay pause` during a handover: pause once the fresh conversation has its task (ST-2.5). */
+  pauseRequested: boolean
   taskStartHead: string | null
   lastErrorCode: ReasonCode | null
   updatedAt: Iso

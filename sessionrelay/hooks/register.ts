@@ -2,7 +2,7 @@
 import type { CommandRunInput, EngineInterface, Register, Timer } from 'claude-code'
 import { chooseCommandName, FALLBACK, PRIMARY, relay } from '../src/adapter/commands.ts'
 import { runtime, type Options } from '../src/adapter/runtime.ts'
-import { captureFirstPrompt, heartbeat, measure } from '../src/adapter/task.ts'
+import { captureFirstPrompt, heartbeat, measure, releaseOnExit } from '../src/adapter/task.ts'
 import { HEARTBEAT_MS } from '../src/core/lock.ts'
 
 const why = (err: unknown) => (err instanceof Error ? err.message : String(err)).slice(0, 200)
@@ -52,7 +52,11 @@ export const register: Register = (on, options) => {
   })
   on('tool.call', ($, e, next) => next(e))
   on('turn.complete', ($, e, next) => next(e))
-  on('session.end', ($, e, next) => next(e))
+  // A /clear keeps the process and the lock (M4 transfers it); any other end gives the lock up, state untouched.
+  on('session.end', async ($, e, next) => {
+    if (e.reason !== 'clear') await quietly($, opts, 'release lock', rt => releaseOnExit(rt, e.sessionId))
+    return next(e)
+  })
   on('session.compact', ($, e, next) => next(e))
   // ST-2.1: the person's first prompt after `/relay on` (no goal) is the task, byte for byte. Slash commands are not.
   on('prompt.submit', async ($, e, next) => {

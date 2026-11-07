@@ -12,3 +12,4 @@
 - While a task is on, SessionRelay reads the main conversation's context fill (the status line's figure). A missing figure shows as "unknown", never 0%, and triggers nothing. Rate-limit changes never count as context.
 - The handover is requested once when context reaches the threshold (default 50%), with one warning 5 points before. Repeated or simultaneous readings past it do not request again. `/relay threshold <20-90>` sets it per task.
 - Test runs only: `SESSIONRELAY_TEST=1` with `SESSIONRELAY_TEST_THRESHOLD_OVERRIDE=<n>` uses n% instead; `/relay status` then says `TEST OVERRIDE`.
+- `/relay pause` stops any handover until `/relay resume`; the pause is kept across restarts. A pause while a handover is only requested cancels it; during a handover it takes effect once the fresh conversation has the task. Leaving Claude Code normally releases the task's lock, so `/relay resume` in the next session works at once (after a crash, after 2 minutes).

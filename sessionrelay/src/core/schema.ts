@@ -73,7 +73,7 @@ const stateShape = obj<State>({
   activeSessionId: nullable(str({ nonEmpty: true })), rotation: nullable(rotation),
   lastValidatedHandover: nullable(str({ nonEmpty: true })), rotationCount: int(0), consecutiveFailures: int(0),
   thresholdPercent: int(20, 90), lastContext: nullable(contextReading), armedFired: bool,
-  warnedSessionId: nullable(str()), heldPrompts: arr(str({ max: 100_000 }), 50), taskStartHead: nullable(str()),
+  warnedSessionId: nullable(str()), heldPrompts: arr(str({ max: 100_000 }), 50), pauseRequested: bool, taskStartHead: nullable(str()),
   lastErrorCode: reason, updatedAt: iso,
 })
 const state: Guard = (v, p, e) => {

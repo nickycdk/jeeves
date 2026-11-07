@@ -35,6 +35,7 @@ export function memHost(on: On, env: Record<string, string> = { HOME: '/home/t' 
   on('session.start', (_, e) => ({ cwd: e.cwd }))
   on('session.measure', (_, e) => ({ changed: e.changed }))
   on('classic.Stop', () => ({}))
+  on('session.end', (_, e) => ({ sessionId: e.sessionId }))
   on('session.version', () => ({ value: { version: h.version } }))
   on('session.usage', () => ({ value: { startedAt: 0, context: { ...h.usage }, rateLimits: [] } }))
   on('session.cwd', () => ({ value: '/work/proj' }))

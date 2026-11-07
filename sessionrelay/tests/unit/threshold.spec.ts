@@ -61,3 +61,14 @@ test('SET_THRESHOLD: a whole number 20..90 is stored and logged; anything else, 
   assert.ok(reduce(validState({ status: 'DISABLED' }), { type: 'SET_THRESHOLD', percent: 60 }, ctx()).ignored)
   assert.deepEqual([20, 90, 21].map(isThreshold), [true, true, true])
 })
+
+test('AC-14: pause at 48% -> no request at 55%; resume -> request at the next measure', () => {
+  let s = walk([48]).s
+  s = reduce(s, { type: 'PAUSE' }, ctx()).state
+  const paused = walk([55, 60], s)
+  assert.deepEqual([paused.s.status, paused.requests], ['PAUSED', 0])
+  s = reduce(paused.s, { type: 'RESUME', lockOk: true, sessionId: 'sess-a' }, ctx()).state
+  assert.equal(s.status, 'MONITORING')
+  const resumed = walk([55], s)
+  assert.deepEqual([resumed.s.status, resumed.requests], ['ROTATION_REQUESTED', 1])
+})

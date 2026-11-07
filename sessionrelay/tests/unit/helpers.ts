@@ -21,7 +21,7 @@ export const validState = (over: Partial<State> = {}): State => ({
   schemaVersion: 1, taskId: 't_20261107_k3m9qa', projectId: '9f2c00aa11bb22cc', status: 'MONITORING',
   reason: null, mode: 'full', taskRevision: 1, sessionSequence: 1, activeSessionId: 'sess-a', rotation: null,
   lastValidatedHandover: null, rotationCount: 0, consecutiveFailures: 0, thresholdPercent: 50,
-  lastContext: null, armedFired: false, warnedSessionId: null, heldPrompts: [], taskStartHead: null,
+  lastContext: null, armedFired: false, warnedSessionId: null, heldPrompts: [], pauseRequested: false, taskStartHead: null,
   lastErrorCode: null, updatedAt: AT, ...over,
 })
 

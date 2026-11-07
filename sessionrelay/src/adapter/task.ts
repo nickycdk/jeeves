@@ -151,3 +151,8 @@ export async function measure(rt: Runtime, c: { percent?: number; tokens?: numbe
   const sessionId = await rt.port.sessionId()
   return applyOwn(rt, { type: 'MEASURE', window: c.window, sessionId, ...(c.percent !== undefined ? { percent: c.percent } : {}), ...(c.tokens !== undefined ? { tokens: c.tokens } : {}) })
 }
+
+/** The session ends for good (exit, logout, resume elsewhere): give up its lock so the next session can resume at once. Task state is kept. */
+export async function releaseOnExit(rt: Runtime, sessionId: string): Promise<void> {
+  for (const t of (await projectTasks(rt)).tasks) if (t.state.activeSessionId === sessionId) await rt.storage.releaseLock(t.dir, sessionId)
+}

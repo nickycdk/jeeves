@@ -25,7 +25,7 @@ export function pickTask<T extends { state: State }>(tasks: T[], sessionId: stri
 /** `origin.kind === 'composer'`: the person pressed Enter. Anything else (a plugin, a peer, the model) may only read. */
 export type Caller = { userTyped: boolean }
 
-const CHANGES = new Set(['on', 'off', 'dod', 'check', 'threshold'])
+const CHANGES = new Set(['on', 'off', 'dod', 'check', 'threshold', 'pause', 'resume'])
 
 export async function relay(rt: Runtime, args: string, caller: Caller): Promise<string> {
   const m = /^\s*(\S*)\s?([\s\S]*)$/.exec(args)!
@@ -55,6 +55,8 @@ export async function relay(rt: Runtime, args: string, caller: Caller): Promise<
     case 'on': return on(rt, tasks, me, rest)
     case 'off': return off(rt, tasks, me)
     case 'threshold': return threshold(rt, tasks, me, rest.trim())
+    case 'pause': return pause(rt, tasks, me)
+    case 'resume': return resume(rt, tasks, me)
     default: return revise(rt, tasks, me, sub as 'dod' | 'check', rest)
   }
 }
@@ -79,6 +81,26 @@ async function off(rt: Runtime, tasks: Task[], me: string): Promise<string> {
   if (!(await claim(rt, target.dir, me))) return MSG.lockHeld(target.state.taskId)
   await apply(rt, target.dir, { type: 'OFF', sessionId: me })
   return MSG.turnedOff(target.state.taskId, target.dir)
+}
+
+async function pause(rt: Runtime, tasks: Task[], me: string): Promise<string> {
+  const own = ownTask(tasks, me)
+  if (!own) return MSG.noTask
+  const r = await apply(rt, own.dir, { type: 'PAUSE' })
+  if (!r) return MSG.noTask
+  if (r.state.status === 'PAUSED') return MSG.paused(own.state.status === 'ROTATION_REQUESTED' || own.state.status === 'QUIESCING')
+  return r.state.pauseRequested ? MSG.pauseDeferred : MSG.notPausable(r.state.status)
+}
+
+/** This session's paused task, else the project's latest paused one (a pause survives a restart, FR-11). */
+async function resume(rt: Runtime, tasks: Task[], me: string): Promise<string> {
+  const own = ownTask(tasks, me)
+  const target = own?.state.status === 'PAUSED' ? own : own ? null : tasks.find(t => t.state.status === 'PAUSED') ?? null
+  if (!target) return own ? MSG.notPaused(own.state.status) : MSG.noTask
+  const r = await apply(rt, target.dir, { type: 'RESUME', lockOk: await claim(rt, target.dir, me), sessionId: me })
+  if (!r) return MSG.noTask
+  if (r.state.status === 'PAUSED') return MSG.lockHeld(target.state.taskId)
+  return MSG.resumed(target.state.thresholdPercent, rt.thresholdOverride)
 }
 
 async function threshold(rt: Runtime, tasks: Task[], me: string, arg: string): Promise<string> {

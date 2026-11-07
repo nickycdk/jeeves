@@ -78,6 +78,8 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
   const go = (to: Status, code: ReasonCode | null, patch: Partial<State> = {}, detail = ''): void => {
     const from = next.status
     next = { ...next, ...patch, status: to, reason: code, updatedAt: at }
+    // A deferred pause is spent once the task stops on its own.
+    if (INERT.includes(to)) next.pauseRequested = false
     // A user's own pause or /clear is not an error.
     const isError = code !== null && !code.startsWith('USER_') && to !== 'MONITORING' && to !== 'COMPLETED' && to !== 'CONTINUING' && !ROTATION_STATES.includes(to)
     if (isError) next.lastErrorCode = code
@@ -269,15 +271,27 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
       effects.push({ type: 'TOAST', key: key('assisted'), text: 'Automatic /clear is unavailable. The handover is saved. Run /clear, then type /relay continue.' })
       return done()
 
-    case 'CONTEXT_READY':
+    case 'CONTEXT_READY': {
       if (state.status !== 'RESTORING') return ignore('not restoring')
-      go('CONTINUING', state.rotation!.trigger, { heldPrompts: [], rotationCount: state.rotationCount + 1, consecutiveFailures: 0 })
+      const patch = { heldPrompts: [], rotationCount: state.rotationCount + 1, consecutiveFailures: 0 }
+      const submit: Effect = { type: 'SUBMIT_CONTINUATION', key: key('CONTINUED'), heldPrompts: state.heldPrompts }
+      if (state.pauseRequested) {
+        // The pause asked for during the handover applies now: the fresh conversation continues, nothing rotates further.
+        go('PAUSED', 'USER_PAUSE', { ...patch, rotation: null, armedFired: false }, 'paused after the continuation, as asked')
+        effects.push(submit)
+        return done()
+      }
+      go('CONTINUING', state.rotation!.trigger, patch)
       setRotation({ step: 'CONTINUED' })
-      effects.push({ type: 'SUBMIT_CONTINUATION', key: key('CONTINUED'), heldPrompts: state.heldPrompts })
+      effects.push(submit)
       return done()
+    }
 
     case 'PAUSE':
-      if (HELD_STATES.includes(state.status)) return ignore('a handover is in flight; pause after the rotation finishes')
+      if (HELD_STATES.includes(state.status)) {
+        if (state.pauseRequested) return ignore('pause already requested')
+        return edit({ pauseRequested: true }, 'pause-requested', 'pause requested; applies after the continuation')
+      }
       if (!ACTIVE(state.status)) return ignore('nothing to pause')
       go('PAUSED', 'USER_PAUSE', { rotation: null, armedFired: false })
       return done()
