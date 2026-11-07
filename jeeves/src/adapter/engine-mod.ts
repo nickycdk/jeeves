@@ -37,6 +37,7 @@ export function enginePort($: EngineInterface): EnginePort {
     version: () => $.session.version(),
     sessionId: () => $.session.id(),
     cwd: () => $.session.cwd(),
+    turns: () => $.session.turns(),
     usage: async () => {
       const c = (await $.session.usage()).context
       return { window: c.window, ...(c.percent !== undefined ? { percent: c.percent } : {}), ...(c.tokens !== undefined ? { tokens: c.tokens } : {}) }

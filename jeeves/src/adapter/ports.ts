@@ -30,6 +30,8 @@ export interface EnginePort extends FsPort {
   version(): Promise<{ version: string; base?: string }>
   sessionId(): Promise<string>
   cwd(): Promise<string>
+  /** Turns in the main conversation so far (`$.session.turns()`). */
+  turns(): Promise<number>
   usage(): Promise<Usage>
   runCommand(name: 'clear'): Promise<void>
   /** Run `fn` once the current hook has returned (`$.clock.after`). */

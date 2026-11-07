@@ -18,6 +18,10 @@ export type MemHost = {
   clock: MockClock
   /** What `$.agent.list()` answers (status only matters). */
   agents: { id: string; status: string }[]
+  /** Debug log lines (`$.ui.log`). */
+  logs: string[]
+  /** What `$.session.turns()` answers. */
+  turns: number
   /** Every `$.prompt.fill` text, in order. */
   fills: string[]
   /** What `$.session.usage().context` answers. */
@@ -33,7 +37,7 @@ export const T0 = Date.parse('2026-11-07T08:00:00.000Z')
 export function memHost(on: On, env: Record<string, string> = { HOME: '/home/t' }): MemHost {
   const h: MemHost = {
     commands: [], registered: [], toasts: [], status: [], version: '2.1.319', failProcess: false, files: new Map(), dirs: new Set(['/']), env, argv: [], failWrite: null,
-    sessionId: 'sess-test', agents: [], fills: [], clock: mock.clock(on, { now: T0 }), usage: { window: 1_000_000 },
+    sessionId: 'sess-test', agents: [], fills: [], turns: 0, logs: [], clock: mock.clock(on, { now: T0 }), usage: { window: 1_000_000 },
   }
   mock.store(on)
   on('session.start', (_, e) => ({ cwd: e.cwd }))
@@ -48,7 +52,9 @@ export function memHost(on: On, env: Record<string, string> = { HOME: '/home/t' 
   on('session.usage', () => ({ value: { startedAt: 0, context: { ...h.usage }, rateLimits: [] } }))
   on('session.cwd', () => ({ value: '/work/proj' }))
   on('session.id', () => ({ value: h.sessionId }))
+  on('session.turns', () => ({ value: h.turns }))
   on('ui.toast', (_, e) => { h.toasts.push(e.text); return { value: undefined } })
+  on('ui.log', (_, e) => { h.logs.push(e.text); return { value: undefined } })
   on('ui.status', (_, e) => { h.status.push(e.text); return { value: undefined } })
   on('fs.stat', (_, e) => {
     if (!h.files.has(e.path) && !h.dirs.has(e.path)) return { deny: `ENOENT: ${e.path}` }

@@ -561,3 +561,15 @@ test('ST-4.5 consecutive failures: each failed rotation counts, a continued one 
   assert.equal(ok.state.consecutiveFailures, 0)
   assert.equal(run(st('MONITORING'), { type: 'PAUSE' }).state.consecutiveFailures, 0, 'a user pause is not a failure')
 })
+
+test('ST-4.6: assisted mode never schedules /clear; CONTINUE_CMD only from NEEDS_REVIEW(ROTATE_UNAVAILABLE), restore path', () => {
+  const s = st('ROTATING', { mode: 'assisted', rotation: rot({ step: 'HANDOVER_PERSISTED' }), lastValidatedHandover: 'h#sha256:1' })
+  const o = run(s, { type: 'TURN_COMPLETE', reason: 'answer', handoverVerified: true })
+  assert.deepEqual([o.state.status, o.state.reason, o.state.lastValidatedHandover], ['NEEDS_REVIEW', 'ROTATE_UNAVAILABLE', 'h#sha256:1'])
+  assert.ok(!types(o.effects).includes('RUN_CLEAR'))
+  const c = run(o.state, { type: 'CONTINUE_CMD', sessionId: 'sess-b' })
+  assert.deepEqual([c.state.status, c.state.activeSessionId, c.state.rotation?.targetSessionId], ['RESTORING', 'sess-b', 'sess-b'])
+  assert.ok(c.effects.some(e => e.type === 'INJECT_CONTEXT' && e.via === 'prompt'))
+  assert.equal(run(c.state, { type: 'CONTEXT_READY' }).state.status, 'CONTINUING')
+  for (const x of [st('NEEDS_REVIEW', { reason: 'HANDOVER_INVALID' }), st('MONITORING'), st('PAUSED', { reason: 'USER_PAUSE' })]) assert.ok(run(x, { type: 'CONTINUE_CMD', sessionId: 'b' }).ignored)
+})

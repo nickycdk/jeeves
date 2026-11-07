@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { chooseCommandName, pickTask } from '../../src/adapter/commands.ts'
-import { HELP, statusText, WIDTH, type StatusView } from '../../src/adapter/ui.ts'
+import { firstActivationText, HELP, statusText, WIDTH, type StatusView } from '../../src/adapter/ui.ts'
 import { probe } from '../../src/core/probe.ts'
 import { validState } from './helpers.ts'
 
@@ -83,4 +83,15 @@ test('status of a stopped task names the reason code and explains it', () => {
   shape(t)
   assert.ok(t.includes('State: PAUSED (USER_PAUSE)'))
   assert.ok(t.includes('Paused by you. /relay resume'))
+})
+
+test('AC-25: a task that fell back to assisted shows mode assisted and the one thing to do, never automatic rotation', () => {
+  const state = validState({ status: 'NEEDS_REVIEW', reason: 'ROTATE_UNAVAILABLE', mode: 'assisted', lastValidatedHandover: 'history/handover-001.md#sha256:ab' })
+  const t = statusText(view({ task: { state, dir: `${root}/t` } }))
+  shape(t)
+  assert.equal(t.split('\n')[0], 'Jeeves  mode: assisted')
+  assert.ok(t.includes('Run /clear, then /relay continue.'))
+  assert.ok(!/automatic|by itself/i.test(t))
+  assert.match(firstActivationText('/s', true).join('\n'), /asks you to run \/clear, then \/relay continue/)
+  assert.ok(!/by itself/.test(firstActivationText('/s', true).join('\n')))
 })

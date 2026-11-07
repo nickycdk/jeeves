@@ -104,6 +104,12 @@ export async function claim(rt: Runtime, dir: string, sessionId: string): Promis
   return r.stale && (await rt.storage.takeoverLock(dir, sessionId, at, now)).ok
 }
 
+/** Take the task's lock for `me`: hand it over from the task's previous session (same process, after /clear), else claim it. */
+export async function takeLock(rt: Runtime, dir: string, previous: string | null, me: string): Promise<boolean> {
+  if (previous && previous !== me && (await rt.storage.transferLock(dir, previous, me, new Date(await rt.port.now()).toISOString()))) return true
+  return claim(rt, dir, me)
+}
+
 /** True when a session other than `sessionId` holds a live (not stale) lock on the task. */
 export async function heldByOther(rt: Runtime, dir: string, sessionId: string): Promise<boolean> {
   const l = await rt.storage.readLock(dir, await rt.port.now())
@@ -415,8 +421,8 @@ async function runClear(rt: Runtime, dir: string): Promise<void> {
   try {
     await rt.port.runCommand('clear')
   } catch (err) {
-    rt.port.log(`jeeves: /clear rejected: ${why(err)}`)
     await apply(rt, dir, { type: 'CLEAR_FAILED' })
+    rt.port.log(`jeeves: /clear rejected: ${why(err)}`)
     return
   }
   const r = await apply(rt, dir, { type: 'CONTEXT_READY' })
@@ -426,14 +432,14 @@ async function runClear(rt: Runtime, dir: string): Promise<void> {
   try {
     await rt.port.submitPrompt(continuationFor(r.state, await latestHandover(rt, dir, r.state), submit.heldPrompts))
   } catch (err) {
-    rt.port.log(`jeeves: continuation rejected: ${why(err)}`)
     await apply(rt, dir, { type: 'SUBMIT_FAILED' })
+    rt.port.log(`jeeves: continuation rejected: ${why(err)}`)
   }
 }
 
 /**
  * Restore path (02 §5.3, ADR-003): this conversation is already fresh (the user's /clear), so `input` (RESUME after
- * USER_CLEAR) moves the task to RESTORING and the context goes into the continuation prompt itself. The lock must
+ * USER_CLEAR, or CONTINUE_CMD in assisted mode) moves the task to RESTORING and the context goes into the continuation prompt itself. The lock must
  * already be this session's. 'unverified': the saved handover cannot be verified, so nothing changed.
  */
 export async function restoreHere(rt: Runtime, dir: string, input: Input): Promise<'restored' | 'unverified' | null> {

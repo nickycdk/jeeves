@@ -35,6 +35,8 @@ export type Input =
   | { type: 'HOLD_PROMPT'; text: string }
   | { type: 'PAUSE' }
   | { type: 'RESUME'; lockOk: boolean; sessionId: string }
+  /** `/relay continue` in a fresh conversation (assisted mode, ST-4.6); the command already holds the lock. */
+  | { type: 'CONTINUE_CMD'; sessionId: string }
   | { type: 'STOP_FAILURE'; error: string }
   | { type: 'COMPLETE_BLOCK'; evidenceOk: boolean; missing: string[] }
 
@@ -115,6 +117,13 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
   const edit = (patch: Partial<State>, what: string, detail: string): Output => {
     next = { ...next, ...patch, updatedAt: at }
     effects.push({ type: 'LOG_EVENT', key: `${rid}:${what}`, rotationId: state.rotation?.rotationId ?? null, from: state.status, to: state.status, code: null, detail })
+    return done()
+  }
+
+  // ADR-002: no automatic /clear here; the saved handover waits for the user's /clear and /relay continue (AC-25).
+  const unavailable = (detail: string): Output => {
+    go('NEEDS_REVIEW', 'ROTATE_UNAVAILABLE', { rotation: null, mode: 'assisted' }, detail)
+    effects.push({ type: 'TOAST', key: key('assisted'), text: 'Automatic /clear is unavailable. The handover is saved. Run /clear, then type /relay continue.' })
     return done()
   }
 
@@ -280,6 +289,7 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
           effects.push({ type: 'TOAST', key: key('changed'), text: 'The saved handover changed on disk, so Jeeves did not clear. Run /relay status.' })
           return done()
         }
+        if (state.mode !== 'full') return unavailable('assisted mode: Jeeves does not clear by itself')
         setRotation({ step: 'CLEAR_SCHEDULED' })
         effects.push({ type: 'RUN_CLEAR', key: key('CLEAR_SCHEDULED') })
         return done()
@@ -340,9 +350,18 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
 
     case 'CLEAR_FAILED':
       if (state.status !== 'ROTATING') return ignore('not rotating')
-      go('NEEDS_REVIEW', 'ROTATE_UNAVAILABLE', { rotation: null, mode: 'assisted' })
-      effects.push({ type: 'TOAST', key: key('assisted'), text: 'Automatic /clear is unavailable. The handover is saved. Run /clear, then type /relay continue.' })
+      return unavailable('/clear was refused')
+
+    case 'CONTINUE_CMD': {
+      if (state.status !== 'NEEDS_REVIEW' || state.reason !== 'ROTATE_UNAVAILABLE') return ignore('no handover waiting for /relay continue')
+      const rotation: Rotation = {
+        rotationId: ctx.newRotationId, trigger: 'MANUAL', requestedAt: at, sourceSessionId: state.activeSessionId,
+        targetSessionId: input.sessionId, step: 'RESTORED', retries: 0, quiesceCount: 0, noteAppended: false,
+      }
+      go('RESTORING', 'MANUAL', { rotation, activeSessionId: input.sessionId, sessionStart: { at, pct: null } }, '/relay continue (assisted)')
+      effects.push({ type: 'INJECT_CONTEXT', key: key('RESTORED'), via: 'prompt' })
       return done()
+    }
 
     case 'SUBMIT_FAILED':
       if (state.status !== 'CONTINUING') return ignore('no continuation pending')

@@ -3,7 +3,7 @@ import { isThreshold, THRESHOLD_MAX, THRESHOLD_MIN } from '../core/machine.ts'
 import { taskText } from '../core/task.ts'
 import type { State } from '../core/types.ts'
 import type { Runtime } from './runtime.ts'
-import { addRevision, apply, claim, heldByOther, liveTask, ownTask, projectTasks, readTask, restoreHere, startTask, type Task } from './task.ts'
+import { addRevision, apply, claim, heldByOther, liveTask, ownTask, projectTasks, readTask, restoreHere, startTask, takeLock, type Task } from './task.ts'
 import { firstActivationText, HELP, MSG, statusText } from './ui.ts'
 
 export const PLUGIN = 'jeeves'
@@ -25,7 +25,7 @@ export function pickTask<T extends { state: State }>(tasks: T[], sessionId: stri
 /** `origin.kind === 'composer'`: the person pressed Enter. Anything else (a plugin, a peer, the model) may only read. */
 export type Caller = { userTyped: boolean }
 
-const CHANGES = new Set(['on', 'off', 'dod', 'check', 'threshold', 'pause', 'resume'])
+const CHANGES = new Set(['on', 'off', 'dod', 'check', 'threshold', 'pause', 'resume', 'continue'])
 
 export async function relay(rt: Runtime, args: string, caller: Caller): Promise<string> {
   const m = /^\s*(\S*)\s?([\s\S]*)$/.exec(args)!
@@ -57,6 +57,7 @@ export async function relay(rt: Runtime, args: string, caller: Caller): Promise<
     case 'threshold': return threshold(rt, tasks, me, rest.trim())
     case 'pause': return pause(rt, tasks, me)
     case 'resume': return resume(rt, tasks, me)
+    case 'continue': return continueHere(rt, tasks, me)
     default: return revise(rt, tasks, me, sub as 'dod' | 'check', rest)
   }
 }
@@ -109,6 +110,16 @@ async function resume(rt: Runtime, tasks: Task[], me: string): Promise<string> {
   return MSG.resumed(target.state.thresholdPercent, rt.thresholdOverride)
 }
 
+/** Assisted mode (ST-4.6, ADR-002): after the user's /clear, continue the task whose handover waits, in this fresh conversation. */
+async function continueHere(rt: Runtime, tasks: Task[], me: string): Promise<string> {
+  const target = tasks.find(t => t.state.status === 'NEEDS_REVIEW' && t.state.reason === 'ROTATE_UNAVAILABLE')
+  if (!target) return MSG.nothingToContinue
+  if ((await rt.port.turns()) > 0) return MSG.continueNeedsFresh
+  if (!(await takeLock(rt, target.dir, target.state.activeSessionId, me))) return MSG.lockHeld(target.state.taskId)
+  const r = await restoreHere(rt, target.dir, { type: 'CONTINUE_CMD', sessionId: me })
+  return r === 'restored' ? MSG.restored(target.state.taskId) : r === 'unverified' ? MSG.handoverUnverified : MSG.nothingToContinue
+}
+
 async function threshold(rt: Runtime, tasks: Task[], me: string, arg: string): Promise<string> {
   const n = /^\d+$/.test(arg) ? Number(arg) : NaN
   if (!isThreshold(n)) return MSG.thresholdRange(arg, THRESHOLD_MIN, THRESHOLD_MAX)
@@ -129,5 +140,5 @@ async function revise(rt: Runtime, tasks: Task[], me: string, kind: 'dod' | 'che
 
 /** First `/relay on` on this machine (spec §4.1): where state lives, that a fresh conversation starts by itself, how to pause. */
 async function firstActivationNotice(rt: Runtime): Promise<string[]> {
-  return (await rt.port.firstActivation()) ? firstActivationText(rt.stateRoot ?? '') : []
+  return (await rt.port.firstActivation()) ? firstActivationText(rt.stateRoot ?? '', rt.probe.mode === 'assisted') : []
 }

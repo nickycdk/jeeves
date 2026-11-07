@@ -20,7 +20,8 @@ export type StatusView = {
 }
 
 export function statusText(v: StatusView): string {
-  const lines = [`Jeeves  mode: ${v.probe.mode}`]
+  // AC-25: a task that fell back to assisted shows it, whatever the probe said.
+  const lines = [`Jeeves  mode: ${v.task?.state.mode === 'assisted' ? 'assisted' : v.probe.mode}`]
   if (v.probe.mode === 'unsupported') lines.push(`Needs ${(v.probe.missing[0] ?? 'newer').replace('Claude Code ', '')}, this is ${v.probe.version ?? '?'}`)
   else if (v.probe.mode === 'assisted') lines.push(`Missing: ${v.probe.missing.join(', ')}`)
   if (v.taskError) lines.push(`Task state unreadable:`, v.taskError)
@@ -50,6 +51,7 @@ export const HELP = [
   'off           stop it (files kept)',
   'pause         no handover until resume',
   'resume        allow the handover again',
+  'continue      after /clear (assisted)',
   'threshold <n> hand over at n% (20-90)',
   'task          original task + changes',
   'dod <text>    add a done criterion',
@@ -78,6 +80,8 @@ export const MSG = {
   lockHeld: (taskId: string) => `Another running session owns task ${taskId} here (LOCK_HELD). /relay status shows it read-only.`,
   leftBehind: (s: State) => `Task ${s.taskId} from an earlier session is ${s.status} here. ${s.status === 'PAUSED' ? '/relay resume continues it, or ' : ''}/relay off ends it.`,
   restored: (taskId: string) => `Continuing task ${taskId} here: Jeeves sends the task and its latest handover as the next prompt.`,
+  nothingToContinue: 'No handover is waiting for /relay continue. /relay status shows the task.',
+  continueNeedsFresh: 'Run /clear first: /relay continue works only in a fresh conversation, so the old one is not mixed in.',
   handoverUnverified: 'The saved handover no longer matches its checksum, so Jeeves did not continue. /relay status shows the task; /relay off ends it.',
   turnedOn: (taskId: string, withGoal: boolean) => withGoal
     ? `Jeeves on: task ${taskId}. Your goal is saved word for word and sent as the first prompt.`
@@ -122,8 +126,10 @@ export const REASON_TEXT: Record<ReasonCode, string> = {
 }
 
 /** Shown once per machine, on the first successful `/relay on` (ST-7.3). */
-export const firstActivationText = (stateRoot: string) => [
+export const firstActivationText = (stateRoot: string, assisted = false) => [
   `Jeeves keeps task state on this machine only: ${stateRoot}`,
-  'When context fills up, it starts a fresh conversation by itself and continues the task there.',
+  assisted
+    ? 'Assisted mode: when context fills up, it saves a handover and asks you to run /clear, then /relay continue.'
+    : 'When context fills up, it starts a fresh conversation by itself and continues the task there.',
   '/relay pause stops that at any time; /relay off ends the task (nothing is deleted).',
 ]
