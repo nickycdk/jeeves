@@ -36,6 +36,8 @@ export interface EnginePort extends FsPort {
   /** Submit once the current hook has returned (a command.run hook may not submit: it holds the turn). */
   submitPromptSoon(text: string, onError: (err: unknown) => void): void
   appendHiddenNote(text: string): Promise<void>
+  /** Subagents and teammates whose loop is `running` now (ADR-004). */
+  runningAgents(): Promise<number>
   status(text?: string): void
   toast(text: string): void
   log(text: string): void

@@ -1,7 +1,7 @@
 // Managed-task wiring (02 §3): find the task, then read state -> reduce -> write state -> run effects.
 // Task state lives only in files; every cycle re-reads state.json inside the runtime's serial queue.
 import { toolRecord, type ToolOutcome } from '../core/evidence.ts'
-import { QUIESCE_NOTE } from '../core/handover/template.ts'
+import { handoverInstruction, QUIESCE_NOTE } from '../core/handover/template.ts'
 import { reduce, type Input } from '../core/machine.ts'
 import { newRotationId, newTaskId } from '../core/ids.ts'
 import { join } from '../core/paths.ts'
@@ -203,3 +203,42 @@ export async function onUserClear(rt: Runtime, oldSessionId: string): Promise<vo
   const r = await apply(rt, own.dir, { type: 'SESSION_END', reason: 'clear', sessionId: oldSessionId })
   if (r?.state.status === 'PAUSED' && r.state.reason === 'USER_CLEAR') await rt.storage.releaseLock(own.dir, oldSessionId)
 }
+
+/** What the Stop hook passes in (classic.Stop on the main loop). */
+export type StopInfo = { backgroundTasks: number; crons: readonly { id: string; schedule: string; recurring: boolean; prompt: string }[]; message: string }
+
+/** Rotation states in which a Stop matters. */
+const STOP_STATES = new Set<State['status']>(['ROTATION_REQUESTED', 'QUIESCING'])
+
+/** The facts snapshot taken at the safe Stop (ADR-003 verified section; ADR-004 A1 crons). */
+export const factsFile = (rotationId: string) => `history/facts-${rotationId}.json`
+
+/**
+ * classic.Stop (ST-3.3): at a safe boundary ask for the handover; otherwise count the wait (QUIESCING) until the
+ * quiesce limit pauses the task. Returns the Stop `block` text, or null to let Claude stop. Throws only on failure:
+ * the hook then lets Claude stop (fail open for the user) and nothing advances (fail closed for the rotation).
+ */
+export async function onStop(rt: Runtime, info: StopInfo): Promise<string | null> {
+  const own = ownTask((await projectTasks(rt)).tasks, await rt.port.sessionId())
+  if (!own || !STOP_STATES.has(own.state.status)) return null
+  // An agent list that cannot be read counts as one running agent: unsafe, so the quiesce limit still ends the wait.
+  const runningAgents = await rt.port.runningAgents().catch(() => 1)
+  const r = await applyOwn(rt, { type: 'STOP', backgroundTasks: info.backgroundTasks, runningAgents })
+  if (!r) return null
+  const rotationId = r.state.rotation?.rotationId
+  if (rotationId && r.forHook.some(f => f.type === 'CAPTURE_FACTS')) {
+    const git = await gitFacts(rt.port, rt.identity, r.state.taskStartHead)
+    const snapshot = { schemaVersion: 1, rotationId, capturedAt: r.state.updatedAt, git, crons: info.crons }
+    // A snapshot that cannot be saved is logged; the handover is checked against fresh facts anyway.
+    await rt.storage.writeImmutable(join(own.dir, factsFile(rotationId)), JSON.stringify(snapshot, null, 2) + '\n')
+      .catch(err => rt.port.log(`sessionrelay: facts snapshot not saved: ${err instanceof Error ? err.message : String(err)}`))
+  }
+  const block = r.forHook.find(f => f.type === 'BLOCK_STOP')
+  if (block?.type === 'BLOCK_STOP' && block.kind === 'handover-request' && rotationId) {
+    return handoverInstruction({ taskId: r.state.taskId, rotationId, maxChars: DEFAULT_CONFIG.handoverMaxChars })
+  }
+  return null
+}
+
+/** A main-loop turn the user interrupted: a handover in progress pauses (USER_INTERRUPT); nothing else changes. */
+export const onAbortedTurn = (rt: Runtime) => applyOwn(rt, { type: 'TURN_COMPLETE', reason: 'aborted' })

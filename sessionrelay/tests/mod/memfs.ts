@@ -16,6 +16,8 @@ export type MemHost = {
   failWrite: ((path: string) => boolean) | null
   sessionId: string
   clock: MockClock
+  /** What `$.agent.list()` answers (status only matters). */
+  agents: { id: string; status: string }[]
   /** What `$.session.usage().context` answers. */
   usage: { window: number; percent?: number; tokens?: number }
 }
@@ -29,7 +31,7 @@ export const T0 = Date.parse('2026-11-07T08:00:00.000Z')
 export function memHost(on: On, env: Record<string, string> = { HOME: '/home/t' }): MemHost {
   const h: MemHost = {
     commands: [], registered: [], toasts: [], status: [], version: '2.1.319', failProcess: false, files: new Map(), dirs: new Set(['/']), env, argv: [], failWrite: null,
-    sessionId: 'sess-test', clock: mock.clock(on, { now: T0 }), usage: { window: 1_000_000 },
+    sessionId: 'sess-test', agents: [], clock: mock.clock(on, { now: T0 }), usage: { window: 1_000_000 },
   }
   mock.store(on)
   on('session.start', (_, e) => ({ cwd: e.cwd }))
@@ -67,6 +69,7 @@ export function memHost(on: On, env: Record<string, string> = { HOME: '/home/t' 
     return { value: [...names].map(([name, kind]) => ({ name, kind, size: 0, mtimeMs: 0, isLink: false })) }
   })
   on('command.list', () => ({ value: h.commands }))
+  on('agent.list', () => ({ value: h.agents.map(a => ({ ...a, description: 'test agent', type: 'general-purpose' })) as never }))
   on('command.register', (_, e) => { h.registered.push(e.name); return { value: { command: e.name } } })
   on('fs.exists', (_, e) => ({ value: h.files.has(e.path) || h.dirs.has(e.path) }))
   on('env.get', (_, e) => ({ value: h.env[e.name] }))

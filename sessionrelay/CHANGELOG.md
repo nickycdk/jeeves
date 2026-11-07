@@ -18,3 +18,4 @@
 - A disk error while saving a task revision no longer blocks later revisions.
 - While a task is on, SessionRelay keeps an evidence ledger of the last 200 commands (redacted, exit status) and edited files, from the main conversation and subagents. Recording never changes, delays or blocks a tool call.
 - Once a handover is due, the first tool result in the main conversation adds one hidden note asking Claude to finish its current step and stop (once per rotation, never while paused).
+- The handover is asked for only when Claude stops with nothing in flight: no background shell, no running subagent (scheduled crons do not hold it up). While work is in flight SessionRelay waits; after 3 such stops (or 20 minutes) it pauses the task with `UNSAFE_BOUNDARY` and says why. Interrupting the handover pauses the task (`USER_INTERRUPT`). If SessionRelay itself fails at a stop, Claude stops normally and no rotation step is taken.

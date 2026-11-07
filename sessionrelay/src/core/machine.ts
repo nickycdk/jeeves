@@ -68,6 +68,9 @@ export function stopFailureCode(error: string): ReasonCode {
   }
 }
 
+/** ADR-004 (+A1): a main-loop Stop is a safe boundary when no background task and no subagent is running. Crons do not count. */
+export const isSafe = (b: { backgroundTasks: number; runningAgents: number }) => b.backgroundTasks === 0 && b.runningAgents === 0
+
 export function reduce(state: State, input: Input, ctx: Ctx): Output {
   const at = new Date(ctx.now).toISOString()
   const T = ctx.thresholdOverride ?? state.thresholdPercent
@@ -181,7 +184,7 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
     case 'STOP': {
       if (state.status === 'ROTATION_REQUESTED' || state.status === 'QUIESCING') {
         const r = state.rotation!
-        if (input.backgroundTasks === 0 && input.runningAgents === 0) {
+        if (isSafe(input)) {
           go('HANDOVER_GENERATING', r.trigger, {}, '')
           setRotation({ step: 'HANDOVER_REQUESTED', retries: 0 })
           effects.push({ type: 'CAPTURE_FACTS', key: key('facts') }, { type: 'BLOCK_STOP', key: key('HANDOVER_REQUESTED'), kind: 'handover-request', errors: [] })

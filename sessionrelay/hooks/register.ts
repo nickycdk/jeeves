@@ -3,7 +3,7 @@ import type { CommandRunInput, EngineInterface, Register, Timer, ToolCallInput, 
 import type { ToolOutcome } from '../src/core/evidence.ts'
 import { chooseCommandName, FALLBACK, PRIMARY, relay } from '../src/adapter/commands.ts'
 import { runtime, type Options } from '../src/adapter/runtime.ts'
-import { captureFirstPrompt, heartbeat, measure, onUserClear, recordTool, releaseOnExit } from '../src/adapter/task.ts'
+import { captureFirstPrompt, heartbeat, measure, onAbortedTurn, onStop, onUserClear, recordTool, releaseOnExit } from '../src/adapter/task.ts'
 import { HEARTBEAT_MS } from '../src/core/lock.ts'
 
 const why = (err: unknown) => (err instanceof Error ? err.message : String(err)).slice(0, 200)
@@ -76,9 +76,22 @@ export const register: Register = (on, options) => {
     void quietly($, opts, 'ledger', rt => recordTool(rt, outcome(e, r)))
     return r
   }).catch(($, e, next) => next(e))
-  on('turn.complete', ($, e, next) => next(e))
+  // A user interrupt during a handover pauses the task. Running /clear after the turn is ST-4.1 (M4).
+  on('turn.complete', async ($, e, next) => {
+    if (e.isAborted && e.agentId === undefined) await quietly($, opts, 'turn end', onAbortedTurn)
+    return next(e)
+  })
   on('session.compact', ($, e, next) => next(e))
-  on('classic.Stop', ($, e, next) => next(e))
+  // ST-3.3: the safe boundary (ADR-004). Another hook's block means the turn goes on: not a boundary.
+  on('classic.Stop', async ($, e, next) => {
+    const base = await next(e)
+    if (e.agent_id !== undefined || base.block !== undefined) return base
+    let block: string | null = null
+    await quietly($, opts, 'stop', async rt => {
+      block = await onStop(rt, { backgroundTasks: e.background_tasks?.length ?? 0, crons: e.session_crons ?? [], message: e.last_assistant_message ?? '' })
+    })
+    return block === null ? base : { ...base, block }
+  }).catch(($, e, next) => next(e))
   on('classic.StopFailure', ($, e, next) => next(e))
   on('classic.SessionStart', ($, e, next) => next(e))
 }

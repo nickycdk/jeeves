@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { reduce, stopFailureCode, type Ctx, type Effect, type Input } from '../../src/core/machine.ts'
+import { isSafe, reduce, stopFailureCode, type Ctx, type Effect, type Input } from '../../src/core/machine.ts'
 import { check } from '../../src/core/schema.ts'
 import { DEFAULT_CONFIG, INERT, ROTATION_STATES, STATUSES, type Rotation, type State, type Status } from '../../src/core/types.ts'
 import { AT, prng, validState } from './helpers.ts'
@@ -429,4 +429,8 @@ test('property: 300 seeded random walks of 200 inputs keep every invariant (02 Â
   }
   console.log(`property: rotations ${rotationsSeen}, clears ${clears}`)
   assert.ok(rotationsSeen > 100 && clears > 100, `walks reach deep states (rotations ${rotationsSeen}, clears ${clears})`)
+})
+
+test('isSafe truth table (ADR-004 + A1): only no background task and no running agent is safe', () => {
+  for (const [bg, ag, want] of [[0, 0, true], [1, 0, false], [0, 1, false], [2, 3, false]] as const) assert.equal(isSafe({ backgroundTasks: bg, runningAgents: ag }), want)
 })
