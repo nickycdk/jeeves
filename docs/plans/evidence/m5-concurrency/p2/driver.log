@@ -1,0 +1,15 @@
+[    0.0s] spawn claude --plugin-dir ~/Desktop/Projects/jeeves/jeeves --model haiku --debug-file /private/tmp/claude-501/-Users-user-Desktop-Projects-jeeves/0ef93690-ef34-4486-9909-044a5f0aa9b5/scratchpad/conc/p2-debug.log
+[    6.5s] key Down
+[    7.5s] key Enter
+[   34.9s] type '/relay status'
+[   35.7s] key Enter
+[   36.1s] type '/relay on'
+[   36.8s] key Enter
+[   37.2s] type '/relay off'
+[   37.9s] key Enter
+[   38.3s] type '/relay off'
+[   39.0s] key Enter
+[   39.4s] type '/relay recover'
+[   40.2s] key Enter
+[   48.0s] type '/cost'
+[   48.7s] key Enter

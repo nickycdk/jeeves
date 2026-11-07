@@ -452,6 +452,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **DoD:** standard.
 
 ### ST-6.6 Concurrency: processes, worktrees, repos — M
+- **Status:** Solved (M5; `tests/mod/concurrency.test.ts` path audit, `tests/pty/concurrency.py` live: `evidence/m5-concurrency/RESULT.md`, 17/17, 4 processes, US$0.00). Per the maintainer (2026-11-07), `/relay on` while another live session owns the project's task starts a separate task (D-18 follow-up). The fresh SessionStart and held prompts take a clearing rotation only from a session this process ended (closes the M4 shortcut). Audit rule: a session writes only in its own task folder; it reads another task's `state.json` and `lock.d/owner.json` only (discovery).
 - **Cites:** FR-13, AC-18, §10 multi-worktree.
 - **Scope:** tests and fixes for: two `claude` processes same project (second gets LOCK_HELD, may create its own task), two worktrees, two repos simultaneously.
 - **Depends on:** ST-1.4, ST-1.6, ST-2.1.

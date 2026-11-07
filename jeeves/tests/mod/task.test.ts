@@ -84,16 +84,19 @@ test('/relay off: DISABLED, lock released, every file kept (FR-11)', async ($, o
   expect(taskDirs(h).length).toBe(2)
 })
 
-test('LOCK_HELD: another live session owns the task here, so on and off are refused', async ($, on) => {
+test('LOCK_HELD: another live session\'s task stays its own; on starts a separate task (ST-6.6), off cannot end the other', async ($, on) => {
   const h = memHost(on)
   await start($)
   h.sessionId = 'sess-other'
   await relay($, 'on')
   const [dir] = taskDirs(h)
   h.sessionId = 'sess-test'
-  expect(await relay($, 'on')).toContain('(LOCK_HELD)')
+  const said = await relay($, 'on')
+  expect(said).toContain(`Another running session owns task ${stateOf(h, dir!).taskId} here (LOCK_HELD); it stays that session's. Starting a separate task`)
+  const mine = taskDirs(h).find(d => d !== dir)!
+  expect(stateOf(h, mine).activeSessionId).toBe('sess-test')
+  expect(await relay($, 'off')).toContain(stateOf(h, mine).taskId)
   expect(await relay($, 'off')).toContain('(LOCK_HELD)')
-  expect(taskDirs(h)).toEqual([dir])
   expect(stateOf(h, dir!).status).toBe('MONITORING')
   // Once the owner is silent past 120 s, the lock is stale and off may take it.
   await h.clock.advance(121_000)

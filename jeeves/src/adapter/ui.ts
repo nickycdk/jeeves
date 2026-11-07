@@ -90,6 +90,7 @@ export const MSG = {
     : 'Jeeves could not tell which project this is (git did not answer). Try again.',
   alreadyOn: (s: State) => `Already on: task ${s.taskId} (${s.status}). /relay status shows it.`,
   lockHeld: (taskId: string) => `Another running session owns task ${taskId} here (LOCK_HELD). /relay status shows it read-only.`,
+  separateTask: (taskId: string) => `Another running session owns task ${taskId} here (LOCK_HELD); it stays that session's. Starting a separate task for this session.`,
   leftBehind: (s: State) => `Task ${s.taskId} from an earlier session is ${s.status} here. ${s.status === 'PAUSED' ? '/relay resume continues it, or ' : recoverable(s) ? '/relay recover continues it here, or ' : ''}/relay off ends it.`,
   interrupted: (taskId: string, status: string) => `Task ${taskId} was left ${status} by an earlier session. /relay recover continues it here.`,
   corrupt: (taskId: string) => `Task ${taskId}: its state.json is unreadable. /relay recover rebuilds it from the task's files (nothing is deleted).`,

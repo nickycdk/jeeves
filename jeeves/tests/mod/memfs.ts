@@ -28,6 +28,8 @@ export type MemHost = {
   fills: string[]
   /** What `$.session.usage().rateLimits` answers. */
   rateLimits: { kind: string; percentUsed: number; resetsAt?: string }[]
+  /** Every file access beneath the plugin, with the session id current at the time (AC-18 path audit). */
+  access: { sid: string; op: 'read' | 'write' | 'run'; path: string }[]
   /** What `$.session.cwd()` answers. */
   cwd: string
   /** Answers `git <args>` (after `--no-optional-locks`); absent: every git call says "not a git repository". */
@@ -44,7 +46,7 @@ export const T0 = Date.parse('2026-11-07T08:00:00.000Z')
 
 export function memHost(on: On, env: Record<string, string> = { HOME: '/home/t' }): MemHost {
   const h: MemHost = {
-    commands: [], registered: [], toasts: [], status: [], version: '2.1.319', failProcess: false, files: new Map(), dirs: new Set(['/', '/work', '/work/proj']), cwd: '/work/proj', env, argv: [], failWrite: null,
+    commands: [], registered: [], toasts: [], status: [], version: '2.1.319', failProcess: false, files: new Map(), dirs: new Set(['/', '/work', '/work/proj']), cwd: '/work/proj', access: [], env, argv: [], failWrite: null,
     sessionId: 'sess-test', agents: [], fills: [], turns: 0, logs: [], clock: mock.clock(on, { now: T0 }), usage: { window: 1_000_000 }, rateLimits: [],
   }
   mock.store(on)
@@ -73,11 +75,13 @@ export function memHost(on: On, env: Record<string, string> = { HOME: '/home/t' 
   })
   const mkdirs = (d: string) => { for (let p = d; !h.dirs.has(p); p = parent(p)) h.dirs.add(p) }
   on('fs.read', async (_, e) => {
+    h.access.push({ sid: h.sessionId, op: 'read', path: e.path })
     await yieldTicks(3) // lets concurrent callers interleave, as a real disk does
     const t = h.files.get(e.path)
     return t === undefined ? { deny: `ENOENT: ${e.path}` } : { value: t }
   })
   on('fs.write', async (_, e) => {
+    h.access.push({ sid: h.sessionId, op: 'write', path: e.path })
     await yieldTicks(2)
     if (h.failWrite?.(e.path)) return { deny: `EIO: ${e.path}` }
     mkdirs(parent(e.path))
@@ -101,6 +105,7 @@ export function memHost(on: On, env: Record<string, string> = { HOME: '/home/t' 
     h.argv.push(argv)
     const ok = { exitCode: 0, stdout: '', stderr: '', isStdoutTruncated: false, isStderrTruncated: false }
     const [cmd, ...rest] = argv
+    if (cmd === 'mkdir' || cmd === 'mv' || cmd === 'rm' || cmd === 'rmdir') for (const a of rest.filter(a => a.startsWith('/'))) h.access.push({ sid: h.sessionId, op: 'run', path: a })
     if (h.failProcess) return { deny: 'process.run unavailable' }
     if (cmd === 'true') return { value: ok }
     if (cmd === 'git') {

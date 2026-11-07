@@ -3,7 +3,7 @@ import { isThreshold, THRESHOLD_MAX, THRESHOLD_MIN } from '../core/machine.ts'
 import { taskText } from '../core/task.ts'
 import type { State } from '../core/types.ts'
 import type { Runtime } from './runtime.ts'
-import { addRevision, apply, claim, heldByOther, liveTask, ownTask, projectTasks, readTask, nudgeIfWaiting, restoreHere, startTask, takeLock, type Task } from './task.ts'
+import { addRevision, apply, claim, heldByOther, liveTasks, ownTask, projectTasks, readTask, nudgeIfWaiting, restoreHere, startTask, takeLock, type Task } from './task.ts'
 import { recover } from './recover.ts'
 import { firstActivationText, HELP, MSG, statusText } from './ui.ts'
 
@@ -74,14 +74,17 @@ async function on(rt: Runtime, tasks: Task[], me: string, rest: string): Promise
   if (rt.probe.mode === 'unsupported') return rt.probe.message ?? MSG.unsupported
   const own = ownTask(tasks, me)
   if (own) return MSG.alreadyOn(own.state)
-  const other = liveTask(tasks)
-  if (other) return (await heldByOther(rt, other.dir, me)) ? MSG.lockHeld(other.state.taskId) : MSG.leftBehind(other.state)
+  // ST-6.6 (02 §7): a task no session runs is offered back first; a running session's task stays its own, and this
+  // session starts a separate one.
+  const others = liveTasks(tasks)
+  for (const t of others) if (!(await heldByOther(rt, t.dir, me))) return MSG.leftBehind(t.state)
+  const busy = others[0]?.state.taskId ?? null
   // The goal is everything after "on " as typed; only the separating whitespace is dropped.
   const goal = rest.replace(/^\s+/, '')
   const r = await startTask(rt, me, goal.trim() ? goal : null)
   if (r.state.status !== 'MONITORING') return MSG.lockHeld(r.state.taskId)
   if (goal.trim()) rt.port.submitPromptSoon(goal, err => rt.port.toast(MSG.submitFailed(err)))
-  return [MSG.turnedOn(r.state.taskId, goal.trim() !== ''), ...(await firstActivationNotice(rt))].join('\n')
+  return [...(busy ? [MSG.separateTask(busy)] : []), MSG.turnedOn(r.state.taskId, goal.trim() !== ''), ...(await firstActivationNotice(rt))].join('\n')
 }
 
 async function off(rt: Runtime, tasks: Task[], me: string): Promise<string> {

@@ -48,8 +48,8 @@ export async function projectTasks(rt: Runtime): Promise<{ tasks: Task[]; errors
 
 /** The task this session owns and that has not ended (not off, completed or failed), if any. */
 export const ownTask = (tasks: Task[], sessionId: string) => tasks.find(t => t.state.activeSessionId === sessionId && !ENDED.has(t.state.status)) ?? null
-/** The most recent task that still claims the project (not off, completed or failed). */
-export const liveTask = (tasks: Task[]) => tasks.find(t => !ENDED.has(t.state.status)) ?? null
+/** Every task that still claims the project (not off, completed or failed), most recent first. */
+export const liveTasks = (tasks: Task[]) => tasks.filter(t => !ENDED.has(t.state.status))
 
 export type Applied = { state: State; forHook: EffectResult['forHook'] }
 
@@ -228,12 +228,12 @@ export async function captureFirstPrompt(rt: Runtime, text: string): Promise<voi
 /**
  * A prompt the user typed while a handover is in flight (ADR-010): held for the fresh conversation instead of the
  * old one. True when held; the hook then drops it and empties the box. The task is this session's, or the one whose
- * /clear is under way (between session.end and the fresh SessionStart the new id owns nothing yet).
+ * /clear this process has under way (between session.end and the fresh SessionStart the new id owns nothing yet).
  */
-export async function holdPrompt(rt: Runtime, text: string): Promise<boolean> {
+export async function holdPrompt(rt: Runtime, text: string, endedHere: ReadonlySet<string>): Promise<boolean> {
   const me = await rt.port.sessionId()
   const { tasks } = await projectTasks(rt)
-  const t = ownTask(tasks, me) ?? tasks.find(clearing) ?? null
+  const t = ownTask(tasks, me) ?? tasks.find(clearingHere(endedHere)) ?? null
   if (!t || !HELD_STATES.includes(t.state.status)) return false
   const r = await apply(rt, t.dir, { type: 'HOLD_PROMPT', text })
   return r !== null && r.state.heldPrompts.length > t.state.heldPrompts.length
@@ -308,18 +308,21 @@ export async function onUserClear(rt: Runtime, oldSessionId: string): Promise<vo
   if (r?.state.status === 'PAUSED' && r.state.reason === 'USER_CLEAR') await rt.storage.releaseLock(own.dir, oldSessionId)
 }
 
-/** A rotation of this project whose /clear is under way: the next fresh session belongs to it. */
-const clearing = (t: Task) => t.state.status === 'ROTATING' && (t.state.rotation?.step === 'CLEAR_SCHEDULED' || t.state.rotation?.step === 'CLEARED')
+/**
+ * A rotation whose /clear this process has under way (ST-6.6): its session is one this process ended, so the next
+ * fresh session here belongs to it, never to a rotation another process runs in the same project.
+ */
+const clearingHere = (endedHere: ReadonlySet<string>) => (t: Task) =>
+  t.state.status === 'ROTATING' && (t.state.rotation?.step === 'CLEAR_SCHEDULED' || t.state.rotation?.step === 'CLEARED') &&
+  t.state.activeSessionId !== null && endedHere.has(t.state.activeSessionId)
 
 /**
  * classic.SessionStart(source clear) (ST-4.2): the fresh conversation takes the task: target id, lock, RESTORING.
  * Returns the context to inject (task, DoD, verified handover), else null (a user's /clear, no rotation, or a handover
  * that no longer verifies: then NEEDS_REVIEW and nothing is injected).
- * shortcut: any clearing rotation in the project is taken as this process's; a second process clearing in the same
- * millisecond could take it (ST-6.6 adds process identity).
  */
-export async function onFreshSession(rt: Runtime, sessionId: string): Promise<string | null> {
-  const t = (await projectTasks(rt)).tasks.find(clearing)
+export async function onFreshSession(rt: Runtime, sessionId: string, endedHere: ReadonlySet<string>): Promise<string | null> {
+  const t = (await projectTasks(rt)).tasks.find(clearingHere(endedHere))
   if (!t) return null
   const h = await latestHandover(rt, t.dir, t.state)
   const r = await apply(rt, t.dir, { type: 'SESSION_START_CLEAR', sessionId, handoverOk: h.ok && h.text !== null })

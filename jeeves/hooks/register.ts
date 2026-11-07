@@ -87,7 +87,7 @@ export const register: Register = (on, options) => {
     if (e.origin.kind !== 'composer' || e.command || e.isMeta) return next(e)
     let held = false
     await quietly($, opts, 'capture', async rt => {
-      held = await holdPrompt(rt, e.text)
+      held = await holdPrompt(rt, e.text, endedHere)
       if (!held) await captureFirstPrompt(rt, e.text)
     })
     if (!held) return next(e)
@@ -157,7 +157,7 @@ export const register: Register = (on, options) => {
   // because $.command.run('clear') can resolve first.
   on('classic.SessionStart', async ($, e, next) => {
     let context: string | null = null
-    if (e.source === 'clear') await quietly($, opts, 'fresh session', async rt => { context = await onFreshSession(rt, e.session_id) })
+    if (e.source === 'clear') await quietly($, opts, 'fresh session', async rt => { context = await onFreshSession(rt, e.session_id, endedHere) })
     const base = await next(e)
     return context === null ? base : { ...base, additionalContext: [...(base.additionalContext ?? []), context] }
   }).catch(($, e, next) => next(e))
