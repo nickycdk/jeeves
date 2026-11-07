@@ -1,0 +1,78 @@
+{
+ "on_answered": true,
+ "notice_shown": true,
+ "first_measure": true,
+ "rev1_byte_identical": true,
+ "rev1_repr": "'Reply with only the word OK. Demo task: parse ÆØÅ — 🚀 ✅ (two  spaces)'",
+ "after_first": {
+  "status": "ROTATION_REQUESTED",
+  "taskRevision": 1,
+  "lastContext": {
+   "window": 1000000,
+   "at": "2026-11-07T14:48:43.520Z",
+   "percent": 6,
+   "tokens": 56426
+  },
+  "warnedSessionId": null
+ },
+ "warning_on_screen": false,
+ "requested": true,
+ "after_paste": {
+  "status": "ROTATION_REQUESTED",
+  "reason": "THRESHOLD",
+  "lastContext": {
+   "window": 1000000,
+   "at": "2026-11-07T14:48:43.520Z",
+   "percent": 6,
+   "tokens": 56426
+  },
+  "armedFired": true,
+  "thresholdPercent": 50
+ },
+ "events": [
+  {
+   "v": 1,
+   "at": "2026-11-07T14:48:35.092Z",
+   "taskId": "t_20261107_5zepsm",
+   "rotationId": null,
+   "from": "DISABLED",
+   "to": "MONITORING",
+   "code": null,
+   "pct": null,
+   "sessionId": "010bbf31-462e-4cb6-a32f-574cec43a89b",
+   "detail": ""
+  },
+  {
+   "v": 1,
+   "at": "2026-11-07T14:48:38.473Z",
+   "taskId": "t_20261107_5zepsm",
+   "rotationId": null,
+   "from": "MONITORING",
+   "to": "MONITORING",
+   "code": null,
+   "pct": null,
+   "sessionId": "010bbf31-462e-4cb6-a32f-574cec43a89b",
+   "detail": "task revision 1"
+  },
+  {
+   "v": 1,
+   "at": "2026-11-07T14:48:43.520Z",
+   "taskId": "t_20261107_5zepsm",
+   "rotationId": "r_20261107_fpa32v",
+   "from": "MONITORING",
+   "to": "ROTATION_REQUESTED",
+   "code": "THRESHOLD",
+   "pct": 6,
+   "sessionId": "010bbf31-462e-4cb6-a32f-574cec43a89b",
+   "detail": "context 6%"
+  }
+ ],
+ "heartbeat": {
+  "schemaVersion": 1,
+  "ownerSessionId": "010bbf31-462e-4cb6-a32f-574cec43a89b",
+  "acquiredAt": "2026-11-07T14:48:35.036Z",
+  "heartbeatAt": "2026-11-07T14:48:57.097Z"
+ },
+ "cost_seen": "$0.07",
+ "lock_released_on_exit": true
+}

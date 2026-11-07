@@ -2,3 +2,4 @@
 node_modules/
 sessionrelay/.claude-plugin/types/
 sessionrelay/tsconfig.engine.json
+__pycache__/

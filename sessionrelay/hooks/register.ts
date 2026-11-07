@@ -15,8 +15,7 @@ async function answer($: EngineInterface, opts: Options, e: CommandRunInput) {
 
 /** Never throws into the hook: a failure is logged and the event goes on unchanged. */
 async function quietly($: EngineInterface, opts: Options, what: string, work: (rt: Awaited<ReturnType<typeof runtime>>) => Promise<unknown>) {
-  const rt = await runtime($, opts)
-  try { await work(rt) } catch (err) { rt.port.log(`sessionrelay: ${what} failed: ${why(err)}`) }
+  try { await work(await runtime($, opts)) } catch (err) { $.ui.log(`sessionrelay: ${what} failed: ${why(err)}`, { to: 'debug' }) }
 }
 
 export const register: Register = (on, options) => {
@@ -28,7 +27,7 @@ export const register: Register = (on, options) => {
   on('session.start', async ($, e, next) => {
     const rt = await runtime($, opts, true)
     commandName = chooseCommandName(await $.command.list())
-    await $.command.register({ name: commandName, description: 'SessionRelay: keep a long task going across fresh conversations', argumentHint: 'on [goal] | off | status | help' })
+    await $.command.register({ name: commandName, description: 'SessionRelay: keep a long task going across fresh conversations', argumentHint: 'on [goal] | off | pause | resume | threshold <n> | task | dod <text> | check <cmd> | status | help' })
     if (commandName === FALLBACK) $.ui.toast('/relay is taken by another command, so SessionRelay uses /sessionrelay.')
     if (rt.probe.mode !== 'full' && rt.probe.message) {
       $.ui.status(rt.probe.mode === 'unsupported' ? `off: needs ${rt.probe.missing[0]}` : 'assisted mode')

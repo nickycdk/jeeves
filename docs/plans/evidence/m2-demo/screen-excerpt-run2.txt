@@ -1,0 +1,8 @@
+# Snippets from the PTY capture (spaces are partly lost in the capture; the engine prefixes plugin output with "sessionrelay:")
+sessionrelay:SessionRelayon:taskt_20261107_qk66yj.Yournextpromptissavedwordforwordasthetask.
+Reply with only the word OK. Demo task: parse ÆØÅ — 🚀 ✅ (two spaces)
+sessionrelay:SessionRelaymode:full Task:t_20261107_qk66yj State:MONITORING Context:6%Threshold:9% TESTOVERRIDE(tasksetting50%) Rotations:0Session:1 Last:nohandoveryet Path:...7da389c/tasks/t_20261107_qk66yj
+sessionrelay:SessionRelaymode:full Task:t_20261107_qk66yj State: ROTATION_REQUESTED(THRESHOLD) Context:11%Threshold:9% TEST OVERRIDE (task setting 50%) Rotations:0Session:1 Last: nohandoveryet Path: ...7da389c/tasks/t_20261107_qk66yj
+🧠 0%
+🧠 11%
+Contextat6%.SessionRelaywillhandoverat9%. (warning toast, whitespace removed)

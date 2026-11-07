@@ -1,0 +1,7 @@
+# Snippets from the PTY capture (spaces are partly lost in the capture; the engine prefixes plugin output with "sessionrelay:")
+sessionrelay:SessionRelayon:taskt_20261107_5zepsm.Yournextpromptissavedwordforwordasthetask. SessionRelaykeepstaskstateonthismachineonly: <scratch>/m2-live/state Whencontextfillsup,itstartsafreshconversationbyitselfandcontinuesthetaskthere. /relaypausestopsthatatanytime;/relayoffendsthetask(nothingisdeleted).
+Reply with only the word OK. Demo task: parse ÆØÅ — 🚀 ✅ (two spaces)
+sessionrelay:SessionRelaymode:full Task:t_20261107_5zepsm State:ROTATION_REQUESTED(THRESHOLD) Context:6%Threshold:6% TESTOVERRIDE(tasksetting50%) Rotations:0Session:1 Last:nohandoveryet Path:...de72e7e/tasks/t_20261107_5zepsm
+sessionrelay:SessionRelaymode:full Task:t_20261107_5zepsm State: ROTATION_REQUESTED (THRESHOLD) Context:11%Threshold:6% TEST OVERRIDE (task setting 50%) Rotations:0Session:1 Last: no handover yet Path: ...de72e7e/tasks/t_20261107_5zepsm
+🧠 0%
+🧠 11%
