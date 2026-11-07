@@ -10,7 +10,7 @@ export function newTaskState(t: { taskId: string; projectId: string; thresholdPe
     schemaVersion: SCHEMA_VERSION, taskId: t.taskId, projectId: t.projectId, status: 'DISABLED', reason: null, mode: 'full',
     taskRevision: 0, sessionSequence: 1, activeSessionId: null, rotation: null, lastValidatedHandover: null,
     rotationCount: 0, consecutiveFailures: 0, thresholdPercent: t.thresholdPercent, lastContext: null, armedFired: false,
-    warnedSessionId: null, heldPrompts: [], pauseRequested: false, taskStartHead: t.taskStartHead, lastErrorCode: null, updatedAt: t.at,
+    warnedSessionId: null, heldPrompts: [], pauseRequested: false, taskStartHead: t.taskStartHead, lastErrorCode: null, ledger: [], updatedAt: t.at,
   }
 }
 

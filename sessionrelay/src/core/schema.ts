@@ -1,7 +1,7 @@
 // Runtime guards and migrations for every persisted contract (02 §6). Hand-written: no runtime deps (ADR-008).
 import {
-  MODES, REASON_CODES, ROTATION_STATES, ROTATION_STEPS, SCHEMA_VERSION, STATUSES, TRIGGERS,
-  type Config, type EventLine, type LockOwner, type ProjectRecord, type SessionRecord, type State,
+  LEDGER_COMMAND_MAX, LEDGER_MAX, MODES, REASON_CODES, ROTATION_STATES, ROTATION_STEPS, SCHEMA_VERSION, STATUSES, TRIGGERS,
+  type CommandEntry, type Config, type EditEntry, type EventLine, type LockOwner, type ProjectRecord, type SessionRecord, type State,
 } from './types.ts'
 
 export type Result<T> =
@@ -66,6 +66,14 @@ const rotation = obj<NonNullable<State['rotation']>>({
   step: oneOf(ROTATION_STEPS), retries: int(0, 100), quiesceCount: int(0), noteAppended: bool,
 })
 const reason = nullable(oneOf(REASON_CODES))
+const cmdEntry = obj<CommandEntry>({
+  kind: oneOf(['cmd']), command: str({ max: LEDGER_COMMAND_MAX }), ok: bool, exit: nullable(int()), at: iso, agent: nullable(str()),
+})
+const editEntry = obj<EditEntry>({ kind: oneOf(['edit']), path: str({ nonEmpty: true, max: 4096 }), at: iso, agent: nullable(str()) })
+const ledgerEntry: Guard = (v, p, e) => {
+  const kind = typeof v === 'object' && v !== null ? (v as { kind?: unknown }).kind : undefined
+  ;(kind === 'edit' ? editEntry : cmdEntry)(v, p, e)
+}
 
 const stateShape = obj<State>({
   schemaVersion: ver, taskId: str({ nonEmpty: true, max: 100 }), projectId: str({ nonEmpty: true, max: 100 }),
@@ -74,7 +82,7 @@ const stateShape = obj<State>({
   lastValidatedHandover: nullable(str({ nonEmpty: true })), rotationCount: int(0), consecutiveFailures: int(0),
   thresholdPercent: int(20, 90), lastContext: nullable(contextReading), armedFired: bool,
   warnedSessionId: nullable(str()), heldPrompts: arr(str({ max: 100_000 }), 50), pauseRequested: bool, taskStartHead: nullable(str()),
-  lastErrorCode: reason, updatedAt: iso,
+  lastErrorCode: reason, ledger: arr(ledgerEntry, LEDGER_MAX), updatedAt: iso,
 })
 const state: Guard = (v, p, e) => {
   const before = e.length

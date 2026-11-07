@@ -16,3 +16,4 @@
 - The first `/relay on` on a machine explains, in three lines, where task state is kept, that a fresh conversation will start by itself, and how to pause. `/relay status` explains the reason code of a stopped task in one line.
 - Typing `/clear` during a task pauses it (`USER_CLEAR`) and says so; `/relay off` then ends it. Continuing it in the fresh conversation comes with the rotation work.
 - A disk error while saving a task revision no longer blocks later revisions.
+- While a task is on, SessionRelay keeps an evidence ledger of the last 200 commands (redacted, exit status) and edited files, from the main conversation and subagents. Recording never changes, delays or blocks a tool call.

@@ -1,5 +1,6 @@
 // The state machine (02 §4): reduce(state, input, ctx) -> { state, effects }. Pure: time and IDs come in through ctx.
-import { INERT, ROTATION_STATES, type Config, type Mode, type ReasonCode, type Rotation, type RotationStep, type State, type Status, type Trigger } from './types.ts'
+import type { LedgerRecord } from './evidence.ts'
+import { INERT, LEDGER_MAX, ROTATION_STATES, type Config, type Mode, type ReasonCode, type Rotation, type RotationStep, type State, type Status, type Trigger } from './types.ts'
 
 export type Input =
   | { type: 'ON'; mode: Mode; lockAcquired: boolean; sessionId: string }
@@ -12,8 +13,8 @@ export type Input =
   | { type: 'MEASURE'; percent?: number; tokens?: number; window: number; sessionId: string }
   | { type: 'ROTATE_CMD' }
   | { type: 'COMPACTED' }
-  /** A main-loop tool call finished (soft-quiesce point). */
-  | { type: 'TOOL_RESULT' }
+  /** A tool call finished: `entry` goes to the ledger; on the main loop it is also the soft-quiesce point. */
+  | { type: 'TOOL_RESULT'; main: boolean; entry?: LedgerRecord }
   /** Main-loop classic.Stop. `handover` is the parse+validate outcome of the last message (HANDOVER_GENERATING only). */
   | { type: 'STOP'; backgroundTasks: number; runningAgents: number; handover?: { ok: true } | { ok: false; errors: string[] } }
   | { type: 'HANDOVER_PERSISTED'; ok: boolean; ref?: string }
@@ -168,10 +169,14 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
       return request(input.type === 'ROTATE_CMD' ? 'MANUAL' : 'COMPACTED')
 
     case 'TOOL_RESULT':
-      if (state.status !== 'ROTATION_REQUESTED' || state.rotation!.noteAppended) return ignore('no note due')
-      setRotation({ noteAppended: true })
-      effects.push({ type: 'APPEND_NOTE', key: key('note') })
-      return done()
+      if (state.status === 'DISABLED') return ignore('no active task')
+      // Recorded without an event line: the ledger is evidence, not a transition.
+      if (input.entry) next = { ...next, ledger: [...state.ledger, { ...input.entry, at }].slice(-LEDGER_MAX), updatedAt: at }
+      if (input.main && state.status === 'ROTATION_REQUESTED' && !state.rotation!.noteAppended) {
+        setRotation({ noteAppended: true })
+        effects.push({ type: 'APPEND_NOTE', key: key('note') })
+      }
+      return next === state ? ignore('nothing to record') : done()
 
     case 'STOP': {
       if (state.status === 'ROTATION_REQUESTED' || state.status === 'QUIESCING') {

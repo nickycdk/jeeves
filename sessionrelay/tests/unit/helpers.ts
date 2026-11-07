@@ -22,7 +22,7 @@ export const validState = (over: Partial<State> = {}): State => ({
   reason: null, mode: 'full', taskRevision: 1, sessionSequence: 1, activeSessionId: 'sess-a', rotation: null,
   lastValidatedHandover: null, rotationCount: 0, consecutiveFailures: 0, thresholdPercent: 50,
   lastContext: null, armedFired: false, warnedSessionId: null, heldPrompts: [], pauseRequested: false, taskStartHead: null,
-  lastErrorCode: null, updatedAt: AT, ...over,
+  lastErrorCode: null, ledger: [], updatedAt: AT, ...over,
 })
 
 export const VALID = {

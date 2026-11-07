@@ -1,8 +1,9 @@
 // Wires engine events to the adapter; no logic here (02 §3).
-import type { CommandRunInput, EngineInterface, Register, Timer } from 'claude-code'
+import type { CommandRunInput, EngineInterface, Register, Timer, ToolCallInput, ToolCallResult } from 'claude-code'
+import type { ToolOutcome } from '../src/core/evidence.ts'
 import { chooseCommandName, FALLBACK, PRIMARY, relay } from '../src/adapter/commands.ts'
 import { runtime, type Options } from '../src/adapter/runtime.ts'
-import { captureFirstPrompt, heartbeat, measure, onUserClear, releaseOnExit } from '../src/adapter/task.ts'
+import { captureFirstPrompt, heartbeat, measure, onUserClear, recordTool, releaseOnExit } from '../src/adapter/task.ts'
 import { HEARTBEAT_MS } from '../src/core/lock.ts'
 
 const why = (err: unknown) => (err instanceof Error ? err.message : String(err)).slice(0, 200)
@@ -10,6 +11,16 @@ const why = (err: unknown) => (err instanceof Error ? err.message : String(err))
 async function answer($: EngineInterface, opts: Options, e: CommandRunInput) {
   try { return { text: await relay(await runtime($, opts), e.args, { userTyped: e.origin.kind === 'composer' }) } } catch (err) {
     return { text: `SessionRelay could not answer: ${why(err)}` }
+  }
+}
+
+/** How a tool call ended, for the ledger (read only; nothing here can change the call). */
+function outcome(e: ToolCallInput, r: ToolCallResult): ToolOutcome {
+  const { tool, tool_use_id: _id, agentId, requestMeta: _meta, ...args } = e as ToolCallInput & Record<string, unknown>
+  const result = r.result as { backgroundTaskId?: unknown } | undefined
+  return {
+    tool, args, agentId, denied: r.deny !== undefined, isError: r.isError === true, text: r.text,
+    backgrounded: typeof result?.backgroundTaskId === 'string',
   }
 }
 
@@ -59,7 +70,12 @@ export const register: Register = (on, options) => {
     return next(e)
   }).catch(($, e, next) => next(e))
   // Subscribed now, forwarded unchanged until the stories that use them (M3-M5).
-  on('tool.call', ($, e, next) => next(e))
+  // ST-3.1: record after the tool answered; the write runs after the hook returns, so it never delays, changes or blocks the call.
+  on('tool.call', async ($, e, next) => {
+    const r = await next(e)
+    void quietly($, opts, 'ledger', rt => recordTool(rt, outcome(e, r)))
+    return r
+  }).catch(($, e, next) => next(e))
   on('turn.complete', ($, e, next) => next(e))
   on('session.compact', ($, e, next) => next(e))
   on('classic.Stop', ($, e, next) => next(e))

@@ -107,8 +107,18 @@ export type State = {
   pauseRequested: boolean
   taskStartHead: string | null
   lastErrorCode: ReasonCode | null
+  /** Evidence ledger (ST-3.1): the last LEDGER_MAX commands and edits, oldest first. */
+  ledger: LedgerEntry[]
   updatedAt: Iso
 }
+
+/** A finished Bash call. `ok`: it did not fail or get denied; `exit` is known only when the call ran to an end (null: denied, backgrounded). */
+export type CommandEntry = { kind: 'cmd'; command: string; ok: boolean; exit: number | null; at: Iso; agent: string | null }
+/** A successful Edit/Write/NotebookEdit. `agent`: the subagent's id, null on the main loop. */
+export type EditEntry = { kind: 'edit'; path: string; at: Iso; agent: string | null }
+export type LedgerEntry = CommandEntry | EditEntry
+export const LEDGER_MAX = 200
+export const LEDGER_COMMAND_MAX = 300
 
 export type ProjectRecord = {
   schemaVersion: number

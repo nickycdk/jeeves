@@ -69,10 +69,10 @@ test('row 5: MONITORING/CONTINUING + /relay rotate or COMPACTED -> ROTATION_REQU
 })
 
 test('row 6: ROTATION_REQUESTED + tool result (first time) -> one soft-quiesce note', () => {
-  const a = run(st('ROTATION_REQUESTED'), { type: 'TOOL_RESULT' })
+  const a = run(st('ROTATION_REQUESTED'), { type: 'TOOL_RESULT', main: true })
   assert.deepEqual(types(a.effects), ['APPEND_NOTE'])
   assert.equal(a.state.rotation?.noteAppended, true)
-  assert.ok(run(a.state, { type: 'TOOL_RESULT' }).ignored)
+  assert.ok(run(a.state, { type: 'TOOL_RESULT', main: true }).ignored)
 })
 
 test('row 7: ROTATION_REQUESTED/QUIESCING + safe Stop -> HANDOVER_GENERATING, capture facts, block with instruction', () => {
@@ -317,7 +317,7 @@ test('a whole rotation runs MONITORING -> ... -> MONITORING with effects in orde
   let s = st('MONITORING')
   const seen: string[] = []
   const step = (i: Input) => { const o = run(s, i); s = o.state; seen.push(...o.effects.filter(e => e.type !== 'LOG_EVENT').map(e => e.type)) }
-  step(measure(52)); step({ type: 'TOOL_RESULT' }); step(stop()); step(stop(0, 0, { ok: true }))
+  step(measure(52)); step({ type: 'TOOL_RESULT', main: true }); step(stop()); step(stop(0, 0, { ok: true }))
   step({ type: 'HANDOVER_PERSISTED', ok: true, ref: 'history/handover-001.md#sha256:1' }); step({ type: 'TURN_COMPLETE', reason: 'answer' })
   step({ type: 'SESSION_END', reason: 'clear', sessionId: 'sess-a' }); step({ type: 'SESSION_START_CLEAR', sessionId: 'sess-b' })
   step({ type: 'CONTEXT_READY' }); step(measure(undefined, 'sess-b')); step(measure(3, 'sess-b'))
@@ -339,7 +339,7 @@ test('property: 300 seeded random walks of 200 inputs keep every invariant (02 Â
       case 2: case 3: return rnd.next() < 0.15 ? measure(undefined, sid) : measure(rnd.int(101), sid)
       case 4: return { type: 'ROTATE_CMD' }
       case 5: return { type: 'COMPACTED' }
-      case 6: return { type: 'TOOL_RESULT' }
+      case 6: return { type: 'TOOL_RESULT', main: true }
       case 7: case 8: return stop(rnd.int(2), rnd.int(2), rnd.next() < 0.6 ? { ok: true } : { ok: false, errors: ['bad'] })
       case 9: return { type: 'HANDOVER_PERSISTED', ok: rnd.next() < 0.9, ref: `history/handover-${rnd.int(9)}.md#sha256:x` }
       case 10: return { type: 'TURN_COMPLETE', reason: rnd.pick(['answer', 'aborted', 'refusal', 'error'] as const) }
@@ -359,7 +359,7 @@ test('property: 300 seeded random walks of 200 inputs keep every invariant (02 Â
     switch (s.status) {
       case 'DISABLED': return { type: 'ON', mode: 'full', lockAcquired: true, sessionId: sid }
       case 'MONITORING': return measure(40 + rnd.int(30), sid)
-      case 'ROTATION_REQUESTED': case 'QUIESCING': return rnd.next() < 0.3 ? { type: 'TOOL_RESULT' } : stop(rnd.next() < 0.2 ? 1 : 0, 0)
+      case 'ROTATION_REQUESTED': case 'QUIESCING': return rnd.next() < 0.3 ? { type: 'TOOL_RESULT', main: true } : stop(rnd.next() < 0.2 ? 1 : 0, 0)
       case 'HANDOVER_GENERATING': return stop(0, 0, rnd.next() < 0.8 ? { ok: true } : { ok: false, errors: ['bad'] })
       case 'VALIDATING': return { type: 'HANDOVER_PERSISTED', ok: true, ref: 'history/handover-001.md#sha256:x' }
       case 'ROTATING': return s.rotation!.step === 'HANDOVER_PERSISTED' ? { type: 'TURN_COMPLETE', reason: 'answer' }

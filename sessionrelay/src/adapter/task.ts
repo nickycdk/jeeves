@@ -1,5 +1,6 @@
 // Managed-task wiring (02 §3): find the task, then read state -> reduce -> write state -> run effects.
 // Task state lives only in files; every cycle re-reads state.json inside the runtime's serial queue.
+import { toolRecord, type ToolOutcome } from '../core/evidence.ts'
 import { reduce, type Input } from '../core/machine.ts'
 import { newRotationId, newTaskId } from '../core/ids.ts'
 import { join } from '../core/paths.ts'
@@ -66,10 +67,25 @@ export function apply(rt: Runtime, dir: string, input: Input): Promise<Applied |
   })
 }
 
-/** Apply an input to this session's own task; null when it has none. */
+/**
+ * Apply an input to this session's own task; null when it has none. The task is looked up inside the queue,
+ * so inputs keep the order their hooks fired in (a tool's ledger entry is in before the Stop that follows).
+ */
 export async function applyOwn(rt: Runtime, input: Input): Promise<Applied | null> {
-  const own = ownTask((await projectTasks(rt)).tasks, await rt.port.sessionId())
-  return own ? apply(rt, own.dir, input) : null
+  const sessionId = await rt.port.sessionId()
+  return rt.serial(async () => {
+    const own = ownTask((await projectTasks(rt)).tasks, sessionId)
+    return own ? transition(rt, own.dir, own.state, input) : null
+  })
+}
+
+/** `tool.call` finished: its ledger entry, and the main loop's soft-quiesce point (ST-3.1, ST-3.2). */
+export async function recordTool(rt: Runtime, o: ToolOutcome): Promise<Applied | null> {
+  const entry = toolRecord(o)
+  const main = o.agentId === undefined
+  // Nothing to record and not a quiesce point: skip the disk reads entirely.
+  if (!entry && !main) return null
+  return applyOwn(rt, { type: 'TOOL_RESULT', main, ...(entry ? { entry } : {}) })
 }
 
 /** Own the task's lock: take it when free or stale (owner silent past STALE_MS). False when another live session holds it. */
