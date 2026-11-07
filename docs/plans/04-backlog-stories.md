@@ -415,6 +415,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **DoD:** + troubleshooting doc section.
 
 ### ST-6.2 Error classification and pauses — M
+- **Status:** Solved (M5; `tests/mod/stopfailure.test.ts`, `tests/unit/messages.spec.ts` snapshot `tests/fixtures/messages.txt`, reducer test). An API-error pause does not count toward `maxConsecutiveFailures`. `turn.complete` reason `error` needs nothing extra: the StopFailure hook classifies, and the IDLE nudge only fires in ROTATION_REQUESTED, which the pause ends.
 - **Cites:** FR-12, AC-23, §10 rate limits.
 - **Scope:** `classic.StopFailure.error` and `turn.complete.reason` → PAUSED codes (`RATE_LIMIT`, `AUTH`, `BILLING`, `OVERLOADED`, `API_ERROR`); no retries by the plugin; messages tell the user what to do (e.g. "/login", "wait for reset at …" from `rateLimits` when known).
 - **Depends on:** ST-1.7.

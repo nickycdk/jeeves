@@ -1,0 +1,9 @@
+StopFailure rate_limit: Paused (RATE_LIMIT): the usage limit is reached. Then type /relay resume.
+StopFailure authentication_failed: Paused (AUTH): Claude Code is not logged in (authentication_failed). Run /login, then /relay resume.
+StopFailure billing_error: Paused (BILLING): your account has a billing problem (billing_error). Fix it, then /relay resume.
+StopFailure overloaded: Paused (OVERLOADED): the API is overloaded. Wait a few minutes, then /relay resume.
+StopFailure server_error: Paused (API_ERROR): the API returned an error (server_error). /relay resume tries again.
+StopFailure invalid_request: Paused (API_ERROR): the API returned an error (invalid_request). /relay resume tries again.
+StopFailure unknown: Paused (API_ERROR): the API returned an error (unknown). /relay resume tries again.
+StopFailure rate_limit (reset known): Paused (RATE_LIMIT): the usage limit is reached. It resets at 2026-11-07 14:00 UTC. Then type /relay resume.
+Outdated version: Jeeves needs Claude Code 2.1.319 or later (this is 2.1.280). Automatic rotation is off. Update Claude Code (claude update) and restart the session.

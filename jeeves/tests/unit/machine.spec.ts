@@ -305,6 +305,14 @@ test('row 23: any active + StopFailure -> PAUSED with a distinct reason code', (
   assert.equal(stopFailureCode('rate_limit') === stopFailureCode('overloaded'), false)
 })
 
+test('ST-6.2: an API failure during a handover pauses without counting as a failed rotation, and asks nothing', () => {
+  const o = run(st('HANDOVER_GENERATING', { consecutiveFailures: 1 }), { type: 'STOP_FAILURE', error: 'rate_limit', resetsAt: '2026-11-07T14:00:00.000Z' })
+  assert.deepEqual([o.state.status, o.state.reason, o.state.consecutiveFailures, o.state.rotation], ['PAUSED', 'RATE_LIMIT', 1, null])
+  assert.deepEqual(types(o.effects), ['LOG_EVENT', 'TOAST'])
+  const toast = o.effects.find(e => e.type === 'TOAST')
+  assert.match(toast?.type === 'TOAST' ? toast.text : '', /resets at 2026-11-07 14:00 UTC/)
+})
+
 test('rows 24-25: MONITORING/CONTINUING + COMPLETE block -> COMPLETED with evidence; missing -> one block, then NEEDS_REVIEW(DOD_UNMET)', () => {
   const ran: State['ledger'] = [{ kind: 'edit', path: '/r/a.js', at: AT, agent: null }, { kind: 'cmd', command: 'npm test', ok: true, exit: 0, at: AT, agent: null }]
   for (const status of ['MONITORING', 'CONTINUING'] as const) {

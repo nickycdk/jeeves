@@ -478,6 +478,12 @@ export async function onTurnComplete(rt: Runtime, reason: 'answer' | 'aborted' |
   else if (reason !== 'aborted') await nudgeIfWaiting(rt)
 }
 
+/** classic.StopFailure on the main loop (ST-6.2): pause with the error's own code and what to do; never resubmit. */
+export async function stopFailure(rt: Runtime, error: string): Promise<void> {
+  const resetsAt = error === 'rate_limit' ? await rt.port.rateLimitReset() : null
+  await applyOwn(rt, { type: 'STOP_FAILURE', error, ...(resetsAt ? { resetsAt } : {}) })
+}
+
 /** Claude is idle while a rotation waits for a Stop: submit the one nudge prompt for this rotation (D-23). */
 export async function nudgeIfWaiting(rt: Runtime): Promise<void> {
   const r = await applyOwn(rt, { type: 'IDLE' })

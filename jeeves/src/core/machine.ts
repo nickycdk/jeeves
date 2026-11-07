@@ -44,7 +44,8 @@ export type Input =
   | { type: 'RESUME'; lockOk: boolean; sessionId: string }
   /** `/relay continue` in a fresh conversation (assisted mode, ST-4.6); the command already holds the lock. */
   | { type: 'CONTINUE_CMD'; sessionId: string }
-  | { type: 'STOP_FAILURE'; error: string }
+  /** classic.StopFailure on the main loop (ST-6.2). `resetsAt`: when the exhausted rate-limit window resets, if known. */
+  | { type: 'STOP_FAILURE'; error: string; resetsAt?: string }
   /** Claude's JEEVES-COMPLETE block at a main-loop Stop: the task's verification commands and the block's blockers (ST-5.2). */
   | { type: 'COMPLETE_BLOCK'; commands: string[]; blockers: string[] }
   /** `/relay done`: the user confirms a completion Jeeves could not verify (ADR-007). */
@@ -99,6 +100,18 @@ export function stopFailureCode(error: string): ReasonCode {
     case 'billing_error': case 'account_on_hold': return 'BILLING'
     case 'overloaded': return 'OVERLOADED'
     default: return 'API_ERROR'
+  }
+}
+
+/** What the user should do about each StopFailure code (ST-6.2, AC-23). Jeeves never retries by itself. */
+export function stopFailureText(code: ReasonCode, error: string, resetsAt?: string): string {
+  const reset = resetsAt && !Number.isNaN(Date.parse(resetsAt)) ? new Date(resetsAt).toISOString().slice(0, 16).replace('T', ' ') + ' UTC' : null
+  switch (code) {
+    case 'RATE_LIMIT': return `Paused (RATE_LIMIT): the usage limit is reached.${reset ? ` It resets at ${reset}.` : ''} Then type /relay resume.`
+    case 'AUTH': return `Paused (AUTH): Claude Code is not logged in (${error}). Run /login, then /relay resume.`
+    case 'BILLING': return `Paused (BILLING): your account has a billing problem (${error}). Fix it, then /relay resume.`
+    case 'OVERLOADED': return 'Paused (OVERLOADED): the API is overloaded. Wait a few minutes, then /relay resume.'
+    default: return `Paused (API_ERROR): the API returned an error (${error}). /relay resume tries again.`
   }
 }
 
@@ -479,7 +492,9 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
       if (!ACTIVE(state.status)) return ignore('no active task')
       const code = stopFailureCode(input.error)
       go('PAUSED', code, { rotation: null, armedFired: false }, input.error)
-      effects.push({ type: 'TOAST', key: key(`fail-${code}`), text: `Paused (${code}): Claude could not answer (${input.error}). /relay resume when it works again.` })
+      // An API failure waits for the user; it is not a failed rotation (maxConsecutiveFailures counts those).
+      next = { ...next, consecutiveFailures: state.consecutiveFailures }
+      effects.push({ type: 'TOAST', key: key(`fail-${code}`), text: stopFailureText(code, input.error, input.resetsAt) })
       return done()
     }
 

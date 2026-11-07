@@ -26,6 +26,8 @@ export type MemHost = {
   turns: number
   /** Every `$.prompt.fill` text, in order. */
   fills: string[]
+  /** What `$.session.usage().rateLimits` answers. */
+  rateLimits: { kind: string; percentUsed: number; resetsAt?: string }[]
   /** What `$.session.usage().context` answers. */
   usage: { window: number; percent?: number; tokens?: number }
 }
@@ -39,20 +41,21 @@ export const T0 = Date.parse('2026-11-07T08:00:00.000Z')
 export function memHost(on: On, env: Record<string, string> = { HOME: '/home/t' }): MemHost {
   const h: MemHost = {
     commands: [], registered: [], toasts: [], status: [], version: '2.1.319', failProcess: false, files: new Map(), dirs: new Set(['/']), env, argv: [], failWrite: null,
-    sessionId: 'sess-test', agents: [], fills: [], turns: 0, logs: [], clock: mock.clock(on, { now: T0 }), usage: { window: 1_000_000 },
+    sessionId: 'sess-test', agents: [], fills: [], turns: 0, logs: [], clock: mock.clock(on, { now: T0 }), usage: { window: 1_000_000 }, rateLimits: [],
   }
   mock.store(on)
   on('session.start', (_, e) => ({ cwd: e.cwd }))
   on('session.measure', (_, e) => ({ changed: e.changed }))
   on('classic.Stop', () => ({}))
   on('classic.SessionStart', () => ({}))
+  on('classic.StopFailure', () => ({}))
   on('prompt.compose', () => ({ sections: [{ id: 'intro', text: 'engine prompt', scope: 'shared' }] }))
   on('prompt.fill', (_, e) => { h.fills.push(e.text); return { isFilled: true } })
   on('turn.start', (_, e) => ({ turnId: e.turnId }))
   on('turn.complete', (_, e) => ({ text: e.answer }))
   on('session.end', (_, e) => ({ sessionId: e.sessionId }))
   on('session.version', () => ({ value: { version: h.version } }))
-  on('session.usage', () => ({ value: { startedAt: 0, context: { ...h.usage }, rateLimits: [], ...(h.costUsd !== undefined ? { cost: { usd: h.costUsd } } : {}) } }))
+  on('session.usage', () => ({ value: { startedAt: 0, context: { ...h.usage }, rateLimits: [...h.rateLimits], ...(h.costUsd !== undefined ? { cost: { usd: h.costUsd } } : {}) } }))
   on('session.cwd', () => ({ value: '/work/proj' }))
   on('session.id', () => ({ value: h.sessionId }))
   on('session.turns', () => ({ value: h.turns }))

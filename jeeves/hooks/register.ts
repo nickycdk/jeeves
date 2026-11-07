@@ -3,7 +3,7 @@ import type { CommandRunInput, EngineInterface, Register, Timer, ToolCallInput, 
 import type { ToolOutcome } from '../src/core/evidence.ts'
 import { chooseCommandName, FALLBACK, PRIMARY, relay } from '../src/adapter/commands.ts'
 import { runtime, type Options } from '../src/adapter/runtime.ts'
-import { captureFirstPrompt, heartbeat, holdPrompt, measure, nudgeIfWaiting, onFreshSession, onStop, onTurnComplete, taskSection, onUserClear, recordTool, releaseOnExit, why } from '../src/adapter/task.ts'
+import { captureFirstPrompt, heartbeat, holdPrompt, measure, nudgeIfWaiting, onFreshSession, onStop, onTurnComplete, taskSection, onUserClear, recordTool, releaseOnExit, stopFailure, why } from '../src/adapter/task.ts'
 import { HEARTBEAT_MS } from '../src/core/lock.ts'
 import { HELD_TEXT } from '../src/adapter/ui.ts'
 
@@ -125,7 +125,11 @@ export const register: Register = (on, options) => {
     })
     return block === null ? base : { ...base, block }
   }).catch(($, e, next) => next(e))
-  on('classic.StopFailure', ($, e, next) => next(e))
+  // ST-6.2: an API error ended the main turn: pause with its code (a subagent's failure is its parent's to handle).
+  on('classic.StopFailure', async ($, e, next) => {
+    if (e.agent_id === undefined) await quietly($, opts, 'stop failure', rt => stopFailure(rt, e.error))
+    return next(e)
+  }).catch(($, e, next) => next(e))
   // ST-4.2: the fresh conversation of a rotation. ADR-003: the rotation is read and applied before next(e),
   // because $.command.run('clear') can resolve first.
   on('classic.SessionStart', async ($, e, next) => {
