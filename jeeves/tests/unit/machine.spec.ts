@@ -624,6 +624,33 @@ test('ST-4.8 reading: the loop margin is 10 points, 0.5 point only under the (de
   assert.equal(run(st('MONITORING'), measure(8.5), ctx({ thresholdOverride: 8.5 })).state.status, 'ROTATION_REQUESTED')
 })
 
+test('D-25 relative override: no request before the first reading, then at first reading + d', () => {
+  const c = ctx({ thresholdRelative: 0.8 })
+  const fresh = st('MONITORING', { sessionStart: { at: AT, pct: null } })
+  const first = run(fresh, measure(30), c)
+  assert.deepEqual([first.state.status, first.state.sessionStart?.pct], ['MONITORING', 30], 'the first reading only sets the start')
+  assert.equal(run(first.state, measure(30.79), c).state.status, 'MONITORING')
+  const req = run(first.state, measure(30.8), c)
+  assert.deepEqual([req.state.status, req.state.rotation?.thresholdAt], ['ROTATION_REQUESTED', 30.8])
+  // the task threshold (50) and the absolute override play no part
+  assert.equal(run(first.state, measure(29), ctx({ thresholdRelative: 0.8, thresholdOverride: 3 })).state.status, 'MONITORING')
+  assert.equal(run(st('MONITORING'), measure(50)).state.rotation?.thresholdAt, undefined, 'absolute mode stores nothing new')
+})
+
+test('D-25 relative loop guard: the fresh session rearms only below the threshold that ended the previous one', () => {
+  const c = ctx({ thresholdRelative: 0.8 })
+  const s = st('CONTINUING', { rotation: rot({ step: 'CONTINUED', thresholdAt: 6.5 }), sessionStart: { at: AT, pct: null } })
+  const ok = run(s, measure(6.49), c)
+  assert.deepEqual([ok.state.status, ok.state.sessionStart?.pct], ['MONITORING', 6.49])
+  assert.equal(run(ok.state, measure(7.2), c).state.status, 'MONITORING')
+  assert.equal(run(ok.state, measure(7.29), c).state.status, 'ROTATION_REQUESTED', 'the next session rotates at its own start + d')
+  const loop = run(s, measure(6.5), c)
+  assert.deepEqual([loop.state.status, loop.state.reason], ['FAILED', 'POSSIBLE_LOOP'])
+  assert.ok(loop.effects.some(e => e.type === 'TOAST' && e.text.includes('(threshold 6.5%)')))
+  // a rotation requested before any reading (manual) has no threshold to guard: rearm
+  assert.equal(run(st('CONTINUING', { rotation: rot({ step: 'CONTINUED' }) }), measure(40), c).state.status, 'MONITORING')
+})
+
 test('QUEUE_CHANGE: only before rev 1 (max 20); a pending REVISED drops the first queued change', () => {
   const waiting = st('MONITORING', { taskRevision: 0 })
   const q = run(waiting, { type: 'QUEUE_CHANGE', kind: 'check', text: './verify.sh' })

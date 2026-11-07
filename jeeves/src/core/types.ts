@@ -74,6 +74,8 @@ export type Rotation = {
   noteAppended: boolean
   /** Whether the one "prepare handover" prompt was sent because the request found Claude idle (D-23). */
   nudged?: boolean
+  /** Relative test threshold only (D-25): the threshold that ended the source session; the fresh session must start below it. */
+  thresholdAt?: number
 }
 
 /** A context reading; `percent` absent means unknown, never 0 (AC-06). */

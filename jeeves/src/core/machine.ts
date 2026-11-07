@@ -70,8 +70,11 @@ export type Effect = Keyed & (
   | { type: 'WRITE_SESSION'; n: number; record: SessionRecord }
 )
 
-/** `thresholdOverride`: the test-only threshold (06 §1); used in place of the task's, never stored. */
-export type Ctx = { now: number; config: Config; newRotationId: string; thresholdOverride?: number }
+/**
+ * `thresholdOverride`: the test-only threshold (06 §1); used in place of the task's, never stored.
+ * `thresholdRelative`: the test-only relative threshold (D-25): this session's first reading + d.
+ */
+export type Ctx = { now: number; config: Config; newRotationId: string; thresholdOverride?: number; thresholdRelative?: number }
 
 /** `ignored` says why an input changed nothing (forbidden or irrelevant here); the adapter logs it. */
 export type Output = { state: State; effects: Effect[]; ignored?: string }
@@ -103,10 +106,16 @@ export const isSafe = (b: { backgroundTasks: number; runningAgents: number }) =>
 
 export function reduce(state: State, input: Input, ctx: Ctx): Output {
   const at = new Date(ctx.now).toISOString()
-  const T = ctx.thresholdOverride ?? state.thresholdPercent
-  // Loop guard margin (02 §4: T−10). Under the test override a fresh live session already starts near 6%, so a
+  const rel = ctx.thresholdRelative
+  const startPct = state.sessionStart?.pct ?? null
+  // D-25: no request until this session's first reading is known.
+  const T = rel !== undefined ? (startPct === null ? Infinity : startPct + rel) : ctx.thresholdOverride ?? state.thresholdPercent
+  // Loop guard (02 §4: rearm below T−10). Under the test override a fresh live session already starts near 6%, so a
   // cheap test threshold (~8%) uses a 0.5-point margin; real thresholds (20..90) always keep 10 (ST-4.8 reading).
-  const loopMargin = ctx.thresholdOverride === undefined ? LOOP_MARGIN : TEST_LOOP_MARGIN
+  // Relative (D-25): below the threshold that ended the previous session; none recorded (no reading then) rearms.
+  const rearmBelow = rel !== undefined ? state.rotation?.thresholdAt ?? Infinity
+    : T - (ctx.thresholdOverride === undefined ? LOOP_MARGIN : TEST_LOOP_MARGIN)
+  const shown = (n: number) => Math.round(n * 100) / 100
   const rid = state.rotation?.rotationId ?? '-'
   const effects: Effect[] = []
   let next: State = state
@@ -159,6 +168,7 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
     const rotation: Rotation = {
       rotationId: ctx.newRotationId, trigger, requestedAt: at, sourceSessionId: null, targetSessionId: null,
       step: 'REQUESTED', retries: 0, quiesceCount: 0, noteAppended: false,
+      ...(rel !== undefined && Number.isFinite(T) ? { thresholdAt: T } : {}),
     }
     go('ROTATION_REQUESTED', trigger, { rotation, armedFired: true }, trigger === 'THRESHOLD' ? `context ${next.lastContext?.percent ?? '?'}%` : '')
     return done()
@@ -175,18 +185,18 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
       if (p >= T && !state.armedFired) return request('THRESHOLD')
       if (p >= T - ctx.config.warnBeforePercent && p < T && state.warnedSessionId !== input.sessionId) {
         next = { ...next, warnedSessionId: input.sessionId }
-        effects.push({ type: 'TOAST', key: `-:warn:${input.sessionId}`, text: `Context at ${Math.round(p)}%. Jeeves will hand over at ${T}%.` })
+        effects.push({ type: 'TOAST', key: `-:warn:${input.sessionId}`, text: `Context at ${Math.round(p)}%. Jeeves will hand over at ${shown(T)}%.` })
       }
       return done()
     }
     if (state.status === 'CONTINUING') {
       if (p === undefined) return done()
-      if (p < T - loopMargin) {
+      if (p < rearmBelow) {
         go('MONITORING', null, { armedFired: false, rotation: null, sessionSequence: state.sessionSequence + 1, warnedSessionId: null, completionAsked: false }, `rearmed at ${p}%`)
         return done()
       }
       go('FAILED', 'POSSIBLE_LOOP', { rotation: null }, `fresh session already at ${p}%`)
-      effects.push({ type: 'TOAST', key: key('loop'), text: `Stopped: the fresh session is already at ${p}% (threshold ${T}%). Possible rotation loop. Run /relay status.` })
+      effects.push({ type: 'TOAST', key: key('loop'), text: `Stopped: the fresh session is already at ${p}% (threshold ${shown(rel !== undefined ? rearmBelow : T)}%). Possible rotation loop. Run /relay status.` })
       return done()
     }
     return done()

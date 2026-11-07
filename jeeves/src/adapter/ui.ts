@@ -17,7 +17,13 @@ export type StatusView = {
   taskError: string | null
   /** The test-only threshold when active (06 §1). */
   thresholdOverride?: number | null
+  /** The test-only relative threshold when active (D-25). */
+  thresholdRelative?: number | null
 }
+
+/** D-25: this session's first reading + d, '?' until that reading; null when the relative override is off. */
+const relThreshold = (d: number | null | undefined, s: State) =>
+  !d ? null : s.sessionStart?.pct == null ? '?' : `${Math.round((s.sessionStart.pct + d) * 100) / 100}`
 
 export function statusText(v: StatusView): string {
   // AC-25: a task that fell back to assisted shows it, whatever the probe said.
@@ -33,8 +39,9 @@ export function statusText(v: StatusView): string {
     lines.push(
       `Task: ${s.taskId}`,
       `State: ${s.status}${s.reason ? ` (${s.reason})` : ''}`,
-      `Context: ${pct === undefined ? 'unknown' : `${Math.round(pct * 10) / 10}%`}  Threshold: ${v.thresholdOverride ?? s.thresholdPercent}%`,
-      ...(v.thresholdOverride ? [`TEST OVERRIDE (task setting ${s.thresholdPercent}%)`] : []),
+      `Context: ${pct === undefined ? 'unknown' : `${Math.round(pct * 10) / 10}%`}  Threshold: ${relThreshold(v.thresholdRelative, s) ?? v.thresholdOverride ?? s.thresholdPercent}%`,
+      ...(v.thresholdRelative ? [`TEST OVERRIDE +${v.thresholdRelative} (task setting ${s.thresholdPercent}%)`]
+        : v.thresholdOverride ? [`TEST OVERRIDE (task setting ${s.thresholdPercent}%)`] : []),
       `Rotations: ${s.rotationCount}  Session: ${s.sessionSequence}`,
       ...(s.reason && INERT.includes(s.status) ? [REASON_TEXT[s.reason]] : []),
       `Last: ${s.lastValidatedHandover ? s.lastValidatedHandover.split('#')[0]!.replace(/^history\//, '') : 'no handover yet'}${s.lastErrorCode ? `, error ${s.lastErrorCode}` : ''}`,

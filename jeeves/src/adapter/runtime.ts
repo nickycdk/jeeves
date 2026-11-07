@@ -24,6 +24,8 @@ export type Runtime = {
   serial: ReturnType<typeof createQueue>
   /** Test-only threshold (06 §1): set only when JEEVES_TEST=1 and the override is a number 1..99 (decimals allowed). */
   thresholdOverride: number | null
+  /** Test-only relative threshold (D-25): `JEEVES_TEST_THRESHOLD_OVERRIDE=+d`, d in (0, 50]: rotate at this session's first reading + d. */
+  thresholdRelative: number | null
 }
 
 export type Options = { stateDir?: string | undefined }
@@ -50,10 +52,13 @@ async function build($: EngineInterface, options: Options): Promise<Runtime> {
     stateRootError = err instanceof StorageError ? `${err.code}: ${err.message}` : String(err)
   }
   const pid = id ? await projectId(id) : null
-  const override = (await port.env('JEEVES_TEST')) === '1' ? Number(await port.env('JEEVES_TEST_THRESHOLD_OVERRIDE') ?? NaN) : NaN
+  const raw = (await port.env('JEEVES_TEST')) === '1' ? (await port.env('JEEVES_TEST_THRESHOLD_OVERRIDE'))?.trim() : undefined
+  const relative = raw?.startsWith('+') ? Number(raw.slice(1)) : NaN
+  const override = raw && !raw.startsWith('+') ? Number(raw) : NaN
   return {
     port, storage, probe, stateRoot, stateRootError, identity: id, projectId: pid,
     projectDir: stateRoot && pid ? projectDir(stateRoot, pid) : null, serial: createQueue(),
     thresholdOverride: Number.isFinite(override) && override >= 1 && override <= 99 ? override : null,
+    thresholdRelative: Number.isFinite(relative) && relative > 0 && relative <= 50 ? relative : null,
   }
 }

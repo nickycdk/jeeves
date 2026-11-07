@@ -53,7 +53,7 @@ async function transition(rt: Runtime, dir: string, prev: State, input: Input): 
   const forHook: Applied['forHook'] = []
   for (const queue = [input]; queue.length;) {
     const now = await rt.port.now()
-    const out = reduce(state, queue.shift()!, { now, config: DEFAULT_CONFIG, newRotationId: newRotationId(now, random6()), ...(rt.thresholdOverride ? { thresholdOverride: rt.thresholdOverride } : {}) })
+    const out = reduce(state, queue.shift()!, { now, config: DEFAULT_CONFIG, newRotationId: newRotationId(now, random6()), ...(rt.thresholdOverride ? { thresholdOverride: rt.thresholdOverride } : {}), ...(rt.thresholdRelative ? { thresholdRelative: rt.thresholdRelative } : {}) })
     if (out.ignored) rt.port.log(`jeeves: ${out.ignored}`)
     if (out.state === state) continue
     state = out.state

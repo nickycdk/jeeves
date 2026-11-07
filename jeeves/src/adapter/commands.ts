@@ -40,7 +40,7 @@ export async function relay(rt: Runtime, args: string, caller: Caller): Promise<
     const picked = pickTask(tasks, me)
     // In the owning session show the live reading (never a stale one); another session's task shows its last stored reading.
     const task = picked?.state.activeSessionId === me ? { ...picked, state: { ...picked.state, lastContext: { ...(await rt.port.usage()), at: new Date(await rt.port.now()).toISOString() } } } : picked
-    return statusText({ probe: rt.probe, stateRoot: rt.stateRoot, stateRootError: rt.stateRootError, task, taskError: task ? null : errors[0] ?? null, thresholdOverride: rt.thresholdOverride })
+    return statusText({ probe: rt.probe, stateRoot: rt.stateRoot, stateRootError: rt.stateRootError, task, taskError: task ? null : errors[0] ?? null, thresholdOverride: rt.thresholdOverride, thresholdRelative: rt.thresholdRelative })
   }
   if (sub === 'help') return HELP
   if (sub === 'task') {
