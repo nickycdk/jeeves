@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { stat } from 'node:fs/promises'
+import { chmod, stat } from 'node:fs/promises'
 import { join } from 'node:path'
 import { createQueue, createStorage, resolveStateRoot, sha256Hex, StorageError } from '../../src/adapter/storage.ts'
 import type { FsPort } from '../../src/adapter/ports.ts'
@@ -52,6 +52,13 @@ test('ensureRoot creates the folder with user-only permissions', async () => {
   const root = join(await tempDir(), 'deep/SessionRelay')
   await createStorage(nodePort()).ensureRoot(root)
   assert.equal((await stat(root)).mode & 0o777, 0o700)
+})
+
+test('ensureRoot never changes the permissions of a folder that already exists', async () => {
+  const root = await tempDir()
+  await chmod(root, 0o755)
+  await createStorage(nodePort()).ensureRoot(root)
+  assert.equal((await stat(root)).mode & 0o777, 0o755)
 })
 
 test('queue runs tasks one at a time in order', async () => {

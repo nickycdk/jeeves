@@ -96,8 +96,9 @@ export function createStorage(port: FsPort, opts: { eventLogMaxBytes?: number } 
   return {
     enqueue,
 
-    /** Create the root with user-only permissions. */
+    /** Create the root with user-only permissions. An existing folder keeps its permissions (it may be one the user shares). */
     ensureRoot: (root: string) => enqueue(async () => {
+      if (await disk(`exists ${root}`, () => port.exists(root))) return
       await runOk(['mkdir', '-p', root])
       await runOk(['chmod', '700', root])
     }),
