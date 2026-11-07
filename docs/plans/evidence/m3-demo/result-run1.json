@@ -1,0 +1,122 @@
+{
+ "override": "9",
+ "on_answered": true,
+ "after_first": {
+  "status": "MONITORING",
+  "taskRevision": 1,
+  "lastContext": {
+   "window": 1000000,
+   "at": "2026-11-07T17:35:59.888Z",
+   "percent": 6,
+   "tokens": 56322
+  }
+ },
+ "requested": true,
+ "handover_requested": true,
+ "settled": true,
+ "final": {
+  "status": "ROTATING",
+  "reason": "THRESHOLD",
+  "rotation": {
+   "rotationId": "r_20261107_xe524w",
+   "trigger": "THRESHOLD",
+   "requestedAt": "2026-11-07T17:36:13.904Z",
+   "sourceSessionId": null,
+   "targetSessionId": null,
+   "step": "HANDOVER_PERSISTED",
+   "retries": 0,
+   "quiesceCount": 0,
+   "noteAppended": false
+  },
+  "lastValidatedHandover": "history/handover-001.md#sha256:2013cb92fc221230b707fd5d2c300df6c26384adb7ba14a555bffe34fe27b9be",
+  "lastContext": {
+   "window": 1000000,
+   "at": "2026-11-07T17:37:30.971Z",
+   "percent": 11,
+   "tokens": 113720
+  }
+ },
+ "handover_file": "history/handover-001.md",
+ "sha256_matches_ref": true,
+ "handover_md_identical": true,
+ "history": [
+  "facts-r_20261107_xe524w.json",
+  "handover-001.md"
+ ],
+ "events": [
+  {
+   "v": 1,
+   "at": "2026-11-07T17:35:49.712Z",
+   "taskId": "t_20261107_pfqecu",
+   "rotationId": null,
+   "from": "DISABLED",
+   "to": "MONITORING",
+   "code": null,
+   "pct": null,
+   "sessionId": "f698a036-d183-473f-9631-0499b767e528",
+   "detail": ""
+  },
+  {
+   "v": 1,
+   "at": "2026-11-07T17:35:53.429Z",
+   "taskId": "t_20261107_pfqecu",
+   "rotationId": null,
+   "from": "MONITORING",
+   "to": "MONITORING",
+   "code": null,
+   "pct": null,
+   "sessionId": "f698a036-d183-473f-9631-0499b767e528",
+   "detail": "task revision 1"
+  },
+  {
+   "v": 1,
+   "at": "2026-11-07T17:36:13.904Z",
+   "taskId": "t_20261107_pfqecu",
+   "rotationId": "r_20261107_xe524w",
+   "from": "MONITORING",
+   "to": "ROTATION_REQUESTED",
+   "code": "THRESHOLD",
+   "pct": 11,
+   "sessionId": "f698a036-d183-473f-9631-0499b767e528",
+   "detail": "context 11%"
+  },
+  {
+   "v": 1,
+   "at": "2026-11-07T17:37:20.155Z",
+   "taskId": "t_20261107_pfqecu",
+   "rotationId": "r_20261107_xe524w",
+   "from": "ROTATION_REQUESTED",
+   "to": "HANDOVER_GENERATING",
+   "code": "THRESHOLD",
+   "pct": 11,
+   "sessionId": "f698a036-d183-473f-9631-0499b767e528",
+   "detail": ""
+  },
+  {
+   "v": 1,
+   "at": "2026-11-07T17:37:30.906Z",
+   "taskId": "t_20261107_pfqecu",
+   "rotationId": "r_20261107_xe524w",
+   "from": "HANDOVER_GENERATING",
+   "to": "VALIDATING",
+   "code": "THRESHOLD",
+   "pct": 11,
+   "sessionId": "f698a036-d183-473f-9631-0499b767e528",
+   "detail": ""
+  },
+  {
+   "v": 1,
+   "at": "2026-11-07T17:37:30.926Z",
+   "taskId": "t_20261107_pfqecu",
+   "rotationId": "r_20261107_xe524w",
+   "from": "VALIDATING",
+   "to": "ROTATING",
+   "code": "THRESHOLD",
+   "pct": 11,
+   "sessionId": "f698a036-d183-473f-9631-0499b767e528",
+   "detail": ""
+  }
+ ],
+ "clear_ran": false,
+ "cost_seen": "$0.07"
+}

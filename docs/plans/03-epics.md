@@ -37,6 +37,7 @@ Dependency order: E0 → E1 → E2 → E3 → E4 → E5 → (E6, E7 in parallel)
 - **Artifact:** unit report + recorded session showing status transitions.
 
 ## E3 — Safe boundary and handover (P0)
+- **Status:** Solved (M3 gate; evidence/m3-demo).
 - **Goal:** At a safe point, obtain a validated, persisted handover.
 - **Scope:** evidence ledger, soft quiesce, Stop gate, handover instruction, parser, validator, redaction, merged render, atomic persistence, bounded retries, `NEEDS_REVIEW`.
 - **User value:** Work state is captured truthfully without the user writing anything.

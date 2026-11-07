@@ -22,7 +22,8 @@ Estimates use story midpoints (S 0.5 d, M 1.5 d, L 3.5 d), one developer.
 | M0 | Solved | `evidence/s-0*`, D-15 |
 | M1 | Solved (CI never run: no remote) | `handoff-m1.md`, `evidence/m1-relay-status/` |
 | M2 | Solved | `handoff-m2.md`, `evidence/m2-demo/`; 103 unit + 44 mod tests |
-| M3 … M7 | Open | — |
+| M3 | Solved | `handoff-m3.md`, `evidence/m3-demo/`; 185 unit + 66 mod tests |
+| M4 … M7 | Open | — |
 
 Total ≈ 73 engineer-days, matching the backlog. ST-7.3 is scheduled in M2 because the first-activation notice ships with `/relay on`.
 

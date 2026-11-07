@@ -35,7 +35,8 @@ Built by `fixtures/build-repo.ts` into a temp dir per test (never committed stat
 
 ## 3. Acceptance criteria → tests
 
-**Status (2026-11-07, after M2):** passing: AC-04 (I), AC-05 (U, I), AC-06 (U, I), AC-14 (U, I), AC-03 (I layer; its E-layer session run is still open). Status shows "unknown" rather than "?" for AC-06 (D-17). Every other AC is open.
+**Status (2026-11-07, after M2):** passing: AC-04 (I), AC-05 (U, I), AC-06 (U, I), AC-14 (U, I), AC-03 (I layer; its E-layer session run is still open). Status shows "unknown" rather than "?" for AC-06 (D-17). 
+**Status (2026-11-07, after M3):** also passing: AC-07 (I: no handover request with a running background shell or subagent, an interrupt during the handover pauses, a Stop-hook failure lets Claude stop; the E-layer permission-prompt case is open), AC-08 (U: validator table over 31 fixtures; E: the M3 demo's live handover validated and saved), AC-09 (U + I: a "passed" claim for a command whose last run failed is refused, naming it; the E-layer `failing-tests` fixture run is open), AC-17 (U + I: 2 retries, then NEEDS_REVIEW, earlier handover byte-identical, no `/clear`). Every other AC is open.
 
 | AC | Requirement (short) | Primary test(s) | Layer | Evidence |
 |---|---|---|---|---|

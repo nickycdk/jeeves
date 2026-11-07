@@ -7,7 +7,7 @@ Stories are listed in dependency order; implement top to bottom. IDs are `ST-<ep
 
 Module names refer to `02-architecture-and-adrs.md` §3.
 
-**Progress (2026-11-07):** E0, E1 and E2 solved, plus ST-7.3. Each solved story has a **Status** line under its heading. Everything without one is open.
+**Progress (2026-11-07):** E0, E1, E2 and E3 solved, plus ST-7.3. Each solved story has a **Status** line under its heading. Everything without one is open.
 
 ---
 
@@ -230,6 +230,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 ## E3 — Safe boundary and handover
 
 ### ST-3.1 Evidence ledger — M
+- **Status:** Solved (6036289, review fixes 7a9f576).
 - **Cites:** FR-06, AC-09.
 - **Scope:** `tool.call` hooks (main loop and subagents tagged) record: Bash `{ command (redacted, ≤ 300 chars), exit/isError, at }`, Edit/Write/NotebookEdit `{ path, at }`; kept per session in state (bounded ring, last 200) and summarised into each handover.
 - **Approach:** `await next(e)` then record result; never alter the call; hook with `.catch(... next.called ? next(e) : next(e))` so a ledger failure never blocks a tool.
@@ -239,6 +240,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **DoD:** + overhead number in docs/performance.md.
 
 ### ST-3.2 Soft quiesce note — S (conditional on S-03)
+- **Status:** Solved (cf6b13b, review fixes 7a9f576).
 - **Cites:** FR-04.
 - **Scope:** first `tool.call` result after `ROTATION_REQUESTED` → `$.session.append` hidden note once per rotation.
 - **Depends on:** ST-2.4, ST-0.3.
@@ -247,6 +249,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **DoD:** standard.
 
 ### ST-3.3 Safe-boundary evaluator and quiesce timeout — M
+- **Status:** Solved (aa4d00f, review fixes 7a9f576).
 - **Cites:** FR-04, AC-07; ADR-004.
 - **Scope:** core `isSafe({ backgroundTasks, agents, turnReason })`; adapter `classic.Stop` hook gathers inputs (and passes `session_crons` to the facts snapshot, not to `isSafe`: ADR-004 A1, after S-04); QUIESCING counters; timeout → `PAUSED(UNSAFE_BOUNDARY)`.
 - **Depends on:** ST-3.1, ST-0.2.
@@ -255,6 +258,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **DoD:** standard.
 
 ### ST-3.4 Handover instruction template — S
+- **Status:** Solved (73535b4, review fixes 7a9f576). S-05 live parse re-run: 1/1 first try in the M3 demo; the 10-trial rate was on the draft text.
 - **Cites:** FR-06, FR-16, §8.4.
 - **Scope:** `template.ts` builds the Stop `block` text: purpose, sentinel format with task/rotation IDs, required headings, tagging rules, size budget, "no secrets/tokens/.env contents", "do not run new commands now; summarise only", list of plugin-captured facts so Claude does not restate them.
 - **Depends on:** ST-0.5.
@@ -263,6 +267,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **DoD:** standard.
 
 ### ST-3.5 Handover parser — M
+- **Status:** Solved (7d76cc0, review fixes 7a9f576).
 - **Cites:** FR-07.
 - **Scope:** extract exactly one sentinel block from `last_assistant_message`; tolerate code fences, CRLF, extra prose, heading case/spacing; produce typed sections + bullets with tags; errors are specific.
 - **Depends on:** ST-1.2.
@@ -271,6 +276,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **DoD:** standard.
 
 ### ST-3.6 Handover validator and cross-checks — L
+- **Status:** Solved (6016f10, review fixes 7a9f576).
 - **Cites:** FR-06, FR-07, AC-08, AC-09.
 - **Scope:** rules in 02 §6.4: IDs, headings, next actions, size, paths exist or deleted, branch/HEAD consistency, test claims vs ledger, redaction hits, round-trip of merged file.
 - **Depends on:** ST-3.5, ST-3.1, ST-1.6.
@@ -279,6 +285,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **DoD:** standard.
 
 ### ST-3.7 Redaction — M
+- **Status:** Solved (7991dfa, review fixes 7a9f576).
 - **Cites:** FR-16, §8.4 security, NFR-10.
 - **Scope:** `redact(text)` for common key/token formats (AWS, GitHub, Anthropic, OpenAI, Stripe, Slack, JWT, private keys, `KEY=value` lines from env-like content, high-entropy strings with key-ish names); used for events, ledger commands, handover validation (block with request to remove) and diagnostics.
 - **Depends on:** ST-1.5.
@@ -287,6 +294,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **DoD:** standard.
 
 ### ST-3.8 Merged render, persistence, retries, NEEDS_REVIEW — M
+- **Status:** Solved (b8dd7c3, review fixes 7a9f576).
 - **Cites:** FR-06, FR-07, AC-08, AC-17; Flow D.
 - **Scope:** render merged handover (verified section + narrative + metadata); `writeImmutable(history/handover-NNN.md)`; copy to `handover.md`; state → ROTATING via atomic swap; invalid → `{ block: errors }` up to `maxHandoverRetries`, then `NEEDS_REVIEW(HANDOVER_INVALID)` and allow stop.
 - **Depends on:** ST-3.3, ST-3.4, ST-3.6, ST-1.4.
