@@ -433,6 +433,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **DoD:** standard.
 
 ### ST-6.4 Compaction policy — S
+- **Status:** Solved (M5; `tests/mod/compact.test.ts`). "Active managed" = this session owns a task that is not inert (MONITORING … CONTINUING and the rotation states). A subagent's compaction passes through. The event line says which trigger (`after manual compaction`); a compaction outside MONITORING/CONTINUING is logged to the debug log only. A manual `/compact` leaves Claude idle, so the request gets the D-23 nudge. Not run live.
 - **Cites:** SPIKE-04, §11 compaction row; ADR-006.
 - **Scope:** `session.compact` hook: skip `precompute` while managed; log others; after compaction → ROTATION_REQUESTED(COMPACTED).
 - **Depends on:** ST-2.4.

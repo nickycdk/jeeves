@@ -3,7 +3,7 @@ import type { CommandRunInput, EngineInterface, Register, Timer, ToolCallInput, 
 import type { ToolOutcome } from '../src/core/evidence.ts'
 import { chooseCommandName, FALLBACK, PRIMARY, relay } from '../src/adapter/commands.ts'
 import { runtime, type Options } from '../src/adapter/runtime.ts'
-import { captureFirstPrompt, heartbeat, holdPrompt, measure, nudgeIfWaiting, onFreshSession, onStop, onTurnComplete, taskSection, onUserClear, recordTool, releaseOnExit, stopFailure, why } from '../src/adapter/task.ts'
+import { captureFirstPrompt, compacted, heartbeat, managedNow, holdPrompt, measure, nudgeIfWaiting, onFreshSession, onStop, onTurnComplete, taskSection, onUserClear, recordTool, releaseOnExit, stopFailure, why } from '../src/adapter/task.ts'
 import { HEARTBEAT_MS } from '../src/core/lock.ts'
 import { HELD_TEXT } from '../src/adapter/ui.ts'
 
@@ -107,7 +107,22 @@ export const register: Register = (on, options) => {
     }
     return next(e)
   })
-  on('session.compact', ($, e, next) => next(e))
+  // ST-6.4 / ADR-006: no compaction ahead of time while a task is managed; any other compaction runs (blocking it at the
+  // limit would overflow), then the task hands over, with the nudge when Claude is idle (a manual /compact).
+  on('session.compact', async ($, e, next) => {
+    if (e.agentId !== undefined) return next(e)
+    if (e.trigger === 'precompute') {
+      let skip = false
+      await quietly($, opts, 'compact', async rt => { skip = await managedNow(rt) })
+      return skip ? { skip: 'Jeeves hands this task over to a fresh conversation instead' } : next(e)
+    }
+    const r = await next(e)
+    if (r.skip === undefined) await quietly($, opts, 'compacted', async rt => {
+      await compacted(rt, e.trigger)
+      if (!turnOpen) await nudgeIfWaiting(rt)
+    })
+    return r
+  }).catch(($, e, next) => next(e))
   // ST-5.2: while this session owns an active task, the system prompt says how to report completion (ADR-007).
   on('prompt.compose', async ($, e, next) => {
     const base = await next(e)

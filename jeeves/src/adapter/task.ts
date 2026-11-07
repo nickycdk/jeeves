@@ -484,6 +484,17 @@ export async function stopFailure(rt: Runtime, error: string): Promise<void> {
   await applyOwn(rt, { type: 'STOP_FAILURE', error, ...(resetsAt ? { resetsAt } : {}) })
 }
 
+/** ADR-006: whether this session owns an active task, so compaction ahead of time (`precompute`) is skipped. */
+export async function managedNow(rt: Runtime): Promise<boolean> {
+  const own = ownTask((await projectTasks(rt)).tasks, await rt.port.sessionId())
+  return own !== null && !INERT.includes(own.state.status)
+}
+
+/** ADR-006: a compaction of the main conversation stood; compacted context is lossy, so hand over (MONITORING/CONTINUING only). */
+export async function compacted(rt: Runtime, trigger: string): Promise<void> {
+  await applyOwn(rt, { type: 'COMPACTED', trigger })
+}
+
 /** Claude is idle while a rotation waits for a Stop: submit the one nudge prompt for this rotation (D-23). */
 export async function nudgeIfWaiting(rt: Runtime): Promise<void> {
   const r = await applyOwn(rt, { type: 'IDLE' })

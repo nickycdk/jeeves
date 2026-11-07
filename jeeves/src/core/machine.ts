@@ -17,7 +17,8 @@ export type Input =
   /** `fromTool`: read at a main-loop tool result, so after a model call (D-25 counts only those as a session's start). */
   | { type: 'MEASURE'; percent?: number; tokens?: number; window: number; sessionId: string; fromTool?: boolean }
   | { type: 'ROTATE_CMD' }
-  | { type: 'COMPACTED' }
+  /** A compaction of the main conversation stood (ADR-006); `trigger` as the engine named it. */
+  | { type: 'COMPACTED'; trigger?: string }
   /** A tool call finished: `entry` goes to the ledger; on the main loop it is also the soft-quiesce point. */
   /** `reading`: the main conversation's context read at this tool result (mid-turn readings, see TOOL_RESULT). */
   | { type: 'TOOL_RESULT'; main: boolean; entry?: LedgerRecord; reading?: { percent?: number; tokens?: number; window: number; sessionId: string } }
@@ -166,7 +167,7 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
     return done()
   }
 
-  const request = (trigger: Trigger): Output => {
+  const request = (trigger: Trigger, detail?: string): Output => {
     // ST-4.5 guards, before anything is asked of Claude.
     if (state.consecutiveFailures >= ctx.config.maxConsecutiveFailures) {
       const last = state.lastErrorCode ?? 'API_ERROR'
@@ -183,7 +184,7 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
       rotationId: ctx.newRotationId, trigger, requestedAt: at, sourceSessionId: null, targetSessionId: null,
       step: 'REQUESTED', retries: 0, quiesceCount: 0, noteAppended: false,
     }
-    go('ROTATION_REQUESTED', trigger, { rotation, armedFired: true }, trigger === 'THRESHOLD' ? `context ${next.lastContext?.percent ?? '?'}%` : '')
+    go('ROTATION_REQUESTED', trigger, { rotation, armedFired: true }, detail ?? (trigger === 'THRESHOLD' ? `context ${next.lastContext?.percent ?? '?'}%` : ''))
     return done()
   }
 
@@ -263,7 +264,7 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
     case 'ROTATE_CMD':
     case 'COMPACTED':
       if (state.status !== 'MONITORING' && state.status !== 'CONTINUING') return ignore(ROTATION_STATES.includes(state.status) ? 'a rotation is already in progress' : 'no automatic rotation from this state')
-      return request(input.type === 'ROTATE_CMD' ? 'MANUAL' : 'COMPACTED')
+      return request(input.type === 'ROTATE_CMD' ? 'MANUAL' : 'COMPACTED', input.type === 'COMPACTED' && input.trigger ? `after ${input.trigger} compaction` : undefined)
 
     case 'TOOL_RESULT':
       if (state.status === 'DISABLED') return ignore('no active task')
