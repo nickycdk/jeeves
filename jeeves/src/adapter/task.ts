@@ -14,7 +14,7 @@ import { foldTask, newTaskState, parseRevision, renderChange, revFile, type Chan
 import { DEFAULT_CONFIG, INERT, SCHEMA_VERSION, type ReasonCode, type State } from '../core/types.ts'
 import { runEffects, type EffectResult } from './effects.ts'
 import { gitFacts } from './git.ts'
-import type { Runtime } from './runtime.ts'
+import type { CrashPoint, Runtime } from './runtime.ts'
 import { sha256Hex, StorageError } from './storage.ts'
 
 export type Task = { state: State; dir: string }
@@ -94,6 +94,17 @@ async function blockOnDisk(rt: Runtime, dir: string, prev: State, err: unknown):
   }
 }
 
+/**
+ * Test-only fault injection (ST-6.7): at the configured point, log a marker and never return, as if the process died
+ * there. Nothing after it runs in this process; the live driver kills it on the marker, a mod test restarts as a new
+ * session. A no-op unless JEEVES_TEST=1 and JEEVES_TEST_CRASH name this point.
+ */
+export async function crashPoint(rt: Runtime, point: CrashPoint): Promise<void> {
+  if (rt.crashAt !== point) return
+  rt.port.log(`jeeves: crash point ${point}`)
+  await new Promise<never>(() => {})
+}
+
 /** Apply an input to the task in `dir`; null when its state cannot be read. */
 export function apply(rt: Runtime, dir: string, input: Input): Promise<Applied | null> {
   return rt.serial(async () => {
@@ -124,6 +135,7 @@ export async function recordTool(rt: Runtime, o: ToolOutcome): Promise<Applied |
   const u = main ? await rt.port.usage().catch(() => null) : null
   const reading = u && u.percent !== undefined ? { window: u.window, sessionId: await rt.port.sessionId(), percent: exactPercent(u)!, ...(u.tokens !== undefined ? { tokens: u.tokens } : {}) } : undefined
   const r = await applyOwn(rt, { type: 'TOOL_RESULT', main, ...(entry ? { entry } : {}), ...(reading ? { reading } : {}) })
+  if (r?.state.status === 'ROTATION_REQUESTED') await crashPoint(rt, 'threshold')
   if (r?.forHook.some(f => f.type === 'APPEND_NOTE')) await rt.port.appendHiddenNote(QUIESCE_NOTE)
   return r
 }
@@ -287,7 +299,9 @@ const exactPercent = (c: { percent?: number; tokens?: number; window: number }) 
 export async function measure(rt: Runtime, c: { percent?: number; tokens?: number; window: number }): Promise<Applied | null> {
   const sessionId = await rt.port.sessionId()
   const percent = exactPercent(c)
-  return applyOwn(rt, { type: 'MEASURE', window: c.window, sessionId, ...(percent !== undefined ? { percent } : {}), ...(c.tokens !== undefined ? { tokens: c.tokens } : {}) })
+  const r = await applyOwn(rt, { type: 'MEASURE', window: c.window, sessionId, ...(percent !== undefined ? { percent } : {}), ...(c.tokens !== undefined ? { tokens: c.tokens } : {}) })
+  if (r?.state.status === 'ROTATION_REQUESTED') await crashPoint(rt, 'threshold')
+  return r
 }
 
 /** The session ends for good (exit, logout, resume elsewhere): give up its lock so the next session can resume at once. Task state is kept. */
@@ -324,6 +338,7 @@ const clearingHere = (endedHere: ReadonlySet<string>) => (t: Task) =>
 export async function onFreshSession(rt: Runtime, sessionId: string, endedHere: ReadonlySet<string>): Promise<string | null> {
   const t = (await projectTasks(rt)).tasks.find(clearingHere(endedHere))
   if (!t) return null
+  await crashPoint(rt, 'before-inject')
   const h = await latestHandover(rt, t.dir, t.state)
   const r = await apply(rt, t.dir, { type: 'SESSION_START_CLEAR', sessionId, handoverOk: h.ok && h.text !== null })
   if (!r?.forHook.some(f => f.type === 'INJECT_CONTEXT')) return null
@@ -369,6 +384,7 @@ export async function onStop(rt: Runtime, info: StopInfo): Promise<string | null
   }
   const block = r.forHook.find(f => f.type === 'BLOCK_STOP')
   if (block?.type === 'BLOCK_STOP' && block.kind === 'handover-request' && rotationId) {
+    await crashPoint(rt, 'mid-handover')
     return handoverInstruction({ taskId: r.state.taskId, rotationId, maxChars: DEFAULT_CONFIG.handoverMaxChars, facts: captured })
   }
   return null
@@ -467,7 +483,9 @@ async function handoverStop(rt: Runtime, own: Task, info: StopInfo): Promise<str
     } catch (err) {
       rt.port.log(`jeeves: handover not saved: ${why(err)}`)
     }
-    await applyOwn(rt, ref ? { type: 'HANDOVER_PERSISTED', ok: true, ref } : { type: 'HANDOVER_PERSISTED', ok: false })
+    if (ref) await crashPoint(rt, 'after-persist')
+    const p = await applyOwn(rt, ref ? { type: 'HANDOVER_PERSISTED', ok: true, ref } : { type: 'HANDOVER_PERSISTED', ok: false })
+    if (p?.state.status === 'ROTATING') await crashPoint(rt, 'before-clear')
     return null
   }
   const retry = r.forHook.find(f => f.type === 'BLOCK_STOP' && f.kind === 'handover-retry')
@@ -576,6 +594,7 @@ export const FRESH_CONTINUE_MS = 1000
  * the fresh session's timer; the serial queue and the reducer let only the first one submit.
  */
 async function continueFresh(rt: Runtime, dir: string): Promise<void> {
+  await crashPoint(rt, 'before-submit')
   const r = await apply(rt, dir, { type: 'CONTEXT_READY' })
   const submit = r?.forHook.find(f => f.type === 'SUBMIT_CONTINUATION')
   // Not RESTORING: the other path already continued, or (live) the /clear is only queued and the timer will.

@@ -461,6 +461,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **DoD:** standard.
 
 ### ST-6.7 Crash matrix harness — L
+- **Status:** Solved (M5; `tests/mod/crash.test.ts`, `npm run crash:report` -> `evidence/m5-crash/crash-matrix.md`, 6/6). The test-only flag `JEEVES_TEST_CRASH=<point>` (with `JEEVES_TEST=1`) makes the plugin log `jeeves: crash point <point>` and never return, which is a dead process from the plugin's view; the mod test restarts as a new session, the live demo's driver kills the real process on the marker. "No duplicated edit" is asserted as: one continuation, no handover file written twice, continuation built from the saved handover.
 - **Cites:** AC-16, NFR-04.
 - **Scope:** fault-injection env flag (test-only) that kills the process at named points: after THRESHOLD, mid-handover, after persist before swap, after swap before `/clear`, after `/clear` before inject, after inject before submit; then restart + `/relay recover`; assert exactly one continuation and no duplicated edit.
 - **Depends on:** ST-6.1, ST-4.8.

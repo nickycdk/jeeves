@@ -26,7 +26,13 @@ export type Runtime = {
   thresholdOverride: number | null
   /** Test-only relative threshold (D-25): `JEEVES_TEST_THRESHOLD_OVERRIDE=+d`, d in (0, 50]: rotate at this session's first reading + d. */
   thresholdRelative: number | null
+  /** Test-only fault injection (ST-6.7): `JEEVES_TEST_CRASH=<point>` with JEEVES_TEST=1 stops this process dead there. */
+  crashAt: CrashPoint | null
 }
+
+/** The crash matrix's points (ST-6.7), in rotation order. */
+export const CRASH_POINTS = ['threshold', 'mid-handover', 'after-persist', 'before-clear', 'before-inject', 'before-submit'] as const
+export type CrashPoint = (typeof CRASH_POINTS)[number]
 
 /** `autoRecover`: run /relay recover by itself at session start when a task waits for it (userConfig, default off). */
 export type Options = { stateDir?: string | undefined; autoRecover?: boolean }
@@ -56,10 +62,12 @@ async function build($: EngineInterface, options: Options): Promise<Runtime> {
   const raw = (await port.env('JEEVES_TEST')) === '1' ? (await port.env('JEEVES_TEST_THRESHOLD_OVERRIDE'))?.trim() : undefined
   const relative = raw?.startsWith('+') ? Number(raw.slice(1)) : NaN
   const override = raw && !raw.startsWith('+') ? Number(raw) : NaN
+  const crash = (await port.env('JEEVES_TEST')) === '1' ? (await port.env('JEEVES_TEST_CRASH'))?.trim() : undefined
   return {
     port, storage, probe, stateRoot, stateRootError, identity: id, projectId: pid,
     projectDir: stateRoot && pid ? projectDir(stateRoot, pid) : null, serial: createQueue(),
     thresholdOverride: Number.isFinite(override) && override >= 1 && override <= 99 ? override : null,
     thresholdRelative: Number.isFinite(relative) && relative > 0 && relative <= 50 ? relative : null,
+    crashAt: (CRASH_POINTS as readonly string[]).includes(crash ?? '') ? crash as CrashPoint : null,
   }
 }

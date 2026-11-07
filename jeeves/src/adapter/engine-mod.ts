@@ -23,6 +23,7 @@ export function fsPort($: EngineInterface): FsPort {
         case 'JEEVES_TEST': return $.env.get('JEEVES_TEST')
         case 'JEEVES_STATE_DIR': return $.env.get('JEEVES_STATE_DIR')
         case 'JEEVES_TEST_THRESHOLD_OVERRIDE': return $.env.get('JEEVES_TEST_THRESHOLD_OVERRIDE')
+        case 'JEEVES_TEST_CRASH': return $.env.get('JEEVES_TEST_CRASH')
       }
     },
   }
