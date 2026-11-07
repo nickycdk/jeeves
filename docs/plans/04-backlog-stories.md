@@ -7,7 +7,7 @@ Stories are listed in dependency order; implement top to bottom. IDs are `ST-<ep
 
 Module names refer to `02-architecture-and-adrs.md` §3.
 
-**Progress (2026-11-07):** E0, E1, E2, E3 and E4/E5 (M4) solved, plus ST-7.3. Each solved story has a **Status** line under its heading. Everything without one is open.
+**Progress (2026-11-07):** E0, E1, E2, E3 solved; E4/E5 (M4) built, all but ST-4.8 solved (its live two-rotation run is open); plus ST-7.3. Each solved story has a **Status** line under its heading. Everything without one is open.
 
 ---
 
@@ -372,7 +372,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **DoD:** standard.
 
 ### ST-4.8 Fixture task and two-rotation PTY E2E harness — L
-- **Status:** Harness built (312d007, 23f24f2); live gate evidence: see M4 gate.
+- **Status:** Partial. Harness, fixture and driver built and run live 4 times (312d007 … 1691d49); runs complete the task unattended with zero keystrokes and one commit per step, but none rotated (`evidence/m4-e2e/RESULT.md`). AC (1) open.
 - **Cites:** AC-10, AC-11, AC-12; §14.3.
 - **Scope:** `fixtures/build-repo.ts` (creates git repos: clean, dirty, detached, worktrees, failing tests); fixture task "implement 6 small functions with tests in order, one per step" sized to force rotations; `tests/pty/driver.ts` (generalised spike driver) with env flag `JEEVES_TEST_THRESHOLD_OVERRIDE` honoured only when `JEEVES_TEST=1` so rotations happen at low % cheaply; assertions on event log + git state.
 - **Depends on:** ST-4.5, ST-5.2 (for clean end) — harness can start earlier with rotation-only assertions.
