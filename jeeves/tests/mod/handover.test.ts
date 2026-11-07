@@ -1,51 +1,7 @@
 // ST-3.8 / AC-08, AC-09, AC-17: the handover Stop sequence through the hooks: validate, persist write-once with a
 // verified hash before anything can clear, retries with specific errors, then NEEDS_REVIEW with nothing touched.
-import type { SessionMeasureInput, ToolCallResult } from 'claude-code'
 import { expect, test } from 'claude-code/testing'
-import { bottom, PROMPT, relay, start, stateOf, submit, taskDirs, until, type Kit } from './kit.ts'
-import { memHost } from './memfs.ts'
-
-const ROOT = '/work/proj'
-/** A handover in the instruction's format; `over` replaces lines of it. */
-function handover(taskId: string, rotationId: string, over: Record<string, string> = {}) {
-  let t = [
-    `<<<JEEVES-HANDOVER v1 task=${taskId} rotation=${rotationId}`,
-    '## Completed since last handover', '- [verified] Added `sub` to `src/calc.js`.',
-    '## Decisions and constraints', '- [inferred] Keep zero dependencies.',
-    '## Tests and checks', '- [verified] `npm test` fails: 2 cases.',
-    '## Open work and blockers', '- [unknown] Whether unary minus is in scope.',
-    '## Exact next actions', '1. [inferred] Fix precedence in `src/parse.js`.',
-    '## Do not repeat / do not change', '- [verified] Do not touch `src/tokenize.js`.',
-    'JEEVES-HANDOVER>>>',
-  ].join('\n')
-  for (const [from, to] of Object.entries(over)) t = t.replace(from, to)
-  return t
-}
-const sha256 = async (t: string) => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t)))].map(b => b.toString(16).padStart(2, '0')).join('')
-const stop = ($: Kit, message: string) => $.classic.Stop({ stop_hook_active: true, last_assistant_message: message, background_tasks: [], session_crons: [] })
-
-/** A task whose handover was just requested: the safe Stop already answered with the instruction. */
-async function generating($: Kit, on: Parameters<typeof memHost>[0]) {
-  const h = memHost(on)
-  bottom(on)
-  const clears: string[] = []
-  on('command.run', (_, e) => { clears.push(e.command); return { text: '' } })
-  on('tool.call', (_, e) => (((e as { command?: string }).command ?? '').startsWith('npm test')
-    ? { isError: true, result: 'Exit code 1', text: 'Exit code 1' } : { result: { stdout: '', stderr: '', interrupted: false }, text: '' }) as ToolCallResult)
-  for (const f of ['src/calc.js', 'src/parse.js', 'src/tokenize.js']) h.files.set(`${ROOT}/${f}`, '// code\n')
-  await start($)
-  await relay($, 'on')
-  await submit($, PROMPT)
-  const dir = taskDirs(h)[0]!
-  await $.tool.call({ tool: 'Bash', command: 'npm test' })
-  await until(h, () => stateOf(h, dir).ledger.length === 1)
-  await $.session.measure({ context: { window: 1_000_000, percent: 52 }, rateLimits: [], changed: ['context'] } satisfies SessionMeasureInput)
-  const ask = await $.classic.Stop({ stop_hook_active: false, last_assistant_message: 'step done', background_tasks: [], session_crons: [] })
-  expect(ask.block).toContain('JEEVES-HANDOVER')
-  const s = stateOf(h, dir)
-  expect(s.status).toBe('HANDOVER_GENERATING')
-  return { h, dir, clears, taskId: s.taskId as string, rotationId: s.rotation.rotationId as string }
-}
+import { generating, handover, sha256, stateOf, stop } from './kit.ts'
 
 test('AC-08: a valid handover is written once, hash-verified, copied to handover.md, and only then ROTATING; nothing is cleared yet', async ($, on) => {
   const { h, dir, clears, taskId, rotationId } = await generating($, on)

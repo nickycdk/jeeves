@@ -15,7 +15,8 @@ How `src/core/machine.ts` reads the table where it is open to interpretation:
 - Resume after USER_CLEAR enters RESTORING with a new MANUAL rotation and injects context by append (restore path, 02 §5.3); `CONTEXT_READY` then moves RESTORING -> CONTINUING in both paths.
 - Stop (M3): only a main-loop `classic.Stop` counts, and not when another hook beneath already blocked it (the turn goes on). Safe = no background task and no `running` agent (crons only listed). The handover Stop is checked again for in-flight work: if any, the handover counts as invalid (retry). A handover outcome can be `fatal` (the branch moved during the handover, or git did not answer): NEEDS_REVIEW(REPO_MISMATCH or HANDOVER_INVALID) at once, no retry.
 - Validation (D-20): file paths, branch/HEAD and "passed" claims are checked in `[verified]` bullets and under "Tests and checks"; `[inferred]`/`[unknown]` bullets are guesses and are not checked.
-- `turn.complete` is wired only for main-loop interrupts in M3 (HANDOVER_GENERATING -> PAUSED(USER_INTERRUPT)); the ROTATING -> RUN_CLEAR row is wired by ST-4.1, so M3 never clears.
+- `turn.complete` (main loop): an interrupt in HANDOVER_GENERATING pauses (USER_INTERRUPT). In ROTATING at step HANDOVER_PERSISTED the adapter re-reads the saved handover and passes `handoverVerified`; only true gives RUN_CLEAR (run by the adapter from `$.clock.after(0)`, once per rotation by the persisted step), anything else gives NEEDS_REVIEW(HANDOVER_INVALID) (ST-4.1).
+- `IDLE` (D-23): the main loop has no open turn while ROTATION_REQUESTED, so no Stop will come by itself; the adapter submits one nudge prompt per rotation (`rotation.nudged`). It is raised after a normal turn end and after a reading taken with no turn open.
 - Every input not listed for a state is a no-op that returns a reason (`ignored`).
 
 ```mermaid

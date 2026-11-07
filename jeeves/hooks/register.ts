@@ -3,7 +3,7 @@ import type { CommandRunInput, EngineInterface, Register, Timer, ToolCallInput, 
 import type { ToolOutcome } from '../src/core/evidence.ts'
 import { chooseCommandName, FALLBACK, PRIMARY, relay } from '../src/adapter/commands.ts'
 import { runtime, type Options } from '../src/adapter/runtime.ts'
-import { captureFirstPrompt, heartbeat, measure, onAbortedTurn, onStop, onUserClear, recordTool, releaseOnExit, why } from '../src/adapter/task.ts'
+import { captureFirstPrompt, heartbeat, measure, nudgeIfWaiting, onStop, onTurnComplete, onUserClear, recordTool, releaseOnExit, why } from '../src/adapter/task.ts'
 import { HEARTBEAT_MS } from '../src/core/lock.ts'
 
 
@@ -33,6 +33,8 @@ export const register: Register = (on, options) => {
   // Which name this process registered; rebuilt by session.start after a reload.
   let commandName: typeof PRIMARY | typeof FALLBACK | null = null
   let beat: Timer | null = null
+  // Whether a main-loop turn is open: engine state, not task state. Starts idle (a reload mid-turn at worst queues one nudge).
+  let turnOpen = false
 
   on('session.start', async ($, e, next) => {
     const rt = await runtime($, opts, true)
@@ -55,7 +57,11 @@ export const register: Register = (on, options) => {
 
   // ST-2.3: only a context change counts; rate-limit or cost changes never move the reading (AC-04).
   on('session.measure', async ($, e, next) => {
-    if (e.changed.includes('context')) await quietly($, opts, 'measure', rt => measure(rt, e.context))
+    if (e.changed.includes('context')) await quietly($, opts, 'measure', async rt => {
+      await measure(rt, e.context)
+      // Q-10: a reading that crosses the threshold after the turn ended finds Claude idle (D-23).
+      if (!turnOpen) await nudgeIfWaiting(rt)
+    })
     return next(e)
   })
   // A user's /clear pauses the task (USER_CLEAR); any other end gives the lock up, state untouched.
@@ -75,9 +81,16 @@ export const register: Register = (on, options) => {
     void quietly($, opts, 'ledger', rt => recordTool(rt, outcome(e, r)))
     return r
   }).catch(($, e, next) => next(e))
-  // A user interrupt during a handover pauses the task. Running /clear after the turn is ST-4.1 (M4).
+  on('turn.start', async ($, e, next) => {
+    if (e.agentId === undefined) turnOpen = true
+    return next(e)
+  })
+  // ST-4.1: after the handover turn, /clear; an interrupt during a handover pauses; an idle request gets its nudge.
   on('turn.complete', async ($, e, next) => {
-    if (e.isAborted && e.agentId === undefined) await quietly($, opts, 'turn end', onAbortedTurn)
+    if (e.agentId === undefined) {
+      turnOpen = false
+      await quietly($, opts, 'turn end', rt => onTurnComplete(rt, e.isAborted ? 'aborted' : e.reason))
+    }
     return next(e)
   })
   on('session.compact', ($, e, next) => next(e))

@@ -8,13 +8,14 @@ import type { Storage } from './storage.ts'
 export type EffectResult = {
   /** Effects the calling hook must turn into its own answer. */
   forHook: Effect[]
-  /** Inputs to feed back into the reducer (e.g. CLEAR_FAILED when /clear rejects). */
+  /** Inputs to feed back into the reducer. */
   followUps: Input[]
   /** Effects that failed, with why; the caller logs them (an effect failure never throws into a hook). */
   failed: { effect: Effect; error: string }[]
 }
 
-const HOOK_BOUND = new Set<Effect['type']>(['BLOCK_STOP', 'INJECT_CONTEXT', 'CAPTURE_FACTS', 'PERSIST_HANDOVER', 'APPEND_NOTE', 'SUBMIT_CONTINUATION'])
+// RUN_CLEAR and SUBMIT_NUDGE wait for the hook to return (a turn.complete hook holds the turn), so the caller schedules them.
+const HOOK_BOUND = new Set<Effect['type']>(['BLOCK_STOP', 'INJECT_CONTEXT', 'CAPTURE_FACTS', 'PERSIST_HANDOVER', 'APPEND_NOTE', 'SUBMIT_CONTINUATION', 'RUN_CLEAR', 'SUBMIT_NUDGE'])
 
 /** Run effects in order. `state` is the state after the transition (already persisted by the caller). */
 export async function runEffects(effects: Effect[], deps: { port: EnginePort; storage: Storage; taskDir: string; state: State }): Promise<EffectResult> {
@@ -39,9 +40,6 @@ export async function runEffects(effects: Effect[], deps: { port: EnginePort; st
           break
         case 'TRANSFER_LOCK':
           if (effect.from && !(await storage.transferLock(taskDir, effect.from, effect.to, state.updatedAt))) throw new Error(`lock not owned by ${effect.from}`)
-          break
-        case 'RUN_CLEAR':
-          try { await port.runCommand('clear') } catch { out.followUps.push({ type: 'CLEAR_FAILED' }) }
           break
       }
     } catch (err) {

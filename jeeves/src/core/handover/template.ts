@@ -3,6 +3,9 @@
 /** The one hidden note per rotation, at the first main-loop tool result after the threshold (S-03: 5/5, no further tool calls). */
 export const QUIESCE_NOTE = 'Jeeves: the context threshold was reached. Finish the step you are on, do not start any new step or tool call, and end your turn now with a one-line summary of what is done and what is left.'
 
+/** The one prompt Jeeves submits when a handover request finds Claude idle, so a Stop comes without the user (D-23, ST-4.7). */
+export const NUDGE_PROMPT = 'Jeeves: prepare handover. The context threshold was reached. Do not start new work or run any tool; reply with one short line saying what is done. Jeeves will then ask for the handover.'
+
 export const HEADINGS = ['Completed since last handover', 'Decisions and constraints', 'Tests and checks', 'Open work and blockers', 'Exact next actions', 'Do not repeat / do not change'] as const
 export const OPEN = '<<<JEEVES-HANDOVER v1'
 export const CLOSE = 'JEEVES-HANDOVER>>>'

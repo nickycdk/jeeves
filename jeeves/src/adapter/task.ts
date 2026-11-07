@@ -3,7 +3,7 @@
 import { capturedFacts, toolRecord, type ToolOutcome } from '../core/evidence.ts'
 import { parseHandover } from '../core/handover/parse.ts'
 import { handoverFile, renderHandover, roundTrips } from '../core/handover/render.ts'
-import { handoverInstruction, QUIESCE_NOTE, retryInstruction, type CapturedFacts } from '../core/handover/template.ts'
+import { handoverInstruction, NUDGE_PROMPT, QUIESCE_NOTE, retryInstruction, type CapturedFacts } from '../core/handover/template.ts'
 import { mentionedPaths, validateHandover } from '../core/handover/validate.ts'
 import { isSafe, reduce, type Input } from '../core/machine.ts'
 import { newRotationId, newTaskId } from '../core/ids.ts'
@@ -13,6 +13,7 @@ import { DEFAULT_CONFIG, type ReasonCode, type State } from '../core/types.ts'
 import { runEffects, type EffectResult } from './effects.ts'
 import { gitFacts } from './git.ts'
 import type { Runtime } from './runtime.ts'
+import { sha256Hex } from './storage.ts'
 
 export type Task = { state: State; dir: string }
 
@@ -320,5 +321,40 @@ async function handoverStop(rt: Runtime, own: Task, info: StopInfo): Promise<str
   return retry?.type === 'BLOCK_STOP' ? retryInstruction({ taskId: s.taskId, rotationId: rotation.rotationId, errors: retry.errors }) : null
 }
 
-/** A main-loop turn the user interrupted: a handover in progress pauses (USER_INTERRUPT); nothing else changes. */
-export const onAbortedTurn = (rt: Runtime) => applyOwn(rt, { type: 'TURN_COMPLETE', reason: 'aborted' })
+/** The validated handover `ref` (`history/handover-NNN.md#sha256:<hex>`) is on disk and unchanged. */
+export async function handoverIntact(rt: Runtime, dir: string, ref: string | null): Promise<boolean> {
+  const m = ref ? /^(.+)#sha256:([0-9a-f]{64})$/.exec(ref) : null
+  if (!m) return false
+  const text = await rt.port.read(join(dir, m[1]!)).catch(() => null)
+  return text !== null && (await sha256Hex(text)) === m[2]
+}
+
+/**
+ * A main-loop turn ended (ST-4.1). A user interrupt during a handover pauses (USER_INTERRUPT). In ROTATING with the
+ * handover persisted, `/clear` runs once the hook has returned; the reducer's step (persisted) makes it once per rotation.
+ * A request still waiting for a Stop after a normal turn end gets the nudge (D-23).
+ */
+export async function onTurnComplete(rt: Runtime, reason: 'answer' | 'aborted' | 'refusal' | 'error'): Promise<void> {
+  const own = ownTask((await projectTasks(rt)).tasks, await rt.port.sessionId())
+  if (!own) return
+  const handoverVerified = own.state.status === 'ROTATING' ? await handoverIntact(rt, own.dir, own.state.lastValidatedHandover) : undefined
+  const r = await applyOwn(rt, { type: 'TURN_COMPLETE', reason, ...(handoverVerified !== undefined ? { handoverVerified } : {}) })
+  if (r?.forHook.some(f => f.type === 'RUN_CLEAR')) rt.port.after(0, () => void runClear(rt, own.dir))
+  else if (reason !== 'aborted') await nudgeIfWaiting(rt)
+}
+
+/** Claude is idle while a rotation waits for a Stop: submit the one nudge prompt for this rotation (D-23). */
+export async function nudgeIfWaiting(rt: Runtime): Promise<void> {
+  const r = await applyOwn(rt, { type: 'IDLE' })
+  if (r?.forHook.some(f => f.type === 'SUBMIT_NUDGE')) rt.port.submitPromptSoon(NUDGE_PROMPT, err => rt.port.log(`jeeves: nudge not sent: ${why(err)}`))
+}
+
+/** The scheduled `/clear` (ST-4.1). A rejection means automatic rotation is unavailable here (ST-4.6). */
+async function runClear(rt: Runtime, dir: string): Promise<void> {
+  try {
+    await rt.port.runCommand('clear')
+  } catch (err) {
+    rt.port.log(`jeeves: /clear rejected: ${why(err)}`)
+    await apply(rt, dir, { type: 'CLEAR_FAILED' })
+  }
+}

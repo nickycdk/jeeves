@@ -15,7 +15,6 @@ const aborted = ($: Kit) => $.turn.complete({ answer: '', durationMs: 5, isAbort
 async function requested($: Kit, on: Parameters<typeof memHost>[0]) {
   const h = memHost(on)
   bottom(on)
-  on('turn.complete', (_, e) => ({ text: e.answer }))
   await start($)
   await relay($, 'on')
   await submit($, PROMPT)

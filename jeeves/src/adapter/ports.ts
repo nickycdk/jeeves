@@ -32,6 +32,8 @@ export interface EnginePort extends FsPort {
   cwd(): Promise<string>
   usage(): Promise<Usage>
   runCommand(name: 'clear'): Promise<void>
+  /** Run `fn` once the current hook has returned (`$.clock.after`). */
+  after(ms: number, fn: () => void): void
   submitPrompt(text: string): Promise<void>
   /** Submit once the current hook has returned (a command.run hook may not submit: it holds the turn). */
   submitPromptSoon(text: string, onError: (err: unknown) => void): void

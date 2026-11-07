@@ -72,6 +72,8 @@ export type Rotation = {
   quiesceCount: number
   /** Whether the one soft-quiesce note for this rotation was appended (ADR-004). */
   noteAppended: boolean
+  /** Whether the one "prepare handover" prompt was sent because the request found Claude idle (D-23). */
+  nudged?: boolean
 }
 
 /** A context reading; `percent` absent means unknown, never 0 (AC-06). */

@@ -38,6 +38,7 @@ export function enginePort($: EngineInterface): EnginePort {
       return { window: c.window, ...(c.percent !== undefined ? { percent: c.percent } : {}), ...(c.tokens !== undefined ? { tokens: c.tokens } : {}) }
     },
     runCommand: async name => { await $.command.run({ command: name, args: '' }) },
+    after: (ms, fn) => { $.clock.after(ms, fn) },
     submitPrompt: async text => { await $.prompt.submit({ text }) },
     submitPromptSoon: (text, onError) => { $.clock.after(0, () => { $.prompt.submit({ text }).catch(onError) }) },
     appendHiddenNote: async text => { await $.session.append({ message: { type: 'user', content: [{ type: 'text', text }] } }) },

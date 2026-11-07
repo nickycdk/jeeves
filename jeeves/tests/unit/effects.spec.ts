@@ -12,7 +12,7 @@ function fakeEngine(over: Partial<EnginePort> = {}) {
   const port: EnginePort = {
     ...nodePort(),
     version: async () => ({ version: '2.1.319' }), sessionId: async () => 'sess-a', cwd: async () => '/w',
-    usage: async () => ({ window: 1 }), runCommand: async n => { commands.push(n) }, submitPrompt: async () => {}, submitPromptSoon: () => {}, firstActivation: async () => false,
+    usage: async () => ({ window: 1 }), runCommand: async n => { commands.push(n) }, after: (_ms, fn) => fn(), submitPrompt: async () => {}, submitPromptSoon: () => {}, firstActivation: async () => false,
     appendHiddenNote: async () => {}, runningAgents: async () => 0, status: () => {}, toast: t => { toasts.push(t) }, log: () => {}, now: async () => Date.parse(AT),
     ...over,
   }
@@ -30,23 +30,22 @@ test('runs generic effects in order and hands hook-bound ones back', async () =>
     { type: 'RUN_CLEAR', key: 'r1:CLEAR_SCHEDULED' },
   ]
   const r = await runEffects(effects, { port, storage, taskDir: dir, state: validState({ status: 'ROTATION_REQUESTED', rotation: { rotationId: 'r1', trigger: 'THRESHOLD', requestedAt: AT, sourceSessionId: null, targetSessionId: null, step: 'REQUESTED', retries: 0, quiesceCount: 0, noteAppended: false } }) })
-  assert.deepEqual(r.forHook.map(e => e.type), ['BLOCK_STOP'])
+  // RUN_CLEAR is the hook's to schedule (a turn.complete hook holds the turn), so nothing ran /clear here.
+  assert.deepEqual(r.forHook.map(e => e.type), ['BLOCK_STOP', 'RUN_CLEAR'])
   assert.deepEqual(r.failed, [])
   assert.deepEqual(toasts, ['hello'])
-  assert.deepEqual(commands, ['clear'])
+  assert.deepEqual(commands, [])
   const [line] = await storage.readEvents(dir)
   assert.deepEqual(JSON.parse(line!).rotationId, 'r1')
 })
 
-test('/clear rejecting feeds CLEAR_FAILED back; a failing effect is reported, not thrown', async () => {
+test('a failing effect is reported, not thrown', async () => {
   const dir = await tempDir()
   const storage = createStorage(nodePort())
-  const { port } = fakeEngine({ runCommand: async () => { throw new Error('not allowed') } })
+  const { port } = fakeEngine()
   const r = await runEffects([
-    { type: 'RUN_CLEAR', key: 'r1:CLEAR_SCHEDULED' },
     { type: 'TRANSFER_LOCK', key: 'r1:lock', from: 'nobody', to: 'sess-b' },
   ], { port, storage, taskDir: dir, state: validState() })
-  assert.deepEqual(r.followUps, [{ type: 'CLEAR_FAILED' }])
   assert.equal(r.failed.length, 1)
   assert.match(r.failed[0]!.error, /lock not owned by nobody/)
 })

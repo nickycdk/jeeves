@@ -19,7 +19,10 @@ export type Input =
   /** `fatal`: the handover cannot become valid by asking again (the branch moved, git did not answer): stop at once. */
   | { type: 'STOP'; backgroundTasks: number; runningAgents: number; handover?: { ok: true } | { ok: false; errors: string[]; fatal?: ReasonCode } }
   | { type: 'HANDOVER_PERSISTED'; ok: boolean; ref?: string }
-  | { type: 'TURN_COMPLETE'; reason: 'answer' | 'aborted' | 'refusal' | 'error' }
+  /** A main-loop turn ended. `handoverVerified`: the saved handover still matches its SHA-256 (read in ROTATING only). */
+  | { type: 'TURN_COMPLETE'; reason: 'answer' | 'aborted' | 'refusal' | 'error'; handoverVerified?: boolean }
+  /** The main loop is idle (no turn open), so no Stop will come by itself (D-23). */
+  | { type: 'IDLE' }
   | { type: 'SESSION_END'; reason: string; sessionId: string }
   | { type: 'SESSION_START_CLEAR'; sessionId: string }
   | { type: 'CLEAR_FAILED' }
@@ -41,6 +44,7 @@ export type Effect = Keyed & (
   | { type: 'BLOCK_STOP'; kind: 'handover-request' | 'handover-retry'; errors: string[] }
   | { type: 'PERSIST_HANDOVER' }
   | { type: 'RUN_CLEAR' }
+  | { type: 'SUBMIT_NUDGE' }
   | { type: 'INJECT_CONTEXT'; via: 'session-start' | 'append' }
   | { type: 'SUBMIT_CONTINUATION'; heldPrompts: string[] }
   | { type: 'TRANSFER_LOCK'; from: string | null; to: string }
@@ -245,11 +249,25 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
         return done()
       }
       if (state.status === 'ROTATING' && state.rotation!.step === 'HANDOVER_PERSISTED') {
+        // ST-4.1 AC 2: never /clear on a handover that changed or vanished since it was verified.
+        if (input.handoverVerified !== true) {
+          go('NEEDS_REVIEW', 'HANDOVER_INVALID', { rotation: null }, 'saved handover no longer matches its hash')
+          effects.push({ type: 'TOAST', key: key('changed'), text: 'The saved handover changed on disk, so Jeeves did not clear. Run /relay status.' })
+          return done()
+        }
         setRotation({ step: 'CLEAR_SCHEDULED' })
         effects.push({ type: 'RUN_CLEAR', key: key('CLEAR_SCHEDULED') })
         return done()
       }
       return ignore('nothing scheduled')
+
+    case 'IDLE':
+      // The request landed after the turn's Stop: one short prompt gets a Stop, so nothing waits for the user (D-23).
+      if (state.status !== 'ROTATION_REQUESTED') return ignore('no request waiting for a Stop')
+      if (state.rotation!.nudged) return ignore('already nudged')
+      setRotation({ nudged: true })
+      effects.push({ type: 'SUBMIT_NUDGE', key: key('nudge') })
+      return done()
 
     case 'SESSION_END':
       if (input.reason !== 'clear') return ignore(`end reason ${input.reason}`)

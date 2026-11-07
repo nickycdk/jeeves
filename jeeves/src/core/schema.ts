@@ -63,7 +63,7 @@ const contextReading = obj<NonNullable<State['lastContext']>>({
 const rotation = obj<NonNullable<State['rotation']>>({
   rotationId: str({ nonEmpty: true, max: 100 }), trigger: oneOf(TRIGGERS), requestedAt: iso,
   sourceSessionId: nullable(str({ nonEmpty: true })), targetSessionId: nullable(str({ nonEmpty: true })),
-  step: oneOf(ROTATION_STEPS), retries: int(0, 100), quiesceCount: int(0), noteAppended: bool,
+  step: oneOf(ROTATION_STEPS), retries: int(0, 100), quiesceCount: int(0), noteAppended: bool, nudged: { optional: bool },
 })
 const reason = nullable(oneOf(REASON_CODES))
 const cmdEntry = obj<CommandEntry>({
