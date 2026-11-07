@@ -28,7 +28,7 @@ export function pickTask<T extends { state: State }>(tasks: T[], sessionId: stri
  */
 export type Caller = { userTyped: boolean; idle?: boolean }
 
-const CHANGES = new Set(['on', 'off', 'dod', 'check', 'threshold', 'pause', 'resume', 'continue', 'rotate'])
+const CHANGES = new Set(['on', 'off', 'dod', 'check', 'threshold', 'pause', 'resume', 'continue', 'rotate', 'done'])
 
 export async function relay(rt: Runtime, args: string, caller: Caller): Promise<string> {
   const m = /^\s*(\S*)\s?([\s\S]*)$/.exec(args)!
@@ -62,6 +62,7 @@ export async function relay(rt: Runtime, args: string, caller: Caller): Promise<
     case 'resume': return resume(rt, tasks, me)
     case 'continue': return continueHere(rt, tasks, me)
     case 'rotate': return rotate(rt, tasks, me, caller.idle === true)
+    case 'done': return confirmDone(rt, tasks, me)
     default: return revise(rt, tasks, me, sub as 'dod' | 'check', rest)
   }
 }
@@ -123,6 +124,15 @@ async function rotate(rt: Runtime, tasks: Task[], me: string, idle: boolean): Pr
   if (!requested) return MSG.notRotatable(r?.state.status ?? own.state.status)
   if (idle) await nudgeIfWaiting(rt)
   return MSG.rotateRequested
+}
+
+/** ST-5.2 / ADR-007: the user confirms a completion that checks could not verify (recorded as the user's decision). */
+async function confirmDone(rt: Runtime, tasks: Task[], me: string): Promise<string> {
+  const target = tasks.find(t => t.state.status === 'NEEDS_REVIEW' && t.state.reason === 'DOD_UNMET')
+  if (!target) return MSG.nothingToConfirm
+  if (!(await takeLock(rt, target.dir, target.state.activeSessionId, me))) return MSG.lockHeld(target.state.taskId)
+  const r = await apply(rt, target.dir, { type: 'DONE_CMD', sessionId: me })
+  return r?.state.status === 'COMPLETED' ? MSG.confirmedDone(target.state.taskId) : MSG.nothingToConfirm
 }
 
 /** Assisted mode (ST-4.6, ADR-002): after the user's /clear, continue the task whose handover waits, in this fresh conversation. */

@@ -1,16 +1,17 @@
 // Managed-task wiring (02 §3): find the task, then read state -> reduce -> write state -> run effects.
 // Task state lives only in files; every cycle re-reads state.json inside the runtime's serial queue.
+import { completionInstruction, parseComplete } from '../core/completion.ts'
 import { changedFiles, continuationPrompt, freshContext } from '../core/continuation.ts'
 import { capturedFacts, toolRecord, type ToolOutcome } from '../core/evidence.ts'
 import { parseHandover } from '../core/handover/parse.ts'
 import { handoverFile, renderHandover, roundTrips } from '../core/handover/render.ts'
 import { handoverInstruction, NUDGE_PROMPT, QUIESCE_NOTE, retryInstruction, type CapturedFacts } from '../core/handover/template.ts'
 import { mentionedPaths, validateHandover } from '../core/handover/validate.ts'
-import { HELD_STATES, isSafe, reduce, type Input } from '../core/machine.ts'
+import { COMPLETION_STATES, HELD_STATES, isSafe, reduce, type Input } from '../core/machine.ts'
 import { newRotationId, newTaskId } from '../core/ids.ts'
 import { join } from '../core/paths.ts'
 import { foldTask, newTaskState, parseRevision, renderChange, revFile, type ChangeKind, type TaskView } from '../core/task.ts'
-import { DEFAULT_CONFIG, type ReasonCode, type State } from '../core/types.ts'
+import { DEFAULT_CONFIG, INERT, type ReasonCode, type State } from '../core/types.ts'
 import { runEffects, type EffectResult } from './effects.ts'
 import { gitFacts } from './git.ts'
 import type { Runtime } from './runtime.ts'
@@ -39,8 +40,8 @@ export async function projectTasks(rt: Runtime): Promise<{ tasks: Task[]; errors
   return { tasks: tasks.sort(recentFirst), errors }
 }
 
-/** The task this session owns (not DISABLED), if any. */
-export const ownTask = (tasks: Task[], sessionId: string) => tasks.find(t => t.state.activeSessionId === sessionId && t.state.status !== 'DISABLED') ?? null
+/** The task this session owns and that has not ended (not off, completed or failed), if any. */
+export const ownTask = (tasks: Task[], sessionId: string) => tasks.find(t => t.state.activeSessionId === sessionId && !ENDED.has(t.state.status)) ?? null
 /** The most recent task that still claims the project (not off, completed or failed). */
 export const liveTask = (tasks: Task[]) => tasks.find(t => !ENDED.has(t.state.status)) ?? null
 
@@ -264,7 +265,11 @@ export const factsFile = (rotationId: string) => `history/facts-${rotationId}.js
  */
 export async function onStop(rt: Runtime, info: StopInfo): Promise<string | null> {
   const own = ownTask((await projectTasks(rt)).tasks, await rt.port.sessionId())
-  if (!own || !STOP_STATES.has(own.state.status)) return null
+  if (!own) return null
+  // ST-5.2: a completion block is judged first; a rotation that has asked Claude nothing yet gives way to it.
+  const complete = COMPLETION_STATES.includes(own.state.status) ? parseComplete(info.message) : null
+  if (complete && (complete.taskId === null || complete.taskId === own.state.taskId)) return completionStop(rt, own, complete.blockers)
+  if (!STOP_STATES.has(own.state.status)) return null
   if (own.state.status === 'HANDOVER_GENERATING') return handoverStop(rt, own, info)
   // An agent list that cannot be read counts as one running agent: unsafe, so the quiesce limit still ends the wait.
   const runningAgents = await rt.port.runningAgents().catch(() => 1)
@@ -285,6 +290,30 @@ export async function onStop(rt: Runtime, info: StopInfo): Promise<string | null
     return handoverInstruction({ taskId: r.state.taskId, rotationId, maxChars: DEFAULT_CONFIG.handoverMaxChars, facts: captured })
   }
   return null
+}
+
+/**
+ * The Stop that carries Claude's JEEVES-COMPLETE block (ST-5.2, ADR-007). The reducer checks it against the ledger
+ * inside the serial queue (a check's entry lands before the Stop is applied). Missing evidence: one block listing
+ * the checks to run; still missing: NEEDS_REVIEW(DOD_UNMET); passing: COMPLETED with a summary and the lock released.
+ */
+async function completionStop(rt: Runtime, own: Task, blockers: string[]): Promise<string | null> {
+  const { view } = await readTask(rt, own.dir, own.state)
+  const r = await applyOwn(rt, { type: 'COMPLETE_BLOCK', commands: view.checks, blockers })
+  const ask = r?.forHook.find(f => f.type === 'BLOCK_STOP' && f.kind === 'completion-missing')
+  if (ask?.type !== 'BLOCK_STOP') return null
+  return [
+    'Jeeves: not marked done yet. Fix these, running each check with your Bash tool exactly as written and after your last edit, then reply with the JEEVES-COMPLETE block again:',
+    ...ask.errors.slice(0, 10).map(e => `- ${e}`),
+  ].join('\n')
+}
+
+/** The system-prompt section for this session's active task (ST-5.2): how to report completion. Null without one. */
+export async function taskSection(rt: Runtime): Promise<string | null> {
+  const own = ownTask((await projectTasks(rt)).tasks, await rt.port.sessionId())
+  if (!own || INERT.includes(own.state.status) || own.state.taskRevision < 1) return null
+  const { view } = await readTask(rt, own.dir, own.state)
+  return completionInstruction(own.state.taskId, view.checks)
 }
 
 export const why = (err: unknown) => (err instanceof Error ? err.message : String(err)).slice(0, 200)

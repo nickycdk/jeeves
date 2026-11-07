@@ -1,4 +1,5 @@
 // The state machine (02 §4): reduce(state, input, ctx) -> { state, effects }. Pure: time and IDs come in through ctx.
+import { evaluate } from './completion.ts'
 import type { LedgerRecord } from './evidence.ts'
 import { INERT, LEDGER_MAX, ROTATION_STATES, SCHEMA_VERSION, type Config, type Mode, type ReasonCode, type Rotation, type RotationStep, type SessionRecord, type State, type Status, type Trigger } from './types.ts'
 
@@ -39,7 +40,10 @@ export type Input =
   /** `/relay continue` in a fresh conversation (assisted mode, ST-4.6); the command already holds the lock. */
   | { type: 'CONTINUE_CMD'; sessionId: string }
   | { type: 'STOP_FAILURE'; error: string }
-  | { type: 'COMPLETE_BLOCK'; evidenceOk: boolean; missing: string[] }
+  /** Claude's JEEVES-COMPLETE block at a main-loop Stop: the task's verification commands and the block's blockers (ST-5.2). */
+  | { type: 'COMPLETE_BLOCK'; commands: string[]; blockers: string[] }
+  /** `/relay done`: the user confirms a completion Jeeves could not verify (ADR-007). */
+  | { type: 'DONE_CMD'; sessionId: string }
 
 export type InputType = Input['type']
 
@@ -49,7 +53,7 @@ export type Effect = Keyed & (
   | { type: 'TOAST'; text: string }
   | { type: 'APPEND_NOTE' }
   | { type: 'CAPTURE_FACTS' }
-  | { type: 'BLOCK_STOP'; kind: 'handover-request' | 'handover-retry'; errors: string[] }
+  | { type: 'BLOCK_STOP'; kind: 'handover-request' | 'handover-retry' | 'completion-missing'; errors: string[] }
   | { type: 'PERSIST_HANDOVER' }
   | { type: 'RUN_CLEAR' }
   | { type: 'SUBMIT_NUDGE' }
@@ -74,6 +78,8 @@ export const TEST_LOOP_MARGIN = 1
 export const THRESHOLD_MIN = 20
 export const THRESHOLD_MAX = 90
 export const isThreshold = (n: number) => Number.isInteger(n) && n >= THRESHOLD_MIN && n <= THRESHOLD_MAX
+/** Where a JEEVES-COMPLETE block counts: monitoring, or a rotation that has not asked Claude for anything yet. */
+export const COMPLETION_STATES: readonly Status[] = ['MONITORING', 'CONTINUING', 'ROTATION_REQUESTED', 'QUIESCING']
 export const HELD_STATES: readonly Status[] = ['HANDOVER_GENERATING', 'VALIDATING', 'ROTATING', 'RESTORING']
 /** The schema's cap on held prompts; past it a prompt goes through to the conversation instead. */
 export const HELD_MAX = 50
@@ -172,7 +178,7 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
     if (state.status === 'CONTINUING') {
       if (p === undefined) return done()
       if (p < T - loopMargin) {
-        go('MONITORING', null, { armedFired: false, rotation: null, sessionSequence: state.sessionSequence + 1, warnedSessionId: null }, `rearmed at ${p}%`)
+        go('MONITORING', null, { armedFired: false, rotation: null, sessionSequence: state.sessionSequence + 1, warnedSessionId: null, completionAsked: false }, `rearmed at ${p}%`)
         return done()
       }
       go('FAILED', 'POSSIBLE_LOOP', { rotation: null }, `fresh session already at ${p}%`)
@@ -438,15 +444,37 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
       return done()
     }
 
-    case 'COMPLETE_BLOCK':
-      if (state.status !== 'MONITORING' && state.status !== 'CONTINUING') return ignore('completion only while monitoring')
-      if (input.evidenceOk) {
-        go('COMPLETED', 'COMPLETED', { rotation: null })
-        effects.push({ type: 'RELEASE_LOCK', key: key('release') })
+    case 'COMPLETE_BLOCK': {
+      // A requested rotation that has asked Claude nothing yet gives way: a finished task needs no handover.
+      if (!COMPLETION_STATES.includes(state.status)) return ignore('completion only while monitoring or before a handover is asked')
+      if (input.commands.length === 0) {
+        go('NEEDS_REVIEW', 'DOD_UNMET', { rotation: null }, 'Claude reports done; the task has no verification commands')
+        effects.push({ type: 'TOAST', key: key('dod-none'), text: 'Claude says the task is done. It has no verification commands, so confirm with /relay done.' })
         return done()
       }
-      go('NEEDS_REVIEW', 'DOD_UNMET', { rotation: null }, `missing: ${input.missing.join(', ')}`)
-      effects.push({ type: 'TOAST', key: key('dod'), text: `Not marked done: checks missing (${input.missing.join(', ')}). /relay done confirms by hand.` })
+      const ev = evaluate(input.commands, state.ledger, input.blockers)
+      const missing = [...ev.missing.map(m => `\`${m.command}\`: ${m.why}`), ...ev.blockers.map(b => `blocker: ${b}`)]
+      if (ev.ok) {
+        const summary = `completed after ${state.rotationCount} rotation(s) in ${state.sessionSequence} session(s); checks passed: ${input.commands.map(c => `\`${c}\``).join(', ')}`
+        go('COMPLETED', 'COMPLETED', { rotation: null, completionAsked: false }, summary)
+        effects.push({ type: 'RELEASE_LOCK', key: key('release') }, { type: 'TOAST', key: key('completed'), text: `Task ${state.taskId} ${summary}.` })
+        return done()
+      }
+      if (!state.completionAsked) {
+        next = { ...next, completionAsked: true, updatedAt: at }
+        effects.push({ type: 'BLOCK_STOP', key: key('complete-ask'), kind: 'completion-missing', errors: missing })
+        return done()
+      }
+      go('NEEDS_REVIEW', 'DOD_UNMET', { rotation: null }, `missing: ${missing.join('; ')}`)
+      effects.push({ type: 'TOAST', key: key('dod'), text: `Not marked done: ${missing.length} check(s) missing or failing. /relay status shows the task; /relay done confirms by hand.` })
+      return done()
+    }
+
+    case 'DONE_CMD':
+      if (state.status !== 'NEEDS_REVIEW' || state.reason !== 'DOD_UNMET') return ignore('nothing waits for /relay done')
+      // A user approval, logged apart from evidence-based completion (from NEEDS_REVIEW, detail says who decided).
+      go('COMPLETED', 'COMPLETED', { rotation: null, activeSessionId: input.sessionId }, 'approved by the user with /relay done (not verified by checks)')
+      effects.push({ type: 'RELEASE_LOCK', key: key('release') })
       return done()
   }
 }

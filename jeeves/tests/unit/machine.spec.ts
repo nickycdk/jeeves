@@ -304,12 +304,51 @@ test('row 23: any active + StopFailure -> PAUSED with a distinct reason code', (
   assert.equal(stopFailureCode('rate_limit') === stopFailureCode('overloaded'), false)
 })
 
-test('rows 24-25: MONITORING/CONTINUING + COMPLETE block -> COMPLETED with evidence, else NEEDS_REVIEW(DOD_UNMET)', () => {
-  const ok = run(st('MONITORING'), { type: 'COMPLETE_BLOCK', evidenceOk: true, missing: [] })
-  assert.equal(ok.state.status, 'COMPLETED')
-  assert.ok(types(ok.effects).includes('RELEASE_LOCK'))
-  const no = run(st('MONITORING'), { type: 'COMPLETE_BLOCK', evidenceOk: false, missing: ['npm test'] })
+test('rows 24-25: MONITORING/CONTINUING + COMPLETE block -> COMPLETED with evidence; missing -> one block, then NEEDS_REVIEW(DOD_UNMET)', () => {
+  const ran: State['ledger'] = [{ kind: 'edit', path: '/r/a.js', at: AT, agent: null }, { kind: 'cmd', command: 'npm test', ok: true, exit: 0, at: AT, agent: null }]
+  for (const status of ['MONITORING', 'CONTINUING'] as const) {
+    const ok = run(st(status, { ledger: ran, rotationCount: 2, sessionSequence: 3, ...(status === 'CONTINUING' ? { rotation: rot({ step: 'CONTINUED' }) } : {}) }), { type: 'COMPLETE_BLOCK', commands: ['npm test'], blockers: [] })
+    assert.deepEqual([ok.state.status, ok.state.reason, ok.state.rotation], ['COMPLETED', 'COMPLETED', null], status)
+    assert.ok(types(ok.effects).includes('RELEASE_LOCK'))
+    const t = ok.effects.find(e => e.type === 'TOAST')
+    assert.equal(t?.type === 'TOAST' && t.text, `Task t_20261107_k3m9qa completed after 2 rotation(s) in 3 session(s); checks passed: \`npm test\`.`)
+  }
+  const ask = run(st('MONITORING'), { type: 'COMPLETE_BLOCK', commands: ['npm test'], blockers: [] })
+  assert.deepEqual([ask.state.status, ask.state.completionAsked], ['MONITORING', true])
+  const b = ask.effects.find(e => e.type === 'BLOCK_STOP')
+  assert.deepEqual(b?.type === 'BLOCK_STOP' && [b.kind, b.errors], ['completion-missing', ['`npm test`: never run (run it exactly as written)']])
+  const no = run(ask.state, { type: 'COMPLETE_BLOCK', commands: ['npm test'], blockers: [] })
   assert.deepEqual([no.state.status, no.state.reason], ['NEEDS_REVIEW', 'DOD_UNMET'])
+  assert.ok(!types(no.effects).includes('BLOCK_STOP'))
+})
+
+test('ST-5.2: no verification commands -> NEEDS_REVIEW at once; /relay done confirms as a distinct user event; blockers never pass', () => {
+  const none = run(st('MONITORING'), { type: 'COMPLETE_BLOCK', commands: [], blockers: [] })
+  assert.deepEqual([none.state.status, none.state.reason], ['NEEDS_REVIEW', 'DOD_UNMET'])
+  const done = run(none.state, { type: 'DONE_CMD', sessionId: 'sess-z' })
+  assert.deepEqual([done.state.status, done.state.activeSessionId], ['COMPLETED', 'sess-z'])
+  const e = done.effects.find(x => x.type === 'LOG_EVENT')
+  assert.ok(e?.type === 'LOG_EVENT' && e.from === 'NEEDS_REVIEW' && e.detail.includes('approved by the user'))
+  assert.ok(types(done.effects).includes('RELEASE_LOCK'))
+  assert.ok(run(st('MONITORING'), { type: 'DONE_CMD', sessionId: 'a' }).ignored)
+  assert.ok(run(st('NEEDS_REVIEW', { reason: 'HANDOVER_INVALID' }), { type: 'DONE_CMD', sessionId: 'a' }).ignored)
+  const ran: State['ledger'] = [{ kind: 'cmd', command: 'npm test', ok: true, exit: 0, at: AT, agent: null }]
+  const blocked = run(st('MONITORING', { ledger: ran }), { type: 'COMPLETE_BLOCK', commands: ['npm test'], blockers: ['the API is down'] })
+  assert.ok(blocked.effects.some(x => x.type === 'BLOCK_STOP' && x.errors.includes('blocker: the API is down')))
+})
+
+test('ST-5.2: a requested rotation that asked nothing yet gives way to a passing completion; COMPLETED stops all rotation', () => {
+  const ran: State['ledger'] = [{ kind: 'cmd', command: 'npm test', ok: true, exit: 0, at: AT, agent: null }]
+  for (const status of ['ROTATION_REQUESTED', 'QUIESCING'] as const) {
+    const o = run(st(status, { ledger: ran }), { type: 'COMPLETE_BLOCK', commands: ['npm test'], blockers: [] })
+    assert.deepEqual([o.state.status, o.state.rotation], ['COMPLETED', null], status)
+  }
+  for (const status of ['HANDOVER_GENERATING', 'ROTATING', 'PAUSED'] as const) assert.ok(run(st(status, { ledger: ran }), { type: 'COMPLETE_BLOCK', commands: ['npm test'], blockers: [] }).ignored, status)
+  const c = st('COMPLETED', { reason: 'COMPLETED' })
+  for (const i of [measure(90), { type: 'ROTATE_CMD' }, { type: 'COMPACTED' }, { type: 'IDLE' }] as const) {
+    const o = run(c, i)
+    assert.deepEqual([o.state.status, o.effects], ['COMPLETED', []], i.type)
+  }
 })
 
 test('row 26: any + /relay off -> DISABLED, state kept, lock released', () => {
@@ -354,7 +393,7 @@ test('forbidden transitions are no-ops with a reason', () => {
     ['MONITORING', { type: 'HANDOVER_PERSISTED', ok: true, ref: 'x' }], ['MONITORING', stop()], ['PAUSED', stop()],
     ['MONITORING', { type: 'RESUME', lockOk: true, sessionId: 's' }], ['MONITORING', { type: 'ON', mode: 'full', lockAcquired: true, sessionId: 's' }],
     ['DISABLED', { type: 'OFF', sessionId: 'sess-a' }], ['NEEDS_REVIEW', { type: 'PAUSE' }], ['FAILED', { type: 'STOP_FAILURE', error: 'rate_limit' }],
-    ['ROTATING', { type: 'COMPLETE_BLOCK', evidenceOk: true, missing: [] }], ['MONITORING', { type: 'SESSION_START_CLEAR', sessionId: 'b', handoverOk: true }],
+    ['ROTATING', { type: 'COMPLETE_BLOCK', commands: ['npm test'], blockers: [] }], ['MONITORING', { type: 'SESSION_START_CLEAR', sessionId: 'b', handoverOk: true }],
   ]
   for (const [s, i] of cases) {
     const before = st(s)
@@ -413,7 +452,7 @@ test('property: 300 seeded random walks of 200 inputs keep every invariant (02 Â
       case 15: return { type: 'PAUSE' }
       case 16: return { type: 'RESUME', lockOk: rnd.next() < 0.8, sessionId: sid }
       case 17: return { type: 'STOP_FAILURE', error: rnd.pick(['rate_limit', 'overloaded', 'authentication_failed', 'billing_error', 'server_error']) }
-      default: return { type: 'COMPLETE_BLOCK', evidenceOk: rnd.next() < 0.5, missing: ['npm test'] }
+      default: return rnd.next() < 0.2 ? { type: 'DONE_CMD', sessionId: sid } : { type: 'COMPLETE_BLOCK', commands: rnd.next() < 0.2 ? [] : ['npm test'], blockers: rnd.next() < 0.2 ? ['x'] : [] }
     }
   }
   // Half the inputs follow the happy path from the current state, so walks reach the deep states.

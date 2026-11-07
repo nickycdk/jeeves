@@ -46,6 +46,7 @@ export function memHost(on: On, env: Record<string, string> = { HOME: '/home/t' 
   on('session.measure', (_, e) => ({ changed: e.changed }))
   on('classic.Stop', () => ({}))
   on('classic.SessionStart', () => ({}))
+  on('prompt.compose', () => ({ sections: [{ id: 'intro', text: 'engine prompt', scope: 'shared' }] }))
   on('prompt.fill', (_, e) => { h.fills.push(e.text); return { isFilled: true } })
   on('turn.start', (_, e) => ({ turnId: e.turnId }))
   on('turn.complete', (_, e) => ({ text: e.answer }))

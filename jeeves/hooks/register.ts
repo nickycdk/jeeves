@@ -3,7 +3,7 @@ import type { CommandRunInput, EngineInterface, Register, Timer, ToolCallInput, 
 import type { ToolOutcome } from '../src/core/evidence.ts'
 import { chooseCommandName, FALLBACK, PRIMARY, relay } from '../src/adapter/commands.ts'
 import { runtime, type Options } from '../src/adapter/runtime.ts'
-import { captureFirstPrompt, heartbeat, holdPrompt, measure, nudgeIfWaiting, onFreshSession, onStop, onTurnComplete, onUserClear, recordTool, releaseOnExit, why } from '../src/adapter/task.ts'
+import { captureFirstPrompt, heartbeat, holdPrompt, measure, nudgeIfWaiting, onFreshSession, onStop, onTurnComplete, taskSection, onUserClear, recordTool, releaseOnExit, why } from '../src/adapter/task.ts'
 import { HEARTBEAT_MS } from '../src/core/lock.ts'
 import { HELD_TEXT } from '../src/adapter/ui.ts'
 
@@ -105,6 +105,13 @@ export const register: Register = (on, options) => {
     return next(e)
   })
   on('session.compact', ($, e, next) => next(e))
+  // ST-5.2: while this session owns an active task, the system prompt says how to report completion (ADR-007).
+  on('prompt.compose', async ($, e, next) => {
+    const base = await next(e)
+    let text: string | null = null
+    await quietly($, opts, 'compose', async rt => { text = await taskSection(rt) })
+    return text === null ? base : { ...base, sections: [...base.sections, { id: 'jeeves:task', text, scope: 'session' }] }
+  })
   // ST-3.3: the safe boundary (ADR-004). Another hook's block means the turn goes on: not a boundary.
   on('classic.Stop', async ($, e, next) => {
     const base = await next(e)
