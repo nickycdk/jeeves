@@ -1,0 +1,16 @@
+// Ports implemented with the engine's `$`.
+import type { EngineInterface } from 'claude-code'
+import type { FsPort } from './ports.ts'
+
+export function fsPort($: EngineInterface): FsPort {
+  return {
+    read: path => $.fs.read(path),
+    write: (path, text) => $.fs.write(path, text),
+    exists: path => $.fs.exists(path),
+    run: async (argv, opts = {}) => {
+      const r = await $.process.run(argv, { timeoutMs: opts.timeoutMs ?? 10_000, ...(opts.cwd ? { cwd: opts.cwd } : {}) })
+      return { exitCode: r.exitCode, stdout: r.stdout, stderr: r.stderr }
+    },
+    env: name => $.env.get(name),
+  }
+}
