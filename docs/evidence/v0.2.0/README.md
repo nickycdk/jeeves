@@ -6,9 +6,9 @@ Paths: `tests/` = `jeeves/tests/`. Raw live-run folders (`e-layers/run*/`) hold 
 
 ## Suite re-run
 
-`jeeves/scripts/check-all.sh` equivalent on 2026-11-08 at the release-prep commit: typecheck ok, lint ok, **262 unit, 174 mod, all pass**, `claude plugin validate --strict` passes. `tests/mod/stats.test.ts` "P: stats over 50 tasks < 100 ms" is load-sensitive: it failed in some runs at load average 4–15 on this machine and passed in others (best of 3 samples inside the test; see AC-32).
+`jeeves/scripts/check-all.sh` equivalent on 2026-11-08 at the release-prep commit: typecheck ok, lint ok, **262 unit, 175 mod; every functional test passes**, `claude plugin validate --strict` passes. `tests/mod/stats.test.ts` "P: stats over 50 tasks < 100 ms" is load-sensitive: it failed in some runs at load average 4–15 on this machine and passed in others (best of 3 samples inside the test; see AC-32).
 
-Compatibility (C): [`jeeves/docs/compatibility.md`](../../../jeeves/docs/compatibility.md): 2.1.302, 2.1.303, 2.1.310, 2.1.316, 2.1.319 validate and pass the test kit; only 2.1.319 is supported (D-38).
+Compatibility (C): [`jeeves/docs/compatibility.md`](../../../jeeves/docs/compatibility.md): 2.1.302, 2.1.303, 2.1.310, 2.1.316, 2.1.319 all validate; 175/175 mod tests on each except 2.1.316, where the generated row shows the timing test failing (132 ms; the same version passed 175/175 on a rerun, load average 13–20). Only 2.1.319 is supported (D-38).
 
 ## v0.2 acceptance criteria
 
