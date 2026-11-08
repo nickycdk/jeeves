@@ -122,7 +122,7 @@ Dependency order: E0 → E1 → E2 → E3 → E4 → E5 → (E6, E7 in parallel)
 - **Artifact:** I-layer snapshots of each command.
 
 ## E12 — Compatibility and live coverage (P1, v0.2)
-- **Status:** Built (M8, 2026-11-08), gate open: ST-12.1 closed with the floor at 2.1.319 (D-38), ST-12.2 dropped (D-36), ST-12.3 solved, ST-12.4 solved with c and g failing for an external cause (R-25), ST-12.5 awaiting sign-off.
+- **Status:** Solved (M8, 2026-11-08): ST-12.1 closed with the floor at 2.1.319 (D-38), ST-12.2 dropped (D-36), ST-12.3 solved, ST-12.4 solved with c and g failing for an external cause (R-25), ST-12.5 signed off. Gate passed 2026-11-08.
 - **Goal:** Widen the supported Claude Code range on evidence, close the live-unverified paths, ship v0.2.0.
 - **Scope:** floor 2.1.303 (compat matrix + one live rotation), VS Code terminal checklist (maintainer), live runs for compaction, `autoRecover`, REPO_MISMATCH on a moved repo, the `/clear` stall via `endedHere`, `/plugin configure`, the AC-07 E layer, Q-9 (a second blocking Stop hook), v0.2.0 release prep. **Out:** Linux official and Windows (P1/P2, deferred).
 - **Dependencies:** E10, E11; v0.1.0 released (M7). **Risks:** A-01, R-21.

@@ -1,10 +1,10 @@
-# M8 (v0.2) handover: built, gate open
+# M8 (v0.2) handover: solved
 
 **Date:** 2026-11-08 · **Claude Code:** 2.1.319 · **Branch:** `main` (local commits, not pushed) · **Range:** `b493501..HEAD`. Paths are relative to the repo root. Earlier state: `handoff-m8-progress.md`.
 
 ## 1. Gate status
 
-M8 is built. One item is open for the maintainer: **sign-off of ST-12.5** (its DoD). Tag and publication stay the maintainer's (D-37: no public release).
+M8 is solved: the maintainer signed off ST-12.5 (its DoD) on 2026-11-08. Tag and publication stay the maintainer's (D-37: no public release).
 
 | Story | Result |
 |---|---|
@@ -13,7 +13,7 @@ M8 is built. One item is open for the maintainer: **sign-off of ST-12.5** (its D
 | ST-12.2 | Dropped (D-36) |
 | ST-12.3 | Solved (Q-9) |
 | ST-12.4 | Solved, AC met: d, e, h PASS; **c and g FAIL, external cause (R-25)**; f not exercised |
-| ST-12.5 | Built, awaiting sign-off |
+| ST-12.5 | Solved, signed off |
 
 Acceptance table with evidence: `docs/evidence/v0.2.0/README.md`.
 
@@ -66,7 +66,7 @@ Run 1 US$0.1049, free probe US$0, run 2 (detection) US$0.0062: **US$0.1111 used,
 
 ## 7. Next (maintainer)
 
-1. Sign off ST-12.5 (or ask for changes); then the M8 gate closes.
+1. ~~Sign off ST-12.5~~: done.
 2. Decide Q-11 (b)/(c) for a later version.
 3. Push to `origin` (private) when you want. Tagging `v0.2.0` makes `release.yml` draft a release; it needs the tag on a commit with all three version fields at 0.2.0 and `jeeves/docs/release-notes/v0.2.0.md`, both present now.
 

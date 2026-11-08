@@ -7,7 +7,7 @@ Stories are listed in dependency order; implement top to bottom. IDs are `ST-<ep
 
 Module names refer to `02-architecture-and-adrs.md` §3.
 
-**Progress (2026-11-08):** E0, E1, E2, E3, E4, E5 solved (M4 gate passed); E6 solved (M5 gate passed); E7 and E8 solved (M6 gate passed: AC-01 fresh macOS user and AC-02 Cursor checklist, maintainer-reported); E9: ST-9.1 solved, ST-9.2 agent part done, ST-9.3 prepared (M7 built, gate open); plus ST-7.3. M8 (v0.2, E10–E12) built 2026-11-08: E10 and E11 solved, E12 awaiting the maintainer's sign-off of ST-12.5 (`handoff-m8.md`). Each solved story has a **Status** line under its heading. Everything without one is open.
+**Progress (2026-11-08):** E0, E1, E2, E3, E4, E5 solved (M4 gate passed); E6 solved (M5 gate passed); E7 and E8 solved (M6 gate passed: AC-01 fresh macOS user and AC-02 Cursor checklist, maintainer-reported); E9: ST-9.1 solved, ST-9.2 agent part done, ST-9.3 prepared (M7 built, gate open); plus ST-7.3. M8 (v0.2, E10–E12) built 2026-11-08: E10 and E11 solved, E12 solved with ST-12.5 signed off (`handoff-m8.md`). Each solved story has a **Status** line under its heading. Everything without one is open.
 
 ---
 
@@ -570,7 +570,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **AC:** reproducible artifact (same hash from clean checkout); release notes state exact capabilities and supported versions.
 - **Tests:** dry-run release on a fork.
 - **DoD:** + maintainer sign-off.
-- **Status:** Built, awaiting maintainer sign-off (M8, 2026-11-08). Version 0.2.0 in the three fields, CHANGELOG, `jeeves/docs/release-notes/v0.2.0.md`, `docs/evidence/v0.2.0/README.md`. Zip identical from two clean clones of `c5ff1b1` (SHA-256 `a721d510…ceee`); validate passes on the unzipped artifact. Notes list Team accounts as unsupported and no longer claim VS Code. No tag, no release (D-37).
+- **Status:** Solved, signed off by the maintainer (M8, 2026-11-08: "OK to the sign off"). Version 0.2.0 in the three fields, CHANGELOG, `jeeves/docs/release-notes/v0.2.0.md`, `docs/evidence/v0.2.0/README.md`. Zip identical from two clean clones of `c5ff1b1` (SHA-256 `a721d510…ceee`); validate passes on the unzipped artifact. Notes list Team accounts as unsupported and no longer claim VS Code. No tag, no release (D-37).
 
 ---
 

@@ -83,7 +83,7 @@ Built by `fixtures/build-repo.ts` into a temp dir per test (never committed stat
 
 **v0.2 E-layer additions (ST-12.4):** phases c–h of `tests/pty/e_layers.py` cover compaction (typed `/compact`), `autoRecover`, REPO_MISMATCH on a moved repo with `--relink`, the `/clear` stall via `endedHere`, AC-07 (one Bash permission call as the only step after the threshold) and `/plugin configure`. Q-9 (a second blocking Stop hook) is I if the test kit loads two plugins, else E. Each result goes into `docs/evidence/v0.2.0/e-layers/RESULT.md` with its cost.
 
-**Status (2026-11-08, M8 built):** the v0.2 AC table with links is `docs/evidence/v0.2.0/README.md`. AC-26, AC-27, AC-29, AC-30, AC-31 PASS (U, I); AC-28 PASS (U, I, E: 40% on live haiku 1M sessions); AC-32 PASS (U, I), P borderline under load (bound not loosened); AC-33 dropped (D-36); AC-34 not met, floor stays 2.1.319 (D-38). E layers (`tests/pty/e_layers_v2.py`): d, e, h PASS; c and g FAIL because a prepend-tier plugin on Team accounts skips Jeeves's hooks (R-25, D-39); f not exercised. AC-07 E stays open.
+**Status (2026-11-08, M8 solved):** the v0.2 AC table with links is `docs/evidence/v0.2.0/README.md`. AC-26, AC-27, AC-29, AC-30, AC-31 PASS (U, I); AC-28 PASS (U, I, E: 40% on live haiku 1M sessions); AC-32 PASS (U, I), P borderline under load (bound not loosened); AC-33 dropped (D-36); AC-34 not met, floor stays 2.1.319 (D-38). E layers (`tests/pty/e_layers_v2.py`): d, e, h PASS; c and g FAIL because a prepend-tier plugin on Team accounts skips Jeeves's hooks (R-25, D-39); f not exercised. AC-07 E stays open.
 
 ## 4. Non-functional tests
 
