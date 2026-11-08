@@ -18,7 +18,7 @@ Jeeves never runs your commands, never changes git, never answers permission pro
 At the Claude Code prompt:
 
 ```
-/plugin install jeeves --marketplace <owner>/jeeves
+/plugin install jeeves --marketplace nickycdk/jeeves
 ```
 
 Then, in any project, start `claude` and type `/jeeves status`. A fresh install answers `Jeeves  mode: full` and `No managed task. Start with /jeeves on`.

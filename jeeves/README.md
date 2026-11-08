@@ -21,10 +21,10 @@ Jeeves does that for you, inside your normal terminal session. At a threshold yo
 At the Claude Code prompt:
 
 ```
-/plugin install jeeves --marketplace <owner>/jeeves
+/plugin install jeeves --marketplace nickycdk/jeeves
 ```
 
-or from a shell: `claude plugin install jeeves --marketplace <owner>/jeeves`. From a clone of this repository, give the clone's path instead: `claude plugin install jeeves --marketplace /path/to/jeeves`. (`<owner>` is set when the repository is published.) The note "2 userConfig options not yet set" is fine: both settings are optional. Then, in any project, start `claude` and type `/jeeves status`; a fresh install answers `Jeeves  mode: full` and `No managed task. Start with /jeeves on`.
+or from a shell: `claude plugin install jeeves --marketplace nickycdk/jeeves`. From a clone of this repository, give the clone's path instead: `claude plugin install jeeves --marketplace /path/to/jeeves`. The note "2 userConfig options not yet set" is fine: both settings are optional. Then, in any project, start `claude` and type `/jeeves status`; a fresh install answers `Jeeves  mode: full` and `No managed task. Start with /jeeves on`.
 
 **Update:** `claude plugin update jeeves@jeeves` (third-party marketplaces do not update by themselves).
 
