@@ -11,6 +11,7 @@ import { fileURLToPath } from 'node:url'
 const PLUGIN = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const [work, ...versions] = process.argv.slice(2)
 if (!work || !versions.length) { console.error('usage: node scripts/compat.mjs <work dir> <version> [<version> ...]'); process.exit(2) }
+if ((resolve(work) + '/').startsWith(PLUGIN + '/')) { console.error('compat: the work dir must be outside the plugin folder (it copies the plugin into it)'); process.exit(2) }
 const MIN = /MIN_VERSION = '([^']+)'/.exec(readFileSync(join(PLUGIN, 'src/core/probe.ts'), 'utf8'))[1]
 
 const rows = []
@@ -20,7 +21,7 @@ for (const v of versions) {
   rmSync(copy, { recursive: true, force: true })
   cpSync(PLUGIN, copy, { recursive: true, filter: p => !/\/(node_modules|\.claude-plugin\/types)(\/|$)/.test(p) })
   mkdirSync(cfg, { recursive: true })
-  const env = { ...Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith('CLAUDE'))), CLAUDE_CONFIG_DIR: cfg }
+  const env = { ...Object.fromEntries(Object.entries(process.env).filter(([k]) => !/^(CLAUDE|ANTHROPIC)/.test(k))), CLAUDE_CONFIG_DIR: cfg }
   const run = args => spawnSync(bin, args, { cwd: copy, env, encoding: 'utf8', timeout: 300_000 })
   const validate = run(['plugin', 'validate', '.', '--strict'])
   const test = run(['plugin', 'test', '.'])
@@ -42,7 +43,7 @@ writeFileSync(join(PLUGIN, 'docs/compatibility.md'), [
   '',
   '| Claude Code | validate --strict | mod tests | supported |',
   '|---|---|---|---|',
-  ...rows.map(r => `| ${r.v} | ${r.validate ? 'pass' : 'FAIL'} | ${r.ok ? `pass (${r.pass})` : `FAIL (${r.pass} pass, ${r.fail} fail)`} | ${cmp(r.v, MIN) >= 0 ? 'yes' : 'no (below minimum)'} |`),
+  ...rows.map(r => `| ${r.v} | ${r.validate ? 'pass' : 'FAIL'} | ${r.ok ? `pass (${r.pass})` : Number.isNaN(r.pass) ? 'FAIL (no test summary: crashed or timed out)' : `FAIL (${r.pass} pass, ${r.fail} fail)`} | ${cmp(r.v, MIN) >= 0 ? 'yes' : 'no (below minimum)'} |`),
   '',
   ...rows.filter(r => !r.validate).flatMap(r => [`- ${r.v}: validate says \`${r.why}\``]),
   '',

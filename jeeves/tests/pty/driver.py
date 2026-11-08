@@ -130,7 +130,7 @@ def main():
         # A partial run: the rotation checks only (the task is not expected to finish).
         n = a.rotations
         checks = {
-            f'{n} rotation(s) continued (RESTORING -> CONTINUING -> MONITORING)': sum(1 for e in events if e['to'] == 'RESTORING') >= n and (r.get('stopped_at') or {}).get('status') == 'MONITORING',
+            f'{n} rotation(s) continued (RESTORING -> CONTINUING -> MONITORING)': sum(1 for e in events if e['from'] == 'CONTINUING' and e['to'] == 'MONITORING') >= n,
             f'distinct session ids ({n + 1})': len(ids) >= n + 1 and len(set(ids)) == len(ids),
             'handover saved and verified before /clear': all(os.path.exists(f"{d}/history/handover-{k:03d}.md") for k in range(1, n + 1)) if d else False,
             'zero keystrokes after setup': r['keystrokes_after_setup'] == [],

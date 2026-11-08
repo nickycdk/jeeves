@@ -77,3 +77,24 @@ test('an unreadable task held by a live session is not deleted either', async ($
   h.files.set(`${dir}/lock.d/owner.json`, JSON.stringify({ schemaVersion: 1, ownerSessionId: 'sess-other', acquiredAt: '2026-11-07T08:00:00.000Z', heartbeatAt: '2026-11-07T08:00:00.000Z' }) + '\n')
   expect(await relay($, `purge --task ${id}`)).toBe(`Task ${id} is held by a running session (LOCK_HELD). Nothing was deleted.`)
 })
+
+test('confirm deletes only the folders that were listed, never one that appeared since', async ($, on) => {
+  const { h } = await endedTask($, on)
+  await relay($, 'off')
+  const asked = await relay($, 'purge --all')
+  const late = `${ROOT}/projects/fedcba9876543210`
+  h.dirs.add(late)
+  h.files.set(`${late}/project.json`, '{}\n')
+  expect(await relay($, `purge confirm ${codeOf(asked)}`)).toBe('Deleted every Jeeves task on this machine.')
+  expect(h.files.has(`${late}/project.json`)).toBe(true)
+})
+
+test('purge --all works when git did not answer (no project), --project then says it needs one', async ($, on) => {
+  const h = memHost(on)
+  bottom(on)
+  h.failProcess = false
+  h.git = () => ({ exitCode: 1, stdout: '' })
+  await start($)
+  expect(await relay($, 'purge --project')).toMatch(/^Usage: \/jeeves purge/)
+  expect(await relay($, 'purge --all')).toMatch(/^Nothing to purge for every Jeeves task on this machine\.|^This deletes every Jeeves task/)
+})

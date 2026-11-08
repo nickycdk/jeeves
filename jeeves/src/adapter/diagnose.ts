@@ -44,6 +44,16 @@ export async function diagnose(rt: Runtime, me: string, t: Task | null, errors: 
   }
   const home = await rt.port.env('HOME')
   const text = lines.join('\n')
-  // Only the home folder itself or a path inside it: /Users/al must not turn /Users/alice into ~ice.
-  return redact(home && home.length > 1 ? text.replace(new RegExp(`${home.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?=/|\\s|,|\\)|$)`, 'gm'), '~') : text)
+  return redact(home ? tilde(text, home.replace(/\/+$/, '')) : text)
+}
+
+/** The home folder as `~` wherever it is a whole path segment: /Users/al must not turn /Users/alice into ~ice. */
+export function tilde(text: string, home: string): string {
+  if (!home) return text
+  let out = '', i = 0
+  for (let j = text.indexOf(home); j >= 0; j = text.indexOf(home, i)) {
+    out += text.slice(i, j) + (/[\w.-]/.test(text[j + home.length] ?? '') ? home : '~')
+    i = j + home.length
+  }
+  return out + text.slice(i)
 }

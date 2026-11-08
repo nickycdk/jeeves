@@ -24,6 +24,8 @@ test('DISK: a failed state write -> BLOCKED(DISK), the toast names the folder an
   await $.session.measure({ context: { window: 1_000_000, percent: 30 }, rateLimits: [], changed: ['context'] })
   expect([stateOf(h, dir).status, stateOf(h, dir).reason]).toEqual(['BLOCKED', 'DISK'])
   expect(h.toasts.at(-1)).toContain(`Blocked (DISK): Jeeves could not write its task files in ${dir}`)
+  expect(h.notes.at(-1)).toMatch(/^Jeeves: blocked \(DISK\)/)
+  expect(h.status.at(-1)).toBe('Jeeves: blocked (DISK)')
   expect(h.toasts.at(-1)).toContain('Free disk space or fix that folder\'s permissions, then type /jeeves resume.')
   await $.session.measure({ context: { window: 1_000_000, percent: 80 }, rateLimits: [], changed: ['context'] })
   expect(stateOf(h, dir).status).toBe('BLOCKED')

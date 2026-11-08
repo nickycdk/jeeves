@@ -117,3 +117,11 @@ test('ST-7.1: every state has a word label; status entries fit 40 columns, ASCII
   assert.equal(statusLine(validState({ status: 'MONITORING', lastContext: null }), 50), 'Jeeves ?/50%')
   assert.equal(statusLine(validState({ status: 'MONITORING', mode: 'assisted' }), '7.2'), 'Jeeves ?/7.2% assisted')
 })
+
+test('diagnose: the home folder becomes ~ only as a whole path segment', async () => {
+  const { tilde } = await import('../../src/adapter/diagnose.ts')
+  assert.equal(tilde('State folder: /Users/al/.local/x', '/Users/al'), 'State folder: ~/.local/x')
+  assert.equal(tilde('mkdir: /Users/al: Permission denied', '/Users/al'), 'mkdir: ~: Permission denied')
+  assert.equal(tilde("cannot open '/Users/al'", '/Users/al'), "cannot open '~'")
+  assert.equal(tilde('/Users/alice/x and /Users/al.bak', '/Users/al'), '/Users/alice/x and /Users/al.bak')
+})

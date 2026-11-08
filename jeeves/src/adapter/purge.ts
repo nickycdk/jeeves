@@ -8,7 +8,7 @@ const CONFIRM_MS = 120_000
 export const PURGE_USAGE = 'Usage: /jeeves purge --task <id> | --project | --all. Jeeves lists what would be deleted and asks you to confirm with a code.'
 
 /** The purge waiting for its code, in this process only. */
-let pending: { code: string; flag: string | undefined; value: string | undefined; until: number } | null = null
+let pending: { code: string; paths: string[]; what: string; until: number } | null = null
 
 const code = () => [...crypto.getRandomValues(new Uint8Array(2))].map(b => b.toString(16).padStart(2, '0')).join('')
 
@@ -20,9 +20,8 @@ export async function purge(rt: Runtime, me: string, args: string): Promise<stri
     const p = pending
     pending = null // one try per code: a wrong one cancels it
     if (!p || value !== p.code || now > p.until || extra) return 'No purge waits for that code (codes last 2 minutes). Start again with /jeeves purge.'
-    // Checked again now: a task may have started or resumed since the list was shown.
-    const scope = await targets(rt, p.flag, p.value)
-    if (typeof scope === 'string') return scope
+    // Only the folders that were listed; their locks checked again, since a task may have started or resumed since.
+    const scope = { paths: p.paths, what: p.what }
     const refused = await busy(rt, me, scope.paths)
     if (refused) return refused
     const root = join(rt.stateRoot, 'projects') + '/'
@@ -41,7 +40,7 @@ export async function purge(rt: Runtime, me: string, args: string): Promise<stri
   if (!scope.paths.length) return `Nothing to purge for ${scope.what}.`
   const refused = await busy(rt, me, scope.paths)
   if (refused) return refused
-  pending = { code: code(), flag, value, until: now + CONFIRM_MS }
+  pending = { code: code(), paths: scope.paths, what: scope.what, until: now + CONFIRM_MS }
   return [
     `This deletes ${scope.what}, for good:`,
     ...scope.paths.map(p => `  ${p}`),
@@ -73,9 +72,10 @@ async function busy(rt: Runtime, me: string, paths: string[]): Promise<string | 
   for (const path of paths) {
     const dirs = /\/tasks\/[^/]+$/.test(path) ? [path] : (await rt.port.listDirs(join(path, 'tasks'))).map(id => join(path, 'tasks', id))
     for (const dir of dirs) {
-      const l = await rt.storage.readLock(dir, await rt.port.now())
-      if (l.kind !== 'held' || l.stale) continue
       const id = dir.split('/').at(-1)
+      const l = await rt.storage.readLock(dir, await rt.port.now()).catch(() => null)
+      if (!l) return `The lock of task ${id} could not be read, so nothing was deleted. /jeeves status --diagnose shows the folder.`
+      if (l.kind !== 'held' || l.stale) continue
       return l.owner?.ownerSessionId === me ? `Task ${id} is still running in this session: /jeeves off first. Nothing was deleted.` : `Task ${id} is held by a running session (LOCK_HELD). Nothing was deleted.`
     }
   }

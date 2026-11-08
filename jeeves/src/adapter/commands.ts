@@ -62,12 +62,13 @@ export async function relay(rt: Runtime, args: string, caller: Caller): Promise<
   }
   if (!CHANGES.has(sub)) return `Unknown command "${sub.slice(0, 20)}".\n${HELP}`
   if (!caller.userTyped) return MSG.userOnly
-  if (!rt.projectDir) return MSG.noProject(rt.stateRootError)
   const me = await rt.port.sessionId()
+  // purge --all needs only the state folder, not this project (git may not have answered).
+  if (sub === 'purge') return purge(rt, me, rest)
+  if (!rt.projectDir) return MSG.noProject(rt.stateRootError)
   const { tasks } = await projectTasks(rt)
   switch (sub) {
     case 'on': return on(rt, tasks, me, rest)
-    case 'purge': return purge(rt, me, rest)
     case 'off': return off(rt, tasks, me)
     case 'threshold': return threshold(rt, tasks, me, rest.trim())
     case 'pause': return pause(rt, tasks, me)
