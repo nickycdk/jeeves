@@ -7,7 +7,7 @@ Stories are listed in dependency order; implement top to bottom. IDs are `ST-<ep
 
 Module names refer to `02-architecture-and-adrs.md` §3.
 
-**Progress (2026-11-08):** E0, E1, E2, E3, E4, E5 solved (M4 gate passed); E6 solved (M5 gate passed); E7 and E8 solved (M6 gate passed: AC-01 fresh macOS user and AC-02 Cursor checklist, maintainer-reported); plus ST-7.3. Each solved story has a **Status** line under its heading. Everything without one is open.
+**Progress (2026-11-08):** E0, E1, E2, E3, E4, E5 solved (M4 gate passed); E6 solved (M5 gate passed); E7 and E8 solved (M6 gate passed: AC-01 fresh macOS user and AC-02 Cursor checklist, maintainer-reported); E9: ST-9.1 solved, ST-9.2 agent part done, ST-9.3 prepared (M7 built, gate open); plus ST-7.3. Each solved story has a **Status** line under its heading. Everything without one is open.
 
 ---
 
@@ -545,7 +545,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 ## E9 — Public beta
 
 ### ST-9.1 Security and privacy review — M
-- **Status:** Solved (M7, 2026-11-08). `jeeves/docs/threat-model.md` (T1-T9, findings F-1…F-8), `jeeves/SECURITY.md` (+ `.github/SECURITY.md` pointer). F-1 (git option injection from `state.json`, Medium) and F-2 (path segments from `state.json`, Medium) reproduced and fixed with schema patterns and an argv re-check; F-3 (`core.fsmonitor`, Low) fixed; F-4 PRIVACY gap fixed; F-5…F-7 accepted; F-8 (Actions pinned by tag) open for ST-9.3. No Critical/High. Tests: `tests/unit/security.spec.ts`, ST-9.1 rows in `schema.spec.ts` and `git.spec.ts`.
+- **Status:** Solved (M7, 2026-11-08). `jeeves/docs/threat-model.md` (T1-T9, findings F-1…F-8), `jeeves/SECURITY.md` (+ `.github/SECURITY.md` pointer). F-1 (git option injection from `state.json`, Medium) and F-2 (path segments from `state.json`, Medium) reproduced and fixed with schema patterns and an argv re-check; F-3 (commands named by a repo's own `.git/config`, Low) partly fixed (fsmonitor off; filter drivers accepted, same exposure as Claude Code's own `git status`); F-4 PRIVACY gap fixed; F-5…F-7 accepted; F-8 (Actions pinned by tag) open for ST-9.3. No Critical/High. Tests: `tests/unit/security.spec.ts`, ST-9.1 rows in `schema.spec.ts` and `git.spec.ts`.
 - **Cites:** FR-16, §10, PRD MVP DoD.
 - **Scope:** threat model (prompt injection via repo/handover text, secret leakage, lock abuse, path traversal in state paths, `$.process.run` argv building); verify no shell strings executed, no permission changes, no network calls; dependency review (dev only).
 - **Depends on:** E6 complete.
@@ -554,6 +554,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **DoD:** + threat-model.md.
 
 ### ST-9.2 Real Cursor demo and AC evidence pack — M
+- **Status:** Partly done (M7, 2026-11-08). Agent part done: `docs/evidence/v0.1.0/README.md` (AC-01…AC-25 with results and links), E-layer runs (`e-layers/RESULT.md`, US$0.21: AC-03, AC-09 pass; AC-10 probe inconclusive; AC-07 E not exercised), `cursor-demo-script.md`. Open (maintainer): the Cursor two-rotation demo on the default model with the §6 checklist and the video ≤ 3 min; AC-01/AC-02 recordings into `docs/evidence/v0.1.0/AC-0x/`.
 - **Cites:** AC-01…AC-25, PRD §20.
 - **Scope:** run the fixture task in Cursor on the default model with threshold 50% using a context-heavy task (or documented test override at e.g. 15% with the reason) → ≥ 2 rotations; fill the AC table with links to evidence.
 - **Depends on:** all P0 stories.
