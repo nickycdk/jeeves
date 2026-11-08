@@ -1,7 +1,0 @@
-[   0.3s] $ claude plugin marketplace add ~/Desktop/Projects/jeeves -> 0
-Adding marketplace…✔ Successfully added marketplace: jeeves (declared in user settings)
-[   1.9s] $ claude plugin install jeeves@jeeves -> 0
-Installing plugin "jeeves@jeeves"...✔ Successfully installed plugin: jeeves@jeeves (scope: user)
-2 userConfig options not yet set — run /plugin configure jeeves@jeeves in Claude Code, or pass --config KEY=VALUE.
-[  15.6s] $ claude plugin uninstall jeeves@jeeves -> 0
-✔ Successfully uninstalled plugin: jeeves (scope: user)
