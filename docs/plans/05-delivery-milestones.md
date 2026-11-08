@@ -24,7 +24,8 @@ Estimates use story midpoints (S 0.5 d, M 1.5 d, L 3.5 d), one developer.
 | M2 | Solved | `handoff-m2.md`, `evidence/m2-demo/`; 103 unit + 44 mod tests |
 | M3 | Solved | `handoff-m3.md`, `evidence/m3-demo/`; 185 unit + 66 mod tests |
 | M4 | Solved: gate passed 2026-11-07 (gate runs 5 and 6: 5 and 4 live rotations, COMPLETED, 10/10 checks each); AC-10/11/12/13/15/25 met | `evidence/m4-e2e/RESULT.md`, `handoff-m4b.md`; 220 unit + 101 mod tests; three ponytail reviews fixed (23f24f2, 29343ff, 55b0231) |
-| M5 … M7 | Open | — |
+| M5 | Built, gate open (2026-11-08): ST-6.1 … ST-6.7 solved; crash matrix 6/6 (I + P layers); AC-16 (I), AC-18 (I + E), AC-19 (U + E snapshot), AC-23 (U/I snapshot) pass; the demo is not passed yet: live run 1 froze in system sleep before the crash point (it still showed one real SIGKILL -> /relay recover -> one continuation) | `evidence/m5-crash/crash-matrix.md`, `evidence/m5-concurrency/RESULT.md`, `evidence/m5-demo/run1-sleep/NOTE.md`, `handoff-m5.md`; 235 unit + 133 mod tests (last clean full run before the review fixes; afterwards the mod suite only ran under sleep/load) |
+| M6, M7 | Open | — |
 
 Total ≈ 73 engineer-days, matching the backlog. ST-7.3 is scheduled in M2 because the first-activation notice ships with `/relay on`.
 
