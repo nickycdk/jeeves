@@ -120,7 +120,7 @@ async function resume(rt: Runtime, tasks: Task[], me: string): Promise<string> {
   const r = await apply(rt, target.dir, { type: 'RESUME', lockOk: true, sessionId: me })
   if (!r) return MSG.noTask
   const held = r.forHook.find(f => f.type === 'SUBMIT_HELD')
-  if (held?.type === 'SUBMIT_HELD') rt.port.submitPromptSoon(heldPrompt(held.heldPrompts), err => rt.port.toast(MSG.heldNotSent(err)))
+  if (held?.type === 'SUBMIT_HELD') rt.port.submitPromptSoon(heldPrompt(held.heldPrompts), err => rt.port.toast(MSG.heldNotSent(err, held.heldPrompts)))
   return MSG.resumed(target.state.thresholdPercent, rt.thresholdOverride)
 }
 

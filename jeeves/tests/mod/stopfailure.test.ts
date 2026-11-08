@@ -40,3 +40,13 @@ test('review fix 1: a message held during a handover that a rate limit paused is
   expect(prompts.at(-1)!.text.startsWith('Jeeves: the handover was stopped before a fresh conversation started')).toBe(true)
   expect(stateOf(h, dir).heldPrompts).toEqual([])
 })
+
+test('second review 3: if the held messages cannot be sent at resume, the toast still carries the user\'s words', async ($, on) => {
+  const { h, refuse } = await generating($, on)
+  await submit($, 'keep my words')
+  await fail($, 'rate_limit')
+  refuse.drop = t => t.startsWith('Jeeves: the handover was stopped')
+  await relay($, 'resume')
+  await until(h, () => h.toasts.some(t => t.includes('could not deliver')))
+  expect(h.toasts.find(t => t.includes('could not deliver'))).toContain('"keep my words"')
+})

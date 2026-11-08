@@ -125,7 +125,7 @@ export const MSG = {
   notPaused: (status: string) => `The task is ${status}, not paused.`,
   resumed: (t: number, override: number | null) => `Resumed: Jeeves hands over again at ${override ?? t}%${override ? ' (TEST OVERRIDE)' : ''}.`,
   turnedOff: (taskId: string, dir: string) => `Jeeves off. Task ${taskId} is kept, nothing was deleted: ${dir}`,
-  heldNotSent: (err: unknown) => `Jeeves could not deliver the messages you typed during the handover (${short(String(err))}). Please type them again.`,
+  heldNotSent: (err: unknown, held: readonly string[]) => `Jeeves could not deliver the messages you typed during the handover (${short(String(err))}). Please type them again: ${held.map(m => `"${short(m)}"`).join(', ')}`,
   submitFailed: (err: unknown) => `Jeeves could not send your goal (${short(String(err))}). Type it as your next prompt.`,
 }
 

@@ -105,7 +105,7 @@ export function memHost(on: On, env: Record<string, string> = { HOME: '/home/t' 
     h.argv.push(argv)
     const ok = { exitCode: 0, stdout: '', stderr: '', isStdoutTruncated: false, isStderrTruncated: false }
     const [cmd, ...rest] = argv
-    if (cmd === 'mkdir' || cmd === 'mv' || cmd === 'rm' || cmd === 'rmdir') for (const a of rest.filter(a => a.startsWith('/'))) h.access.push({ sid: h.sessionId, op: 'run', path: a })
+    if (cmd === 'mkdir' || cmd === 'mv' || cmd === 'cp' || cmd === 'rm' || cmd === 'rmdir') for (const a of rest.filter(a => a.startsWith('/'))) h.access.push({ sid: h.sessionId, op: 'run', path: a })
     if (h.failProcess) return { deny: 'process.run unavailable' }
     if (cmd === 'true') return { value: ok }
     if (cmd === 'git') {
@@ -120,6 +120,13 @@ export function memHost(on: On, env: Record<string, string> = { HOME: '/home/t' 
       if (h.dirs.has(d) || h.files.has(d)) return { value: p ? ok : { ...ok, exitCode: 1, stderr: `mkdir: ${d}: File exists` } }
       if (!p && !h.dirs.has(parent(d))) return { value: { ...ok, exitCode: 1, stderr: `mkdir: ${d}: No such file or directory` } }
       mkdirs(d)
+      return { value: ok }
+    }
+    if (cmd === 'cp') {
+      const [src, dst] = rest.filter(a => !a.startsWith('-'))
+      const t = h.files.get(src!)
+      if (t === undefined) return { value: { ...ok, exitCode: 1, stderr: `cp: ${src}: No such file` } }
+      h.files.set(dst!, t)
       return { value: ok }
     }
     if (cmd === 'mv') {

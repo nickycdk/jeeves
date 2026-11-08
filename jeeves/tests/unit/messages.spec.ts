@@ -10,7 +10,7 @@ import { probe } from '../../src/core/probe.ts'
 const SNAPSHOT = join(import.meta.dirname, '../fixtures/messages.txt')
 const ERRORS = ['rate_limit', 'authentication_failed', 'billing_error', 'overloaded', 'server_error', 'invalid_request', 'unknown'] as const
 
-export function allMessages(): string {
+function allMessages(): string {
   const all = { 'command.run': true, 'prompt.submit': true, 'session.usage': true, 'process.run': true }
   return [
     ...ERRORS.map(e => `StopFailure ${e}: ${stopFailureText(stopFailureCode(e), e)}`),

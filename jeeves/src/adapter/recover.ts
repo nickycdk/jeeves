@@ -11,12 +11,12 @@ import type { State } from '../core/types.ts'
 import { hasCommit } from './git.ts'
 import type { Runtime } from './runtime.ts'
 import { sha256Hex } from './storage.ts'
-import { apply, claim, nextHandoverNumber, projectTasks, restoreHere, takeLock, writeProjectRecord, type Restored } from './task.ts'
+import { apply, claim, count, nextHandoverNumber, projectTasks, restoreHere, takeLock, writeProjectRecord, type Restored } from './task.ts'
 import { MSG } from './ui.ts'
 
 /** Jeeves's own temporary files (the atomic swap's); others in the folder are never touched (02 §8). */
 const OWN_TMP = /^(state\.json|handover\.md)\.tmp-[0-9a-f]{12}$/
-export const TMP_MAX_AGE_MS = 60 * 60_000
+const TMP_MAX_AGE_MS = 60 * 60_000
 
 type Candidate = { dir: string; taskId: string; state: State | null; found: Found }
 
@@ -73,12 +73,6 @@ async function removeOldTmp(rt: Runtime, dir: string): Promise<void> {
   }
 }
 
-async function count(rt: Runtime, path: (n: number) => string): Promise<number> {
-  let n = 0
-  while (await rt.port.exists(path(n + 1))) n++
-  return n
-}
-
 /**
  * state.json cannot be read: rebuild one from the event log and the write-once files into NEEDS_REVIEW(STATE_CORRUPT).
  * The unreadable file is kept beside it (`state.json.corrupt-<time>`), never deleted (ST-6.1 AC 4).
@@ -92,9 +86,10 @@ async function rebuild(rt: Runtime, dir: string, taskId: string): Promise<State>
     sessions: await count(rt, n => join(dir, `sessions/${String(n).padStart(3, '0')}.json`)),
   })
   const kept = `state.json.corrupt-${at.replace(/[-:.]/g, '')}`
+  // Copied, not moved: if the rebuilt state cannot be written, the original stays in place and the task stays visible.
   if (await rt.port.exists(join(dir, 'state.json'))) {
-    const mv = await rt.port.run(['mv', join(dir, 'state.json'), join(dir, kept)])
-    if (mv.exitCode !== 0) throw new Error(`could not set the unreadable state.json aside: ${mv.stderr.trim().slice(0, 120)}`)
+    const cp = await rt.port.run(['cp', join(dir, 'state.json'), join(dir, kept)])
+    if (cp.exitCode !== 0) throw new Error(`could not keep a copy of the unreadable state.json: ${cp.stderr.trim().slice(0, 120)}`)
   }
   await rt.storage.writeState(dir, state)
   await rt.storage.appendEvent(dir, {

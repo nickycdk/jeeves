@@ -417,9 +417,12 @@ export async function taskSection(rt: Runtime): Promise<string | null> {
 export const why = (err: unknown) => (err instanceof Error ? err.message : String(err)).slice(0, 200)
 
 /** The next unused `history/handover-NNN.md` (write-once: a number is never reused). */
-export async function nextHandoverNumber(rt: Runtime, dir: string): Promise<number> {
-  let n = 1
-  while (await rt.port.exists(join(dir, handoverFile(n)))) n++
+export const nextHandoverNumber = async (rt: Runtime, dir: string) => (await count(rt, n => join(dir, handoverFile(n)))) + 1
+
+/** How many files `path(1)`, `path(2)`, ... exist in an unbroken run from 1. */
+export async function count(rt: Runtime, path: (n: number) => string): Promise<number> {
+  let n = 0
+  while (await rt.port.exists(path(n + 1))) n++
   return n
 }
 

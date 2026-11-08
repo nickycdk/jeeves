@@ -118,3 +118,17 @@ test('review fix 2: a recover refused for a changed handover gives the lock back
   expect(h.files.has(`${dir}/lock.d/owner.json`)).toBe(false)
   expect(stateOf(h, dir).status).toBe('ROTATING')
 })
+
+test('second review 1: a rebuild whose write fails leaves the unreadable state.json in place, so the task stays visible', async ($, on) => {
+  const g = await generating($, on)
+  const { h, dir } = g
+  h.files.set(`${dir}/state.json`, '{ broken')
+  await restart($, h)
+  await h.clock.advance(121_000)
+  h.failWrite = p => p.includes('state.json.tmp')
+  await relay($, 'recover').catch(() => '')
+  h.failWrite = null
+  expect(h.files.get(`${dir}/state.json`)).toBe('{ broken')
+  expect([...h.files.keys()].some(f => f.startsWith(`${dir}/state.json.corrupt-`))).toBe(true)
+  expect(await relay($, 'status')).toContain('Task state unreadable')
+})
