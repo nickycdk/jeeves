@@ -58,3 +58,22 @@ test('--all removes every project folder but keeps the state root; a live lock i
   expect([...h.files.keys()].some(f => f.startsWith(`${ROOT}/projects/`))).toBe(false)
   expect(h.dirs.has(ROOT)).toBe(true)
 })
+
+test('confirm checks again: a task that another session took after the list is not deleted', async ($, on) => {
+  const { h, dir, id } = await endedTask($, on)
+  await relay($, 'off')
+  const asked = await relay($, `purge --task ${id}`)
+  h.dirs.add(`${dir}/lock.d`)
+  h.files.set(`${dir}/lock.d/owner.json`, JSON.stringify({ schemaVersion: 1, ownerSessionId: 'sess-other', acquiredAt: '2026-11-07T08:00:00.000Z', heartbeatAt: '2026-11-07T08:00:00.000Z' }) + '\n')
+  expect(await relay($, `purge confirm ${codeOf(asked)}`)).toBe(`Task ${id} is held by a running session (LOCK_HELD). Nothing was deleted.`)
+  expect(h.files.has(`${dir}/state.json`)).toBe(true)
+})
+
+test('an unreadable task held by a live session is not deleted either', async ($, on) => {
+  const { h, dir, id } = await endedTask($, on)
+  await relay($, 'off')
+  h.files.set(`${dir}/state.json`, '{ not json')
+  h.dirs.add(`${dir}/lock.d`)
+  h.files.set(`${dir}/lock.d/owner.json`, JSON.stringify({ schemaVersion: 1, ownerSessionId: 'sess-other', acquiredAt: '2026-11-07T08:00:00.000Z', heartbeatAt: '2026-11-07T08:00:00.000Z' }) + '\n')
+  expect(await relay($, `purge --task ${id}`)).toBe(`Task ${id} is held by a running session (LOCK_HELD). Nothing was deleted.`)
+})

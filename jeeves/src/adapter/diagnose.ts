@@ -44,5 +44,6 @@ export async function diagnose(rt: Runtime, me: string, t: Task | null, errors: 
   }
   const home = await rt.port.env('HOME')
   const text = lines.join('\n')
-  return redact(home && home.length > 1 ? text.split(home).join('~') : text)
+  // Only the home folder itself or a path inside it: /Users/al must not turn /Users/alice into ~ice.
+  return redact(home && home.length > 1 ? text.replace(new RegExp(`${home.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?=/|\\s|,|\\)|$)`, 'gm'), '~') : text)
 }

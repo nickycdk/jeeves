@@ -27,6 +27,14 @@ test('a running task: every line present, home as ~, no session id in full, noth
   expect(h.files).toEqual(files)
 })
 
+test('the home folder is replaced only as a whole path segment', async ($, on) => {
+  const h = memHost(on, { HOME: '/home/t', JEEVES_TEST: '1', JEEVES_STATE_DIR: '/home/tom/jeeves' })
+  bottom(on)
+  await start($)
+  expect(await relay($, 'status --diagnose')).toContain('State folder: /home/tom/jeeves (test-env)')
+  void h
+})
+
 test('a secret in the state folder path is redacted; an unwritable folder and a missing primitive say so', async ($, on) => {
   const h = memHost(on, { HOME: '/home/t', JEEVES_TEST: '1', JEEVES_STATE_DIR: '/data/sk-ant-api03-abcdefghijklmnop/state' })
   bottom(on)
