@@ -1,6 +1,6 @@
 # Spec: Auto-start (installing Jeeves is the opt-in)
 
-**Status:** Draft, revision 4 (reviews 1–3 applied, §12). **Design frozen:** further ideas go to §13, not to a revision 5. No plan or code yet. · **Date:** 2026-11-08 · **Target:** v0.3 (after v0.2.0 is public; §6 items may ship in v0.3.x) · **Changes:** ADR-009, AC-03, ADR-003, ADR-010, PRIVACY.md, README (§8) · **Relates to:** FR-05, FR-11, ADR-007, R-03, R-15, R-19, R-25.
+**Status:** Draft, revision 4 with editorial fixes from review 4 (reviews 1–4 applied, §12). **Design frozen:** further ideas go to §13, not to a revision 5. No plan or code yet. · **Date:** 2026-11-08 · **Target:** v0.3 (after v0.2.0 is public; §6 items may ship in v0.3.x) · **Changes:** ADR-009, AC-03, ADR-003, ADR-010, PRIVACY.md, README (§8) · **Relates to:** FR-05, FR-11, ADR-007, R-03, R-15, R-19, R-25.
 
 ## 1. Goal
 
@@ -32,7 +32,7 @@ Today a user must type `/jeeves on` before each task. They forget, and the sessi
 
 At `session.start` Jeeves decides **once**, for the whole session, whether it is **eligible** (a later change, such as switching from a 200K to a 1M model, does not start watching; `/jeeves on` does):
 1. **Interactive**: `isInteractive` true. Never under `claude -p`, the SDK or background agents.
-2. **Full mode**: not assisted, not unsupported (old version or the R-25 skip, which is re-checked after the first answer and ends an auto task like item 4's switch).
+2. **Full mode**: not assisted, not unsupported (old version or the R-25 skip). The skip is re-checked after the first answer; if it is found, the auto task ends (DISABLED, files kept) with: `Jeeves: not watching any more (this account isn't supported); /jeeves status for details`.
 3. **A git repository**: inside a git work tree; subfolders and linked worktrees count (each worktree is its own project, as today).
 4. **A large window**: `$.session.usage().window` above 200K tokens, read at `session.start` (the model setting), not at the first reading. On 200K windows a fresh conversation already fills 17–28% of the window, so a 50% threshold would rotate after only about 45–65K tokens of work. Off there until AC-41 has measured it (Q8).
 5. **A fresh conversation**: `$.session.turns()` is 0 at `session.start`; resumed conversations (`--resume`, `--continue`) are not auto-watched.
@@ -87,7 +87,7 @@ The summary is data, never instructions (R-19). It cannot change the task, the D
 
 | Command or setting | Effect |
 |---|---|
-| `/jeeves later` (new) | Skips the next handover. This task's threshold moves up 10 points, never past the **cap**, with the warning again 5 points before. The cap is 90%, or 5 points below the session's auto-compaction point when that is lower (`$.session.usage()` with a locally estimated breakdown gives `autoCompactThreshold` in tokens, no model call; read at each `later`, since a model switch moves it), so a postponed handover always comes before Claude Code compacts. Works in auto and explicit tasks; repeatable. At the cap the warning says `Jeeves hands over at 85% (now 80%); can't postpone further. /jeeves off to keep this conversation.` A rotation already under way is not stopped (`/jeeves pause` stays for that) |
+| `/jeeves later` (new) | Skips the next handover. This task's threshold moves up 10 points, never past the **cap**, with the warning again 5 points before. The cap is 90%, or 5 points below the session's auto-compaction point when that is lower; with auto-compaction off, the cap is 90% (`$.session.usage()` with a locally estimated breakdown gives `autoCompactThreshold` in tokens, no model call; read at each `later`, since a model switch moves it), so a postponed handover always comes before Claude Code compacts. Works in auto and explicit tasks; repeatable. At the cap the warning says `Jeeves hands over at 85% (now 80%); can't postpone further. /jeeves off to keep this conversation.` A rotation already under way is not stopped (`/jeeves pause` stays for that) |
 | `/jeeves off` | Ends the current task (files kept) and stops auto-start for the rest of this session |
 | `/jeeves on [goal]` | Always v0.2 behaviour: an **explicit** task. After `/jeeves off`, auto-start stays off for the session |
 | `/jeeves defaults auto off` / `on` | This project, in the project's `config.json` (schema bump; v0.2 ignores the file as made by a newer Jeeves); `defaults clear` resets it |
@@ -218,7 +218,7 @@ The 8-line limit holds. The commands line sits with the reason line and the warn
 | AC-38 | Opt-out levels and precedence (session, project, `/config` on/off, `auto.json`, default); `/jeeves auto on/off` writes only `auto.json` and says when the `/config` row overrides it; Claude settings never written; `/jeeves on` after `/jeeves off` gives an explicit task and auto stays off for the session | U, I |
 | AC-39 | `/jeeves later` moves the threshold by 10, warns again, never past the cap (90%, or 5 points below the auto-compaction point when lower, auto-compaction off counted as no limit below 90%), says "can't postpone further" at the cap, works in auto and explicit tasks, does not stop a running rotation | U, I |
 | AC-40 | User `/clear`: ends an auto task with its message; pauses an explicit task with its message; status shows auto/explicit | I |
-| AC-41 | Live, non-Team account: two fixtures (200K and 1M; haiku has a 1M window, seen in every M8 run; the 200K fixture needs a 200K model or setting, see Q7), each with and without Jeeves. Reported: tokens and cost (cache reads included), number of rotations, and a pass/fail outcome (the fixture's checks pass after the last rotation). Plus two rotations in auto mode with nothing typed but the task. The 200K result decides Q8 | E |
+| AC-41 | Live, non-Team account, haiku (1M window, seen in every M8 run). **1M fixture:** with and without Jeeves; reported: tokens and cost (cache reads included), number of rotations, pass/fail outcome (the fixture's checks pass after the last rotation). **200K: rotation rate and outcome, simulated window; cost compared on 1M only.** The 200K fixture runs with Jeeves only, under a test-only window override (`JEEVES_TEST=1` with `JEEVES_TEST_WINDOW_OVERRIDE=200000`, like the existing threshold override; never a user setting), so Jeeves applies the 50% rule and a ~100K threshold to a 1M session. Below 100K tokens the real window changes nothing, so the rotation rate and outcome match a real 200K window; what it cannot reproduce is the without-Jeeves baseline, which on a real 200K window would hit auto-compaction. Plus two rotations in auto mode with nothing typed but the task. The 200K result decides Q8; README cost wording covers 1M only | E |
 | AC-42 | Current goal: required in new handovers with the §5.3 checks; v1 blocks valid for older tasks; continuation order puts the user's words first and labels the summary; the rotation line shows it; the summary never changes the task, DoD or checks | U, I |
 | AC-43 | Upgrade: `firstActivationShown` or an existing project makes `auto.json` say off; never auto-watched until `/jeeves auto on` or the `/config` row; upgrade notice once; tasks, defaults and settings byte-identical after the first v0.3 session; fresh installs resolve to on; the `autoNoticeShown` and `firstActivationShown` keys are distinct | I |
 | AC-44 | Cleanup deletes only ended auto tasks with no rotation, 7 days after they ended (`updatedAt`), under a custom `stateDir` too, with auto-start on or off; never explicit or rotated tasks | U, I |
@@ -238,8 +238,8 @@ All existing AC keep passing. The I-layer suite runs twice: once with `autoStart
 | Q4 | `/clear` in an auto task | End it, with a message (§5.7) |
 | Q5 | Current goal for all tasks | Yes, user's words first (§5.3) |
 | Q6 | Setting name | Auto-start, key `autoStart` |
-| Q7 | Who runs AC-41, on which non-Team account, and when | **Open: the one blocker to approval.** It blocks AC-41, Q8 and the README cost wording. Needs an owner and a date. **Before assigning it, confirm two things:** (a) how to get a 200K window for the small fixture (a 200K model on that account, or a setting that caps the window), checked in a free session by reading `/jeeves status`'s threshold in tokens, no prompt sent; (b) the cost estimate, recomputed from current prices for the models chosen, since turns of 400–900K tokens dominate it |
-| Q8 | Auto-start on 200K windows | Off at first; widen only if AC-41's 200K fixture shows an acceptable rotation rate with a passing outcome. "Acceptable" is set by the maintainer before the run |
+| Q7 | Who runs AC-41, on which non-Team account, and when | **Open: the one blocker to approval.** It blocks AC-41, Q8 and the README cost wording. Needs an owner and a date. Before assigning it: recompute the cost estimate from current prices for haiku, since turns of 400–900K tokens in the 1M fixture dominate it. (The 200K window question is settled: simulated, AC-41) |
+| Q8 | Auto-start on 200K windows | Off at first; widen only if AC-41's simulated 200K fixture shows an acceptable rotation rate with a passing outcome. "Acceptable" is set by the maintainer before the run |
 
 ## 11. Rough size
 
@@ -254,7 +254,7 @@ All existing AC keep passing. The I-layer suite runs twice: once with `autoStart
   - privacy and README text
   - the I-layer suite in both modes, downgrade tests
 - **§6 (polish):** about 2 days more: hint, rotation line, `/jeeves handover`, quiet status line, `/jeeves` alone.
-- **Live E run (AC-41):** cost to be estimated under Q7 (b) once the models are known; the earlier US$0.50–1.00 assumed haiku for both windows and is withdrawn.
+- **Live E run (AC-41):** cost to be estimated under Q7 from current haiku prices; the earlier US$0.50–1.00 is withdrawn. The test-only window override is a few lines next to the existing threshold override.
 
 If v0.3 must be smaller, §6.1 (hint) and §6.5 (`/jeeves` alone) ship first among the polish, since they decide whether people who are not auto-watched ever see Jeeves.
 
@@ -308,6 +308,8 @@ If v0.3 must be smaller, §6.1 (hint) and §6.5 (`/jeeves` alone) ship first amo
 | Switch from 200K to 1M | Eligibility decided once at `session.start`; reason "200K window at start" (§5.1, AC-36) |
 | Cleanup age undefined | 7 days after the task ended (`updatedAt`) (§5.9, AC-44) |
 | Scope | Design frozen; further ideas go to §13 |
+
+**Editorial fixes (review 4, no design change):** auto-compaction off means a 90% cap, now said in §5.5 as in AC-39; the R-25 re-check's ending message (§5.1); AC-41's 200K fixture uses a test-only simulated window for rotation rate and outcome, cost compared on 1M only, so Q7 shrinks to the cost recomputation plus an owner and a date.
 
 ## 13. v0.3.x ideas (not in this spec)
 
