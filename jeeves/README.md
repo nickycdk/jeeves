@@ -77,6 +77,7 @@ All are `/jeeves <command>`. Only commands you type yourself change a task; anyt
 | `pause` / `resume` | No handover until `resume`. Kept across restarts. `resume` also continues after a `/clear` you typed, a rate limit or a disk error. |
 | `rotate` | Hand over now, at the next safe stop. |
 | `threshold <n>` | Hand over at n% context (20 to 90; default 50, or 40 above a 200K window). Warns 5 points before. |
+| `defaults` | This project's defaults for new tasks. `defaults threshold <n>`, `defaults check <cmd>` (add one; up to 20), `defaults clear`. Applied at the next `/jeeves on` in this project; running tasks are not changed. Kept in the state folder, never in your repository. |
 | `task` | Show the original prompt, every change since and the Definition of Done. |
 | `dod <text>` | Add a done criterion (a new task revision, never an edit). |
 | `check <cmd>` | Add a verification command (stored as text, never run by Jeeves). |
@@ -101,7 +102,7 @@ In Claude Code: `/plugin configure jeeves@jeeves`. From a shell: `claude plugin 
 | `stateDir` | empty: `~/Library/Application Support/Jeeves` (Linux: `~/.local/state/jeeves`) | Absolute path for task state and handovers. The default is never inside a repository (Jeeves refuses one that would be); a path you set is used as given. |
 | `autoRecover` | off | At session start, continue an interrupted task by itself instead of asking you to type `/jeeves recover`. |
 
-Per task: `/jeeves threshold <n>`. **Threshold default:** 50% when the context window is 200K tokens or less (or unknown), 40% above that, because half of a 1M window is a very long conversation. It is chosen once when the task starts; switching models later does not change it, and `/jeeves status` shows it in tokens so you can see what it means. Fixed limits: 10 rotations per task, 3 handover attempts (1 + 2 retries), 2 failed rotations in a row, 3 unsafe stops or 20 minutes before pausing, handovers up to 12,000 characters.
+Per task: `/jeeves threshold <n>`. Per project: `/jeeves defaults threshold <n>` and `/jeeves defaults check <cmd>` apply to every new task in that project (a task's own `/jeeves threshold` still wins). **Threshold default:** 50% when the context window is 200K tokens or less (or unknown), 40% above that, because half of a 1M window is a very long conversation. It is chosen once when the task starts; switching models later does not change it, and `/jeeves status` shows it in tokens so you can see what it means. Fixed limits: 10 rotations per task, 3 handover attempts (1 + 2 retries), 2 failed rotations in a row, 3 unsafe stops or 20 minutes before pausing, handovers up to 12,000 characters.
 
 ## Troubleshooting
 

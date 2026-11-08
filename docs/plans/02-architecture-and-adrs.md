@@ -228,7 +228,7 @@ All JSON files carry `schemaVersion` (start at 1). `schema.ts` has a migration f
 <stateRoot>/
   projects/<projectId>/            projectId = sha256(realpath(git common dir) + "|" + realpath(worktree root))[:16]
     project.json                   { schemaVersion, repoRoot, worktree, createdAt }
-    config.json                    v0.2 per-project defaults { schemaVersion, thresholdPercent?, verificationCommands? } (ADR-009 A2)
+    config.json                    v0.2 per-project defaults { schemaVersion, thresholdPercent?, verificationCommands (≤ 20) } (ADR-009 A2, ST-11.1); invalid → ignored, said in status
     tasks/<taskId>/                taskId = "t_" + yyyymmdd + "_" + 6 random base32
       task.md                      current task view (rendered from revisions)
       task-rev-001.md …            immutable; rev 1 = verbatim original prompt

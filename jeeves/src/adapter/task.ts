@@ -173,15 +173,16 @@ export async function heldByOther(rt: Runtime, dir: string, sessionId: string): 
 }
 
 /** Create a task owned by this session: lock, rev 1 when the goal is given, state MONITORING. */
-export async function startTask(rt: Runtime, sessionId: string, goal: string | null): Promise<Applied & { dir: string }> {
+/** `threshold`: the project default (ST-11.1); else the window default (ST-10.1). */
+export async function startTask(rt: Runtime, sessionId: string, goal: string | null, threshold?: number): Promise<Applied & { dir: string }> {
   const now = await rt.port.now(), at = new Date(now).toISOString()
   const taskId = newTaskId(now, random6())
   const dir = join(rt.projectDir!, 'tasks', taskId)
   const facts = await gitFacts(rt.port, rt.identity)
   const lock = await rt.storage.acquireLock(dir, sessionId, at, now)
   await writeProjectRecord(rt, at)
-  const window = (await rt.port.usage().catch(() => null))?.window
-  let state = newTaskState({ taskId, projectId: rt.projectId!, thresholdPercent: windowThreshold(window), taskStartHead: facts.kind === 'git' ? facts.head : null, at })
+  const window = threshold === undefined ? (await rt.port.usage().catch(() => null))?.window : undefined
+  let state = newTaskState({ taskId, projectId: rt.projectId!, thresholdPercent: threshold ?? windowThreshold(window), taskStartHead: facts.kind === 'git' ? facts.head : null, at })
   if (goal !== null && lock.ok) {
     await rt.storage.writeImmutable(join(dir, revFile(1)), goal)
     state = { ...state, taskRevision: 1 }

@@ -1,7 +1,7 @@
 // Runtime guards and migrations for every persisted contract (02 §6). Hand-written: no runtime deps (ADR-008).
 import {
-  LEDGER_COMMAND_MAX, LEDGER_MAX, MODES, REASON_CODES, ROTATION_STATES, ROTATION_STEPS, SCHEMA_VERSION, STATUSES, TRIGGERS,
-  type CommandEntry, type Config, type EditEntry, type EventLine, type LockOwner, type ProjectRecord, type SessionRecord, type State,
+  DEFAULTS_CHECKS_MAX, LEDGER_COMMAND_MAX, LEDGER_MAX, MODES, REASON_CODES, ROTATION_STATES, ROTATION_STEPS, SCHEMA_VERSION, STATUSES, TRIGGERS,
+  type CommandEntry, type Config, type EditEntry, type EventLine, type LockOwner, type ProjectDefaults, type ProjectRecord, type SessionRecord, type State,
 } from './types.ts'
 import { COMMIT_RE } from './git.ts'
 import { HANDOVER_REF_RE } from './handover/render.ts'
@@ -111,6 +111,7 @@ const config = obj<Config>({
   quiesceMaxTurns: int(1, 100), quiesceMaxMinutes: int(1, 1440), autoRecover: bool,
   handoverMaxChars: int(1000, 100_000), verificationCommands: arr(str({ nonEmpty: true, max: 2000 }), 50),
 })
+const defaults = obj<ProjectDefaults>({ schemaVersion: ver, thresholdPercent: { optional: int(20, 90) }, verificationCommands: arr(str({ nonEmpty: true, max: 2000 }), DEFAULTS_CHECKS_MAX) })
 const project = obj<ProjectRecord>({ schemaVersion: ver, repoRoot: str({ nonEmpty: true }), worktree: str({ nonEmpty: true }), createdAt: iso })
 const session = obj<SessionRecord>({
   schemaVersion: ver, sessionId: str({ nonEmpty: true }), startedAt: iso, endedAt: nullable(iso),
@@ -123,14 +124,14 @@ const event = obj<EventLine>({
   detail: str({ max: 2000 }),
 })
 
-export type Kinds = { state: State; config: Config; project: ProjectRecord; session: SessionRecord; lock: LockOwner; event: EventLine }
+export type Kinds = { state: State; config: Config; defaults: ProjectDefaults; project: ProjectRecord; session: SessionRecord; lock: LockOwner; event: EventLine }
 export type Kind = keyof Kinds
-const GUARDS: { [K in Kind]: Guard } = { state, config, project, session, lock, event }
-const VERSION_FIELD: { [K in Kind]: string } = { state: 'schemaVersion', config: 'schemaVersion', project: 'schemaVersion', session: 'schemaVersion', lock: 'schemaVersion', event: 'v' }
+const GUARDS: { [K in Kind]: Guard } = { state, config, defaults, project, session, lock, event }
+const VERSION_FIELD: { [K in Kind]: string } = { state: 'schemaVersion', config: 'schemaVersion', defaults: 'schemaVersion', project: 'schemaVersion', session: 'schemaVersion', lock: 'schemaVersion', event: 'v' }
 
 type Migration = (old: Record<string, unknown>) => Record<string, unknown>
 /** MIGRATIONS[kind][n - 1] turns version n into n + 1. Empty until schema v2 exists. */
-export const MIGRATIONS: { [K in Kind]: Migration[] } = { state: [], config: [], project: [], session: [], lock: [], event: [] }
+export const MIGRATIONS: { [K in Kind]: Migration[] } = { state: [], config: [], defaults: [], project: [], session: [], lock: [], event: [] }
 
 /** Validate an already-current value. */
 export function check<K extends Kind>(kind: K, v: unknown): Result<Kinds[K]> {

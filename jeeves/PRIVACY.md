@@ -10,7 +10,8 @@ Everything sits in the state folder (`/jeeves status` shows where; never inside 
 - `state.json`: the task's state, the last context reading, and the evidence ledger: the last 200 commands Claude ran (redacted, at most 300 characters each, with exit status) and the paths of files it edited;
 - handovers Claude writes at each rotation (`history/handover-NNN.md`) and a facts snapshot per rotation (branch, HEAD, `git status` entries, scheduled crons);
 - a message you type while a handover is under way, word for word, in `state.json` until the fresh conversation receives it, then removed;
-- `events.jsonl`: one short, redacted line per state change.
+- `events.jsonl`: one short, redacted line per state change;
+- per project, if you set them with `/jeeves defaults`: a default threshold and the default check commands you typed, as text (`projects/<project>/config.json`). Jeeves never runs them.
 
 It never stores the conversation transcript, tool output, or file contents.
 

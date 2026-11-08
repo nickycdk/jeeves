@@ -6,6 +6,7 @@ import { DEFAULT_CONFIG, type State } from '../core/types.ts'
 import type { Runtime } from './runtime.ts'
 import { addRevision, apply, claim, heldByOther, liveTasks, ownTask, projectTasks, readTask, nudgeIfWaiting, restoreHere, startTask, takeLock, type Task } from './task.ts'
 import { recover, restoredText } from './recover.ts'
+import { defaultsCommand, readDefaults } from './defaults.ts'
 import { diagnose } from './diagnose.ts'
 import { purge } from './purge.ts'
 import { firstActivationText, HELP, historyText, MSG, statusText } from './ui.ts'
@@ -45,7 +46,7 @@ export async function relay(rt: Runtime, args: string, caller: Caller): Promise<
     if (rest.trim() === '--diagnose') return diagnose(rt, me, picked, errors)
     // In the owning session show the live reading (never a stale one); another session's task shows its last stored reading.
     const task = picked?.state.activeSessionId === me ? { ...picked, state: { ...picked.state, lastContext: { ...(await rt.port.usage()), at: new Date(await rt.port.now()).toISOString() } } } : picked
-    return statusText({ probe: rt.probe, stateRoot: rt.stateRoot, stateRootError: rt.stateRootError, task, taskError: task ? null : errors[0] ?? null, thresholdOverride: rt.thresholdOverride, thresholdRelative: rt.thresholdRelative })
+    return statusText({ probe: rt.probe, stateRoot: rt.stateRoot, stateRootError: rt.stateRootError, task, taskError: task ? null : errors[0] ?? null, thresholdOverride: rt.thresholdOverride, thresholdRelative: rt.thresholdRelative, defaultsError: (await readDefaults(rt)).error })
   }
   if (sub === 'help') return HELP
   if (sub === 'history') {
@@ -60,6 +61,7 @@ export async function relay(rt: Runtime, args: string, caller: Caller): Promise<
     const { view, errors } = await readTask(rt, own.dir, own.state)
     return [taskText(own.state.taskId, view), ...errors.map(e => `Warning: ${e}`)].join('\n')
   }
+  if (sub === 'defaults') return defaultsCommand(rt, rest, caller.userTyped)
   if (!CHANGES.has(sub)) return `Unknown command "${sub.slice(0, 20)}".\n${HELP}`
   if (!caller.userTyped) return MSG.userOnly
   const me = await rt.port.sessionId()
@@ -93,10 +95,14 @@ async function on(rt: Runtime, tasks: Task[], me: string, rest: string): Promise
   const busy = others[0]?.state.taskId ?? null
   // The goal is everything after "on " as typed; only the separating whitespace is dropped.
   const goal = rest.replace(/^\s+/, '')
-  const r = await startTask(rt, me, goal.trim() ? goal : null)
+  // ST-11.1: this project's defaults; an unreadable file is ignored and said.
+  const defaults = await readDefaults(rt)
+  const r = await startTask(rt, me, goal.trim() ? goal : null, defaults.value?.thresholdPercent)
   if (r.state.status !== 'MONITORING') return MSG.lockHeld(r.state.taskId)
+  // As /jeeves check writes them: after the goal (rev 2..), or queued until the first prompt.
+  for (const cmd of defaults.value?.verificationCommands ?? []) await addRevision(rt, r.dir, 'check', cmd)
   if (goal.trim()) rt.port.submitPromptSoon(goal, err => rt.port.toast(MSG.submitFailed(err)))
-  return [...(busy ? [MSG.separateTask(busy)] : []), MSG.turnedOn(r.state.taskId, goal.trim() !== ''), ...(await firstActivationNotice(rt))].join('\n')
+  return [...(busy ? [MSG.separateTask(busy)] : []), MSG.turnedOn(r.state.taskId, goal.trim() !== ''), ...(defaults.error ? [MSG.defaultsIgnored] : []), ...(await firstActivationNotice(rt))].join('\n')
 }
 
 async function off(rt: Runtime, tasks: Task[], me: string): Promise<string> {

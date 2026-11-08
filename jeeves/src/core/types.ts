@@ -61,6 +61,14 @@ export const DEFAULT_CONFIG: Config = {
   handoverMaxChars: 12000, verificationCommands: [],
 }
 
+/** `projects/<projectId>/config.json` (ST-11.1, ADR-009 A2): copied into a new task at /jeeves on. */
+export type ProjectDefaults = {
+  schemaVersion: number
+  thresholdPercent?: number
+  verificationCommands: string[]
+}
+export const DEFAULTS_CHECKS_MAX = 20
+
 export type Rotation = {
   rotationId: string
   trigger: Trigger

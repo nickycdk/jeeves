@@ -605,6 +605,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 ## E11 — Setup and insight (v0.2)
 
 ### ST-11.1 Per-project defaults — M
+- **Status:** Solved (M8, 2026-11-08). `defaults clear` writes an empty defaults file rather than deleting it (no delete in the storage layer); read-only `/jeeves defaults` works for anyone, changes are user-typed only.
 - **Cites:** FR-11, ADR-005, ADR-009 A2, D-30.
 - **Scope:** `/jeeves defaults` shows this project's defaults; `/jeeves defaults threshold <20-90>`, `/jeeves defaults check <cmd>` (add; repeatable), `/jeeves defaults clear`. Stored in `<stateRoot>/projects/<projectId>/config.json` (schema-checked, atomic swap, never in the repository). `/jeeves on` copies them into the new task (threshold per ST-10.1 order; checks as revision 2 the way `/jeeves check` writes them, so they show in `/jeeves task`). Out: global defaults across projects; editing other config fields.
 - **Depends on:** ST-10.1.

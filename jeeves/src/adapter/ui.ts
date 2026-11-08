@@ -20,6 +20,8 @@ export type StatusView = {
   thresholdOverride?: number | null
   /** The test-only relative threshold when active (D-25). */
   thresholdRelative?: number | null
+  /** This project's config.json exists but is invalid (ST-11.1). */
+  defaultsError?: string | null
 }
 
 /** D-25: this session's first reading + d, '?' until that reading; null when the relative override is off. */
@@ -101,6 +103,7 @@ export function statusText(v: StatusView): string {
       `Last: ${s.lastValidatedHandover ? s.lastValidatedHandover.split('#')[0]!.replace(/^history\//, '') : 'no handover yet'}${s.lastErrorCode ? `, error ${s.lastErrorCode}` : ''}`,
     )
   }
+  if (v.defaultsError) lines.push('Warning: defaults unreadable')
   if (v.stateRoot) lines.push(`Path: ${fitLeft(v.task?.dir ?? v.stateRoot, WIDTH - 6)}`)
   else lines.push(`State folder: ${v.stateRootError ? 'error' : 'unset'}`, ...(v.stateRootError ? [v.stateRootError] : []))
   return lines.slice(0, 8).map(fit).join('\n')
@@ -118,6 +121,7 @@ export const HELP = [
   'done          confirm the task is done',
   'retry         after a failed handover',
   'threshold <n> hand over at n% (20-90)',
+  'defaults ...  this project\'s defaults',
   'task          original task + changes',
   'dod <text>    add a done criterion',
   'check <cmd>   add a check (never run)',
@@ -168,6 +172,14 @@ export const MSG = {
   restored: (taskId: string) => `Continuing task ${taskId} here: Jeeves sends the task and its latest handover as the next prompt.`,
   rotateRequested: 'Handover requested: Jeeves asks Claude for it at the next safe stop, then starts a fresh conversation.',
   notRotatable: (status: string) => `No handover now: the task is ${status}. /jeeves status shows why.`,
+  noDefaults: 'No defaults set for this project. /jeeves defaults threshold <n> or /jeeves defaults check <cmd> sets them for the next /jeeves on here.',
+  defaultsUsage: 'Usage: /jeeves defaults, /jeeves defaults threshold <20-90>, /jeeves defaults check <cmd>, /jeeves defaults clear',
+  defaultsUnreadable: (err: string) => `Project defaults unreadable (config.json: ${short(err).slice(0, 80)}); they are ignored. /jeeves defaults clear resets them.`,
+  defaultsCleared: 'Project defaults cleared. Running tasks are not changed.',
+  defaultThresholdSet: (n: number) => `Default threshold for this project: ${n}%. It applies from the next /jeeves on here; running tasks are not changed.`,
+  defaultCheckAdded: (cmd: string) => `Default check added for this project: ${short(cmd)} (stored as text, never run by Jeeves). It applies from the next /jeeves on here.`,
+  defaultsFull: (n: number) => `Not added: a project keeps at most ${n} default checks. /jeeves defaults clear starts over.`,
+  defaultsIgnored: 'Warning: project defaults unreadable (config.json), so none were applied. /jeeves defaults shows why.',
   retryRequested: 'Handover requested again: Jeeves asks Claude for it at the next safe stop. Earlier handovers are kept as they are.',
   retryWatching: 'Watching again in this session, without a handover here. The next fresh session rotates as usual. A higher /jeeves threshold or a shorter task avoids another loop.',
   retryUsedUp: (n: number) => `No retry: ${n} handovers in a row failed, the limit. /jeeves off ends the task (files kept).`,
