@@ -1,7 +1,7 @@
 // User-facing strings (FR-14, NFR-08): plain ASCII, text labels, <= 40 columns, <= 8 lines for status.
 import type { Probe } from '../core/probe.ts'
 import { recoverable } from '../core/machine.ts'
-import { INERT, type ReasonCode, type State, type Status } from '../core/types.ts'
+import { INERT, type EventLine, type ReasonCode, type State, type Status } from '../core/types.ts'
 
 export const WIDTH = 40
 
@@ -108,6 +108,7 @@ export const HELP = [
   'dod <text>    add a done criterion',
   'check <cmd>   add a check (never run)',
   'status        mode, task, context',
+  'history       last 20 state changes',
   'help          this list',
 ].join('\n')
 
@@ -197,6 +198,26 @@ export const REASON_TEXT: Record<ReasonCode, string> = {
   DOD_UNMET: 'Not done: checks are missing.',
   COMPLETED: 'Task completed.',
   STATE_CORRUPT: 'state.json unreadable; kept as is.',
+}
+
+/**
+ * `/jeeves history` (ST-7.2): the last 20 state changes from events.jsonl, oldest first, then a rotations summary.
+ * Every line fits 80 columns. Details were redacted when written; they are cut, never widened.
+ */
+export function historyText(s: State, lines: readonly string[]): string {
+  const changes = lines.flatMap(l => { try { return [JSON.parse(l) as EventLine] } catch { return [] } }).filter(e => e.from !== e.to)
+  const row = (e: EventLine) => {
+    const head = `${e.at.slice(5, 16).replace('T', ' ')} ${e.from ?? '-'} > ${e.to ?? '-'}${e.code ? ` ${e.code}` : ''}${e.pct == null ? '' : ` ${Math.round(e.pct * 10) / 10}%`}`
+    const detail = e.detail.replace(/\s+/g, ' ')
+    return detail && head.length + 3 < 80 ? `${head}  ${detail}`.slice(0, 80) : head.slice(0, 80)
+  }
+  const shown = changes.slice(-20)
+  return [
+    `Task ${s.taskId}: ${s.status}${s.reason ? ` (${s.reason})` : ''}`,
+    `Rotations: ${s.rotationCount}  Session: ${s.sessionSequence}  Failed handovers in a row: ${s.consecutiveFailures}`,
+    shown.length < changes.length ? `Last ${shown.length} of ${changes.length} state changes (times in UTC):` : `State changes (times in UTC):`,
+    ...(shown.length ? shown.map(row) : ['none yet']),
+  ].join('\n')
 }
 
 /** Shown once per machine, on the first successful `/jeeves on` (ST-7.3). */

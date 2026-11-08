@@ -6,7 +6,7 @@ import type { State } from '../core/types.ts'
 import type { Runtime } from './runtime.ts'
 import { addRevision, apply, claim, heldByOther, liveTasks, ownTask, projectTasks, readTask, nudgeIfWaiting, restoreHere, startTask, takeLock, type Task } from './task.ts'
 import { recover, restoredText } from './recover.ts'
-import { firstActivationText, HELP, MSG, statusText } from './ui.ts'
+import { firstActivationText, HELP, historyText, MSG, statusText } from './ui.ts'
 
 export const PLUGIN = 'jeeves'
 export const PRIMARY = 'jeeves'
@@ -45,6 +45,11 @@ export async function relay(rt: Runtime, args: string, caller: Caller): Promise<
     return statusText({ probe: rt.probe, stateRoot: rt.stateRoot, stateRootError: rt.stateRootError, task, taskError: task ? null : errors[0] ?? null, thresholdOverride: rt.thresholdOverride, thresholdRelative: rt.thresholdRelative })
   }
   if (sub === 'help') return HELP
+  if (sub === 'history') {
+    const { tasks } = await projectTasks(rt)
+    const t = pickTask(tasks, await rt.port.sessionId()) ?? tasks[0]
+    return t ? historyText(t.state, await rt.storage.readEvents(t.dir)) : MSG.noTask
+  }
   if (sub === 'task') {
     const own = ownTask((await projectTasks(rt)).tasks, await rt.port.sessionId())
     if (!own) return MSG.noTask

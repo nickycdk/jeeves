@@ -483,6 +483,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **DoD:** + screenshots.
 
 ### ST-7.2 `/relay history` — S
+- **Status:** Solved (M6). `/jeeves history`: `historyText` in `ui.ts`; `tests/mod/history.test.ts`.
 - **Cites:** FR-14, §4.2.
 - **Scope:** last 20 transitions from events (time, from→to, code, %), rotations summary.
 - **Depends on:** ST-1.5.
