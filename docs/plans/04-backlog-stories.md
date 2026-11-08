@@ -644,6 +644,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **DoD:** + `docs/evidence/v0.2.0/AC-22/`.
 
 ### ST-12.2 VS Code terminal checklist — S
+- **Status:** Dropped (D-36): no manual recordings.
 - **Cites:** NFR-02, AC-02, D-30.
 - **Scope:** a script like `cursor-demo-script.md` for VS Code's integrated terminal (06 §6, before and after one rotation, haiku with a test threshold); the maintainer runs it. Out: other terminals.
 - **Depends on:** none. **Cost (maintainer):** ~US$0.20 on haiku, or US$1–3 on the default model.

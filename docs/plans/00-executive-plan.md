@@ -60,8 +60,8 @@ One Claude Code plugin containing one hooks module (`hooks/register.ts`) that is
 | M4 | Fresh session & continuation | `/clear` rotation, injection, continuation, rearm, loop guard; AC-10/11/12 |
 | M5 | Recovery & safety | Crash matrix, errors, pause/resume, concurrency; AC-14…AC-19, AC-23 |
 | M6 | UX & distribution | Status UI, install/uninstall, docs, compatibility matrix; AC-01/02/20–22 |
-| M7 | Public beta | AC-01…AC-25 evidence; release v0.1.0 (two-rotation Cursor demo dropped, D-34). **Status:** built, gate open (maintainer: naming, publication, sign-off) |
-| M8 | v0.2 (P1) | `/jeeves retry`, 40% default above 200K, project defaults, check suggestions, `history --full`, `stats`, floor 2.1.303, live coverage; AC-26…AC-34. **Status:** planned, waits for approval |
+| M7 | Public beta | AC-01…AC-25 evidence; release v0.1.0 (two-rotation Cursor demo dropped, D-34). **Status:** signed off 2026-11-08; public release deferred (D-37) |
+| M8 | v0.2 (P1) | `/jeeves retry`, 40% default above 200K, project defaults, check suggestions, `history --full`, `stats`, floor 2.1.303, live coverage; AC-26…AC-34. **Status:** approved (D-36), building; ST-12.2 dropped |
 
 Rough size: 56 stories (5 L, 30 M, 21 S) ≈ 73 engineer-days for one developer (≈ 14 weeks), M0 alone ≈ 4.5 days. A coding agent executing stories in order can compress this, but the estimate assumes human review per story.
 
