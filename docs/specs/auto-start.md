@@ -240,8 +240,8 @@ All existing AC keep passing. The I-layer suite runs twice: once with `autoStart
 | Q4 | `/clear` in an auto task | End it, with a message (§5.7) |
 | Q5 | Current goal for all tasks | Yes, user's words first (§5.3) |
 | Q6 | Setting name | Auto-start, key `autoStart` |
-| Q7 | Who runs AC-41, on which non-Team account, and when | **Open** (plan 07 Q-13; the spec itself is approved, D-40). It blocks AC-41, Q8 and the README cost wording. Needs an owner and a date. Cost recomputed from current haiku prices and checked against M4's real call count (2026-11-08): about US$9–35, most likely about US$29; proposed budget US$40 with per-run caps (§11.1). Preconditions and stop rules: plan ST-15.2. Q8's bar is plan Q-14. (The 200K window question is settled: simulated, AC-41) |
-| Q8 | Auto-start on 200K windows | Off at first; widen only if AC-41's simulated 200K fixture shows an acceptable rotation rate with a passing outcome. "Acceptable" is set by the maintainer before the run |
+| Q7 | Who runs AC-41, on which non-Team account, and when | **Answered (plan D-44):** the maintainer logs in a non-Team, dollar-billed account (Console API key preferred, Pro or Max as fallback) on a separate macOS user in fresh-install state; the agent builds the fixture and driver and runs AC-41; target 2026-11-20, after E13 and ST-15.1; budget US$40 with per-run caps (§11.1), asked at run time. (The 200K window question is settled: simulated, AC-41) |
+| Q8 | Auto-start on 200K windows | Off at first; widen only if AC-41's simulated 200K run meets the bar set before it (plan D-45): the outcome passes, median growth between rotations ≥ 40K tokens and none under 20K, no loop or review stops and at most one handover retry, no repeated work. Then proposed for v0.3.x with one auto-started 200K live session (§13) |
 
 ## 11. Rough size
 

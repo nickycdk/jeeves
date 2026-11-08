@@ -13,13 +13,13 @@ m9=L(m05,['| **M9**'])[0]
 acs='\n'.join(L(a06,['| AC-%d |'%i for i in range(35,48)]))
 fx='\n'.join(L(a06,['| `long-task`','| `autostart`']))
 v03=L(a06,['**v0.3 (M9, D-40):**'])[0]
-dec='\n'.join(L(d07,['| D-40','| D-41','| D-42','| D-43']))
+dec='\n'.join(L(d07,['| D-40','| D-41','| D-42','| D-43','| D-44','| D-45']))
 risks='\n'.join(L(d07,['| R-26','| R-27']))
 qs='\n'.join(L(d07,['| Q-13','| Q-14']))
 a3=L(a02,['- **Amendment A3'])[0]
 out=f'''# 09 — v0.3 plan: auto-start
 
-**Date:** 2026-11-08 · **Spec:** `docs/specs/auto-start.md` (revision 4, approved, D-40) · **Milestone:** M9 · **Status:** planned, no code yet. Review 1 of the plan applied (gate wording for a reduced E14, ST-15.2 preconditions, dry run, stop rules and fixture sizing, the estimate checked against M4, Q-14, story fixes) and review 2 (once-per-install upgrade check, same macOS user for every AC-41 run, `/cost` polled in both 1M runs, gate items split).
+**Date:** 2026-11-08 · **Spec:** `docs/specs/auto-start.md` (revision 4, approved, D-40) · **Milestone:** M9 · **Status:** in progress: ST-13.1 and ST-13.2 solved; Q-13 and Q-14 decided (D-44, D-45). Review 1 of the plan applied (gate wording for a reduced E14, ST-15.2 preconditions, dry run, stop rules and fixture sizing, the estimate checked against M4, Q-14, story fixes) and review 2 (once-per-install upgrade check, same macOS user for every AC-41 run, `/cost` polled in both 1M runs, gate items split).
 
 This file gathers the whole v0.3 plan in one place. The same text lives in the numbered plans (02 ADR-009 A3, 03 E13–E15, 04 ST-13.1 … ST-15.3, 05 M9, 06 AC-35 … AC-47, 07 D-40 … D-43, R-26, R-27, Q-13, Q-14); when they differ, the numbered plans win and this file is updated. Story DoD and epic DoD are the standard ones in 03 and 04.
 
@@ -28,7 +28,7 @@ This file gathers the whole v0.3 plan in one place. The same text lives in the n
 Install Jeeves once, start `claude`, work: on a fresh install, a session that qualifies hands long tasks over to a fresh conversation by itself, with no command per task. Anyone can turn it off per session, project or everywhere in one step. Upgraders from v0.2 keep the promise that nothing is recorded without opt-in until they turn it on. People who are not auto-watched get a hint when it would help.
 
 - **In v0.3:** spec §5 (E13) and §6 (E14, may move to v0.3.x), the AC-41 live measurement and the v0.3.0 release (E15).
-- **Not in v0.3:** auto-start on 200K windows (Q8, decided by AC-41 against the bar in Q-14); Team accounts (turn mode, `docs/specs/team-accounts-turn-mode.md`); a setting for the cleanup age; any network use or telemetry; new runtime dependencies.
+- **Not in v0.3:** auto-start on 200K windows (Q8, decided by AC-41 against the bar set in D-45); Team accounts (turn mode, `docs/specs/team-accounts-turn-mode.md`); a setting for the cleanup age; any network use or telemetry; new runtime dependencies.
 
 ## 2. Written decisions
 
@@ -84,7 +84,8 @@ New fixtures (06 §2):
 - **Stop rules:** per-run caps of US$1 (dry run and 200K), US$14 (1M with Jeeves), US$25 (1M without), and a hard total of US$40. Runs go cheapest first. Spend is read from `/cost` every 10 minutes in both 1M runs (a local command, no model call, so the auto run stays "nothing typed but the task") and from Jeeves's session records at each rotation.
 - **The 200K fixture starts its task with `/jeeves on`** (maintainer, 2026-11-08). Q8 needs its rotation rate and pass/fail outcome, and neither depends on how the task started. The near-threshold rule applies only to a new task's first reading and never after a rotation; the grace period covers the first 3 turns, when context is small. Forcing auto-start would bend D-42 in the test kit. Both rules are tested in I.
 - **For later:** if AC-41 widens auto-start to 200K windows, that release's live run includes one auto-started 200K session, to check the real eligibility path end to end (spec §13).
-- **Needs a non-Team account:** the maintainer's account is a Team account (R-25, Q-12).
+- **Who, which account, when (D-44):** the maintainer logs in a non-Team, dollar-billed account (Console API key preferred, Pro or Max as fallback) on the separate macOS user; the agent builds the fixture and driver, runs everything and writes `RESULT.md`; target 2026-11-20, after E13 and ST-15.1. The maintainer's own account is a Team account (R-25, Q-12).
+- **Q8's bar (D-45), set before the run:** the outcome passes; median growth between rotations ≥ 40K tokens and none under 20K; no loop or review stops and at most one handover retry; no repeated work. All four met: 200K auto-start proposed for v0.3.x; any missed: it stays off.
 
 ## 9. Risks
 
