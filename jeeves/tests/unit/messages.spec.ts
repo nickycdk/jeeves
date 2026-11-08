@@ -15,7 +15,7 @@ function allMessages(): string {
   return [
     ...ERRORS.map(e => `StopFailure ${e}: ${stopFailureText(stopFailureCode(e), e)}`),
     `StopFailure rate_limit (reset known): ${stopFailureText('RATE_LIMIT', 'rate_limit', '2026-11-07T14:00:00.000Z')}`,
-    `Outdated version: ${probe({ version: '2.1.280', primitives: all, stopHookRegistered: true }).message}`,
+    `Outdated version: ${probe({ version: '2.1.280', primitives: all }).message}`,
     `Disk error: ${diskText('/state/projects/p/tasks/t_1', 'write /state/projects/p/tasks/t_1/state.json.tmp-0123456789ab: EIO')}`,
     `Wrong branch: ${MSG.repoMismatch('main', 'feature/x')}`,
     `Wrong path: ${MSG.moved('t_1', '/work/old')}`,

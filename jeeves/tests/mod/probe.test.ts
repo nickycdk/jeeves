@@ -81,3 +81,12 @@ test('review fix: a task started before the skip was found never requests, holds
   for (const cmd of ['rotate', 'retry', 'resume']) expect(await relay($, cmd)).toBe(SKIPPED)
   expect(stateOf(h, dir).status).toBe('MONITORING')
 })
+
+test('review fix: a later session start in the same process keeps the skip and its own status text, no second toast', async ($, on) => {
+  const h = memHost(on)
+  await start($)
+  await turnStart($); await turnEnd($)
+  await start($)
+  expect(h.status).toEqual(['off: Stop hook skipped', 'off: Stop hook skipped'])
+  expect(h.toasts).toEqual([SKIPPED])
+})

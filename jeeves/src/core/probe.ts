@@ -11,8 +11,6 @@ export type ProbeFacts = {
   /** `$.session.version()`: `base` when present (dev builds), else `version`. */
   version: string | null
   primitives: Record<Primitive, boolean>
-  /** False once a main turn answered without Jeeves's classic.Stop hook running (R-25: a plugin above skips it). */
-  stopHookRegistered: boolean
 }
 
 export const STOP_SKIPPED = 'Jeeves cannot hand over in this session: its Stop hook does not run (a plugin above it, such as cc-plugin-sec-default on Team accounts, skips it). Automatic rotation is off. See troubleshooting.'
@@ -30,7 +28,6 @@ export function compareVersions(a: string, b: string): number | null {
 }
 
 export function probe(f: ProbeFacts): Probe {
-  if (!f.stopHookRegistered) return withoutStopHook(probe({ ...f, stopHookRegistered: true }))
   const cmp = f.version === null ? null : compareVersions(f.version, MIN_VERSION)
   if (cmp === null || cmp < 0) {
     const seen = f.version === null ? 'its version could not be read' : `this is ${f.version}`

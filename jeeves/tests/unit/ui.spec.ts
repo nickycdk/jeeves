@@ -6,7 +6,7 @@ import { probe } from '../../src/core/probe.ts'
 import { validState } from './helpers.ts'
 
 const all = { 'command.run': true, 'prompt.submit': true, 'session.usage': true, 'process.run': true }
-const full = probe({ version: '2.1.319', primitives: all, stopHookRegistered: true })
+const full = probe({ version: '2.1.319', primitives: all })
 const root = '/Users/someone-with-a-long-name/Library/Application Support/Jeeves'
 const view = (over: Partial<StatusView> = {}): StatusView => ({ probe: full, stateRoot: root, stateRootError: null, task: null, taskError: null, ...over })
 const shape = (text: string) => {
@@ -36,13 +36,13 @@ test('a task: mode, task, state, context or unknown, threshold, rotations, last 
 })
 
 test('unsupported and assisted modes and a broken state folder still fit', () => {
-  const uns = statusText(view({ probe: probe({ version: '2.1.200', primitives: all, stopHookRegistered: true }) }))
+  const uns = statusText(view({ probe: probe({ version: '2.1.200', primitives: all }) }))
   shape(uns)
   assert.ok(uns.includes('mode: unsupported') && uns.includes('Needs 2.1.319+, this is 2.1.200'), uns)
-  const unsTask = statusText(view({ probe: probe({ version: '2.1.200', primitives: all, stopHookRegistered: true }), task: { state: validState(), dir: `${root}/projects/p/tasks/t1` } }))
+  const unsTask = statusText(view({ probe: probe({ version: '2.1.200', primitives: all }), task: { state: validState(), dir: `${root}/projects/p/tasks/t1` } }))
   shape(unsTask)
   assert.ok(unsTask.split('\n').at(-1)!.startsWith('Path: '), `Path line kept:\n${unsTask}`)
-  shape(statusText(view({ probe: probe({ version: '2.1.319', primitives: { ...all, 'process.run': false }, stopHookRegistered: true }) })))
+  shape(statusText(view({ probe: probe({ version: '2.1.319', primitives: { ...all, 'process.run': false } }) })))
   const broken = statusText(view({ stateRoot: null, stateRootError: 'BAD_STATE_ROOT: HOME is not set; set stateDir in /config' }))
   shape(broken)
   assert.ok(broken.includes('State folder: error'))

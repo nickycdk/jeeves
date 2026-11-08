@@ -4,7 +4,7 @@
 import type { EngineInterface } from 'claude-code'
 import { probe, type Probe, type ProbeFacts } from '../core/probe.ts'
 
-export async function probeFacts($: EngineInterface, stopHookRegistered: boolean): Promise<ProbeFacts> {
+export async function probeFacts($: EngineInterface): Promise<ProbeFacts> {
   let version: string | null = null
   try { const v = await $.session.version(); version = v.base ?? v.version } catch { version = null }
   const usage = await $.session.usage().then(() => true, () => false)
@@ -12,10 +12,9 @@ export async function probeFacts($: EngineInterface, stopHookRegistered: boolean
   return {
     version,
     primitives: { 'session.usage': usage, 'process.run': process, 'command.run': true, 'prompt.submit': true },
-    stopHookRegistered,
   }
 }
 
-export async function runProbe($: EngineInterface, stopHookRegistered: boolean): Promise<Probe> {
-  return probe(await probeFacts($, stopHookRegistered))
+export async function runProbe($: EngineInterface): Promise<Probe> {
+  return probe(await probeFacts($))
 }

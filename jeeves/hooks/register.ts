@@ -6,7 +6,7 @@ import { recover, recoveryNotice } from '../src/adapter/recover.ts'
 import { markStopSkipped, runtime, type Options } from '../src/adapter/runtime.ts'
 import { captureFirstPrompt, compacted, heartbeat, managedNow, holdPrompt, measure, nudgeIfWaiting, onFreshSession, onStop, onTurnComplete, taskSection, onUserClear, recordTool, releaseOnExit, stopFailure, why } from '../src/adapter/task.ts'
 import { HEARTBEAT_MS } from '../src/core/lock.ts'
-import { ARGUMENT_HINT, HELD_TEXT } from '../src/adapter/ui.ts'
+import { ARGUMENT_HINT, HELD_TEXT, offStatus } from '../src/adapter/ui.ts'
 
 
 async function answer($: EngineInterface, opts: Options, e: CommandRunInput, idle: boolean, endedHere: ReadonlySet<string>) {
@@ -37,8 +37,8 @@ export const register: Register = (on, options) => {
   let beat: Timer | null = null
   // Whether a main-loop turn is open: engine state, not task state. Starts idle (a reload mid-turn at worst queues one nudge).
   let turnOpen = false
-  // R-25: whether this main turn's classic.Stop reached Jeeves; null before any turn.start in this process.
-  let stopSeen: boolean | null = null
+  // R-25: whether this main turn's classic.Stop reached Jeeves.
+  let stopSeen = true
   let warnedSkip = false
   // Session ids this process ended (/clear): process identity, so a lock is handed on only from our own past session.
   const endedHere = new Set<string>()
@@ -49,8 +49,8 @@ export const register: Register = (on, options) => {
     await $.command.register({ name: commandName, description: 'Jeeves: keep a long task going across fresh conversations', argumentHint: ARGUMENT_HINT })
     if (commandName === FALLBACK) $.ui.toast('/jeeves is taken by another command, so Jeeves uses /relay.')
     if (rt.probe.mode !== 'full' && rt.probe.message) {
-      $.ui.status(rt.probe.mode === 'unsupported' ? `off: needs ${rt.probe.missing[0]}` : 'assisted mode')
-      $.ui.toast(rt.probe.message)
+      $.ui.status(offStatus(rt.probe))
+      if (!warnedSkip) $.ui.toast(rt.probe.message)
     }
     // ST-6.1: a task an earlier session left (crash, exit mid-rotation) is named once; autoRecover continues it.
     await quietly($, opts, 'recovery scan', async rt => {
@@ -119,7 +119,7 @@ export const register: Register = (on, options) => {
         await quietly($, opts, 'stop skipped', async rt => {
           markStopSkipped(rt)
           if (!rt.probe.message) return
-          $.ui.status('off: Stop hook skipped')
+          $.ui.status(offStatus(rt.probe))
           $.ui.toast(rt.probe.message)
         })
       }

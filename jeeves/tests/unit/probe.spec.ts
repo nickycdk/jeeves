@@ -1,9 +1,9 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { compareVersions, MIN_VERSION, probe, type ProbeFacts } from '../../src/core/probe.ts'
+import { compareVersions, MIN_VERSION, probe, withoutStopHook, type ProbeFacts } from '../../src/core/probe.ts'
 
 const all = { 'command.run': true, 'prompt.submit': true, 'session.usage': true, 'process.run': true }
-const facts = (over: Partial<ProbeFacts> = {}): ProbeFacts => ({ version: '2.1.319', primitives: all, stopHookRegistered: true, ...over })
+const facts = (over: Partial<ProbeFacts> = {}): ProbeFacts => ({ version: '2.1.319', primitives: all, ...over })
 
 test('compareVersions on x.y.z cores', () => {
   assert.equal(compareVersions('2.1.319', '2.1.319'), 0)
@@ -31,6 +31,7 @@ test('below the range -> unsupported, naming the exact version needed', () => {
 test('a missing primitive -> assisted, listing what is missing; a skipped Stop hook -> unsupported', () => {
   const p = probe(facts({ primitives: { ...all, 'process.run': false } }))
   assert.deepEqual([p.mode, p.missing], ['assisted', ['$.process.run']])
-  assert.deepEqual([probe(facts({ stopHookRegistered: false })).mode, probe(facts({ stopHookRegistered: false })).missing], ['unsupported', ['classic.Stop hook']])
+  assert.deepEqual([withoutStopHook(probe(facts())).mode, withoutStopHook(probe(facts())).missing], ['unsupported', ['classic.Stop hook']])
+  assert.equal(withoutStopHook(probe(facts({ version: '2.1.1' }))).missing[0], 'Claude Code 2.1.319+', 'a version refusal stays')
   assert.equal(probe(facts({ version: '2.1.1', primitives: { ...all, 'process.run': false } })).mode, 'unsupported', 'version gate wins')
 })

@@ -77,6 +77,8 @@ export async function relay(rt: Runtime, args: string, caller: Caller): Promise<
   const me = await rt.port.sessionId()
   // purge --all needs only the state folder, not this project (git may not have answered).
   if (sub === 'purge') return purge(rt, me, rest)
+  // R-25: no rotation can finish without the Stop hook, and none starts on an unsupported version.
+  if (rt.probe.mode === 'unsupported' && ['on', 'resume', 'rotate', 'retry'].includes(sub)) return rt.probe.message ?? MSG.unsupported
   if (!rt.projectDir) return MSG.noProject(rt.stateRootError)
   const { tasks } = await projectTasks(rt)
   switch (sub) {
@@ -84,18 +86,17 @@ export async function relay(rt: Runtime, args: string, caller: Caller): Promise<
     case 'off': return off(rt, tasks, me)
     case 'threshold': return threshold(rt, tasks, me, rest.trim())
     case 'pause': return pause(rt, tasks, me)
-    case 'resume': return rt.probe.mode === 'unsupported' ? rt.probe.message ?? MSG.unsupported : resume(rt, tasks, me)
+    case 'resume': return resume(rt, tasks, me)
     case 'continue': return continueHere(rt, tasks, me, caller.endedHere)
-    case 'rotate': return rt.probe.mode === 'unsupported' ? rt.probe.message ?? MSG.unsupported : rotate(rt, tasks, me, caller.idle === true)
+    case 'rotate': return rotate(rt, tasks, me, caller.idle === true)
     case 'done': return confirmDone(rt, tasks, me, caller.endedHere)
-    case 'retry': return rt.probe.mode === 'unsupported' ? rt.probe.message ?? MSG.unsupported : retry(rt, tasks, me, caller.idle === true)
+    case 'retry': return retry(rt, tasks, me, caller.idle === true)
     case 'recover': return rest.trim() === '' || rest.trim() === '--relink' ? recover(rt, me, caller.endedHere, rest.trim() === '--relink') : MSG.recoverUsage
     default: return revise(rt, tasks, me, sub as 'dod' | 'check', rest)
   }
 }
 
 async function on(rt: Runtime, tasks: Task[], me: string, rest: string): Promise<string> {
-  if (rt.probe.mode === 'unsupported') return rt.probe.message ?? MSG.unsupported
   const own = ownTask(tasks, me)
   if (own) return MSG.alreadyOn(own.state)
   // ST-6.6 (02 §7): a task no session runs is offered back first; a running session's task stays its own, and this

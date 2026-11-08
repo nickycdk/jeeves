@@ -55,7 +55,7 @@ export function runtime($: EngineInterface, options: Options, refresh = false): 
 async function build($: EngineInterface, options: Options): Promise<Runtime> {
   const port = enginePort($)
   const storage = createStorage(port)
-  const probe = await runProbe($, true).then(p => stopSkipped ? withoutStopHook(p) : p)
+  const probe = await runProbe($).then(p => stopSkipped ? withoutStopHook(p) : p)
   let stateRoot: string | null = null, stateRootError: string | null = null, stateRootSource: StateRootSource | null = null
   const id = await port.cwd().then(cwd => repoIdentity(port, cwd)).catch(() => null)
   try {

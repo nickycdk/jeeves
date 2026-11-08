@@ -110,6 +110,10 @@ export function statusText(v: StatusView): string {
   return lines.slice(0, 8).map(fit).join('\n')
 }
 
+/** The status line when Jeeves is not in full mode. */
+export const offStatus = (p: Probe) =>
+  p.missing[0] === 'classic.Stop hook' ? 'off: Stop hook skipped' : p.mode === 'unsupported' ? `off: needs ${p.missing[0]}` : 'assisted mode'
+
 /** The `/jeeves` command menu's argument hint; a unit test keeps it in step with HELP. */
 export const ARGUMENT_HINT = 'on [goal] | off | pause | resume | rotate | continue | recover | done | retry | threshold <n> | defaults ... | task | dod <text> | check <cmd> | status [--diagnose] | history [--full] | stats | purge | help'
 
