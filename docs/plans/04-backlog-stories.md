@@ -573,4 +573,110 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 
 ---
 
+## E10 — Fewer dead ends (v0.2)
+
+### ST-10.1 Window-aware default threshold — S
+- **Cites:** FR-03, R-13, Q-5, D-32.
+- **Scope:** a new task takes its threshold from, in order: `/jeeves threshold` (explicit), the project default (ST-11.1), else the window default: **50%** when the context window is ≤ 200K tokens or unknown, **40%** above 200K. Chosen once at task creation from `usage().window`; a later model switch does not change it (status shows tokens, so the user can see it and set it). Out: changing tasks that already exist; `warnBeforePercent` stays 5 points.
+- **Depends on:** none.
+- **AC:** (1) `/jeeves on` with a 1M window → threshold 40 and status `40% (~400K tokens)`; (2) 200K window → 50; (3) window unknown → 50; (4) an explicit `/jeeves threshold 60` on a 1M window stays 60; (5) a state.json written by v0.1 keeps its threshold.
+- **Tests:** U (pure default chooser, boundary 200K / 200K+1); I (`threshold.test.ts`: on with 1M and 200K mock windows, explicit override, v0.1 state fixture).
+- **DoD:** + README "Threshold" paragraph and `docs/compatibility.md` note; CHANGELOG.
+
+### ST-10.2 `/jeeves retry` after an invalid handover — M
+- **Cites:** FR-08, AC-17, ADR-003, ADR-009 A2, D-31.
+- **Scope:** new user-typed subcommand `retry`. From NEEDS_REVIEW(HANDOVER_INVALID) only: a new MANUAL rotation (new `rotationId`, reason `RETRY` in the event) → ROTATION_REQUESTED, so the next safe Stop asks for the handover again (or at once when idle, as `/jeeves rotate` does). The retry counts toward `maxConsecutiveFailures`: when it is used up, `retry` refuses with a message naming `/jeeves off`. Earlier handovers stay byte-identical. From any other state: a message saying what `retry` applies to. Out: retrying automatically; retrying DOD_UNMET (has `/jeeves done`), ROTATE_UNAVAILABLE (has `/jeeves continue`), STATE_CORRUPT (has `/jeeves recover`).
+- **Depends on:** none.
+- **AC:** (1) invalid ×3 → NEEDS_REVIEW(HANDOVER_INVALID) → `/jeeves retry` → handover requested again → a valid block rotates normally; (2) retry while not the lock owner → refused, no state change; (3) a second exhausted retry → refused, status names the limit; (4) `retry` typed by Claude (not the user) → `MSG.userOnly`; (5) `history/handover-*.md` hashes unchanged across (1)–(3); (6) status and help list `retry` only when it applies.
+- **Tests:** U (reducer rows: RETRY from each NEEDS_REVIEW reason, failure counter); I (`retry.test.ts`: the five cases, idle and busy session).
+- **DoD:** + 02 §4 rows (ADR-009 A2); message catalogue entry; README command table; CHANGELOG.
+
+### ST-10.3 POSSIBLE_LOOP becomes reviewable — S
+- **Cites:** FR-08, R-18, D-31.
+- **Scope:** the loop guard (fresh session already at ≥ T−10) goes to **NEEDS_REVIEW(POSSIBLE_LOOP)** instead of FAILED. `/jeeves retry` from there: back to MONITORING in this session with `armedFired=true` (no rotation in this session; the next fresh session re-arms as usual), counts toward `maxConsecutiveFailures`. The message suggests a higher threshold or a shorter task (`/jeeves threshold`, `/jeeves task`). A v0.1 state.json in FAILED(POSSIBLE_LOOP) stays FAILED (no migration). Out: changing the loop-guard margin.
+- **Depends on:** ST-10.2.
+- **AC:** (1) a fresh session at ≥ T−10 → NEEDS_REVIEW(POSSIBLE_LOOP), no `/clear`; (2) `/jeeves retry` → MONITORING, no rotation in this session even past T; (3) the next rotation from a later session works and re-arms; (4) a second loop after a retry with the counter used up → FAILED(POSSIBLE_LOOP); (5) v0.1 FAILED fixture unchanged.
+- **Tests:** U (reducer rows, property test: no rotation from NEEDS_REVIEW without a user command still holds); I (`retry.test.ts` loop cases).
+- **DoD:** + 02 §4 row amended; troubleshooting entry.
+
+## E11 — Setup and insight (v0.2)
+
+### ST-11.1 Per-project defaults — M
+- **Cites:** FR-11, ADR-005, ADR-009 A2, D-30.
+- **Scope:** `/jeeves defaults` shows this project's defaults; `/jeeves defaults threshold <20-90>`, `/jeeves defaults check <cmd>` (add; repeatable), `/jeeves defaults clear`. Stored in `<stateRoot>/projects/<projectId>/config.json` (schema-checked, atomic swap, never in the repository). `/jeeves on` copies them into the new task (threshold per ST-10.1 order; checks as revision 2 the way `/jeeves check` writes them, so they show in `/jeeves task`). Out: global defaults across projects; editing other config fields.
+- **Depends on:** ST-10.1.
+- **AC:** (1) defaults set in a project apply to the next `/jeeves on` there and not in another project; (2) a running task is unchanged when defaults change; (3) an invalid value is refused with the allowed range; (4) a corrupt `config.json` → defaults ignored with a warning in status, task still starts; (5) `purge` removes the file with the project; (6) user-typed only.
+- **Tests:** U (schema guard, merge order); I (`defaults.test.ts`, memfs: set/show/clear, two projects, corrupt file, purge).
+- **DoD:** + 02 §6.1 layout line; PRIVACY (what the file holds); README; CHANGELOG.
+
+### ST-11.2 Verification-check suggestions — S
+- **Cites:** FR-10, PRD change 7 (the plugin never runs checks), R-19.
+- **Scope:** at `/jeeves on` with no checks set (task or project default), read the repo's `package.json` `scripts` (test, lint, typecheck, check) and a top-level `Makefile`'s `test`/`lint` targets, and add one line to the start message: `Suggested checks: /jeeves check npm test` …. Suggestions only: nothing is added or run. Names are shown only when they match `[A-Za-z0-9:_-]{1,40}` (no repo text echoed raw); at most 4. Out: other ecosystems (pyproject, Cargo) in v0.2: noted for later.
+- **Depends on:** ST-11.1.
+- **AC:** (1) a repo with `test` and `typecheck` scripts → two suggestions; (2) none → no line; (3) checks already set → no line; (4) a script name with shell characters or 500 chars → not shown; (5) unreadable/invalid `package.json` → no line, no error.
+- **Tests:** U (suggestion picker over a fixture table); I (`on` message snapshot with and without suggestions).
+- **DoD:** + README "Checks" paragraph.
+
+### ST-11.3 `/jeeves history --full` — S
+- **Cites:** FR-11, ST-7.2.
+- **Scope:** `--full` adds, per rotation: the session's start and end context, cost when known, the end reason, and the handover file path with its first "Exact next actions" lines (already redacted at write). Plain text, readable at 50 columns. Out: printing whole handovers (the path is given).
+- **Depends on:** none.
+- **AC:** (1) a task with 2 rotations shows both with their numbers; (2) a missing or hash-mismatched handover file is reported as such, not printed; (3) without `--full` output is unchanged; (4) no non-ASCII in plain-text mode.
+- **Tests:** I (`history.test.ts` snapshots, missing file, changed file).
+- **DoD:** + README command table.
+
+### ST-11.4 `/jeeves stats` — M
+- **Cites:** FR-11, R-15, D-30.
+- **Scope:** for this project (all its tasks) and the current task: tasks, rotations, sessions, average context at rotation, context cleared by rotations (points, and tokens when the window was recorded), cost per session where known, and failures by reason. Read-only; from `sessions/*.json`, `state.json` and `events.jsonl`. Wording says "context cleared", never "tokens saved" (claims policy, 08 §7). Out: cross-project totals; charts.
+- **Depends on:** ST-11.3.
+- **AC:** (1) figures match a fixture with known sessions; (2) a session without cost shows "unknown", not 0; (3) unreadable task folders are counted as unreadable, not skipped silently; (4) runs in < 100 ms on 50 tasks (NFR-03 style micro-benchmark).
+- **Tests:** U (pure aggregator); I (`stats.test.ts` snapshot, unreadable task); P (timing on a generated 50-task state folder).
+- **DoD:** + README.
+
+## E12 — Compatibility and live coverage (v0.2)
+
+### ST-12.1 Claude Code floor 2.1.303 — S
+- **Cites:** Q-4, NFR-06, AC-22, D-33.
+- **Scope:** `compat.yml` matrix 2.1.303 … current; one PTY rotation (haiku) on 2.1.303 in a scratch config and state folder; if it passes, `MIN_VERSION` = 2.1.303 and `docs/compatibility.md` regenerated. If it fails: floor stays 2.1.319, result recorded, no further work.
+- **Depends on:** none. **Live run:** ~US$0.05–0.10 (budget asked first).
+- **AC:** (1) test kit passes on 2.1.303 and 2.1.319; (2) one live rotation on 2.1.303 continues the task; (3) 2.1.302 and lower get the unsupported-version message.
+- **Tests:** C (compat job), E (one rotation), I (probe boundary).
+- **DoD:** + `docs/evidence/v0.2.0/AC-22/`.
+
+### ST-12.2 VS Code terminal checklist — S
+- **Cites:** NFR-02, AC-02, D-30.
+- **Scope:** a script like `cursor-demo-script.md` for VS Code's integrated terminal (06 §6, before and after one rotation, haiku with a test threshold); the maintainer runs it. Out: other terminals.
+- **Depends on:** none. **Cost (maintainer):** ~US$0.20 on haiku, or US$1–3 on the default model.
+- **AC:** 7/7 items before and after a rotation in VS Code, versions recorded.
+- **Tests:** M (checklist).
+- **DoD:** + `docs/evidence/v0.2.0/AC-33/RESULT.md`; `docs/compatibility.md` terminal table.
+
+### ST-12.3 Q-9: a second blocking Stop hook — S
+- **Cites:** Q-9, ADR-004.
+- **Scope:** add a second plugin's Stop hook that blocks once to the test kit (or, if the kit cannot load two plugins, to the E driver) and check the handover request and the rotation still happen once each, with neither block lost.
+- **Depends on:** none.
+- **AC:** (1) one rotation, one handover file; (2) the other hook's block reaches Claude; (3) result written into 07 Q-9.
+- **Tests:** I if possible, else E (folded into ST-12.4's run).
+- **DoD:** + Q-9 answered in 07.
+
+### ST-12.4 Live runs for the unverified paths and AC-07 E — M
+- **Cites:** AC-07, AC-16, AC-18, ADR-006, D-28, `handoff-m7.md` §5.
+- **Scope:** extend `tests/pty/e_layers.py` with phases: (c) compaction via a typed `/compact` during a managed task → rotation at the next safe boundary; (d) `autoRecover` on: kill mid-task, restart → continues once without `/jeeves recover`; (e) REPO_MISMATCH: move the fixture repo between sessions → BLOCKED, `/jeeves recover --relink` continues; (f) the `/clear` stall via `endedHere`; (g) AC-07: a fixture whose only step after the threshold is one Bash call needing permission (left unanswered 20 s: no handover request); (h) `/plugin configure jeeves` shows both options. One haiku session per phase in a scratch `JEEVES_STATE_DIR`.
+- **Depends on:** ST-10.x, ST-11.x built (runs once on the v0.2 candidate). **Live run:** ~US$0.30–0.60 for 6 phases (budget asked first).
+- **AC:** each phase PASS, FAIL (with a fix or a filed follow-up) or NOT EXERCISED with the reason; nothing left "unverified" without a line in the evidence.
+- **Tests:** E (this is the test).
+- **DoD:** + `docs/evidence/v0.2.0/e-layers/RESULT.md` with cost per phase.
+
+### ST-12.5 v0.2.0 release prep — S
+- **Cites:** FR-15, 08 §6.
+- **Scope:** version 0.2.0 in the three version fields, CHANGELOG, `jeeves/docs/release-notes/v0.2.0.md`, `docs/evidence/v0.2.0/README.md` (AC-26 … AC-34 plus re-runs of the existing suite), reproducible zip checked. Tag and publication stay the maintainer's.
+- **Depends on:** ST-10.1 … ST-12.4.
+- **AC:** release zip SHA-256 identical from two clean clones; notes claim only what the evidence shows.
+- **Tests:** `release-zip.sh` twice; `claude plugin validate` on the unzipped artifact.
+- **DoD:** + maintainer sign-off.
+
+---
+
 **Count:** 56 stories (E0 7, E1 9, E2 5, E3 8, E4 8, E5 2, E6 7, E7 3, E8 4, E9 3): 5 L, 30 M, 21 S. At the size midpoints (S 0.5 d, M 1.5 d, L 3.5 d) that is ≈ 73 engineer-days for one developer.
+
+**M8 (v0.2) count:** 12 stories (E10 3, E11 4, E12 5): 4 M, 8 S ≈ 10 engineer-days.

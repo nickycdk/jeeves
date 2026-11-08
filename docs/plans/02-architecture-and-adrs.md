@@ -77,6 +77,7 @@ Format: Context → Decision → Consequences → Alternatives rejected. All ADR
 
 ### ADR-009 — Opt-in managed task and command surface
 - **Amendment A1 (2026-11-08, maintainer, D-29):** the command is **`/jeeves`**, matching the product name; `/relay` is now the fallback when `/jeeves` is taken. Every `/relay <sub>` in these plans reads as `/jeeves <sub>`.
+- **Amendment A2 (2026-11-08, maintainer, D-31, D-30; M8):** two new user-typed subcommands. `/jeeves retry` leaves NEEDS_REVIEW(HANDOVER_INVALID) for a new rotation and NEEDS_REVIEW(POSSIBLE_LOOP) for MONITORING (rows in §4); it never runs by itself, so "no auto-rotation from NEEDS_REVIEW" still holds. `/jeeves defaults` keeps per-project defaults (threshold, verification commands) in `projects/<projectId>/config.json` in the state folder (§6.1), copied into a task at `/jeeves on`; a task's own settings win.
 - **Decision:** One registered command `/relay <subcommand>`; if `relay` is taken (`$.command.list()`), register `/jeeves` and say so. A managed task starts with `/relay on [goal]`: with a goal, that text is the original task and is submitted as the first prompt; without one, the next user prompt is captured verbatim at `prompt.submit` (origin composer). Nothing is automatic without opt-in (AC-03). Settings: `userConfig` rows (threshold, autoRecover, stateDir) plus per-task overrides via `/relay threshold`.
 
 ### ADR-010 — Input and `/clear` during rotation
@@ -163,7 +164,11 @@ States (PRD §7 plus explicit `QUIESCING` substates kept as data): `DISABLED, MO
 | ROTATING | runCommand rejects | — | NEEDS_REVIEW(ROTATE_UNAVAILABLE) + mode assisted | instruct `/clear` then `/relay continue` |
 | RESTORING | after clear resolves | — | CONTINUING | `submitPrompt(continuation + held prompts)` |
 | CONTINUING | measure(p) | p < T−10 | MONITORING | armedFired=false (rearm), sessionSequence++ |
-| CONTINUING | measure(p) | p ≥ T−10 | FAILED(POSSIBLE_LOOP) | toast, no rotation |
+| CONTINUING | measure(p) | p ≥ T−10 | FAILED(POSSIBLE_LOOP) | toast, no rotation | *(v0.1; from v0.2 the row below)*
+| CONTINUING | measure(p) | p ≥ T−10 (v0.2, D-31) | NEEDS_REVIEW(POSSIBLE_LOOP) | toast, no rotation |
+| NEEDS_REVIEW(HANDOVER_INVALID) | `/relay retry` (v0.2) | lock owner, consecutiveFailures < max | ROTATION_REQUESTED | new MANUAL rotation, event reason RETRY, consecutiveFailures++, earlier handovers untouched |
+| NEEDS_REVIEW(POSSIBLE_LOOP) | `/relay retry` (v0.2) | lock owner, consecutiveFailures < max | MONITORING | armedFired=true (no rotation in this session), consecutiveFailures++ |
+| NEEDS_REVIEW(POSSIBLE_LOOP) | measure-loop again after a retry (v0.2) | consecutiveFailures ≥ max | FAILED(POSSIBLE_LOOP) | toast |
 | any active | `/relay pause` | — | PAUSED(USER) | persisted |
 | PAUSED | `/relay resume` | lock ok | MONITORING (or RESTORING if USER_CLEAR) | — |
 | any active | StopFailure(rate_limit/auth/billing/…) | — | PAUSED(<code>) | distinct reason codes |
@@ -223,6 +228,7 @@ All JSON files carry `schemaVersion` (start at 1). `schema.ts` has a migration f
 <stateRoot>/
   projects/<projectId>/            projectId = sha256(realpath(git common dir) + "|" + realpath(worktree root))[:16]
     project.json                   { schemaVersion, repoRoot, worktree, createdAt }
+    config.json                    v0.2 per-project defaults { schemaVersion, thresholdPercent?, verificationCommands? } (ADR-009 A2)
     tasks/<taskId>/                taskId = "t_" + yyyymmdd + "_" + 6 random base32
       task.md                      current task view (rendered from revisions)
       task-rev-001.md …            immutable; rev 1 = verbatim original prompt

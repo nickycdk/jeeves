@@ -71,6 +71,17 @@ Built by `fixtures/build-repo.ts` into a temp dir per test (never committed stat
 | AC-23 | Clear failure messages | I: each StopFailure code, outdated version, disk error, wrong path → message snapshot | I | snapshots |
 | AC-24 | OSS artifacts | Release checklist (08) | M | release page |
 | AC-25 | Honest assisted mode | I: `$.command.run` rejects → assisted status + message; README claims reviewed | I, M | snapshots **Status (M4):** met: `assisted.test.ts`, `ui.spec.ts`, README Modes. |
+| AC-26 | `/jeeves retry` after an invalid handover (v0.2, ST-10.2) | U: reducer rows; I: invalid ×3 → retry → valid → rotation; limit, non-owner, Claude-typed refused; handover hashes unchanged | U, I | test report |
+| AC-27 | Possible loop is reviewable, not terminal (ST-10.3) | U + I: fresh session ≥ T−10 → NEEDS_REVIEW(POSSIBLE_LOOP), retry → MONITORING without rotating here; second loop with the counter used up → FAILED; v0.1 FAILED state unchanged | U, I | test report |
+| AC-28 | Window-aware default threshold (ST-10.1) | U: chooser boundaries (≤ 200K → 50, > 200K → 40, unknown → 50); I: `/jeeves on` with mock 1M/200K windows, explicit threshold kept, v0.1 state kept; E: status on a live haiku (1M) session shows 40% | U, I, E | test report + status capture |
+| AC-29 | Per-project defaults (ST-11.1) | I: set/show/clear, applies to the next task in this project only, running task unchanged, corrupt file ignored with warning, purge removes it; nothing written in the repo | U, I | test report |
+| AC-30 | Check suggestions, never run (ST-11.2) | U: picker table (scripts, Makefile, unsafe names, bad JSON); I: `on` message snapshots; audit: no `process.run` added | U, I | snapshots |
+| AC-31 | `history --full` (ST-11.3) | I: snapshots for 2 rotations, missing and changed handover files; plain-text ASCII | I | snapshots |
+| AC-32 | `stats` (ST-11.4) | U: aggregator over fixture sessions; I: snapshot; P: < 100 ms on 50 tasks | U, I, P | test report + timing |
+| AC-33 | VS Code terminal (ST-12.2) | §6 checklist in VS Code before/after one rotation | M | recording + checklist |
+| AC-34 | Claude Code floor 2.1.303 (ST-12.1) | C: test kit on 2.1.303 and current; E: one rotation on 2.1.303; I: probe boundary 2.1.302/2.1.303 | C, E, I | matrix + run log |
+
+**v0.2 E-layer additions (ST-12.4):** phases c–h of `tests/pty/e_layers.py` cover compaction (typed `/compact`), `autoRecover`, REPO_MISMATCH on a moved repo with `--relink`, the `/clear` stall via `endedHere`, AC-07 (one Bash permission call as the only step after the threshold) and `/plugin configure`. Q-9 (a second blocking Stop hook) is I if the test kit loads two plugins, else E. Each result goes into `docs/evidence/v0.2.0/e-layers/RESULT.md` with its cost.
 
 ## 4. Non-functional tests
 

@@ -2,7 +2,7 @@
 
 Priority: P0 = MVP. Each epic cites PRD identifiers. Standard epic DoD (applies to all, plus epic-specific items): all child stories meet their DoD; epic AC demonstrated with the listed artifact; docs updated; no open Critical/High review findings; CI green.
 
-Dependency order: E0 → E1 → E2 → E3 → E4 → E5 → (E6, E7 in parallel) → E8 → E9.
+Dependency order: E0 → E1 → E2 → E3 → E4 → E5 → (E6, E7 in parallel) → E8 → E9 → (E10, E11) → E12.
 
 ---
 
@@ -96,8 +96,35 @@ Dependency order: E0 → E1 → E2 → E3 → E4 → E5 → (E6, E7 in parallel)
 - **AC:** every AC marked pass/fail/not-supported with evidence; marketing claims match `full` mode capabilities; maintainer sign-off.
 - **Artifact:** GitHub release, evidence pack, demo video.
 
+## E10 — Fewer dead ends (P1, v0.2)
+- **Goal:** A failed handover or a suspected loop is no longer a dead end, and the default threshold suits large-window models.
+- **Scope:** `/jeeves retry` for NEEDS_REVIEW(HANDOVER_INVALID) and NEEDS_REVIEW(POSSIBLE_LOOP) (POSSIBLE_LOOP moves from FAILED to NEEDS_REVIEW); a window-aware default threshold (50% up to a 200K window, 40% above). **Out:** automatic retries; any retry that weakens validation.
+- **User value:** recover from a bad handover in one command instead of `/jeeves off` and a new task; rotations on 1M models before 500K tokens.
+- **Dependencies:** E6. **Risks:** R-13, R-18, R-23.
+- **Cites:** FR-03, FR-08, ADR-003, ADR-009 A2, D-31, D-32.
+- **AC:** AC-26, AC-27, AC-28 pass (U + I); earlier handovers byte-identical after a retry; no retry without the user typing it.
+- **Artifact:** I-layer tests + state-table rows in 02 §4.
+
+## E11 — Setup and insight (P1, v0.2)
+- **Goal:** Less typing per task, and a view of what Jeeves has done.
+- **Scope:** per-project defaults (`/jeeves defaults`: threshold and verification commands, stored in the state folder), check suggestions from the repo's own scripts at `/jeeves on`, `/jeeves history --full`, `/jeeves stats`. **Out:** a settings UI, the handover diff pane (P1, deferred), anything that runs repo commands from the plugin.
+- **User value:** `/jeeves on` in a configured project needs no further setup; users see rotations, cost and context cleared.
+- **Dependencies:** E7. **Risks:** R-19 (repo text read for suggestions), R-24.
+- **Cites:** FR-10, FR-11, ADR-005, ADR-009 A2, D-30.
+- **AC:** AC-29 … AC-32 pass (U + I); no state written inside the repository.
+- **Artifact:** I-layer snapshots of each command.
+
+## E12 — Compatibility and live coverage (P1, v0.2)
+- **Goal:** Widen the supported Claude Code range on evidence, close the live-unverified paths, ship v0.2.0.
+- **Scope:** floor 2.1.303 (compat matrix + one live rotation), VS Code terminal checklist (maintainer), live runs for compaction, `autoRecover`, REPO_MISMATCH on a moved repo, the `/clear` stall via `endedHere`, `/plugin configure`, the AC-07 E layer, Q-9 (a second blocking Stop hook), v0.2.0 release prep. **Out:** Linux official and Windows (P1/P2, deferred).
+- **Dependencies:** E10, E11; v0.1.0 released (M7). **Risks:** A-01, R-21.
+- **Cites:** NFR-02, NFR-06, AC-02, AC-07, AC-22, Q-4, Q-9.
+- **AC:** AC-33, AC-34 pass; every path in `handoff-m7.md` §5 "live-unverified" has an E result or a recorded reason; evidence pack `docs/evidence/v0.2.0/`.
+- **Artifact:** `docs/evidence/v0.2.0/`, draft release v0.2.0.
+
 ---
 
 ## P1 / P2 backlog (not scheduled)
-- **P1:** Linux officially supported (CI PTY E2E); VS Code terminal matrix; `/relay history --full`; handover diff view (`AbovePrompt` pane); per-project default config; richer verification gates (lint/typecheck detection suggestions); observability (`/relay stats`: rotations, tokens saved); Claude Code version back-compat to 2.1.287 if the suite passes.
+- **P1 (scheduled in M8, D-30):** VS Code terminal matrix (ST-12.2); `/jeeves history --full` (ST-11.3); per-project default config (ST-11.1); verification-check suggestions (ST-11.2); `/jeeves stats` (ST-11.4); back-compat floor 2.1.303 (ST-12.1; 2.1.287/2.1.295 refuse the module, Q-4).
+- **P1 (still unscheduled):** Linux officially supported (CI PTY E2E; needs a Linux machine with a logged-in Claude Code); handover diff view (`AbovePrompt` pane; early-access mods UI).
 - **P2:** Windows; adapters for other agents via `EnginePort`; optional local dashboard; shareable handover policy presets; multi-task orchestration.
