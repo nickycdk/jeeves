@@ -16,7 +16,8 @@
     "validate": "claude plugin validate . --strict",
     "docs:state": "node scripts/state-diagram.mjs",
     "e2e:pty": "python3 tests/pty/driver.py",
-    "crash:report": "node scripts/crash-report.mjs"
+    "crash:report": "node scripts/crash-report.mjs",
+    "compat": "node scripts/compat.mjs"
   },
   "devDependencies": {
     "typescript": "7.0.2"

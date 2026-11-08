@@ -108,6 +108,7 @@ export const HELP = [
   'dod <text>    add a done criterion',
   'check <cmd>   add a check (never run)',
   'status        mode, task, context',
+  'status --diagnose  report for a bug',
   'history       last 20 state changes',
   'help          this list',
 ].join('\n')

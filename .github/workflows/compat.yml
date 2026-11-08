@@ -1,0 +1,25 @@
+name: compat
+# AC-22: the plugin against each listed Claude Code version (validate + the engine test kit; no login, no model calls).
+on:
+  schedule:
+    - cron: '17 4 * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  matrix:
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: jeeves
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm run compat -- "$RUNNER_TEMP/compat" 2.1.303 2.1.310 2.1.316 2.1.319
+      - run: git diff --exit-code docs/compatibility.md || echo "::warning::docs/compatibility.md changed; commit the new matrix"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: compatibility
+          path: jeeves/docs/compatibility.md

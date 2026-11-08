@@ -54,6 +54,8 @@ export interface EnginePort extends FsPort {
   /** One dim transcript line the user sees and the model does not (`$.ui.log`). */
   note(text: string): void
   now(): Promise<number>
+  /** This plugin's version from its plugin.json, or null when unreadable. */
+  pluginVersion(): Promise<string | null>
   /** True only the first time it is asked on this machine (a `$.store` flag), so a notice shows once. */
   firstActivation(): Promise<boolean>
 }

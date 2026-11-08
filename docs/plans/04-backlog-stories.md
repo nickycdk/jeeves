@@ -521,6 +521,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **DoD:** standard.
 
 ### ST-8.3 Diagnose and compatibility CI — M
+- **Status:** Solved (M6) locally; the CI job is written but has never run (no remote). `/jeeves status --diagnose` (`src/adapter/diagnose.ts`, `tests/mod/diagnose.test.ts`); `scripts/compat.mjs` (`npm run compat`) installs each version from npm into a scratch folder and runs validate + test logged out; `.github/workflows/compat.yml`; `docs/compatibility.md`: 2.1.303 … 2.1.319 pass, 2.1.287 and 2.1.295 fail validation (`$` passed across an import). `claude plugin validate/test` need no login (checked with an empty `CLAUDE_CONFIG_DIR`).
 - **Cites:** FR-01, NFR-06, AC-22.
 - **Scope:** `/relay status --diagnose` (version, probe, org policy hints, state dir writable, git available, lock state; redacted, copyable); CI job that installs pinned Claude Code versions (where licensing/auth permits non-auth checks: `claude plugin validate`, `claude plugin test`) and runs mod tests; compatibility.md generated from results.
 - **Depends on:** ST-1.8.

@@ -58,6 +58,7 @@ export function enginePort($: EngineInterface): EnginePort {
     log: text => $.ui.log(text, { to: 'debug' }),
     note: text => $.ui.log(text),
     now: () => $.clock.now(),
+    pluginVersion: () => $.fs.read(`${$.plugin.root}/.claude-plugin/plugin.json`).then(t => String(JSON.parse(t).version ?? '') || null, () => null),
     firstActivation: async () => {
       if ((await $.store.get('firstActivationShown')) === true) return false
       await $.store.set('firstActivationShown', true)

@@ -119,6 +119,7 @@ export function memHost(on: On, env: Record<string, string> = { HOME: '/home/t' 
     }
     if (cmd === 'uname') return { value: { ...ok, stdout: 'Linux\n' } }
     if (cmd === 'chmod') return { value: ok }
+    if (cmd === 'test') return { value: { ...ok, exitCode: rest[0] === '-w' && h.dirs.has(rest[1]!) ? 0 : 1 } }
     if (cmd === 'mkdir') {
       const p = rest.includes('-p')
       const d = rest.filter(a => !a.startsWith('-'))[0]!

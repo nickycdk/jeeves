@@ -26,7 +26,7 @@ jobs:
       - run: npm run lint
       - run: npm test
   mod:
-    # claude plugin validate/test need no model calls; auth requirement unverified (ST-8.3).
+    # claude plugin validate/test need no model calls and no login (checked logged out, ST-8.3).
     runs-on: ubuntu-latest
     defaults:
       run:

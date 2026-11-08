@@ -68,3 +68,7 @@ export async function hasCommit(port: FsPort, worktree: string, sha: string): Pr
 
 /** The project folder under the state root. */
 export const projectDir = (stateRoot: string, pid: string) => join(stateRoot, 'projects', pid)
+
+/** `git --version`'s answer, or null when git did not answer (for diagnose). */
+export const gitVersion = (port: FsPort, cwd: string): Promise<string | null> =>
+  git(port, cwd, ['--version']).then(r => (r.exitCode === 0 ? r.stdout.trim() : null), () => null)

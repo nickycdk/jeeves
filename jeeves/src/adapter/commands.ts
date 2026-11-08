@@ -6,6 +6,7 @@ import type { State } from '../core/types.ts'
 import type { Runtime } from './runtime.ts'
 import { addRevision, apply, claim, heldByOther, liveTasks, ownTask, projectTasks, readTask, nudgeIfWaiting, restoreHere, startTask, takeLock, type Task } from './task.ts'
 import { recover, restoredText } from './recover.ts'
+import { diagnose } from './diagnose.ts'
 import { firstActivationText, HELP, historyText, MSG, statusText } from './ui.ts'
 
 export const PLUGIN = 'jeeves'
@@ -40,6 +41,7 @@ export async function relay(rt: Runtime, args: string, caller: Caller): Promise<
     const { tasks, errors } = await projectTasks(rt)
     const me = await rt.port.sessionId()
     const picked = pickTask(tasks, me)
+    if (rest.trim() === '--diagnose') return diagnose(rt, me, picked, errors)
     // In the owning session show the live reading (never a stale one); another session's task shows its last stored reading.
     const task = picked?.state.activeSessionId === me ? { ...picked, state: { ...picked.state, lastContext: { ...(await rt.port.usage()), at: new Date(await rt.port.now()).toISOString() } } } : picked
     return statusText({ probe: rt.probe, stateRoot: rt.stateRoot, stateRootError: rt.stateRootError, task, taskError: task ? null : errors[0] ?? null, thresholdOverride: rt.thresholdOverride, thresholdRelative: rt.thresholdRelative })

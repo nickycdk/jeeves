@@ -6,7 +6,7 @@ import type { EnginePort } from './ports.ts'
 import type { RepoIdentity } from '../core/git.ts'
 import { projectDir, projectId, repoIdentity } from './git.ts'
 import { runProbe } from './probe.ts'
-import { createQueue, createStorage, resolveStateRoot, StorageError, type Storage } from './storage.ts'
+import { createQueue, createStorage, resolveStateRoot, StorageError, type StateRootSource, type Storage } from './storage.ts'
 
 export type Runtime = {
   port: EnginePort
@@ -15,6 +15,8 @@ export type Runtime = {
   /** null with `stateRootError` when no usable state folder could be set up. */
   stateRoot: string | null
   stateRootError: string | null
+  /** Where the state root came from (ADR-005 order); null without one. */
+  stateRootSource: StateRootSource | null
   /** This cwd's repo identity; null when git did not answer. */
   identity: RepoIdentity | null
   /** `projects/<projectId>` under the state root; null without a state root or identity. */
@@ -49,13 +51,16 @@ async function build($: EngineInterface, options: Options): Promise<Runtime> {
   const port = enginePort($)
   const storage = createStorage(port)
   const probe = await runProbe($, true)
-  let stateRoot: string | null = null, stateRootError: string | null = null
+  let stateRoot: string | null = null, stateRootError: string | null = null, stateRootSource: StateRootSource | null = null
   const id = await port.cwd().then(cwd => repoIdentity(port, cwd)).catch(() => null)
   try {
-    stateRoot = (await resolveStateRoot(port, { override: options.stateDir, repoRoot: id?.kind === 'git' ? id.worktree : null })).root
+    const found = await resolveStateRoot(port, { override: options.stateDir, repoRoot: id?.kind === 'git' ? id.worktree : null })
+    stateRoot = found.root
+    stateRootSource = found.source
     await storage.ensureRoot(stateRoot)
   } catch (err) {
     stateRoot = null
+    stateRootSource = null
     stateRootError = err instanceof StorageError ? `${err.code}: ${err.message}` : String(err)
   }
   const pid = id ? await projectId(id) : null
@@ -64,7 +69,7 @@ async function build($: EngineInterface, options: Options): Promise<Runtime> {
   const override = raw && !raw.startsWith('+') ? Number(raw) : NaN
   const crash = (await port.env('JEEVES_TEST')) === '1' ? (await port.env('JEEVES_TEST_CRASH'))?.trim() : undefined
   return {
-    port, storage, probe, stateRoot, stateRootError, identity: id, projectId: pid,
+    port, storage, probe, stateRoot, stateRootError, stateRootSource, identity: id, projectId: pid,
     projectDir: stateRoot && pid ? projectDir(stateRoot, pid) : null, serial: createQueue(),
     thresholdOverride: Number.isFinite(override) && override >= 1 && override <= 99 ? override : null,
     thresholdRelative: Number.isFinite(relative) && relative > 0 && relative <= 50 ? relative : null,

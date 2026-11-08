@@ -6,7 +6,7 @@ import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 const ROOT = join(import.meta.dirname, '../..')
-const READ_ONLY = new Set(['rev-parse', 'status', 'diff', 'cat-file'])
+const READ_ONLY = new Set(['rev-parse', 'status', 'diff', 'cat-file', '--version'])
 const sources = ['src', 'hooks'].flatMap(d => readdirSync(join(ROOT, d), { recursive: true, encoding: 'utf8' })
   .filter(f => f.endsWith('.ts')).map(f => ({ file: `${d}/${f}`, text: readFileSync(join(ROOT, d, f), 'utf8') })))
 
