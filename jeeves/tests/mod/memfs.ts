@@ -36,7 +36,7 @@ export type MemHost = {
   access: { sid: string; op: 'read' | 'write' | 'run'; path: string }[]
   /** What `$.session.cwd()` answers. */
   cwd: string
-  /** Answers `git <args>` (after `--no-optional-locks`); absent: every git call says "not a git repository". */
+  /** Answers `git <args>` (after the fixed `--no-optional-locks -c core.fsmonitor=false`); absent: every git call says "not a git repository". */
   git?: (args: string[]) => { exitCode: number; stdout: string }
   /** What `$.session.usage().context` answers. */
   usage: { window: number; percent?: number; tokens?: number }
@@ -114,7 +114,7 @@ export function memHost(on: On, env: Record<string, string> = { HOME: '/home/t' 
     if (h.failProcess) return { deny: 'process.run unavailable' }
     if (cmd === 'true') return { value: ok }
     if (cmd === 'git') {
-      const r = h.git?.(rest.filter(a => a !== '--no-optional-locks'))
+      const r = h.git?.(rest.slice(3))
       return { value: r ? { ...ok, ...r } : { ...ok, exitCode: 128, stderr: 'fatal: not a git repository' } }
     }
     if (cmd === 'uname') return { value: { ...ok, stdout: 'Linux\n' } }

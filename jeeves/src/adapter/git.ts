@@ -8,9 +8,13 @@ import { sha256Hex } from './storage.ts'
 export const GIT_TIMEOUT_MS = 10_000
 
 // --no-optional-locks: status must not write the index (no git mutation, even incidental).
+// core.fsmonitor=false: a repository's own .git/config cannot make `git status` run a command (ST-9.1).
 // LC_ALL=C: git's messages in English, so "not a git repository" can be recognised.
 const git = (port: FsPort, cwd: string, args: string[]): Promise<ProcResult> =>
-  port.run(['git', '--no-optional-locks', ...args], { cwd, timeoutMs: GIT_TIMEOUT_MS, env: { LC_ALL: 'C' } })
+  port.run(['git', '--no-optional-locks', '-c', 'core.fsmonitor=false', ...args], { cwd, timeoutMs: GIT_TIMEOUT_MS, env: { LC_ALL: 'C' } })
+
+/** A commit id as git prints it: never an option ("--output=..."), whatever state.json says (ST-9.1). */
+const isCommit = (sha: string) => /^[0-9a-f]{4,64}$/.test(sha)
 
 /** null when git could not answer (timeout, git missing, an unexpected git error): unknown, never "not a repo". */
 export async function repoIdentity(port: FsPort, cwd: string): Promise<RepoIdentity | null> {
@@ -48,7 +52,7 @@ export async function gitFacts(port: FsPort, id: RepoIdentity | null, taskStartH
       head = h.exitCode === 0 ? h.stdout.trim() : null
     }
     let changedSinceStart: string[] | null = null
-    if (taskStartHead) {
+    if (taskStartHead && isCommit(taskStartHead)) {
       const d = await git(port, cwd, ['diff', '--name-only', '-z', taskStartHead, '--'])
       if (d.exitCode === 0) {
         const untracked = p.entries.filter(e => e.xy === '??').map(e => e.path)
@@ -63,6 +67,7 @@ export async function gitFacts(port: FsPort, id: RepoIdentity | null, taskStartH
 
 /** Whether `sha` is a commit of the repository at `worktree` (a moved repository still has the task's start commit). */
 export async function hasCommit(port: FsPort, worktree: string, sha: string): Promise<boolean> {
+  if (!isCommit(sha)) return false
   return (await git(port, worktree, ['cat-file', '-e', `${sha}^{commit}`]).catch(() => null))?.exitCode === 0
 }
 

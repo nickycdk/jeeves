@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Security review (ST-9.1, `docs/threat-model.md`, `SECURITY.md`): values read back from `state.json` that become a file path or a git argument are checked for their exact form (ids are safe names, the start commit is hex, the handover reference is `history/handover-NNN.md`), so an edited `state.json` can no longer make Jeeves write a file through `git diff` or reach outside its folder; git runs with `core.fsmonitor` off, so a repository's own `.git/config` cannot make Jeeves's `git status` run a command. PRIVACY.md now lists messages held during a handover.
 - `/jeeves status` shows the mode (full, assisted or unsupported), the managed task if any, its state, context reading (or "unknown"), threshold, rotations, last handover or error, and the state folder. `/jeeves help` lists commands. If `/jeeves` is taken, Jeeves registers `/jeeves` and says so.
 - On an unsupported Claude Code version, Jeeves says which version it needs and does nothing automatic.
 - `stateDir` setting (in `/config`) chooses where task state is kept; the default is outside any repository.

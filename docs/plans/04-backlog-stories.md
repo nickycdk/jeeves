@@ -545,6 +545,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 ## E9 — Public beta
 
 ### ST-9.1 Security and privacy review — M
+- **Status:** Solved (M7, 2026-11-08). `jeeves/docs/threat-model.md` (T1-T9, findings F-1…F-8), `jeeves/SECURITY.md` (+ `.github/SECURITY.md` pointer). F-1 (git option injection from `state.json`, Medium) and F-2 (path segments from `state.json`, Medium) reproduced and fixed with schema patterns and an argv re-check; F-3 (`core.fsmonitor`, Low) fixed; F-4 PRIVACY gap fixed; F-5…F-7 accepted; F-8 (Actions pinned by tag) open for ST-9.3. No Critical/High. Tests: `tests/unit/security.spec.ts`, ST-9.1 rows in `schema.spec.ts` and `git.spec.ts`.
 - **Cites:** FR-16, §10, PRD MVP DoD.
 - **Scope:** threat model (prompt injection via repo/handover text, secret leakage, lock abuse, path traversal in state paths, `$.process.run` argv building); verify no shell strings executed, no permission changes, no network calls; dependency review (dev only).
 - **Depends on:** E6 complete.

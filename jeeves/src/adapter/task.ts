@@ -516,7 +516,7 @@ async function branchMismatch(rt: Runtime, handover: string | null): Promise<{ e
 
 /** The text of the validated handover `ref` (`history/handover-NNN.md#sha256:<hex>`) if it is on disk and unchanged. */
 async function readVerified(rt: Runtime, dir: string, ref: string | null): Promise<string | null> {
-  const m = ref ? /^(.+)#sha256:([0-9a-f]{64})$/.exec(ref) : null
+  const m = ref ? /^(history\/handover-\d{3,}\.md)#sha256:([0-9a-f]{64})$/.exec(ref) : null
   if (!m) return null
   const text = await rt.port.read(join(dir, m[1]!)).catch(() => null)
   return text !== null && (await sha256Hex(text)) === m[2] ? text : null

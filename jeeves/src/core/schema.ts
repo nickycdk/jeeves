@@ -56,12 +56,21 @@ const obj = <T>(shape: Shape<T>): Guard => (v, p, e) => {
   for (const k of Object.keys(rec)) if (!(k in shape)) e.push(`${p ? `${p}.` : ''}${k}: unknown field`)
 }
 const ver: Guard = int(1, SCHEMA_VERSION)
+// ST-9.1: values that become a path segment or a git argument. state.json is a file Claude's Bash can edit, so a value
+// read back must not climb out of its folder ("../") or read as an option ("--output=...").
+const pattern = (re: RegExp, what: string): Guard => (v, p, e) => {
+  if (typeof v !== 'string') return void fail(e, p, 'string', v)
+  if (!re.test(v)) e.push(`${p}: "${v.slice(0, 40)}" is not ${what}`)
+}
+const safeName = pattern(/^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$/, 'a safe name')
+const commitHash = pattern(/^[0-9a-f]{4,64}$/, 'a commit hash')
+const handoverRef = pattern(/^history\/handover-\d{3,}\.md#sha256:[0-9a-f]*$/, 'a handover reference')
 
 const contextReading = obj<NonNullable<State['lastContext']>>({
   percent: { optional: num(0, 100) }, tokens: { optional: int(0) }, window: int(0), at: iso,
 })
 const rotation = obj<NonNullable<State['rotation']>>({
-  rotationId: str({ nonEmpty: true, max: 100 }), trigger: oneOf(TRIGGERS), requestedAt: iso,
+  rotationId: safeName, trigger: oneOf(TRIGGERS), requestedAt: iso,
   sourceSessionId: nullable(str({ nonEmpty: true })), targetSessionId: nullable(str({ nonEmpty: true })),
   step: oneOf(ROTATION_STEPS), retries: int(0, 100), quiesceCount: int(0), noteAppended: bool, nudged: { optional: bool }, guardPct: { optional: num(0, 100) },
 })
@@ -76,14 +85,14 @@ const ledgerEntry: Guard = (v, p, e) => {
 }
 
 const stateShape = obj<State>({
-  schemaVersion: ver, taskId: str({ nonEmpty: true, max: 100 }), projectId: str({ nonEmpty: true, max: 100 }),
+  schemaVersion: ver, taskId: safeName, projectId: safeName,
   status: oneOf(STATUSES), reason, mode: oneOf(MODES), taskRevision: int(0), sessionSequence: int(0),
   activeSessionId: nullable(str({ nonEmpty: true })), sessionStart: { optional: obj<NonNullable<State['sessionStart']>>({ at: iso, pct: nullable(num(0, 100)), firstPct: { optional: num(0, 100) } }) },
   rotation: nullable(rotation),
-  lastValidatedHandover: nullable(str({ nonEmpty: true })), rotationCount: int(0), consecutiveFailures: int(0),
+  lastValidatedHandover: nullable(handoverRef), rotationCount: int(0), consecutiveFailures: int(0),
   thresholdPercent: int(20, 90), lastContext: nullable(contextReading), armedFired: bool,
   warnedSessionId: nullable(str()), heldPrompts: arr(str({ max: 100_000 }), 50), completionAsked: { optional: bool },
-  pendingChanges: { optional: arr(obj<NonNullable<State['pendingChanges']>[number]>({ kind: oneOf(['dod', 'check']), text: str({ nonEmpty: true, max: 100_000 }) }), 20) }, pauseRequested: bool, taskStartHead: nullable(str()),
+  pendingChanges: { optional: arr(obj<NonNullable<State['pendingChanges']>[number]>({ kind: oneOf(['dod', 'check']), text: str({ nonEmpty: true, max: 100_000 }) }), 20) }, pauseRequested: bool, taskStartHead: nullable(commitHash),
   lastErrorCode: reason, ledger: arr(ledgerEntry, LEDGER_MAX), updatedAt: iso,
 })
 const state: Guard = (v, p, e) => {
@@ -107,7 +116,7 @@ const session = obj<SessionRecord>({
 })
 const lock = obj<LockOwner>({ schemaVersion: ver, ownerSessionId: str({ nonEmpty: true }), acquiredAt: iso, heartbeatAt: iso })
 const event = obj<EventLine>({
-  v: ver, at: iso, taskId: str({ nonEmpty: true }), rotationId: nullable(str()), from: nullable(oneOf(STATUSES)),
+  v: ver, at: iso, taskId: safeName, rotationId: nullable(safeName), from: nullable(oneOf(STATUSES)),
   to: nullable(oneOf(STATUSES)), code: reason, pct: nullable(num(0, 100)), sessionId: nullable(str()),
   detail: str({ max: 2000 }),
 })

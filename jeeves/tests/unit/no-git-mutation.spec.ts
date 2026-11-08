@@ -13,7 +13,7 @@ const sources = ['src', 'hooks'].flatMap(d => readdirSync(join(ROOT, d), { recur
 test('AC-19: git is started in one place only, with --no-optional-locks', () => {
   const starts = sources.flatMap(s => [...s.text.matchAll(/\[\s*['"]git['"]/g)].map(() => s.file))
   assert.deepEqual(starts, ['src/adapter/git.ts'])
-  assert.match(sources.find(s => s.file === 'src/adapter/git.ts')!.text, /\['git', '--no-optional-locks', \.\.\.args\]/)
+  assert.match(sources.find(s => s.file === 'src/adapter/git.ts')!.text, /\['git', '--no-optional-locks', '-c', 'core\.fsmonitor=false', \.\.\.args\]/)
 })
 
 test('AC-19: every git call is a read-only subcommand (no commit, push, reset, stash, checkout, ...)', () => {

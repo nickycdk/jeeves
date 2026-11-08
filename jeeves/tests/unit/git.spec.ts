@@ -113,3 +113,24 @@ test('an unexpected git error is unknown (null), not "not a repo"; git runs with
   const notRepo: FsPort = { ...port, run: async () => ({ exitCode: 128, stdout: '', stderr: 'fatal: not a git repository (or any of the parent directories): .git' }) }
   assert.equal((await repoIdentity(notRepo, '/tmp'))?.kind, 'none')
 })
+
+test('ST-9.1: a start commit that is not a hash never reaches git; git runs with core.fsmonitor off', async () => {
+  const { dir } = await buildRepo('clean')
+  const seen: string[][] = []
+  const spy: FsPort = { ...port, run: (argv, o) => { seen.push(argv); return port.run(argv, o) } }
+  const id = await repoIdentity(spy, dir)
+  const target = join(dir, '..', 'clobbered')
+  const f = await gitFacts(spy, id, `--output=${target}`)
+  assert.equal(f.kind === 'git' && f.changedSinceStart, null)
+  assert.ok(seen.every(a => a.slice(0, 4).join(' ') === 'git --no-optional-locks -c core.fsmonitor=false'), JSON.stringify(seen))
+  assert.ok(!seen.some(a => a.some(x => x.startsWith('--output'))))
+  await assert.rejects(stat(target))
+})
+
+test('ST-9.1: a repository whose .git/config sets core.fsmonitor to a command does not run it', async () => {
+  const { dir } = await buildRepo('clean')
+  const marker = join(dir, '..', `fsmonitor-ran-${Date.now()}`)
+  await sh(dir, 'git', 'config', 'core.fsmonitor', `touch ${marker}; false`)
+  await gitFacts(port, await repoIdentity(port, dir))
+  await assert.rejects(stat(marker))
+})
