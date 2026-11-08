@@ -51,8 +51,10 @@ Fixed in `d17baaf`, tests first:
 Not changed, with reasons:
 6. The failure count is not reset after a rotation into a session with no context reading. This follows from review fix 1 / ST-10.3 (reset at rearm); without a reading there is no threshold rotation anyway.
 7. After a POSSIBLE_LOOP retry the threshold does not fire again in that session. Intended by D-31 ("returns to MONITORING without rotating in that session").
-8. The status output is cut at 8 lines, which can hide `Warning: defaults unreadable` and `Path:`. This predates the R-25 change (unsupported and assisted already used that line). Worth a follow-up.
-10. `statsText` and `fullHistory` duplicate the session-file reading. A cleanup, not a bug.
+8. The status output was cut at 8 lines, which could hide `Warning: defaults unreadable` and the reason line. **Fixed after M8 in `145f99f`:** Path, Last, Rotations, Waiting and TEST OVERRIDE give way first.
+10. `statsText` and `fullHistory` duplicated the session-file reading. **Fixed after M8 in `f6adff1`** (one shared reader).
+
+After M8: ponytail review of this session's code, 4 findings, all fixed in `76b27a9`. AC-32 P profiled (`214ca1d`): stays borderline, bound kept.
 
 ## 5. Checks at HEAD
 
