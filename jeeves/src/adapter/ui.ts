@@ -109,6 +109,9 @@ export function statusText(v: StatusView): string {
   return lines.slice(0, 8).map(fit).join('\n')
 }
 
+/** The `/jeeves` command menu's argument hint; a unit test keeps it in step with HELP. */
+export const ARGUMENT_HINT = 'on [goal] | off | pause | resume | rotate | continue | recover | done | retry | threshold <n> | defaults ... | task | dod <text> | check <cmd> | status [--diagnose] | history [--full] | stats | purge | help'
+
 export const HELP = [
   'Jeeves commands (/jeeves ...):',
   'on [goal]     start a managed task',

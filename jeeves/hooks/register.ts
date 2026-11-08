@@ -6,7 +6,7 @@ import { recover, recoveryNotice } from '../src/adapter/recover.ts'
 import { runtime, type Options } from '../src/adapter/runtime.ts'
 import { captureFirstPrompt, compacted, heartbeat, managedNow, holdPrompt, measure, nudgeIfWaiting, onFreshSession, onStop, onTurnComplete, taskSection, onUserClear, recordTool, releaseOnExit, stopFailure, why } from '../src/adapter/task.ts'
 import { HEARTBEAT_MS } from '../src/core/lock.ts'
-import { HELD_TEXT } from '../src/adapter/ui.ts'
+import { ARGUMENT_HINT, HELD_TEXT } from '../src/adapter/ui.ts'
 
 
 async function answer($: EngineInterface, opts: Options, e: CommandRunInput, idle: boolean, endedHere: ReadonlySet<string>) {
@@ -43,7 +43,7 @@ export const register: Register = (on, options) => {
   on('session.start', async ($, e, next) => {
     const rt = await runtime($, opts, true)
     commandName = chooseCommandName(await $.command.list())
-    await $.command.register({ name: commandName, description: 'Jeeves: keep a long task going across fresh conversations', argumentHint: 'on [goal] | off | pause | resume | rotate | continue | recover | threshold <n> | task | dod <text> | check <cmd> | status [--diagnose] | history | purge | help' })
+    await $.command.register({ name: commandName, description: 'Jeeves: keep a long task going across fresh conversations', argumentHint: ARGUMENT_HINT })
     if (commandName === FALLBACK) $.ui.toast('/jeeves is taken by another command, so Jeeves uses /relay.')
     if (rt.probe.mode !== 'full' && rt.probe.message) {
       $.ui.status(rt.probe.mode === 'unsupported' ? `off: needs ${rt.probe.missing[0]}` : 'assisted mode')

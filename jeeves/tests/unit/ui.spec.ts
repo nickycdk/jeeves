@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { chooseCommandName, pickTask } from '../../src/adapter/commands.ts'
-import { firstActivationText, HELP, statusText, WIDTH, type StatusView } from '../../src/adapter/ui.ts'
+import { ARGUMENT_HINT, firstActivationText, HELP, statusText, WIDTH, type StatusView } from '../../src/adapter/ui.ts'
 import { probe } from '../../src/core/probe.ts'
 import { validState } from './helpers.ts'
 
@@ -124,4 +124,9 @@ test('diagnose: the home folder becomes ~ only as a whole path segment', async (
   assert.equal(tilde('mkdir: /Users/al: Permission denied', '/Users/al'), 'mkdir: ~: Permission denied')
   assert.equal(tilde("cannot open '/Users/al'", '/Users/al'), "cannot open '~'")
   assert.equal(tilde('/Users/alice/x and /Users/al.bak', '/Users/al'), '/Users/alice/x and /Users/al.bak')
+})
+
+test('the command menu hint names every command in help', () => {
+  for (const cmd of HELP.split('\n').slice(1).map(l => l.split(' ')[0])) assert.ok(ARGUMENT_HINT.split(' ').includes(cmd), `missing ${cmd}`)
+  assert.ok(ARGUMENT_HINT.includes('--full') && ARGUMENT_HINT.includes('--diagnose'))
 })
