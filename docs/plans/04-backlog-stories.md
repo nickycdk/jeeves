@@ -633,7 +633,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **DoD:** + README command table.
 
 ### ST-11.4 `/jeeves stats` — M
-- **Status:** Solved (M8, 2026-11-08). The < 100 ms check runs in the test kit on its in-memory file system, not on a real disk. "Failures" counts every stop (NEEDS_REVIEW, FAILED, PAUSED, BLOCKED) not caused by the user, by reason.
+- **Status:** Solved (M8, 2026-11-08). The < 100 ms check runs in the test kit on its in-memory file system, not on a real disk. "Failures" counts every stop (NEEDS_REVIEW, FAILED, PAUSED, BLOCKED) not caused by the user, by reason. AC 4 borderline: Profiled 2026-11-08: one `stats` over 50 tasks makes 202 reads plus about 200 exists/list calls (state 2, sessions list 1 + 2 reads, events 2 exists + 1 read per task), about 0.25 ms each in the kit, so 99–106 ms warm and about 200 ms cold; no single slow step. The two cuts that would save about a quarter (read state.json without `exists`, find event files with one listing) were not made: reads give no ENOENT code to tell missing from unreadable (R-21), and `listFiles` swallows errors where recovery also reads events. Recorded as borderline; bound kept at 100 ms.
 - **Cites:** FR-11, R-15, D-30.
 - **Scope:** for this project (all its tasks) and the current task: tasks, rotations, sessions, average context at rotation, context cleared by rotations (points, and tokens when the window was recorded), cost per session where known, and failures by reason. Read-only; from `sessions/*.json`, `state.json` and `events.jsonl`. Wording says "context cleared", never "tokens saved" (claims policy, 08 §7). Out: cross-project totals; charts.
 - **Depends on:** ST-11.3.
