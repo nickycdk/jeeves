@@ -71,12 +71,13 @@ Rough size: 56 stories (5 L, 30 M, 21 S) ≈ 73 engineer-days for one developer 
 |---|---|
 | `01-technical-feasibility.md` | Verified capabilities, spike results, remaining spikes, assumptions, unresolved questions |
 | `02-architecture-and-adrs.md` | Architecture options compared, ADRs, modules, state machine, sequences, data contracts, concurrency, recovery, compatibility |
-| `03-epics.md` | 13 epics (E10–E12 for v0.2) with goal, scope, value, risks, AC, DoD, artifacts |
-| `04-backlog-stories.md` | 68 stories (12 for v0.2) in dependency order, each with scope, approach, deps, AC, tests, size, DoD |
+| `03-epics.md` | 16 epics (E10–E12 for v0.2, E13–E15 for v0.3) with goal, scope, value, risks, AC, DoD, artifacts |
+| `04-backlog-stories.md` | 85 stories (12 for v0.2, 17 for v0.3) in dependency order, each with scope, approach, deps, AC, tests, size, DoD |
 | `05-delivery-milestones.md` | Milestones, gates, critical path, demo per milestone |
 | `06-test-and-acceptance-plan.md` | Test architecture, fixtures, AC→test mapping, evidence production |
 | `07-risks-and-open-questions.md` | Risk register, decision log, open questions, proposed PRD changes |
 | `08-open-source-release-plan.md` | Repo, licence, CI, supply chain, packaging, release, naming |
+| `09-v0.3-auto-start-plan.md` | The whole v0.3 auto-start plan in one file: decisions, epics, stories, milestone, AC, AC-41 cost, risks, open items |
 
 ## 6. Proposed PRD changes (summary — full justification in `07-risks-and-open-questions.md` §4)
 

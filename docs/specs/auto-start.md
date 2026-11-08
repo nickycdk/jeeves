@@ -348,4 +348,4 @@ The tier is set per request by the whole prompt, cache reads included: every cal
 New ideas go here, not into a new revision.
 
 - A setting for the cleanup age (Q3), if someone asks.
-- Widening auto-start to 200K windows, once AC-41 has decided Q8.
+- Widening auto-start to 200K windows, once AC-41 has decided Q8. If it does, that release's live run includes one auto-started 200K session, to check the real eligibility path end to end; AC-41's 200K fixture starts with `/jeeves on` and deliberately skips it (maintainer, 2026-11-08: the rotation rate and outcome don't depend on how the task started, and forcing auto-start would bend D-42 in the test kit).
