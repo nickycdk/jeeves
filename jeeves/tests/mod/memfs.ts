@@ -38,6 +38,8 @@ export type MemHost = {
   cwd: string
   /** Answers `git <args>` (after the fixed `--no-optional-locks -c core.fsmonitor=false`); absent: every git call says "not a git repository". */
   git?: (args: string[]) => { exitCode: number; stdout: string }
+  /** Q-9: a Stop hook beneath Jeeves (a user's settings hook, another plugin) that blocks when this returns text. */
+  stopBlock?: () => string | undefined
   /** What `$.session.usage().context` answers. */
   usage: { window: number; percent?: number; tokens?: number }
 }
@@ -56,7 +58,7 @@ export function memHost(on: On, env: Record<string, string> = { HOME: '/home/t' 
   mock.store(on)
   on('session.start', (_, e) => ({ cwd: e.cwd }))
   on('session.measure', (_, e) => ({ changed: e.changed }))
-  on('classic.Stop', () => ({}))
+  on('classic.Stop', () => { const b = h.stopBlock?.(); return b ? { block: b } : {} })
   on('classic.SessionStart', () => ({}))
   on('classic.StopFailure', () => ({}))
   on('session.compact', () => ({ messages: [{ role: 'user', text: 'summary', toolUses: [] }] }))

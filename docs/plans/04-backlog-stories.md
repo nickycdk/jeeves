@@ -660,6 +660,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **DoD:** + `docs/evidence/v0.2.0/AC-33/RESULT.md`; `docs/compatibility.md` terminal table.
 
 ### ST-12.3 Q-9: a second blocking Stop hook — S
+- **Status:** Solved (M8, 2026-11-08). I layer: the test kit models the second hook as the engine stand-in beneath Jeeves (a settings Stop hook or a lower plugin). A plugin above Jeeves is not testable in the kit; recorded in 07 Q-9. The stats P test now takes the best of 3 runs (load).
 - **Cites:** Q-9, ADR-004.
 - **Scope:** add a second plugin's Stop hook that blocks once to the test kit (or, if the kit cannot load two plugins, to the E driver) and check the handover request and the rotation still happen once each, with neither block lost.
 - **Depends on:** none.
