@@ -104,6 +104,7 @@ An earlier install promised that nothing is recorded without `/jeeves on`. That 
 - They see one notice: `Jeeves can now watch long sessions by itself. Type /jeeves auto on to turn it on. Nothing changes until you do.`
 - **Fresh install:** neither is present, so auto-start is on, with the first-run notice (§5.4).
 - **Accepted gap:** someone who installed v0.2 but never activated it, or purged everything, looks like a fresh install and gets auto-start on. They may have read the v0.2 README promise. This is accepted because they still see the first-run notice before anything is recorded, and turning it off takes one command.
+- **Accepted gap (safe direction):** if the plugin store is wiped (a reinstall, say) while the state folder keeps its projects, the check runs again and a fresh v0.3 user is taken for an upgrader, so auto-start goes off until `/jeeves auto on`. A test pins this, so it is never "fixed" towards on.
 - Their tasks, defaults and settings are unchanged.
 - **Changing `stateDir` later:** the new folder has no `auto.json`, and the check is not run again: the default comes from `upgradeCheck` in the plugin store (off for an upgrader, on for a fresh install).
 
@@ -223,7 +224,7 @@ The 8-line limit holds. The commands line sits with the reason line and the warn
 | AC-42 | Current goal: required in new handovers with the §5.3 checks; v1 blocks valid for older tasks; continuation order puts the user's words first and labels the summary; the rotation line shows it; the summary never changes the task, DoD or checks | U, I |
 | AC-43 | Upgrade: the check runs once per install (`upgradeCheck` in the plugin store); a fresh install stays on in its second session after its first auto task; `/jeeves on` on a fresh install never makes it an upgrader; a new `stateDir` takes its default from `upgradeCheck`; `firstActivationShown` or an existing project makes `auto.json` say off; never auto-watched until `/jeeves auto on` or the `/config` row; upgrade notice once; tasks, defaults and settings byte-identical after the first v0.3 session; fresh installs resolve to on; the `autoNoticeShown` and `firstActivationShown` keys are distinct | I |
 | AC-44 | Cleanup deletes only ended auto tasks with no rotation, 7 days after they ended (`updatedAt`), under a custom `stateDir` too, with auto-start on or off; never explicit or rotated tasks | U, I |
-| AC-45 | Downgrade: a v0.2 build (test kit) refuses v0.3 tasks with `SCHEMA_TOO_NEW`, ignores a v0.3 `config.json` and `auto.json`; nothing is rewritten | I, C |
+| AC-45 | Downgrade: v0.2's reader (a frozen copy of the 0.2.0 core) refuses v0.3 tasks with `SCHEMA_TOO_NEW`, ignores a `config.json` with `autoStart` and never reads `auto.json`; every v0.2 write into the state folder is listed and shown to go through a successful read, so nothing is rewritten (user-typed `defaults clear` and `purge` excepted) | U, audit |
 | AC-46 | Auto tasks interrupted mid-rotation recover by themselves with a message, only in an interactive, full-mode, fresh session (they wait under `-p`/SDK, assisted, resumed); a typed `/jeeves recover` works anywhere; explicit tasks follow `autoRecover` | I |
 | AC-47 | §6: the hint (once per session, only for reason 3b and reasons 4–6, never after an explicit off at any level, stops after 3 unanswered hints, ends with "/jeeves auto off hides this", no task files), the full resume id and a resumed old conversation that cannot drive the task, the rotation line's `claude --resume` id, `/jeeves handover`, the quiet status line in auto tasks, `/jeeves` alone with reason and suggested commands within 8 lines | U, I |
 
@@ -341,6 +342,8 @@ The tier is set per request by the whole prompt, cache reads and writes included
 | Switch from 200K to 1M | Eligibility decided once at `session.start`; reason "200K window at start" (§5.1, AC-36) |
 | Cleanup age undefined | 7 days after the task ended (`updatedAt`) (§5.9, AC-44) |
 | Scope | Design frozen; further ideas go to §13 |
+
+**Editorial fixes (plan review 3, 2026-11-08, no design change):** AC-45's layers are what ran (U against a frozen copy of the v0.2 reader, plus an audit of v0.2's writes), not I and C; a wiped plugin store with projects kept is an accepted gap in the safe direction (§5.6).
 
 **Editorial fix (plan review 2, 2026-11-08, no design change):** §5.6's upgrade check runs once per install, marked by the plugin-store key `upgradeCheck` holding its result; v0.3 never writes `firstActivationShown`; a new `stateDir` takes its default from `upgradeCheck`; AC-43 gains the two cases that would otherwise misclassify a fresh install.
 
