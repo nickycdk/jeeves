@@ -1,0 +1,191 @@
+78
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+Accessingworkspace:
+
+/private/tmp/claude-501/-Users-user-Desktop-Projects-jeeves/3f5511e0-9729-41fb-b956-d174eb079288/scratchpad/clean/work
+
+Quicksafetycheck:Isthisaprojectyoucreatedoroneyoutrust?(Likeyourowncode,awell-knownopensourceproject,orworkfrom
+yourteam).Ifnot,takeamomenttoreviewwhat'sinthisfolderfirst.
+
+ClaudeCode'llbeabletoread,edit,andexecutefileshere.
+
+Security guide
+
+❯No,exit
+Yes,Itrustthisfolder
+
+Entertoconfirm·Esctocancel
+ No, exit❯Yes, I trust this folder
+
+
+ ▐▛███▛█ClaudeCodev2.1.319
+▝▜██████▀Haiku5.5·APIUsageBilling
+ ▝▝▝▝/…/tmp/claude-501/-Users-user-Desktop-Projects-jeeves/3f5511e0-9729-41fb-b956-d174eb079288/scratchpad/clean/work
+
+▎AutomodeisnowClaudeCode'sdefaultpermissionmode.
+▎AutomodeletsClaudehandlepermissionpromptsautomatically.Claudecheckseachtoolcallforriskyactionsandpromptinjectionbefore
+▎executing,runstheonesitassessesaslower-risk,andblockstherest.
+▎https://code.claude.com/docs/en/permission-modes
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯  
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+⏵⏵automodeon (shift+tabtocycle)·←foragentsNotloggedin·Run/login
+◐medium·/effort
+/ ❯ /add-dir                    Add a new working directory  /autocompact                Set how full the context gets before auto-summarizing
+ /backgroundSendthissessiontothebackgroundandfreetheterminal
+ /branchCreateabranchofthecurrentconversationatthispoint
+ /btwAskaquicksidequestionwithoutinterruptingthemainconversation
+ /bugReportabugorshareyourconversation
+ /cdMovethissessiontoanewworkingdirectory
+ /clearStartanewsessionwithemptycontext;previoussessionstaysondisk(resumablewith/resume)
+ /colorSetthepromptbarcolorforthissession
+ /compactFreeupcontextbysummarizingtheconversationsofar
+ /configOpensettings
+ /contextVisualizecurrentcontextusageasacoloredgrid
+ /copyCopyClaude'slastresponsetoclipboard(or/copyNfortheNth-latest)
+ /design-loginAuthorizedesign-systemaccessfor/design-syncwithyourclaude.aiaccount
+ /diffTogglethediffpanelshowinguncommittedchanges
+ /effortSeteffortlevelformodelusage
+ /exitExittheCLI
+ /exportExportthecurrentconversationtoafileorclipboard
+ /fastTogglefastmode(Opus5.5)
+ /feedbackSendfeedbacktoAnthropicorreportabug
+j jeeves Jeeves: keep a long task going across fresh conversationsupdate-configChange settings:hoks, permissions,environent variablesverify    Try your change and report if it worksfewer-permission-promptsP-approve safe read-only commands based on your usageclaude-apiBuildand debug apps hatuse theClaude APIrnLaunchthis project’sapp to se your change workingfocusTggle focus vew: just your prompt, summa, and response
+e ee
+
+
+
+
+
+
+
+
+
+
+
+
+
+e ee
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+v vv
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+e ee
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/jeeves ss
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  on [goal] | off | pause | resume | rotate | continue | recover | threshold <n> | task | dod <text> | check <cmd> | status [--dia…⏵⏵ auto mode on (shift+tab to cycle)                                                   Not logged in · Run /login◐ medium · /efforts 
+
+
+
+t 
+
+
+
+a 
+
+
+
+t 
+
+
+
+u 
+
+
+
+s 
+
+
+
+❯ /jeeves status                                                                                                                            · Philosophizing… ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯  
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+⏵⏵automodeon (shift+tabtocycle)·esctointerrupt·←foragentsNotloggedin·Run/login
+◐medium·/effort
+    ⎿  jeeves:Jeevesmode:full    No managed task.Startwith/jeevesonPath:...rary/ApplicationSupport/Jeeves────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────❯  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────⏵⏵ auto mode on (shift+tab to cycle) · ← for agentsNot logged in · Run /login
+◐medium·/effort
+Press Ctrl-C again to exit                         
+
+⏵⏵ auto mode on (shift+tab to cycle) · ← for agents
+
+Press Ctrl-C again to exit                         
+
+⏵⏵ auto mode on (shift+tab to cycle) · ← for agents
+
+               
+78
+Resume this session with:
+claude --model haiku --resume 3bf9c057-0e3b-423c-8534-e1b1170b08dd

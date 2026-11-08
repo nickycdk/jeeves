@@ -9,7 +9,8 @@ class Claude:
         self.out, self.actions, self.typed = out, [], []
         clean = {k: v for k, v in os.environ.items() if not (k.startswith('CLAUDE') or k.startswith('CODEX'))}
         clean.update(TERM='xterm-256color', **(env or {}))
-        argv = ['claude', '--plugin-dir', plugin, '--model', 'haiku', *args]
+        # plugin=None: no --plugin-dir, the installed plugin loads (clean_install.py).
+        argv = ['claude', *(['--plugin-dir', plugin] if plugin else []), '--model', 'haiku', *args]
         self.pid, self.fd = pty.fork()
         if self.pid == 0:
             os.chdir(repo)

@@ -7,6 +7,7 @@ import type { Runtime } from './runtime.ts'
 import { addRevision, apply, claim, heldByOther, liveTasks, ownTask, projectTasks, readTask, nudgeIfWaiting, restoreHere, startTask, takeLock, type Task } from './task.ts'
 import { recover, restoredText } from './recover.ts'
 import { diagnose } from './diagnose.ts'
+import { purge } from './purge.ts'
 import { firstActivationText, HELP, historyText, MSG, statusText } from './ui.ts'
 
 export const PLUGIN = 'jeeves'
@@ -32,7 +33,7 @@ export function pickTask<T extends { state: State }>(tasks: T[], sessionId: stri
  */
 export type Caller = { userTyped: boolean; idle?: boolean; endedHere: ReadonlySet<string> }
 
-const CHANGES = new Set(['on', 'off', 'dod', 'check', 'threshold', 'pause', 'resume', 'continue', 'rotate', 'done', 'recover'])
+const CHANGES = new Set(['purge', 'on', 'off', 'dod', 'check', 'threshold', 'pause', 'resume', 'continue', 'rotate', 'done', 'recover'])
 
 export async function relay(rt: Runtime, args: string, caller: Caller): Promise<string> {
   const m = /^\s*(\S*)\s?([\s\S]*)$/.exec(args)!
@@ -66,6 +67,7 @@ export async function relay(rt: Runtime, args: string, caller: Caller): Promise<
   const { tasks } = await projectTasks(rt)
   switch (sub) {
     case 'on': return on(rt, tasks, me, rest)
+    case 'purge': return purge(rt, me, rest)
     case 'off': return off(rt, tasks, me)
     case 'threshold': return threshold(rt, tasks, me, rest.trim())
     case 'pause': return pause(rt, tasks, me)

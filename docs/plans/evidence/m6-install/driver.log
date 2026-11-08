@@ -1,0 +1,5 @@
+[    0.0s] spawn claude --model haiku
+[    1.0s] key Down
+[    2.0s] key Enter
+[    7.4s] type '/jeeves status'
+[    8.2s] key Enter

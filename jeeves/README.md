@@ -4,6 +4,22 @@ A session-continuity plugin for Claude Code. When a managed task's context reach
 
 **Status: pre-release, under development.** Nothing here is ready for use yet.
 
+## Install
+
+Requires Claude Code 2.1.319 or later (`claude --version`). No API key, no server, no other software.
+
+At the Claude Code prompt:
+
+```
+/plugin install jeeves --marketplace <owner>/jeeves
+```
+
+or from a shell: `claude plugin install jeeves --marketplace <owner>/jeeves`. From a clone of this repository, give the clone's path instead: `claude plugin install jeeves --marketplace /path/to/jeeves`. (`<owner>` is set when the repository is published.) Then, in any project, type `/jeeves status`.
+
+**Update:** `claude plugin update jeeves@jeeves` (third-party marketplaces do not update by themselves).
+
+**Uninstall:** `claude plugin uninstall jeeves@jeeves`. This removes the plugin and its entry in your settings, nothing else: your task files stay. Delete them first with `/jeeves purge --all`, or afterwards by deleting `~/Library/Application Support/Jeeves` (Linux: `~/.local/state/jeeves`).
+
 ## Modes
 
 `/jeeves status` always shows the mode.

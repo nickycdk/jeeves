@@ -43,7 +43,7 @@ export const register: Register = (on, options) => {
   on('session.start', async ($, e, next) => {
     const rt = await runtime($, opts, true)
     commandName = chooseCommandName(await $.command.list())
-    await $.command.register({ name: commandName, description: 'Jeeves: keep a long task going across fresh conversations', argumentHint: 'on [goal] | off | pause | resume | rotate | continue | recover | threshold <n> | task | dod <text> | check <cmd> | status [--diagnose] | history | help' })
+    await $.command.register({ name: commandName, description: 'Jeeves: keep a long task going across fresh conversations', argumentHint: 'on [goal] | off | pause | resume | rotate | continue | recover | threshold <n> | task | dod <text> | check <cmd> | status [--diagnose] | history | purge | help' })
     if (commandName === FALLBACK) $.ui.toast('/jeeves is taken by another command, so Jeeves uses /relay.')
     if (rt.probe.mode !== 'full' && rt.probe.message) {
       $.ui.status(rt.probe.mode === 'unsupported' ? `off: needs ${rt.probe.missing[0]}` : 'assisted mode')

@@ -505,6 +505,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 ## E8 — Distribution and docs
 
 ### ST-8.1 Marketplace, install/uninstall, purge — M
+- **Status:** Solved (M6) for the scripted clean user; the manual run on a fresh macOS user account (AC-01 M layer, timed, recorded) is the maintainer's. Root `.claude-plugin/marketplace.json` (`source: ./jeeves`: the plugin sits in `jeeves/`, not at the root as 08 §1 assumed); README install/update/uninstall; `/jeeves purge` (`src/adapter/purge.ts`, `tests/mod/purge.test.ts`): scope, folder list, code, confirm within 2 min, refuses running or live-locked tasks, deletes only under `<root>/projects`. `tests/pty/clean_install.py` (fresh `HOME`, no login, no model call): 11/11, installed in 2 s, `/jeeves status` at 15 s, uninstall diff = only the `enabledPlugins` entry, state folder kept (`evidence/m6-install/RESULT.md`). The recording is `plain.txt`/`raw.txt` of that run. Confirmation is a code, not a dialog, because a `command.run` answer cannot wait for input.
 - **Cites:** FR-15, AC-01, AC-20; §10 cleanup.
 - **Scope:** `.claude-plugin/marketplace.json`; README install line; verify `claude plugin uninstall` leaves `~/.claude/settings.json` without Jeeves entries beyond what Claude itself manages; `/relay purge [--task id|--project|--all]` with typed confirmation; uninstall never touches the state dir (documented manual delete path).
 - **Depends on:** ST-7.3.

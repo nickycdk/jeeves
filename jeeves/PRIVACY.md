@@ -13,6 +13,13 @@ Everything sits in the state folder (`/jeeves status` shows where; never inside 
 
 It never stores the conversation transcript, tool output, or file contents.
 
+## How long it keeps it
+
+Until you delete it. Uninstalling Jeeves does not delete the state folder. To delete:
+
+- `/jeeves purge --task <id>`, `/jeeves purge --project` or `/jeeves purge --all`: Jeeves lists the folders it would delete and gives you a code; `/jeeves purge confirm <code>` (within 2 minutes) deletes them. A task that is still running is never deleted (`/jeeves off` first).
+- Or delete the state folder yourself: `~/Library/Application Support/Jeeves` on macOS, `~/.local/state/jeeves` on Linux (or the `stateDir` you set).
+
 ## Redaction
 
 Before a command enters the ledger or a line enters the event log, Jeeves masks these formats: private key blocks, Anthropic, OpenAI, GitHub, AWS access key IDs, Stripe, Slack, JWTs, credentials in URLs, `Bearer` tokens, and values after key-like names (`API_KEY=…`, `aws_secret_access_key = …`, `"client_secret": "…"`, `password: '…'`). A handover that contains a high-confidence secret (any of the named formats) is rejected and Claude is asked to remove it.

@@ -110,6 +110,7 @@ export const HELP = [
   'status        mode, task, context',
   'status --diagnose  report for a bug',
   'history       last 20 state changes',
+  'purge ...     delete task files',
   'help          this list',
 ].join('\n')
 

@@ -1,0 +1,16 @@
+{
+  "name": "jeeves",
+  "owner": {
+    "name": "Jeeves contributors"
+  },
+  "metadata": {
+    "description": "Jeeves: session continuity for Claude Code."
+  },
+  "plugins": [
+    {
+      "name": "jeeves",
+      "source": "./jeeves",
+      "description": "Session continuity for Claude Code: rotates a long task into fresh conversations with a verified handover."
+    }
+  ]
+}

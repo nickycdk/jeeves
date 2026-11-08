@@ -1,0 +1,192 @@
+7[r8[?25h[?25l[?2004h[?2031h[?1004h[?2026h
+[38;5;220m────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[39m
+[2G[38;5;220m[1mAccessing[12Gworkspace:[22m[39m
+
+[2G[1m/private/tmp/claude-501/-Users-user-Desktop-Projects-jeeves/3f5511e0-9729-41fb-b956-d174eb079288/scratchpad/clean/work[22m
+
+[2GQuick[8Gsafety[15Gcheck:[22GIs[25Gthis[30Ga[32Gproject[40Gyou[44Gcreated[52Gor[55Gone[59Gyou[63Gtrust?[70G(Like[76Gyour[81Gown[85Gcode,[91Ga[93Gwell-known[104Gopen[109Gsource[116Gproject,[125Gor[128Gwork[133Gfrom
+[2Gyour[7Gteam).[14GIf[17Gnot,[22Gtake[27Ga[29Gmoment[36Gto[39Greview[46Gwhat's[53Gin[56Gthis[61Gfolder[68Gfirst.
+
+[2GClaude[9GCode'll[17Gbe[20Gable[25Gto[28Gread,[34Gedit,[40Gand[44Gexecute[52Gfiles[58Ghere.
+
+[2G]8;id=zaxmda;https://code.claude.com/docs/en/security[38;5;246mSecurity guide[39m]8;;
+
+[2G[38;5;153m❯[4GNo,[8Gexit[39m
+[4GYes,[9GI[11Gtrust[17Gthis[22Gfolder
+
+[2G[38;5;246mEnter[8Gto[11Gconfirm[19G·[21GEsc[25Gto[28Gcancel[39m
+[1C[4A[?2026l[>0q[?u]7501;?[c[?2026h[1D[4B[1C[4A [4GNo, exit[1C[1B[38;5;153m❯[4GYes, I trust this folder[39m
+
+
+[1C[3A[?2026l[>4m[<u[?1004l[?2031l[?2004l[?2026h[1D[3B[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G[1A[K[1B[K[1B[K[1B[K[1B[K[1B[K[1B[K[1B[K[1B[K[1B[K[1B[K[1B[K[1B[K[1B[K[1B[K[1B[K[1B[K[16A[?2026l[?2004h[?2031h[?1004h]0;✳ Claude Code[?2026h[38;5;174m ▐[48;5;16m▛███▛█[12G[39m[49m[1mClaude[19GCode[24G[22m[38;5;246mv2.1.319[39m
+[38;5;174m▝▜[48;5;16m█████[49m█▀[12G[38;5;246mHaiku[18G5.5[22G·[24GAPI[28GUsage[34GBilling[39m
+[38;5;174m ▝▝[7G▝▝[12G[38;5;246m/…/tmp/claude-501/-Users-user-Desktop-Projects-jeeves/3f5511e0-9729-41fb-b956-d174eb079288/scratchpad/clean/work[39m
+
+[38;5;174m▎[3G[39m[1mAuto[8Gmode[13Gis[16Gnow[20GClaude[27GCode's[34Gdefault[42Gpermission[53Gmode.[22m
+[38;5;174m▎[3G[38;5;246mAuto[8Gmode[13Glets[18GClaude[25Ghandle[32Gpermission[43Gprompts[51Gautomatically.[66GClaude[73Gchecks[80Geach[85Gtool[90Gcall[95Gfor[99Grisky[105Gactions[113Gand[117Gprompt[124Ginjection[134Gbefore[39m
+[38;5;174m▎[3G[38;5;246mexecuting,[14Gruns[19Gthe[23Gones[28Git[31Gassesses[40Gas[43Glower-risk,[55Gand[59Gblocks[66Gthe[70Grest.[39m
+[38;5;174m▎[3G]8;id=awvmy8;https://code.claude.com/docs/en/permission-modes[38;5;246mhttps://code.claude.com/docs/en/permission-modes[39m]8;;
+
+[38;5;244m────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[39m
+❯ [7m [27m
+[38;5;244m────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[39m
+[3G[38;5;220m⏵⏵[6Gauto[11Gmode[16Gon[38;5;246m (shift+tab[30Gto[33Gcycle)[40G·[42G←[44Gfor[48Gagents[113G[38;5;211mNot[117Glogged[124Gin[127G·[129GRun[133G/login[39m
+[121G[38;5;246m◐[123Gmedium[130G·[132G/effort[39m
+[2C[4A[?2026l[>0q[?u]7501;?[c(B[?2004h[?2026h[2D[4B[2C[4A/[7m [2C[2B[27m[38;5;153m❯ /add-dir                    Add a new working directory[113G[39m[K[2C[1B[38;5;246m  /autocompact                Set how full the context gets before auto-summarizing[121G[39m[K
+[3G[38;5;246m [5G/background[33GSend[38Gthis[43Gsession[51Gto[54Gthe[58Gbackground[69Gand[73Gfree[78Gthe[82Gterminal[39m
+[3G[38;5;246m [5G/branch[33GCreate[40Ga[42Gbranch[49Gof[52Gthe[56Gcurrent[64Gconversation[77Gat[80Gthis[85Gpoint[39m
+[3G[38;5;246m [5G/btw[33GAsk[37Ga[39Gquick[45Gside[50Gquestion[59Gwithout[67Ginterrupting[80Gthe[84Gmain[89Gconversation[39m
+[3G[38;5;246m [5G/bug[33GReport[40Ga[42Gbug[46Gor[49Gshare[55Gyour[60Gconversation[39m
+[3G[38;5;246m [5G/cd[33GMove[38Gthis[43Gsession[51Gto[54Ga[56Gnew[60Gworking[68Gdirectory[39m
+[3G[38;5;246m [5G/clear[33GStart[39Ga[41Gnew[45Gsession[53Gwith[58Gempty[64Gcontext;[73Gprevious[82Gsession[90Gstays[96Gon[99Gdisk[104G(resumable[115Gwith[120G/resume)[39m
+[3G[38;5;246m [5G/color[33GSet[37Gthe[41Gprompt[48Gbar[52Gcolor[58Gfor[62Gthis[67Gsession[39m
+[3G[38;5;246m [5G/compact[33GFree[38Gup[41Gcontext[49Gby[52Gsummarizing[64Gthe[68Gconversation[81Gso[84Gfar[39m
+[3G[38;5;246m [5G/config[33GOpen[38Gsettings[39m
+[3G[38;5;246m [5G/context[33GVisualize[43Gcurrent[51Gcontext[59Gusage[65Gas[68Ga[70Gcolored[78Ggrid[39m
+[3G[38;5;246m [5G/copy[33GCopy[38GClaude's[47Glast[52Gresponse[61Gto[64Gclipboard[74G(or[78G/copy[84GN[86Gfor[90Gthe[94GNth-latest)[39m
+[3G[38;5;246m [5G/design-login[33GAuthorize[43Gdesign-system[57Gaccess[64Gfor[68G/design-sync[81Gwith[86Gyour[91Gclaude.ai[101Gaccount[39m
+[3G[38;5;246m [5G/diff[33GToggle[40Gthe[44Gdiff[49Gpanel[55Gshowing[63Guncommitted[75Gchanges[39m
+[3G[38;5;246m [5G/effort[33GSet[37Geffort[44Glevel[50Gfor[54Gmodel[60Gusage[39m
+[3G[38;5;246m [5G/exit[33GExit[38Gthe[42GCLI[39m
+[3G[38;5;246m [5G/export[33GExport[40Gthe[44Gcurrent[52Gconversation[65Gto[68Ga[70Gfile[75Gor[78Gclipboard[39m
+[3G[38;5;246m [5G/fast[33GToggle[40Gfast[45Gmode[50G(Opus[56G5.5)[39m
+[3G[38;5;246m [5G/feedback[33GSend[38Gfeedback[47Gto[50GAnthropic[60Gor[63Greport[70Ga[72Gbug[39m
+[3C[22A[?2026l[?2026h[3D[22B[3C[22Aj[7m [5C[2B[27m[38;5;153m[1mj[22meeves [33G[1mJ[22meeves: keep a long task going across fresh conversations[5C[1B[38;5;246mupdate-config[33GChange settings:[50Gh[52Goks, permissions,[70Genviron[78Gent variables[5C[1Bverify    [33GTry your change and report if it works[39m[K[5C[1B[38;5;246mfewer-permission-prompts[33GP[36G-approve safe read-only commands based on your usage[39m[K[5C[1B[38;5;246mclaude-api[33GBuild[39Gand debug apps [55Ghat[59Guse the[67GClaude API[39m[K[5C[1B[38;5;246mr[8Gn[33GLaunch[40Gthis pro[39m[1mj[22m[38;5;246mect’s[55Gapp to se[65G your change working[5C[1Bfocus[33GT[35Gggle focus v[48Gew: [39m[1mj[22m[38;5;246must your prompt, summa[77G, and response[2C[1B[39m[K[2C[1B[K[2C[1B[K[2C[1B[K[2C[1B[K[2C[1B[K[2C[1B[K[2C[1B[K[2C[1B[K[2C[1B[K[2C[1B[K[2C[1B[K[2C[1B[K
+[4C[22A[?2026l[?2026h[4D[22B[4C[22Ae[7m [6C[2B[27m[38;5;153m[1me[34Ge[2C[1B[22m[39m[K[2C[1B[K[2C[1B[K[2C[1B[K[2C[1B[K[2C[1B[K
+
+
+
+
+
+
+
+
+
+
+
+
+
+[5C[22A[?2026l[?2026h[5D[22B[5C[22Ae[7m [7C[2B[27m[38;5;153m[1me[35Ge[22m[39m
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[6C[22A[?2026l[?2026h[6D[22B[6C[22Av[7m [8C[2B[27m[38;5;153m[1mv[36Gv[22m[39m
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[7C[22A[?2026l[?2026h[7D[22B[7C[22Ae[7m [9C[2B[27m[38;5;153m[1me[37Ge[22m[39m
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[8C[22A[?2026l[?2026h[8D[22B[2C[22A[38;5;153m/jeeves[39m[7m [10C[2B[27m[38;5;153m[1ms[38Gs[22m[39m
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[9C[22A[?2026l[?2026h[9D[22B[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G[1A[9C[4A [7m [27m[38;5;246mon [goal] | off | pause | resume | rotate | continue | recover | threshold <n> | task | dod <text> | check <cmd> | status [--dia…[2C[2B[38;5;220m⏵⏵ auto mode on[38;5;246m (shift+tab to cycle)[39m                                                   [113G[38;5;211mNot logged in · Run /login[120C[1B[38;5;246m◐ medium · /effort[1B[39m[K[1B[K[1B[K[1B[K[1B[K[1B[K[1B[K[1B[K[1B[K[1B[K[1B[K[1B[K[1B[K[1B[K[1B[K[1B[K[1B[K[1B[K[17A[10C[4A[?2026l[?2026h[10D[4B[10C[4As[7m [27m[K
+
+
+
+[11C[4A[?2026l[?2026h[11D[4B[11C[4At[7m [27m
+
+
+
+[12C[4A[?2026l[?2026h[12D[4B[12C[4Aa[7m [27m
+
+
+
+[13C[4A[?2026l[?2026h[13D[4B[13C[4At[7m [27m
+
+
+
+[14C[4A[?2026l[?2026h[14D[4B[14C[4Au[7m [27m
+
+
+
+[15C[4A[?2026l[?2026h[15D[4B[15C[4As[7m [27m
+
+
+
+[16C[4A[?2026l]0;◐ Claude Code[?2026h[16D[4B[5A[48;5;237m[38;5;246m❯ [38;5;231m/jeeves status[39m                                                                                                                            [1B[49m[K[1B[38;5;174m·[39m [38;5;174mPhilosophizing… [39m[K[2C[1B[K[1B[38;5;244m────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[39m
+[38;5;246m❯ [39m[7m [27m
+[38;5;244m────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[39m
+[3G[38;5;220m⏵⏵[6Gauto[11Gmode[16Gon[38;5;246m (shift+tab[30Gto[33Gcycle)[40G·[42Gesc[46Gto[49Ginterrupt[59G·[61G←[63Gfor[67Gagents[113G[38;5;211mNot[117Glogged[124Gin[127G·[129GRun[133G/login[39m
+[121G[38;5;246m◐[123Gmedium[130G·[132G/effort[39m
+[2C[4A[?2026l]0;✳ Claude Code[?2026h[2D[4B[1C[9A[48;5;237m [10G [49m[K[1B[38;5;246m  ⎿  [39mjeeves:[14GJeeves[22Gmode:[28Gfull[1B [3G   No managed task.[23GStart[29Gwith[34G/jeeves[42Gon[5C[1BPath:[12G...rary/Application[32GSupport/Jeeves[1B[K[1B[38;5;244m────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[1B[39m❯ [7m [27m[K[1B[38;5;244m────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[2C[1B[38;5;220m⏵⏵ auto mode on[38;5;246m (shift+tab to cycle) · ← for agents[113G[38;5;211mNot logged in · Run /login[39m
+[121G[38;5;246m◐[123Gmedium[130G·[132G/effort[39m
+[2C[4A[?2026l[?2026h[2D[4B[2C[2A[38;5;246mPress Ctrl-C again to exit[39m                         
+
+[2C[4A[?2026l[?2026h[2D[4B[2C[2A[38;5;220m⏵⏵ auto mode on[38;5;246m (shift+tab to cycle) · ← for agents[39m
+
+[2C[4A[?2026l[?2026h[2D[4B[2C[2A[38;5;246mPress Ctrl-C again to exit[39m                         
+
+[2C[4A[?2026l[?2026h[2D[4B[2C[2A[38;5;220m⏵⏵ auto mode on[38;5;246m (shift+tab to cycle) · ← for agents[39m
+
+[2C[4A[?2026l[?2026h[2D[4B[2K[G[1A[K[2C[3A[?2026l[?2026h[2D[3B[38C[1A               
+[2C[3A[?2026l[?1006l[?1003l[?1002l[?1000l[2D[3B[?1004l[>4m[<u[?2031l[?2004l(B[?1016l[?1006l[?1003l[?1002l[?1000l[?25h7[r8]0;[2m[22m
+[2mResume this session with:[22m
+[2mclaude --model haiku --resume 3bf9c057-0e3b-423c-8534-e1b1170b08dd[22m
+[2m[22m
