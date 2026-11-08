@@ -107,6 +107,11 @@ export function statusText(v: StatusView): string {
   if (v.defaultsError) lines.push('Warning: defaults unreadable')
   if (v.stateRoot) lines.push(`Path: ${fitLeft(v.task?.dir ?? v.stateRoot, WIDTH - 6)}`)
   else lines.push(`State folder: ${v.stateRootError ? 'error' : 'unset'}`, ...(v.stateRootError ? [v.stateRootError] : []))
+  // At most 8 lines: the least useful give way first, so the reason and any warning always show.
+  for (const prefix of ['Path: ', 'Last: ', 'Rotations: ', 'Waiting for', 'TEST OVERRIDE']) {
+    const i = lines.findIndex(l => l.startsWith(prefix))
+    if (lines.length > 8 && i >= 0) lines.splice(i, 1)
+  }
   return lines.slice(0, 8).map(fit).join('\n')
 }
 
