@@ -18,7 +18,7 @@ npm run test:mod         # the hooks in Claude Code's test kit
 | Script | What it does | Needs |
 |---|---|---|
 | `npm test` | Unit tests (`tests/unit/*.spec.ts`, `node:test`): core, storage, redaction, git audit | Node |
-| `npm run test:mod` | `claude plugin test .`: every `tests/mod/*.test.ts` against the real hooks with an in-memory host; no model calls | Claude Code |
+| `npm run test:mod` | `claude plugin test .`: every `tests/mod/*.test.ts` and `tests/perf/*.test.ts` (timing, not run in CI) against the real hooks with an in-memory host; no model calls | Claude Code |
 | `npm run lint` | `tsc` on `src/core` plus `scripts/lint.mjs`: core purity (no `$`, no I/O), no git-mutating argv, no runtime dependencies | Node |
 | `npm run typecheck` | `tsc --strict` on hooks, adapter and mod tests against the engine's types (see below); `-- --core-only` without them | Node (+ engine types) |
 | `npm run validate` | `claude plugin validate . --strict` | Claude Code |

@@ -27,7 +27,7 @@ if (!include) {
 const header = readFileSync(fromEnv ? include[0] : resolve(laid, 'claude-code/index.d.ts'), 'utf8').split('\n', 1)[0]
 writeFileSync(resolve(root, 'tsconfig.engine.json'), JSON.stringify({
   extends: './tsconfig.json',
-  include: [...include, 'hooks', 'src', 'tests/mod'],
+  include: [...include, 'hooks', 'src', 'tests/mod', 'tests/perf'],
 }, null, 2))
 run('tsconfig.engine.json')
 console.log(`typecheck: ok against ${header.replace(/^\/\/\s*/, '')}`)
