@@ -48,7 +48,7 @@ The same in Terminal, iTerm, Cursor's or VS Code's integrated terminal: Jeeves l
 
 **It does not:** run your commands or tests, change git (no commit, stash, checkout or reset, ever), touch your permissions or settings, send anything over the network, or answer permission prompts for you. It never claims a task is done without evidence: a task is completed only when Claude reports it with the checks you gave and Jeeves's record shows them passing, or when you confirm with `/jeeves done`.
 
-**It stops and tells you** when: the handover fails its checks 3 times, 1 try and 2 retries (`NEEDS_REVIEW`), the fresh conversation is already near the threshold (`POSSIBLE_LOOP`), 10 rotations are reached (`MAX_ROTATIONS`), work is still in flight after 3 stops or 20 minutes (`UNSAFE_BOUNDARY`), you interrupt the handover or type `/clear` yourself, the API reports a rate limit, login, billing or overload error, a disk write fails, or the repository moved or changed branch. `/jeeves status` says why, in one line, and what to type.
+**It stops and tells you** when: the handover fails its checks 3 times, 1 try and 2 retries (`NEEDS_REVIEW`; `/jeeves retry` asks again), the fresh conversation is already near the threshold (`POSSIBLE_LOOP`; `/jeeves retry` keeps working there), 10 rotations are reached (`MAX_ROTATIONS`), work is still in flight after 3 stops or 20 minutes (`UNSAFE_BOUNDARY`), you interrupt the handover or type `/clear` yourself, the API reports a rate limit, login, billing or overload error, a disk write fails, or the repository moved or changed branch. `/jeeves status` says why, in one line, and what to type.
 
 ## Modes
 
@@ -81,6 +81,7 @@ All are `/jeeves <command>`. Only commands you type yourself change a task; anyt
 | `dod <text>` | Add a done criterion (a new task revision, never an edit). |
 | `check <cmd>` | Add a verification command (stored as text, never run by Jeeves). |
 | `done` | Confirm by hand a task stopped as `DOD_UNMET` (recorded as your decision). |
+| `retry` | After `NEEDS_REVIEW (HANDOVER_INVALID)`: ask for the handover again. After `NEEDS_REVIEW (POSSIBLE_LOOP)`: keep working in this conversation without a handover in it. Counts toward the 2 failed handovers in a row. |
 | `continue` | Assisted mode: after `/clear`, continue the task in the fresh conversation. |
 | `recover [--relink]` | Continue a task an earlier session left interrupted (crash, closed terminal). `--relink` continues after a branch switch or a moved folder. |
 | `status [--diagnose]` | Mode, task, state, context, threshold, rotations, state folder. `--diagnose`: a redacted report for a bug report. |

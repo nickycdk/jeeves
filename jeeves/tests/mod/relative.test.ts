@@ -57,8 +57,14 @@ test('relative override: a fresh session that starts at the source session\'s la
   await $.tool.call({ tool: 'Bash', command: 'ls' })
   await until(g.h, () => stateOf(g.h, g.dir).status !== 'CONTINUING')
   const s = stateOf(g.h, g.dir)
-  expect([s.status, s.reason]).toEqual(['FAILED', 'POSSIBLE_LOOP'])
+  expect([s.status, s.reason]).toEqual(['NEEDS_REVIEW', 'POSSIBLE_LOOP'])
   expect(g.h.toasts.some(t => t.includes('already at 6.8% (threshold 6.8%)'))).toBe(true)
+  expect(g.clears).toEqual(['clear'])
+  // ST-10.3: /jeeves retry watches again in this session, with no rotation here even past the threshold.
+  expect(await relay($, 'retry')).toContain('Watching again')
+  expect(stateOf(g.h, g.dir).status).toBe('MONITORING')
+  for (const p of [7.5, 20, 60]) await measure($, p)
+  expect([stateOf(g.h, g.dir).status, g.clears]).toEqual(['MONITORING', ['clear']])
 })
 
 test('relative override needs JEEVES_TEST=1', async ($, on) => {

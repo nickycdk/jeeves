@@ -2,7 +2,7 @@
 import { isThreshold, THRESHOLD_MAX, THRESHOLD_MIN } from '../core/machine.ts'
 import { heldPrompt } from '../core/continuation.ts'
 import { taskText } from '../core/task.ts'
-import type { State } from '../core/types.ts'
+import { DEFAULT_CONFIG, type State } from '../core/types.ts'
 import type { Runtime } from './runtime.ts'
 import { addRevision, apply, claim, heldByOther, liveTasks, ownTask, projectTasks, readTask, nudgeIfWaiting, restoreHere, startTask, takeLock, type Task } from './task.ts'
 import { recover, restoredText } from './recover.ts'
@@ -33,7 +33,7 @@ export function pickTask<T extends { state: State }>(tasks: T[], sessionId: stri
  */
 export type Caller = { userTyped: boolean; idle?: boolean; endedHere: ReadonlySet<string> }
 
-const CHANGES = new Set(['purge', 'on', 'off', 'dod', 'check', 'threshold', 'pause', 'resume', 'continue', 'rotate', 'done', 'recover'])
+const CHANGES = new Set(['purge', 'on', 'off', 'dod', 'check', 'threshold', 'pause', 'resume', 'continue', 'rotate', 'done', 'recover', 'retry'])
 
 export async function relay(rt: Runtime, args: string, caller: Caller): Promise<string> {
   const m = /^\s*(\S*)\s?([\s\S]*)$/.exec(args)!
@@ -76,6 +76,7 @@ export async function relay(rt: Runtime, args: string, caller: Caller): Promise<
     case 'continue': return continueHere(rt, tasks, me, caller.endedHere)
     case 'rotate': return rotate(rt, tasks, me, caller.idle === true)
     case 'done': return confirmDone(rt, tasks, me, caller.endedHere)
+    case 'retry': return retry(rt, tasks, me, caller.idle === true)
     case 'recover': return rest.trim() === '' || rest.trim() === '--relink' ? recover(rt, me, caller.endedHere, rest.trim() === '--relink') : MSG.recoverUsage
     default: return revise(rt, tasks, me, sub as 'dod' | 'check', rest)
   }
@@ -143,6 +144,23 @@ async function rotate(rt: Runtime, tasks: Task[], me: string, idle: boolean): Pr
   if (!requested) return MSG.notRotatable(r?.state.status ?? own.state.status)
   if (idle) await nudgeIfWaiting(rt)
   return MSG.rotateRequested
+}
+
+const retryable = (s: State) => s.status === 'NEEDS_REVIEW' && (s.reason === 'HANDOVER_INVALID' || s.reason === 'POSSIBLE_LOOP')
+
+/** ST-10.2 / ST-10.3 (ADR-009 A2): this session's own task only; another session's is LOCK_HELD, nothing written. */
+async function retry(rt: Runtime, tasks: Task[], me: string, idle: boolean): Promise<string> {
+  const own = ownTask(tasks, me)
+  if (!own || !retryable(own.state)) {
+    const other = tasks.find(t => retryable(t.state) && t.state.activeSessionId !== me)
+    return other ? MSG.lockHeld(other.state.taskId) : MSG.nothingToRetry
+  }
+  if (own.state.consecutiveFailures >= DEFAULT_CONFIG.maxConsecutiveFailures) return MSG.retryUsedUp(own.state.consecutiveFailures)
+  const r = await apply(rt, own.dir, { type: 'RETRY_CMD' })
+  if (r?.state.status === 'MONITORING') return MSG.retryWatching
+  if (r?.state.status !== 'ROTATION_REQUESTED') return MSG.notRotatable(r?.state.status ?? own.state.status)
+  if (idle) await nudgeIfWaiting(rt)
+  return MSG.retryRequested
 }
 
 /** ST-5.2 / ADR-007: the user confirms a completion that checks could not verify (recorded as the user's decision). */

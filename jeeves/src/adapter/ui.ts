@@ -1,7 +1,7 @@
 // User-facing strings (FR-14, NFR-08): plain ASCII, text labels, <= 40 columns, <= 8 lines for status.
 import type { Probe } from '../core/probe.ts'
 import { recoverable } from '../core/machine.ts'
-import { INERT, type EventLine, type ReasonCode, type State, type Status } from '../core/types.ts'
+import { DEFAULT_CONFIG, INERT, type EventLine, type ReasonCode, type State, type Status } from '../core/types.ts'
 
 export const WIDTH = 40
 
@@ -72,6 +72,13 @@ const tokensAt = (window: number | undefined, pct: number) => {
   return k >= 1 ? ` (~${k}K)` : ''
 }
 
+/** The reason's line; one that /jeeves retry applies to says so, or that the retries are used up (ST-10.2). */
+const reasonLine = (s: State) => {
+  if (s.status !== 'NEEDS_REVIEW' || (s.reason !== 'HANDOVER_INVALID' && s.reason !== 'POSSIBLE_LOOP')) return REASON_TEXT[s.reason!]
+  if (s.consecutiveFailures >= DEFAULT_CONFIG.maxConsecutiveFailures) return 'Retries used up. /jeeves off ends it'
+  return s.reason === 'HANDOVER_INVALID' ? 'Handover invalid. Try: /jeeves retry' : 'Fresh session too full. /jeeves retry'
+}
+
 export function statusText(v: StatusView): string {
   // AC-25: a task that fell back to assisted shows it, whatever the probe said.
   const lines = [`Jeeves  mode: ${v.task?.state.mode === 'assisted' ? 'assisted' : v.probe.mode}`]
@@ -90,7 +97,7 @@ export function statusText(v: StatusView): string {
       ...(v.thresholdRelative ? [`TEST OVERRIDE +${v.thresholdRelative} (task setting ${s.thresholdPercent}%)`]
         : v.thresholdOverride ? [`TEST OVERRIDE (task setting ${s.thresholdPercent}%)`] : []),
       `Rotations: ${s.rotationCount}  Session: ${s.sessionSequence}`,
-      ...(s.reason && INERT.includes(s.status) ? [REASON_TEXT[s.reason]] : []),
+      ...(s.reason && INERT.includes(s.status) ? [reasonLine(s)] : []),
       `Last: ${s.lastValidatedHandover ? s.lastValidatedHandover.split('#')[0]!.replace(/^history\//, '') : 'no handover yet'}${s.lastErrorCode ? `, error ${s.lastErrorCode}` : ''}`,
     )
   }
@@ -109,6 +116,7 @@ export const HELP = [
   'continue      after /clear (assisted)',
   'recover       continue a stopped task',
   'done          confirm the task is done',
+  'retry         after a failed handover',
   'threshold <n> hand over at n% (20-90)',
   'task          original task + changes',
   'dod <text>    add a done criterion',
@@ -160,6 +168,10 @@ export const MSG = {
   restored: (taskId: string) => `Continuing task ${taskId} here: Jeeves sends the task and its latest handover as the next prompt.`,
   rotateRequested: 'Handover requested: Jeeves asks Claude for it at the next safe stop, then starts a fresh conversation.',
   notRotatable: (status: string) => `No handover now: the task is ${status}. /jeeves status shows why.`,
+  retryRequested: 'Handover requested again: Jeeves asks Claude for it at the next safe stop. Earlier handovers are kept as they are.',
+  retryWatching: 'Watching again in this session, without a handover here. The next fresh session rotates as usual. A higher /jeeves threshold or a shorter task avoids another loop.',
+  retryUsedUp: (n: number) => `No retry: ${n} handovers in a row failed, the limit. /jeeves off ends the task (files kept).`,
+  nothingToRetry: '/jeeves retry works only after an invalid handover (HANDOVER_INVALID) or a possible loop (POSSIBLE_LOOP).',
   nothingToConfirm: 'Nothing waits for /jeeves done: only a task stopped as DOD_UNMET can be confirmed by hand.',
   confirmedDone: (taskId: string) => `Task ${taskId} marked done by you (recorded as your decision, not verified by checks).`,
   nothingToContinue: 'No handover is waiting for /jeeves continue. /jeeves status shows the task.',

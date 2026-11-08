@@ -166,8 +166,8 @@ States (PRD §7 plus explicit `QUIESCING` substates kept as data): `DISABLED, MO
 | CONTINUING | measure(p) | p < T−10 | MONITORING | armedFired=false (rearm), sessionSequence++ |
 | CONTINUING | measure(p) | p ≥ T−10 | FAILED(POSSIBLE_LOOP) | toast, no rotation | *(v0.1; from v0.2 the row below)*
 | CONTINUING | measure(p) | p ≥ T−10 (v0.2, D-31) | NEEDS_REVIEW(POSSIBLE_LOOP) | toast, no rotation |
-| NEEDS_REVIEW(HANDOVER_INVALID) | `/relay retry` (v0.2) | lock owner, consecutiveFailures < max | ROTATION_REQUESTED | new MANUAL rotation, event reason RETRY, consecutiveFailures++, earlier handovers untouched |
-| NEEDS_REVIEW(POSSIBLE_LOOP) | `/relay retry` (v0.2) | lock owner, consecutiveFailures < max | MONITORING | armedFired=true (no rotation in this session), consecutiveFailures++ |
+| NEEDS_REVIEW(HANDOVER_INVALID) | `/relay retry` (v0.2) | lock owner, consecutiveFailures < max | ROTATION_REQUESTED | new MANUAL rotation, event detail RETRY, earlier handovers untouched; the retried rotation's failure counts as usual (consecutiveFailures++ when it ends in an error) |
+| NEEDS_REVIEW(POSSIBLE_LOOP) | `/relay retry` (v0.2) | lock owner, consecutiveFailures < max | MONITORING | armedFired=true (no rotation in this session), sessionSequence++; consecutiveFailures keeps the loop's count, reset only when a fresh session rearms below T−10 (M8 build: moved from CONTEXT_READY so a retried loop counts) |
 | NEEDS_REVIEW(POSSIBLE_LOOP) | measure-loop again after a retry (v0.2) | consecutiveFailures ≥ max | FAILED(POSSIBLE_LOOP) | toast |
 | any active | `/relay pause` | — | PAUSED(USER) | persisted |
 | PAUSED | `/relay resume` | lock ok | MONITORING (or RESTORING if USER_CLEAR) | — |

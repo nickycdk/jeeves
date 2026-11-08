@@ -255,9 +255,9 @@ test('row 19: CONTINUING + fresh measure < T-10 -> MONITORING, rearmed, sessionS
   assert.equal(o.state.rotation, null)
 })
 
-test('row 20: CONTINUING + measure >= T-10 -> FAILED(POSSIBLE_LOOP), no rotation', () => {
+test('row 20: CONTINUING + measure >= T-10 -> NEEDS_REVIEW(POSSIBLE_LOOP) (ST-10.3), no rotation', () => {
   const o = run(st('CONTINUING', { rotation: rot({ step: 'CONTINUED' }) }), measure(40))
-  assert.deepEqual([o.state.status, o.state.reason], ['FAILED', 'POSSIBLE_LOOP'])
+  assert.deepEqual([o.state.status, o.state.reason], ['NEEDS_REVIEW', 'POSSIBLE_LOOP'])
   assert.equal(o.state.rotation, null)
 })
 
@@ -461,7 +461,7 @@ test('property: 300 seeded random walks of 200 inputs keep every invariant (02 Â
       case 15: return { type: 'PAUSE' }
       case 16: return { type: 'RESUME', lockOk: rnd.next() < 0.8, sessionId: sid }
       case 17: return { type: 'STOP_FAILURE', error: rnd.pick(['rate_limit', 'overloaded', 'authentication_failed', 'billing_error', 'server_error']) }
-      default: return rnd.next() < 0.2 ? { type: 'DONE_CMD', sessionId: sid } : { type: 'COMPLETE_BLOCK', commands: rnd.next() < 0.2 ? [] : ['npm test'], blockers: rnd.next() < 0.2 ? ['x'] : [] }
+      default: return rnd.next() < 0.1 ? { type: 'RETRY_CMD' } : rnd.next() < 0.2 ? { type: 'DONE_CMD', sessionId: sid } : { type: 'COMPLETE_BLOCK', commands: rnd.next() < 0.2 ? [] : ['npm test'], blockers: rnd.next() < 0.2 ? ['x'] : [] }
     }
   }
   // Half the inputs follow the happy path from the current state, so walks reach the deep states.
@@ -504,7 +504,8 @@ test('property: 300 seeded random walks of 200 inputs keep every invariant (02 Â
       if (s.rotation && r && ROTATION_STATES.includes(s.status) && ROTATION_STATES.includes(o.state.status)) assert.equal(r.rotationId, s.rotation.rotationId, `rotationId changed: ${where}`)
       // A rotation starts only from MONITORING/CONTINUING (or the restore path from PAUSED): never from an inert state on its own.
       if (o.state.status === 'ROTATION_REQUESTED' && s.status !== 'ROTATION_REQUESTED') {
-        assert.ok(s.status === 'MONITORING' || s.status === 'CONTINUING', `rotation from ${where}`)
+        // ...or the user's /jeeves retry after an invalid handover (ST-10.2).
+        assert.ok(s.status === 'MONITORING' || s.status === 'CONTINUING' || (input.type === 'RETRY_CMD' && s.status === 'NEEDS_REVIEW'), `rotation from ${where}`)
         rotationsSeen++
       }
       if (INERT.includes(s.status) && input.type === 'MEASURE') assert.equal(o.state.status, s.status, `inert state moved on a measure: ${where}`)
@@ -580,10 +581,10 @@ test('ST-4.5 rearm: CONTINUING + reading < T-10 -> MONITORING, armedFired=false,
   assert.equal(run(o.state, measure(50), ctx({ newRotationId: 'r2' })).state.rotation?.rotationId, 'r2')
 })
 
-test('ST-4.5 loop guard: CONTINUING never rotates on a reading; >= T-10 -> FAILED(POSSIBLE_LOOP)', () => {
+test('ST-4.5 loop guard: CONTINUING never rotates on a reading; >= T-10 -> NEEDS_REVIEW(POSSIBLE_LOOP) (ST-10.3)', () => {
   for (let p = 40; p <= 100; p += 5) {
     const o = run(st('CONTINUING', { rotation: rot({ step: 'CONTINUED' }) }), measure(p))
-    assert.deepEqual([o.state.status, o.state.reason], ['FAILED', 'POSSIBLE_LOOP'], `p=${p}`)
+    assert.deepEqual([o.state.status, o.state.reason], ['NEEDS_REVIEW', 'POSSIBLE_LOOP'], `p=${p}`)
   }
 })
 
@@ -605,8 +606,10 @@ test('ST-4.5 consecutive failures: each failed rotation counts, a continued one 
   assert.deepEqual([unsafe.state.reason, unsafe.state.consecutiveFailures], ['UNSAFE_BOUNDARY', 2])
   const o = run(st('MONITORING', { consecutiveFailures: max, lastErrorCode: 'UNSAFE_BOUNDARY' }), measure(60))
   assert.deepEqual([o.state.status, o.state.reason, o.state.rotation], ['FAILED', 'UNSAFE_BOUNDARY', null])
+  // ST-10.3: the count resets once the fresh session is below the loop margin, not at CONTEXT_READY.
   const ok = run(st('RESTORING', { rotation: rot({ step: 'RESTORED' }), consecutiveFailures: 1 }), { type: 'CONTEXT_READY' })
-  assert.equal(ok.state.consecutiveFailures, 0)
+  assert.equal(ok.state.consecutiveFailures, 1)
+  assert.equal(run(ok.state, measure(10)).state.consecutiveFailures, 0)
   assert.equal(run(st('MONITORING'), { type: 'PAUSE' }).state.consecutiveFailures, 0, 'a user pause is not a failure')
 })
 
@@ -625,9 +628,9 @@ test('ST-4.6: assisted mode never schedules /clear; CONTINUE_CMD only from NEEDS
 test('ST-4.8 reading: the loop margin is 10 points, 0.5 point only under the (decimal) test override', () => {
   const s = st('CONTINUING', { rotation: rot({ step: 'CONTINUED' }) })
   assert.equal(run(s, measure(39)).state.status, 'MONITORING')
-  assert.equal(run(s, measure(40)).state.status, 'FAILED')
+  assert.equal(run(s, measure(40)).state.status, 'NEEDS_REVIEW')
   assert.equal(run(s, measure(7.99), ctx({ thresholdOverride: 8.5 })).state.status, 'MONITORING')
-  assert.deepEqual([run(s, measure(8), ctx({ thresholdOverride: 8.5 })).state.status, run(s, measure(8), ctx({ thresholdOverride: 8.5 })).state.reason], ['FAILED', 'POSSIBLE_LOOP'])
+  assert.deepEqual([run(s, measure(8), ctx({ thresholdOverride: 8.5 })).state.status, run(s, measure(8), ctx({ thresholdOverride: 8.5 })).state.reason], ['NEEDS_REVIEW', 'POSSIBLE_LOOP'])
   assert.equal(run(st('MONITORING'), measure(8.49), ctx({ thresholdOverride: 8.5 })).state.status, 'MONITORING')
   assert.equal(run(st('MONITORING'), measure(8.5), ctx({ thresholdOverride: 8.5 })).state.status, 'ROTATION_REQUESTED')
 })
@@ -669,7 +672,7 @@ test('D-25 relative loop guard: the fresh session rearms at its start reading on
   assert.equal(run(ok.state, measure(7.39), c).state.status, 'MONITORING')
   assert.equal(run(ok.state, measure(7.4), c).state.status, 'ROTATION_REQUESTED', 'the next session rotates at its own start + d')
   const loop = run(s, toolReading(6.9), c)
-  assert.deepEqual([loop.state.status, loop.state.reason], ['FAILED', 'POSSIBLE_LOOP'])
+  assert.deepEqual([loop.state.status, loop.state.reason], ['NEEDS_REVIEW', 'POSSIBLE_LOOP'])
   assert.ok(loop.effects.some(e => e.type === 'TOAST' && e.text.includes('(threshold 6.9%)')))
   // a start already known before CONTINUING (set in RESTORING): the next reading still rearms
   assert.equal(run(st('CONTINUING', { rotation: rot({ step: 'CONTINUED', guardPct: 6.9 }), sessionStart: { at: AT, pct: 6.4 } }), measure(6.5), c).state.status, 'MONITORING')
@@ -709,4 +712,35 @@ test('ST-6.3: an aborted turn while a handover is only requested rules out the n
     assert.ok(run(o.state, { type: 'IDLE' }).ignored)
   }
   assert.ok(run(st('ROTATION_REQUESTED'), { type: 'TURN_COMPLETE', reason: 'answer' }).ignored)
+})
+
+// ---- ST-10.2 / ST-10.3: /jeeves retry ----
+
+test('ST-10.2: RETRY_CMD from NEEDS_REVIEW(HANDOVER_INVALID) requests a new MANUAL rotation, logged as RETRY', () => {
+  const o = run(st('NEEDS_REVIEW', { reason: 'HANDOVER_INVALID', consecutiveFailures: 1, armedFired: true }), { type: 'RETRY_CMD' })
+  assert.deepEqual([o.state.status, o.state.reason, o.state.rotation?.trigger, o.state.rotation?.rotationId], ['ROTATION_REQUESTED', 'MANUAL', 'MANUAL', 'r_new'])
+  assert.ok(o.effects.some(e => e.type === 'LOG_EVENT' && e.detail === 'RETRY'))
+})
+
+test('ST-10.2: RETRY_CMD with the failure counter used up, or from any other state, changes nothing', () => {
+  assert.ok(run(st('NEEDS_REVIEW', { reason: 'HANDOVER_INVALID', consecutiveFailures: 2 }), { type: 'RETRY_CMD' }).ignored)
+  for (const reason of ['DOD_UNMET', 'ROTATE_UNAVAILABLE', 'STATE_CORRUPT', 'DISK'] as const) assert.ok(run(st('NEEDS_REVIEW', { reason }), { type: 'RETRY_CMD' }).ignored, reason)
+  for (const status of ['MONITORING', 'PAUSED', 'DISABLED', 'COMPLETED'] as const) assert.ok(run(st(status), { type: 'RETRY_CMD' }).ignored, status)
+  // A v0.1 task stopped as FAILED(POSSIBLE_LOOP) stays FAILED.
+  assert.ok(run(st('FAILED', { reason: 'POSSIBLE_LOOP' }), { type: 'RETRY_CMD' }).ignored)
+})
+
+test('ST-10.3: a fresh session at >= T-10 -> NEEDS_REVIEW(POSSIBLE_LOOP); retry -> MONITORING with no rotation in this session', () => {
+  const loop = run(st('CONTINUING', { consecutiveFailures: 0, sessionSequence: 2 }), measure(45))
+  assert.deepEqual([loop.state.status, loop.state.reason, loop.state.consecutiveFailures], ['NEEDS_REVIEW', 'POSSIBLE_LOOP', 1])
+  const back = run(loop.state, { type: 'RETRY_CMD' })
+  assert.deepEqual([back.state.status, back.state.armedFired, back.state.consecutiveFailures], ['MONITORING', true, 1])
+  assert.equal(run(back.state, measure(80)).state.status, 'MONITORING')
+})
+
+test('ST-10.3: a second loop after a retry, counter used up -> FAILED(POSSIBLE_LOOP); a fresh session below the margin resets it', () => {
+  const second = run(st('CONTINUING', { consecutiveFailures: 1 }), measure(45))
+  assert.deepEqual([second.state.status, second.state.reason], ['FAILED', 'POSSIBLE_LOOP'])
+  const ok = run(st('CONTINUING', { consecutiveFailures: 1 }), measure(10))
+  assert.deepEqual([ok.state.status, ok.state.consecutiveFailures], ['MONITORING', 0])
 })

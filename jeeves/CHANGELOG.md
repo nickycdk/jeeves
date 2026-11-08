@@ -3,6 +3,8 @@
 ## 0.2.0 (in progress)
 
 - A new task hands over at 40% when the model's context window is larger than 200K tokens (for example 1M), and at 50% otherwise or when the window is unknown. Chosen once when the task starts; `/jeeves threshold` still overrides it. `/jeeves status` shows the threshold in tokens too (`Threshold: 40% (~400K)`).
+- `/jeeves retry`: after a handover failed its checks (`NEEDS_REVIEW (HANDOVER_INVALID)`) it asks Claude for the handover again; earlier handovers are kept as they are. It counts toward the limit of 2 failed handovers in a row, and says so when that is used up.
+- A possible rotation loop (the fresh conversation already near the threshold) now stops as `NEEDS_REVIEW (POSSIBLE_LOOP)` instead of `FAILED`: `/jeeves retry` keeps working in that conversation without a handover in it. A second loop before a rotation succeeds still stops as `FAILED`. The failure count now resets once a fresh conversation is confirmed below the loop margin, not when the continuation is sent.
 
 ## 0.1.0 (release candidate; dated when tagged)
 

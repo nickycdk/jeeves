@@ -585,6 +585,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **DoD:** + README "Threshold" paragraph and `docs/compatibility.md` note; CHANGELOG.
 
 ### ST-10.2 `/jeeves retry` after an invalid handover — M
+- **Status:** Solved (M8, 2026-11-08). The retry is counted by the failure it may end in, not when typed (same single retry with maxConsecutiveFailures 2); 02 §4 row updated. `help` always lists `retry` (static help text); status names it only when it applies.
 - **Cites:** FR-08, AC-17, ADR-003, ADR-009 A2, D-31.
 - **Scope:** new user-typed subcommand `retry`. From NEEDS_REVIEW(HANDOVER_INVALID) only: a new MANUAL rotation (new `rotationId`, reason `RETRY` in the event) → ROTATION_REQUESTED, so the next safe Stop asks for the handover again (or at once when idle, as `/jeeves rotate` does). The retry counts toward `maxConsecutiveFailures`: when it is used up, `retry` refuses with a message naming `/jeeves off`. Earlier handovers stay byte-identical. From any other state: a message saying what `retry` applies to. Out: retrying automatically; retrying DOD_UNMET (has `/jeeves done`), ROTATE_UNAVAILABLE (has `/jeeves continue`), STATE_CORRUPT (has `/jeeves recover`).
 - **Depends on:** none.
@@ -593,6 +594,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **DoD:** + 02 §4 rows (ADR-009 A2); message catalogue entry; README command table; CHANGELOG.
 
 ### ST-10.3 POSSIBLE_LOOP becomes reviewable — S
+- **Status:** Solved (M8, 2026-11-08). consecutiveFailures now resets when a fresh session rearms below T−10 instead of at CONTEXT_READY (a paused continuation still resets at CONTEXT_READY).
 - **Cites:** FR-08, R-18, D-31.
 - **Scope:** the loop guard (fresh session already at ≥ T−10) goes to **NEEDS_REVIEW(POSSIBLE_LOOP)** instead of FAILED. `/jeeves retry` from there: back to MONITORING in this session with `armedFired=true` (no rotation in this session; the next fresh session re-arms as usual), counts toward `maxConsecutiveFailures`. The message suggests a higher threshold or a shorter task (`/jeeves threshold`, `/jeeves task`). A v0.1 state.json in FAILED(POSSIBLE_LOOP) stays FAILED (no migration). Out: changing the loop-guard margin.
 - **Depends on:** ST-10.2.

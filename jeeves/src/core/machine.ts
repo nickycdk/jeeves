@@ -17,6 +17,8 @@ export type Input =
   /** `fromTool`: read at a main-loop tool result, so after a model call (D-25 counts only those as a session's start). */
   | { type: 'MEASURE'; percent?: number; tokens?: number; window: number; sessionId: string; fromTool?: boolean }
   | { type: 'ROTATE_CMD' }
+  /** `/jeeves retry` (ST-10.2, ST-10.3): ask again after NEEDS_REVIEW(HANDOVER_INVALID), or watch again after POSSIBLE_LOOP. */
+  | { type: 'RETRY_CMD' }
   /** A compaction of the main conversation stood (ADR-006); `trigger` as the engine named it. */
   | { type: 'COMPACTED'; trigger?: string }
   /** A tool call finished: `entry` goes to the ledger; on the main loop it is also the soft-quiesce point. */
@@ -238,11 +240,14 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
     if (state.status === 'CONTINUING') {
       if (p === undefined || !counts) return done()
       if (p < rearmBelow) {
-        go('MONITORING', null, { armedFired: false, rotation: null, sessionSequence: state.sessionSequence + 1, warnedSessionId: null, completionAsked: false }, `rearmed at ${p}%`)
+        go('MONITORING', null, { armedFired: false, rotation: null, sessionSequence: state.sessionSequence + 1, warnedSessionId: null, completionAsked: false, consecutiveFailures: 0 }, `rearmed at ${p}%`)
         return done()
       }
-      go('FAILED', 'POSSIBLE_LOOP', { rotation: null }, `fresh session already at ${p}%`)
-      effects.push({ type: 'TOAST', key: key('loop'), text: `Stopped: the fresh session is already at ${p}% (threshold ${shown(rel !== undefined ? rearmBelow : T)}%). Possible rotation loop. Run /jeeves status.` })
+      // ST-10.3: reviewable (/jeeves retry) until the failure counter is used up, then FAILED as in v0.1.
+      const final = state.consecutiveFailures + 1 >= ctx.config.maxConsecutiveFailures
+      go(final ? 'FAILED' : 'NEEDS_REVIEW', 'POSSIBLE_LOOP', { rotation: null }, `fresh session already at ${p}%`)
+      const msg = `the fresh session is already at ${p}% (threshold ${shown(rel !== undefined ? rearmBelow : T)}%). Possible rotation loop.`
+      effects.push({ type: 'TOAST', key: key('loop'), text: final ? `Stopped: ${msg} Run /jeeves status.` : `Paused: ${msg} /jeeves retry to keep working here, or raise /jeeves threshold.` })
       return done()
     }
     return done()
@@ -288,6 +293,15 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
     case 'COMPACTED':
       if (state.status !== 'MONITORING' && state.status !== 'CONTINUING') return ignore(ROTATION_STATES.includes(state.status) ? 'a rotation is already in progress' : 'no automatic rotation from this state')
       return request(input.type === 'ROTATE_CMD' ? 'MANUAL' : 'COMPACTED', input.type === 'COMPACTED' && input.trigger ? `after ${input.trigger} compaction` : undefined)
+
+    case 'RETRY_CMD': {
+      if (state.status !== 'NEEDS_REVIEW' || (state.reason !== 'HANDOVER_INVALID' && state.reason !== 'POSSIBLE_LOOP')) return ignore('retry applies after an invalid handover or a possible loop')
+      if (state.consecutiveFailures >= ctx.config.maxConsecutiveFailures) return ignore(`${state.consecutiveFailures} failed rotations in a row, the limit`)
+      if (state.reason === 'HANDOVER_INVALID') return request('MANUAL', 'RETRY')
+      // No rotation in this session (armedFired); the next fresh session re-arms as usual.
+      go('MONITORING', null, { armedFired: true, rotation: null, sessionSequence: state.sessionSequence + 1, warnedSessionId: null, completionAsked: false }, 'RETRY')
+      return done()
+    }
 
     case 'TOOL_RESULT':
       if (state.status === 'DISABLED') return ignore('no active task')
@@ -465,11 +479,13 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
 
     case 'CONTEXT_READY': {
       if (state.status !== 'RESTORING') return ignore('not restoring')
-      const patch = { heldPrompts: [], rotationCount: state.rotationCount + 1, consecutiveFailures: 0 }
+      // The failure counter resets once the fresh session is below the loop margin (MEASURE in CONTINUING), so a
+      // retried loop still counts (ST-10.3); a paused continuation has no such check and resets here.
+      const patch = { heldPrompts: [], rotationCount: state.rotationCount + 1 }
       const submit: Effect = { type: 'SUBMIT_CONTINUATION', key: key('CONTINUED'), heldPrompts: state.heldPrompts }
       if (state.pauseRequested) {
         // The pause asked for during the handover applies now: the fresh conversation continues, nothing rotates further.
-        go('PAUSED', 'USER_PAUSE', { ...patch, rotation: null, armedFired: false }, 'paused after the continuation, as asked')
+        go('PAUSED', 'USER_PAUSE', { ...patch, consecutiveFailures: 0, rotation: null, armedFired: false }, 'paused after the continuation, as asked')
         effects.push(submit)
         return done()
       }
