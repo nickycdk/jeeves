@@ -1,0 +1,26 @@
+name: Compatibility report
+description: Jeeves on a Claude Code version, OS or terminal not in docs/compatibility.md
+labels: [compat]
+body:
+  - type: textarea
+    id: diagnose
+    attributes:
+      label: Output of /jeeves status --diagnose
+      render: text
+    validations:
+      required: true
+  - type: dropdown
+    id: result
+    attributes:
+      label: Did a rotation work?
+      options:
+        - "Yes, full mode"
+        - "Assisted mode only"
+        - "No"
+        - "Not tried"
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: What you saw
