@@ -632,6 +632,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **DoD:** + README command table.
 
 ### ST-11.4 `/jeeves stats` — M
+- **Status:** Solved (M8, 2026-11-08). The < 100 ms check runs in the test kit on its in-memory file system, not on a real disk. "Failures" counts every stop (NEEDS_REVIEW, FAILED, PAUSED, BLOCKED) not caused by the user, by reason.
 - **Cites:** FR-11, R-15, D-30.
 - **Scope:** for this project (all its tasks) and the current task: tasks, rotations, sessions, average context at rotation, context cleared by rotations (points, and tokens when the window was recorded), cost per session where known, and failures by reason. Read-only; from `sessions/*.json`, `state.json` and `events.jsonl`. Wording says "context cleared", never "tokens saved" (claims policy, 08 §7). Out: cross-project totals; charts.
 - **Depends on:** ST-11.3.

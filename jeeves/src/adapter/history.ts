@@ -6,6 +6,7 @@ import { parseJson } from '../core/schema.ts'
 import type { EventLine, State } from '../core/types.ts'
 import type { Runtime } from './runtime.ts'
 import { sha256Hex } from './storage.ts'
+import { aggregate, statsLines } from '../core/stats.ts'
 
 const COLS = 50
 const ascii = (s: string) => s.replace(/[^\x20-\x7e]/g, '?')
@@ -60,4 +61,19 @@ export async function fullHistory(rt: Runtime, dir: string, s: State, events: re
     else out.push(`  ${file}${want ? '' : ' (hash not recorded)'}`, ...nextActions(text, 2).map(a => `    ${a}`))
   }
   return out.map(cut)
+}
+
+/** ST-11.4: `/jeeves stats`, for this project and the task status shows. Reads only. */
+export async function statsText(rt: Runtime, tasks: readonly { state: State; dir: string }[], unreadable: number, current: { state: State; dir: string } | null): Promise<string> {
+  const files = await Promise.all(tasks.map(async t => {
+    const names = (await rt.port.listFiles(join(t.dir, 'sessions')).catch(() => [] as string[])).filter(n => /^\d{3,}\.json$/.test(n))
+    const recs = await Promise.all(names.map(n => rt.port.read(join(t.dir, 'sessions', n)).then(x => parseJson('session', x), () => null)))
+    const events = (await rt.storage.readEvents(t.dir)).flatMap(l => { try { return [JSON.parse(l) as EventLine] } catch { return [] } })
+    return { dir: t.dir, files: { state: t.state, sessions: recs.flatMap(r => (r?.ok ? [r.value] : [])), events } }
+  }))
+  const cur = current ? files.find(f => f.dir === current.dir) : undefined
+  return [
+    ...statsLines('Jeeves stats, this project:', aggregate(files.map(f => f.files), unreadable)),
+    ...(cur ? ['', ...statsLines(`Task ${cur.files.state.taskId}:`, aggregate([cur.files])).filter(l => !l.startsWith('Tasks:'))] : []),
+  ].join('\n')
 }

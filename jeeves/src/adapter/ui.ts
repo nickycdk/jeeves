@@ -128,6 +128,7 @@ export const HELP = [
   'status        mode, task, context',
   'status --diagnose  report for a bug',
   'history [--full]  state changes',
+  'stats         rotations, context, cost',
   'purge ...     delete task files',
   'help          this list',
 ].join('\n')

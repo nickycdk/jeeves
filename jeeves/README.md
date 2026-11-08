@@ -86,6 +86,7 @@ All are `/jeeves <command>`. Only commands you type yourself change a task; anyt
 | `continue` | Assisted mode: after `/clear`, continue the task in the fresh conversation. |
 | `recover [--relink]` | Continue a task an earlier session left interrupted (crash, closed terminal). `--relink` continues after a branch switch or a moved folder. |
 | `status [--diagnose]` | Mode, task, state, context, threshold, rotations, state folder. `--diagnose`: a redacted report for a bug report. |
+| `stats` | For this project and the current task: tasks, rotations, sessions, average context at rotation, context cleared by rotations (points, and tokens when the window is known), cost where Claude Code reports it (else "unknown"), and stops by reason. Reads only. |
 | `history [--full]` | The last 20 state changes and a rotations summary. `--full` adds, per rotation, the session's context at start and end, its cost when known, why it ended, and the handover file with its first next actions (a missing or changed file is said, not printed). |
 | `purge --task <id> \| --project \| --all` | List the task folders that would be deleted and give a code. A running task is never deleted. |
 | `purge confirm <code>` | Delete them (within 2 minutes; a wrong code cancels). |

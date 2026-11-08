@@ -1,0 +1,71 @@
+// ST-11.4 (FR-11, R-15): `/jeeves stats` figures from the task files. Pure. Says "context cleared", never "tokens
+// saved" (claims policy, 08 §7); an unknown cost stays unknown, never 0.
+import type { EventLine, ReasonCode, SessionRecord, State } from './types.ts'
+
+export type TaskFiles = { state: State; sessions: SessionRecord[]; events: EventLine[] }
+
+export type Stats = {
+  tasks: number
+  unreadable: number
+  rotations: number
+  sessions: number
+  /** Mean context of the sessions a rotation ended (`endReason` clear), or null with none. */
+  avgAtRotation: number | null
+  /** Context points freed by rotations: a session's end minus the next one's start, where both are known. */
+  clearedPoints: number
+  /** The same in tokens, when every counted rotation's task recorded its window; else null. */
+  clearedTokens: number | null
+  costUsd: number
+  costKnown: number
+  costUnknown: number
+  failures: [ReasonCode, number][]
+}
+
+const STOPS = new Set(['NEEDS_REVIEW', 'FAILED', 'PAUSED', 'BLOCKED'])
+
+export function aggregate(tasks: readonly TaskFiles[], unreadable = 0): Stats {
+  let rotations = 0, sessions = 0, atRotation = 0, atRotationN = 0, points = 0, tokens: number | null = 0, cost = 0, known = 0, unknown = 0
+  const failures = new Map<ReasonCode, number>()
+  for (const t of tasks) {
+    rotations += t.state.rotationCount
+    sessions += t.sessions.length
+    const bySeq = [...t.sessions].sort((a, b) => a.startedAt.localeCompare(b.startedAt))
+    const window = t.state.lastContext?.window || 0
+    bySeq.forEach((s, i) => {
+      if (s.costUsd === undefined) unknown++
+      else { cost += s.costUsd; known++ }
+      if (s.endReason !== 'clear' || s.endPct === null) return
+      atRotation += s.endPct
+      atRotationN++
+      const next = bySeq[i + 1]
+      if (next?.startPct == null) return
+      const freed = Math.max(0, s.endPct - next.startPct)
+      points += freed
+      tokens = tokens !== null && window > 0 ? tokens + (freed * window) / 100 : null
+    })
+    for (const e of t.events) {
+      if (e.from === e.to || !e.to || !STOPS.has(e.to) || !e.code || e.code.startsWith('USER_')) continue
+      failures.set(e.code, (failures.get(e.code) ?? 0) + 1)
+    }
+  }
+  return {
+    tasks: tasks.length, unreadable, rotations, sessions, avgAtRotation: atRotationN ? atRotation / atRotationN : null,
+    clearedPoints: points, clearedTokens: points > 0 ? tokens : null, costUsd: cost, costKnown: known, costUnknown: unknown,
+    failures: [...failures].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])),
+  }
+}
+
+const k = (n: number) => (n >= 1000 ? `~${Math.round(n / 1000)}K` : `~${Math.round(n)}`)
+const one = (n: number) => `${Math.round(n * 10) / 10}`
+
+export function statsLines(title: string, s: Stats): string[] {
+  return [
+    title,
+    `Tasks: ${s.tasks}${s.unreadable ? ` (${s.unreadable} unreadable, not counted)` : ''}`,
+    `Rotations: ${s.rotations}  Sessions: ${s.sessions}`,
+    `Avg context at rotation: ${s.avgAtRotation === null ? 'none yet' : `${one(s.avgAtRotation)}%`}`,
+    `Context cleared: ${one(s.clearedPoints)} points${s.clearedTokens !== null ? ` (${k(s.clearedTokens)} tokens)` : ''}`,
+    `Cost: ${s.costKnown ? `$${s.costUsd.toFixed(2)} over ${s.costKnown} session(s)` : 'unknown'}${s.costKnown && s.costUnknown ? `, ${s.costUnknown} unknown` : ''}`,
+    `Failures: ${s.failures.length ? s.failures.map(([c, n]) => `${c} ${n}`).join(', ') : 'none'}`,
+  ]
+}
