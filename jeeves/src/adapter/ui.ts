@@ -172,6 +172,7 @@ export const MSG = {
   restored: (taskId: string) => `Continuing task ${taskId} here: Jeeves sends the task and its latest handover as the next prompt.`,
   rotateRequested: 'Handover requested: Jeeves asks Claude for it at the next safe stop, then starts a fresh conversation.',
   notRotatable: (status: string) => `No handover now: the task is ${status}. /jeeves status shows why.`,
+  suggestedChecks: (cmds: string[]) => `Suggested checks: ${cmds.map(c => `/jeeves check ${c}`).join(', ')}`,
   noDefaults: 'No defaults set for this project. /jeeves defaults threshold <n> or /jeeves defaults check <cmd> sets them for the next /jeeves on here.',
   defaultsUsage: 'Usage: /jeeves defaults, /jeeves defaults threshold <20-90>, /jeeves defaults check <cmd>, /jeeves defaults clear',
   defaultsUnreadable: (err: string) => `Project defaults unreadable (config.json: ${short(err).slice(0, 80)}); they are ignored. /jeeves defaults clear resets them.`,

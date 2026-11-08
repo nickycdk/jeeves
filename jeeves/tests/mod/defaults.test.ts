@@ -90,3 +90,23 @@ test('AC 5, 6: clear removes them; purge --project removes the file; only typed 
   await relay($, `purge confirm ${code}`)
   expect(configOf(h)).toBeUndefined()
 })
+
+test('ST-11.2: /jeeves on suggests checks from package.json and Makefile when none are set; never adds them', async ($, on) => {
+  const h = await setup(on)
+  h.files.set('/work/proj/package.json', JSON.stringify({ scripts: { test: 'node --test', typecheck: 'tsc', 'bad;name': 'x' } }))
+  await start($)
+  const reply = await relay($, 'on')
+  expect(reply).toContain('Suggested checks: /jeeves check npm test, /jeeves check npm run typecheck')
+  expect(reply).not.toContain('bad')
+  expect(stateOf(h, taskDirs(h)[0]!).pendingChanges ?? []).toEqual([])
+})
+
+test('ST-11.2: no suggestion line when defaults set checks, or the repository has nothing to suggest', async ($, on) => {
+  const h = await setup(on)
+  await start($)
+  expect(await relay($, 'on')).not.toContain('Suggested')
+  await relay($, 'off')
+  h.files.set('/work/proj/package.json', JSON.stringify({ scripts: { test: 'x' } }))
+  await relay($, 'defaults check make test')
+  expect(await relay($, 'on')).not.toContain('Suggested')
+})

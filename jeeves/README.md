@@ -102,6 +102,8 @@ In Claude Code: `/plugin configure jeeves@jeeves`. From a shell: `claude plugin 
 | `stateDir` | empty: `~/Library/Application Support/Jeeves` (Linux: `~/.local/state/jeeves`) | Absolute path for task state and handovers. The default is never inside a repository (Jeeves refuses one that would be); a path you set is used as given. |
 | `autoRecover` | off | At session start, continue an interrupted task by itself instead of asking you to type `/jeeves recover`. |
 
+**Checks.** Verification commands (`/jeeves check npm test`) are what Claude must have run, with success, before Jeeves accepts the task as done. Jeeves stores them as text and never runs them. When a task starts with none, `/jeeves on` suggests up to 4 from your repository: `package.json` scripts named `test`, `lint`, `typecheck` or `check` (or `test:unit` and the like), and `test`/`lint` targets in a top-level `Makefile`. Nothing is added until you type the command. Other ecosystems (pyproject, Cargo) are not read yet.
+
 Per task: `/jeeves threshold <n>`. Per project: `/jeeves defaults threshold <n>` and `/jeeves defaults check <cmd>` apply to every new task in that project (a task's own `/jeeves threshold` still wins). **Threshold default:** 50% when the context window is 200K tokens or less (or unknown), 40% above that, because half of a 1M window is a very long conversation. It is chosen once when the task starts; switching models later does not change it, and `/jeeves status` shows it in tokens so you can see what it means. Fixed limits: 10 rotations per task, 3 handover attempts (1 + 2 retries), 2 failed rotations in a row, 3 unsafe stops or 20 minutes before pausing, handovers up to 12,000 characters.
 
 ## Troubleshooting

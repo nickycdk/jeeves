@@ -614,6 +614,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **DoD:** + 02 §6.1 layout line; PRIVACY (what the file holds); README; CHANGELOG.
 
 ### ST-11.2 Verification-check suggestions — S
+- **Status:** Solved (M8, 2026-11-08). Script names `<kind>:<x>` (e.g. `test:unit`) count too; package.json is read from the git worktree root (or the cwd outside git).
 - **Cites:** FR-10, PRD change 7 (the plugin never runs checks), R-19.
 - **Scope:** at `/jeeves on` with no checks set (task or project default), read the repo's `package.json` `scripts` (test, lint, typecheck, check) and a top-level `Makefile`'s `test`/`lint` targets, and add one line to the start message: `Suggested checks: /jeeves check npm test` …. Suggestions only: nothing is added or run. Names are shown only when they match `[A-Za-z0-9:_-]{1,40}` (no repo text echoed raw); at most 4. Out: other ecosystems (pyproject, Cargo) in v0.2: noted for later.
 - **Depends on:** ST-11.1.

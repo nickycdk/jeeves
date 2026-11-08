@@ -1,7 +1,9 @@
 // /jeeves parsing and answers (ST-1.9, E2). Commands that change a task run only when the user typed them (FR-05).
 import { isThreshold, THRESHOLD_MAX, THRESHOLD_MIN } from '../core/machine.ts'
 import { heldPrompt } from '../core/continuation.ts'
+import { suggestChecks } from '../core/suggest.ts'
 import { taskText } from '../core/task.ts'
+import { join } from '../core/paths.ts'
 import { DEFAULT_CONFIG, type State } from '../core/types.ts'
 import type { Runtime } from './runtime.ts'
 import { addRevision, apply, claim, heldByOther, liveTasks, ownTask, projectTasks, readTask, nudgeIfWaiting, restoreHere, startTask, takeLock, type Task } from './task.ts'
@@ -102,7 +104,7 @@ async function on(rt: Runtime, tasks: Task[], me: string, rest: string): Promise
   // As /jeeves check writes them: after the goal (rev 2..), or queued until the first prompt.
   for (const cmd of defaults.value?.verificationCommands ?? []) await addRevision(rt, r.dir, 'check', cmd)
   if (goal.trim()) rt.port.submitPromptSoon(goal, err => rt.port.toast(MSG.submitFailed(err)))
-  return [...(busy ? [MSG.separateTask(busy)] : []), MSG.turnedOn(r.state.taskId, goal.trim() !== ''), ...(defaults.error ? [MSG.defaultsIgnored] : []), ...(await firstActivationNotice(rt))].join('\n')
+  return [...(busy ? [MSG.separateTask(busy)] : []), MSG.turnedOn(r.state.taskId, goal.trim() !== ''), ...(defaults.error ? [MSG.defaultsIgnored] : []), ...(await suggestions(rt, defaults.value?.verificationCommands.length ?? 0)), ...(await firstActivationNotice(rt))].join('\n')
 }
 
 async function off(rt: Runtime, tasks: Task[], me: string): Promise<string> {
@@ -203,6 +205,15 @@ async function revise(rt: Runtime, tasks: Task[], me: string, kind: 'dod' | 'che
   // Stored exactly as typed after the subcommand; a check command is text only and is never run here (FR-16).
   const n = await addRevision(rt, own.dir, kind, text.replace(/^\s+/, ''))
   return n === null ? MSG.waitingForPrompt : n === 'pending' ? MSG.revisePending(kind) : MSG.revised(n, kind)
+}
+
+/** ST-11.2: one line of check commands found in the repository, when the task starts with none. Never run or added. */
+async function suggestions(rt: Runtime, checks: number): Promise<string[]> {
+  if (checks > 0 || !rt.identity) return []
+  const root = rt.identity.kind === 'git' ? rt.identity.worktree : rt.identity.cwd
+  const read = (f: string) => rt.port.read(join(root, f)).catch(() => null)
+  const s = suggestChecks(await read('package.json'), await read('Makefile'))
+  return s.length ? [MSG.suggestedChecks(s)] : []
 }
 
 /** First `/jeeves on` on this machine (spec §4.1): where state lives, that a fresh conversation starts by itself, how to pause. */
