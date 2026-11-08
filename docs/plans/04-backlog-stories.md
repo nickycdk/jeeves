@@ -554,7 +554,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **DoD:** + threat-model.md.
 
 ### ST-9.2 Real Cursor demo and AC evidence pack — M
-- **Status:** Partly done (M7, 2026-11-08). Agent part done: `docs/evidence/v0.1.0/README.md` (AC-01…AC-25 with results and links), E-layer runs (`e-layers/RESULT.md`, US$0.21: AC-03, AC-09 pass; AC-10 probe inconclusive; AC-07 E not exercised), `cursor-demo-script.md`. Open (maintainer): the Cursor two-rotation demo on the default model with the §6 checklist and the video ≤ 3 min; AC-01/AC-02 recordings into `docs/evidence/v0.1.0/AC-0x/`.
+- **Status:** Solved (M7, 2026-11-08, scope amended by D-34). `docs/evidence/v0.1.0/README.md` (AC-01…AC-25 with results and links), E-layer runs (`e-layers/RESULT.md`, US$0.21: AC-03, AC-09 pass; AC-10 probe inconclusive; AC-07 E not exercised), `cursor-demo-script.md`. The Cursor two-rotation demo, the video and the AC-01/AC-02 recordings were dropped by the maintainer (D-34); AC-02 rests on the M6 one-rotation Cursor checklist. **Solved** with that amendment.
 - **Cites:** AC-01…AC-25, PRD §20.
 - **Scope:** run the fixture task in Cursor on the default model with threshold 50% using a context-heavy task (or documented test override at e.g. 15% with the reason) → ≥ 2 rotations; fill the AC table with links to evidence.
 - **Depends on:** all P0 stories.

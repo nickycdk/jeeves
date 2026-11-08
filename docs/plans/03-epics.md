@@ -94,7 +94,7 @@ Dependency order: E0 → E1 → E2 → E3 → E4 → E5 → (E6, E7 in parallel)
 - **Dependencies:** E5, E6, E8.
 - **Cites:** PRD §13, §15 MVP DoD, §17; AC-01…AC-25.
 - **AC:** every AC marked pass/fail/not-supported with evidence; marketing claims match `full` mode capabilities; maintainer sign-off.
-- **Artifact:** GitHub release, evidence pack, demo video.
+- **Artifact:** GitHub release, evidence pack (demo video dropped, D-34).
 
 ## E10 — Fewer dead ends (P1, v0.2)
 - **Goal:** A failed handover or a suspected loop is no longer a dead end, and the default threshold suits large-window models.

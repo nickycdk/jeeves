@@ -41,7 +41,7 @@ Built by `fixtures/build-repo.ts` into a temp dir per test (never committed stat
 | AC | Requirement (short) | Primary test(s) | Layer | Evidence |
 |---|---|---|---|---|
 | AC-01 | Install on clean macOS, no service/API key | Quickstart on fresh macOS user account; timed | M (+ P for settings diff) | recording + timing |
-| AC-02 | Cursor terminal, normal TUI/permissions | §6 checklist before/after rotation | M | recording + checklist |
+| AC-02 | Cursor terminal, normal TUI/permissions | §6 checklist before/after rotation | M | recording + checklist | **v0.1.0 (D-34):** maintainer-reported M6 run, one rotation, no recording; the two-rotation Cursor demo was dropped.
 | AC-03 | No rotation without opt-in | I: measures 0→95% with no task → zero effects; E: 1 session without `/relay on` past test threshold | I, E | test report |
 | AC-04 | Measurement = documented source, no rate limits | I: reading equals mocked `usage().context.percent`; rate-limit-only measure leaves it unchanged | I | test report |
 | AC-05 | 49% none, 50% one | U: threshold table; I: concurrent duplicate measures | U, I | test report |
