@@ -63,7 +63,8 @@ def phase_a(sp, out):
     r = {'trust': c.accept_trust()}
     c.pump(4)
     c.line('Read notes/log.txt completely with the Read tool and tell me how many lines it has. Nothing else.')
-    r['answered'] = c.wait(lambda: re.search(r'2,?4\d\d', c.tail(1500)) is not None, 180, label='line count answer')
+    # Only a wait for the answer; the proof that context passed the threshold is the /context reading below.
+    c.wait(lambda: re.search(r'2,?4\d\d', c.tail(1500)) is not None, 180, label='line count answer')
     c.pump(10)
     # The context fill after the read (a local command, free): shows it passed the 8% test threshold.
     mark = len(c.plain())
@@ -71,6 +72,8 @@ def phase_a(sp, out):
     c.pump(5)
     r['context_screen'] = c.plain()[mark:][-2500:]
     open(f"{out}/a/context.txt", 'w').write(r['context_screen'])
+    pct = re.search(r'tokens\s*\((\d+(?:\.\d+)?)%\)', r['context_screen'])
+    r['context_pct'] = float(pct.group(1)) if pct else None
     c.key('Esc', b'\x1b'); c.pump(1)
     c.line('/jeeves status')
     c.pump(4)
@@ -80,7 +83,7 @@ def phase_a(sp, out):
     r['task_folders'] = glob.glob(f"{state}/projects/*/tasks/*")
     r['handover_prompt_seen'] = 'preparehandover' in re.sub(r'\s', '', c.plain()).lower()
     r['checks'] = {
-        'AC-03 file read and answered (context grew past the 8% test threshold)': r['answered'],
+        'AC-03 context passed the 8% test threshold (/context)': (r['context_pct'] or 0) >= 8,
         'AC-03 no task folder created': r['task_folders'] == [],
         'AC-03 no handover request or nudge on screen': not r['handover_prompt_seen'],
         'AC-03 /jeeves status: no managed task': r['status_no_task'],
