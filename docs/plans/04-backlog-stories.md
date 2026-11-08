@@ -7,7 +7,7 @@ Stories are listed in dependency order; implement top to bottom. IDs are `ST-<ep
 
 Module names refer to `02-architecture-and-adrs.md` §3.
 
-**Progress (2026-11-08):** E0, E1, E2, E3, E4, E5 solved (M4 gate passed); E6 solved (M5 gate passed); E7 and E8 solved (M6 built; its gate waits for the maintainer's manual items: AC-01 on a fresh macOS user, the AC-02 Cursor checklist); plus ST-7.3. Each solved story has a **Status** line under its heading. Everything without one is open.
+**Progress (2026-11-08):** E0, E1, E2, E3, E4, E5 solved (M4 gate passed); E6 solved (M5 gate passed); E7 and E8 solved (M6 gate passed: AC-01 fresh macOS user and AC-02 Cursor checklist, maintainer-reported); plus ST-7.3. Each solved story has a **Status** line under its heading. Everything without one is open.
 
 ---
 
