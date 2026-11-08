@@ -60,7 +60,8 @@ One Claude Code plugin containing one hooks module (`hooks/register.ts`) that is
 | M4 | Fresh session & continuation | `/clear` rotation, injection, continuation, rearm, loop guard; AC-10/11/12 |
 | M5 | Recovery & safety | Crash matrix, errors, pause/resume, concurrency; AC-14…AC-19, AC-23 |
 | M6 | UX & distribution | Status UI, install/uninstall, docs, compatibility matrix; AC-01/02/20–22 |
-| M7 | Public beta | Two-rotation real demo in Cursor; AC-01…AC-25 evidence; release v0.1.0 |
+| M7 | Public beta | AC-01…AC-25 evidence; release v0.1.0 (two-rotation Cursor demo dropped, D-34). **Status:** built, gate open (maintainer: naming, publication, sign-off) |
+| M8 | v0.2 (P1) | `/jeeves retry`, 40% default above 200K, project defaults, check suggestions, `history --full`, `stats`, floor 2.1.303, live coverage; AC-26…AC-34. **Status:** planned, waits for approval |
 
 Rough size: 56 stories (5 L, 30 M, 21 S) ≈ 73 engineer-days for one developer (≈ 14 weeks), M0 alone ≈ 4.5 days. A coding agent executing stories in order can compress this, but the estimate assumes human review per story.
 
@@ -70,8 +71,8 @@ Rough size: 56 stories (5 L, 30 M, 21 S) ≈ 73 engineer-days for one developer 
 |---|---|
 | `01-technical-feasibility.md` | Verified capabilities, spike results, remaining spikes, assumptions, unresolved questions |
 | `02-architecture-and-adrs.md` | Architecture options compared, ADRs, modules, state machine, sequences, data contracts, concurrency, recovery, compatibility |
-| `03-epics.md` | 10 epics with goal, scope, value, risks, AC, DoD, artifacts |
-| `04-backlog-stories.md` | 56 stories in dependency order, each with scope, approach, deps, AC, tests, size, DoD |
+| `03-epics.md` | 13 epics (E10–E12 for v0.2) with goal, scope, value, risks, AC, DoD, artifacts |
+| `04-backlog-stories.md` | 68 stories (12 for v0.2) in dependency order, each with scope, approach, deps, AC, tests, size, DoD |
 | `05-delivery-milestones.md` | Milestones, gates, critical path, demo per milestone |
 | `06-test-and-acceptance-plan.md` | Test architecture, fixtures, AC→test mapping, evidence production |
 | `07-risks-and-open-questions.md` | Risk register, decision log, open questions, proposed PRD changes |

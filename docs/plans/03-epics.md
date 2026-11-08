@@ -47,6 +47,7 @@ Dependency order: E0 → E1 → E2 → E3 → E4 → E5 → (E6, E7 in parallel)
 - **Artifact:** fixture handovers (good/bad), validator report, recorded rotation up to persisted handover.
 
 ## E4 — Fresh session and automatic continuation (P0)
+- **Status:** Solved (M4 gate passed 2026-11-07).
 - **Goal:** Replace the conversation and continue without user input.
 - **Scope:** `/clear` execution, rotation boundary detection, context injection, continuation prompt, held prompts, rearm, loop guard, max rotations, assisted-mode fallback, `/relay rotate`.
 - **User value:** The core promise: long tasks keep going across fresh contexts.
@@ -56,6 +57,7 @@ Dependency order: E0 → E1 → E2 → E3 → E4 → E5 → (E6, E7 in parallel)
 - **Artifact:** PTY E2E log with two rotations; recorded Cursor demo (preview).
 
 ## E5 — Completion and DoD verification (P0)
+- **Status:** Solved (M4 gate passed 2026-11-07).
 - **Goal:** Finish only on machine evidence.
 - **Scope:** completion block parsing, DoD evaluation against ledger, `COMPLETED`/`NEEDS_REVIEW`/`BLOCKED`, `/relay done`, summary.
 - **Dependencies:** E3 (ledger), E4. **Risks:** R-04.
@@ -64,6 +66,7 @@ Dependency order: E0 → E1 → E2 → E3 → E4 → E5 → (E6, E7 in parallel)
 - **Artifact:** unit + E2E logs for both outcomes.
 
 ## E6 — Recovery, safety and fault tolerance (P0)
+- **Status:** Solved (M5 gate passed 2026-11-08).
 - **Goal:** Every failure ends in a recognisable, recoverable state; never two workers.
 - **Scope:** recovery classifier, `/relay recover`, stale locks, error classification (auth/rate limit/billing/overload/API), disk errors, repo mismatch, user `/clear`, user interrupt, compaction policy, concurrency tests, crash matrix.
 - **Dependencies:** E4. **Risks:** R-05, R-09, R-12.
@@ -72,7 +75,7 @@ Dependency order: E0 → E1 → E2 → E3 → E4 → E5 → (E6, E7 in parallel)
 - **Artifact:** crash-matrix report, concurrency test report.
 
 ## E7 — Terminal UX and controls (P0)
-- **Status:** Open. ST-7.3 solved in M2; ST-7.1, ST-7.2 open.
+- **Status:** Solved (M6 gate passed 2026-11-08; ST-7.3 in M2).
 - **Goal:** Discreet, accessible status and clear messages.
 - **Scope:** status entry, transition toasts/log lines, narrow-width strings, no-emoji/no-colour-only, `/relay history`, first-activation notice, help text, error copy.
 - **Dependencies:** E2 (can run alongside E3–E6). **Risks:** R-14.
@@ -81,6 +84,7 @@ Dependency order: E0 → E1 → E2 → E3 → E4 → E5 → (E6, E7 in parallel)
 - **Artifact:** screenshots at 40/80/140 columns, light/dark.
 
 ## E8 — Distribution, docs and compatibility (P0)
+- **Status:** Solved (M6 gate passed 2026-11-08; CI and compat workflows never run, no remote).
 - **Goal:** One-line install, clean uninstall, docs a newcomer can follow.
 - **Scope:** marketplace manifest, README/quickstart/troubleshooting/FAQ/privacy, compatibility matrix, uninstall + delete-state command, `doctor`-equivalent (`/relay status --diagnose`), CI compatibility job.
 - **Dependencies:** E4 (features to document), E7. **Risks:** R-06, R-10.
@@ -89,6 +93,7 @@ Dependency order: E0 → E1 → E2 → E3 → E4 → E5 → (E6, E7 in parallel)
 - **Artifact:** clean-machine install recording, docs PR.
 
 ## E9 — Public beta release (P0)
+- **Status:** Built, gate open (M7): ST-9.1 and ST-9.2 solved (Cursor demo dropped, D-34); ST-9.3 waits for the maintainer's naming decision, publication and sign-off.
 - **Goal:** Ship v0.1.0 honestly.
 - **Scope:** full AC evidence pack, real two-rotation demo in Cursor, security review, name/trademark check, release pipeline, announcement text with exact claims.
 - **Dependencies:** E5, E6, E8.
@@ -97,6 +102,7 @@ Dependency order: E0 → E1 → E2 → E3 → E4 → E5 → (E6, E7 in parallel)
 - **Artifact:** GitHub release, evidence pack (demo video dropped, D-34).
 
 ## E10 — Fewer dead ends (P1, v0.2)
+- **Status:** Planned (M8), waits for approval.
 - **Goal:** A failed handover or a suspected loop is no longer a dead end, and the default threshold suits large-window models.
 - **Scope:** `/jeeves retry` for NEEDS_REVIEW(HANDOVER_INVALID) and NEEDS_REVIEW(POSSIBLE_LOOP) (POSSIBLE_LOOP moves from FAILED to NEEDS_REVIEW); a window-aware default threshold (50% up to a 200K window, 40% above). **Out:** automatic retries; any retry that weakens validation.
 - **User value:** recover from a bad handover in one command instead of `/jeeves off` and a new task; rotations on 1M models before 500K tokens.
@@ -106,6 +112,7 @@ Dependency order: E0 → E1 → E2 → E3 → E4 → E5 → (E6, E7 in parallel)
 - **Artifact:** I-layer tests + state-table rows in 02 §4.
 
 ## E11 — Setup and insight (P1, v0.2)
+- **Status:** Planned (M8), waits for approval.
 - **Goal:** Less typing per task, and a view of what Jeeves has done.
 - **Scope:** per-project defaults (`/jeeves defaults`: threshold and verification commands, stored in the state folder), check suggestions from the repo's own scripts at `/jeeves on`, `/jeeves history --full`, `/jeeves stats`. **Out:** a settings UI, the handover diff pane (P1, deferred), anything that runs repo commands from the plugin.
 - **User value:** `/jeeves on` in a configured project needs no further setup; users see rotations, cost and context cleared.
@@ -115,6 +122,7 @@ Dependency order: E0 → E1 → E2 → E3 → E4 → E5 → (E6, E7 in parallel)
 - **Artifact:** I-layer snapshots of each command.
 
 ## E12 — Compatibility and live coverage (P1, v0.2)
+- **Status:** Planned (M8), waits for approval.
 - **Goal:** Widen the supported Claude Code range on evidence, close the live-unverified paths, ship v0.2.0.
 - **Scope:** floor 2.1.303 (compat matrix + one live rotation), VS Code terminal checklist (maintainer), live runs for compaction, `autoRecover`, REPO_MISMATCH on a moved repo, the `/clear` stall via `endedHere`, `/plugin configure`, the AC-07 E layer, Q-9 (a second blocking Stop hook), v0.2.0 release prep. **Out:** Linux official and Windows (P1/P2, deferred).
 - **Dependencies:** E10, E11; v0.1.0 released (M7). **Risks:** A-01, R-21.
