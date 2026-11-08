@@ -10,7 +10,7 @@ import type { Task } from './task.ts'
 const HINT: Record<string, string> = {
   '$.process.run': 'plugins cannot start processes (an organization policy or a sandbox may block them)',
   '$.session.usage': 'the context reading is unavailable to plugins',
-  'classic.Stop hook': 'the Stop hook did not register (another plugin or a policy may refuse it)',
+  'classic.Stop hook': 'a main turn ended without Jeeves\'s Stop hook running: a plugin above it skips it (claude --debug-file names it: "bypassed by")',
 }
 
 /** `t`: the task status would show; `errors`: unreadable task folders. */

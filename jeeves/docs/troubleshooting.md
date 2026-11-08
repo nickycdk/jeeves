@@ -10,7 +10,7 @@
 
 **`/jeeves` is not found, but `/relay` is.** Another plugin owns `/jeeves`; Jeeves uses `/relay` and said so at start. Every command works the same under `/relay`.
 
-**Jeeves says `on` but never hands over, and `/compact` is not noticed (Team accounts).** On Claude Code 2.1.319, accounts in a Team organization get a built-in security plugin (`cc-plugin-sec-default`) that runs before every installed plugin and passes the Stop, SessionStart, compaction and system-prompt events on past them. Jeeves then never sees a safe stopping point, so it cannot hand over. To check: start `claude --debug-file /tmp/claude-debug.log` and look for `jeeves: classic.Stop bypassed by cc-plugin-sec-default`. Jeeves cannot change this; it is not supported on such accounts for now.
+**Jeeves says `on` but never hands over, and `/compact` is not noticed (Team accounts).** On Claude Code 2.1.319, accounts in a Team organization get a built-in security plugin (`cc-plugin-sec-default`) that runs before every installed plugin and passes the Stop, SessionStart, compaction and system-prompt events on past them. Jeeves then never sees a safe stopping point, so it cannot hand over. After the first answer it notices: the status line shows `off: Stop hook skipped`, `/jeeves status` says `mode: unsupported`, and `/jeeves on` is refused. To see which plugin: start `claude --debug-file /tmp/claude-debug.log` and look for `jeeves: classic.Stop bypassed by cc-plugin-sec-default`. Jeeves cannot change this; it is not supported on such accounts for now.
 
 **`Jeeves has no state folder`.** `HOME` is unset, the default folder is inside your repository, or the folder you set is not absolute or not writable. Set `stateDir` in `/config` to an absolute path outside the repository.
 

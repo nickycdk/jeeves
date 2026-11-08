@@ -40,6 +40,11 @@ export type CrashPoint = (typeof CRASH_POINTS)[number]
 export type Options = { stateDir?: string | undefined; autoRecover?: boolean }
 
 let current: Promise<Runtime> | null = null
+// R-25: set once this process saw a main turn answer without the Stop hook; a reload starts over and finds it again.
+let stopSkipped = false
+
+/** The Stop hook is being skipped: re-probe on the next runtime() call. */
+export function markStopSkipped(): void { stopSkipped = true; current = null }
 
 /** One storage (one write queue) per process. Reset by `session.start` so a reload re-probes. */
 export function runtime($: EngineInterface, options: Options, refresh = false): Promise<Runtime> {
@@ -50,7 +55,7 @@ export function runtime($: EngineInterface, options: Options, refresh = false): 
 async function build($: EngineInterface, options: Options): Promise<Runtime> {
   const port = enginePort($)
   const storage = createStorage(port)
-  const probe = await runProbe($, true)
+  const probe = await runProbe($, !stopSkipped)
   let stateRoot: string | null = null, stateRootError: string | null = null, stateRootSource: StateRootSource | null = null
   const id = await port.cwd().then(cwd => repoIdentity(port, cwd)).catch(() => null)
   try {

@@ -1,5 +1,8 @@
 import { expect, test } from 'claude-code/testing'
 import { memHost } from './memfs.ts'
+import { relay, stop, turnEnd, turnStart } from './kit.ts'
+
+const SKIPPED = 'Jeeves cannot hand over in this session: its Stop hook does not run (a plugin above it, such as cc-plugin-sec-default on Team accounts, skips it). Automatic rotation is off. See troubleshooting.'
 
 const start = ($: { session: { start: (e: { cwd: string; surface: 'terminal'; isInteractive: boolean }) => Promise<unknown> } }) =>
   $.session.start({ cwd: '/work/proj', surface: 'terminal', isInteractive: true })
@@ -35,4 +38,27 @@ test('never edits Claude settings', async ($, on) => {
   on('config.set', (_, e) => { writes.push(JSON.stringify(e)); return { value: undefined } as never })
   await start($)
   expect(writes).toEqual([])
+})
+
+// R-25: a plugin in a higher tier (cc-plugin-sec-default on Team orgs, 2.1.319) passes classic.Stop on past Jeeves.
+test('a main turn that answers without reaching the Stop hook: unsupported, said once, /jeeves on refused', async ($, on) => {
+  const h = memHost(on)
+  await start($)
+  await turnStart($); await turnEnd($)
+  await turnStart($, 't2'); await turnEnd($, 'answer', 't2')
+  expect(h.status).toEqual(['off: Stop hook skipped'])
+  expect(h.toasts).toEqual([SKIPPED])
+  expect(await relay($, 'status')).toContain('mode: unsupported')
+  expect(await relay($, 'on')).toBe(SKIPPED)
+})
+
+test('a turn whose Stop reaches Jeeves, an aborted turn, or a subagent turn: still full', async ($, on) => {
+  const h = memHost(on)
+  await start($)
+  await turnStart($); await stop($, 'done'); await turnEnd($)
+  await turnStart($, 't2'); await turnEnd($, 'aborted', 't2')
+  await $.turn.start({ text: 'x', turnId: 't3', agentId: 'a1' }); await $.turn.complete({ answer: 'ok', durationMs: 1, isAborted: false, turnId: 't3', reason: 'answer', agentId: 'a1' })
+  expect(h.status).toEqual([])
+  expect(h.toasts).toEqual([])
+  expect(await relay($, 'status')).toContain('mode: full')
 })

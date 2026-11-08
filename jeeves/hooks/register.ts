@@ -3,7 +3,7 @@ import type { CommandRunInput, EngineInterface, Register, Timer, ToolCallInput, 
 import type { ToolOutcome } from '../src/core/evidence.ts'
 import { chooseCommandName, FALLBACK, PRIMARY, relay } from '../src/adapter/commands.ts'
 import { recover, recoveryNotice } from '../src/adapter/recover.ts'
-import { runtime, type Options } from '../src/adapter/runtime.ts'
+import { markStopSkipped, runtime, type Options } from '../src/adapter/runtime.ts'
 import { captureFirstPrompt, compacted, heartbeat, managedNow, holdPrompt, measure, nudgeIfWaiting, onFreshSession, onStop, onTurnComplete, taskSection, onUserClear, recordTool, releaseOnExit, stopFailure, why } from '../src/adapter/task.ts'
 import { HEARTBEAT_MS } from '../src/core/lock.ts'
 import { ARGUMENT_HINT, HELD_TEXT } from '../src/adapter/ui.ts'
@@ -37,6 +37,9 @@ export const register: Register = (on, options) => {
   let beat: Timer | null = null
   // Whether a main-loop turn is open: engine state, not task state. Starts idle (a reload mid-turn at worst queues one nudge).
   let turnOpen = false
+  // R-25: whether this main turn's classic.Stop reached Jeeves; null before any turn.start in this process.
+  let stopSeen: boolean | null = null
+  let warnedSkip = false
   // Session ids this process ended (/clear): process identity, so a lock is handed on only from our own past session.
   const endedHere = new Set<string>()
 
@@ -104,13 +107,23 @@ export const register: Register = (on, options) => {
     return r
   }).catch(($, e, next) => next(e))
   on('turn.start', async ($, e, next) => {
-    if (e.agentId === undefined) turnOpen = true
+    if (e.agentId === undefined) { turnOpen = true; stopSeen = false }
     return next(e)
   })
   // ST-4.1: after the handover turn, /clear; an interrupt during a handover pauses; an idle request gets its nudge.
   on('turn.complete', async ($, e, next) => {
     if (e.agentId === undefined) {
       turnOpen = false
+      if (stopSeen === false && e.reason === 'answer') {
+        stopSeen = null
+        markStopSkipped()
+        await quietly($, opts, 'stop skipped', async rt => {
+          if (warnedSkip || !rt.probe.message) return
+          warnedSkip = true
+          $.ui.status('off: Stop hook skipped')
+          $.ui.toast(rt.probe.message)
+        })
+      }
       await quietly($, opts, 'turn end', rt => onTurnComplete(rt, e.isAborted ? 'aborted' : e.reason))
     }
     return next(e)
@@ -140,6 +153,7 @@ export const register: Register = (on, options) => {
   })
   // ST-3.3: the safe boundary (ADR-004). Another hook's block means the turn goes on: not a boundary.
   on('classic.Stop', async ($, e, next) => {
+    if (e.agent_id === undefined) stopSeen = true
     const base = await next(e)
     if (e.agent_id !== undefined || base.block !== undefined) return base
     let block: string | null = null

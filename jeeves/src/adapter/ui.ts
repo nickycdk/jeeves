@@ -84,7 +84,8 @@ const reasonLine = (s: State) => {
 export function statusText(v: StatusView): string {
   // AC-25: a task that fell back to assisted shows it, whatever the probe said.
   const lines = [`Jeeves  mode: ${v.task?.state.mode === 'assisted' ? 'assisted' : v.probe.mode}`]
-  if (v.probe.mode === 'unsupported') lines.push(`Needs ${(v.probe.missing[0] ?? 'newer').replace('Claude Code ', '')}, this is ${v.probe.version ?? '?'}`)
+  if (v.probe.missing[0] === 'classic.Stop hook') lines.push('Stop hook skipped by another plugin')
+  else if (v.probe.mode === 'unsupported') lines.push(`Needs ${(v.probe.missing[0] ?? 'newer').replace('Claude Code ', '')}, this is ${v.probe.version ?? '?'}`)
   else if (v.probe.mode === 'assisted') lines.push(`Missing: ${v.probe.missing.join(', ')}`)
   if (v.taskError) lines.push(`Task state unreadable:`, v.taskError)
   else if (!v.task) lines.push('No managed task. Start with /jeeves on')

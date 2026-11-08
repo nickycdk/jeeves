@@ -28,9 +28,9 @@ test('below the range -> unsupported, naming the exact version needed', () => {
   assert.equal(probe(facts({ version: 'nightly' })).mode, 'unsupported')
 })
 
-test('a missing primitive or Stop hook -> assisted, listing what is missing', () => {
+test('a missing primitive -> assisted, listing what is missing; a skipped Stop hook -> unsupported', () => {
   const p = probe(facts({ primitives: { ...all, 'process.run': false } }))
   assert.deepEqual([p.mode, p.missing], ['assisted', ['$.process.run']])
-  assert.deepEqual(probe(facts({ stopHookRegistered: false })).missing, ['classic.Stop hook'])
+  assert.deepEqual([probe(facts({ stopHookRegistered: false })).mode, probe(facts({ stopHookRegistered: false })).missing], ['unsupported', ['classic.Stop hook']])
   assert.equal(probe(facts({ version: '2.1.1', primitives: { ...all, 'process.run': false } })).mode, 'unsupported', 'version gate wins')
 })

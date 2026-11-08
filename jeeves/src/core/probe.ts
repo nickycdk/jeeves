@@ -11,8 +11,11 @@ export type ProbeFacts = {
   /** `$.session.version()`: `base` when present (dev builds), else `version`. */
   version: string | null
   primitives: Record<Primitive, boolean>
+  /** False once a main turn answered without Jeeves's classic.Stop hook running (R-25: a plugin above skips it). */
   stopHookRegistered: boolean
 }
+
+export const STOP_SKIPPED = 'Jeeves cannot hand over in this session: its Stop hook does not run (a plugin above it, such as cc-plugin-sec-default on Team accounts, skips it). Automatic rotation is off. See troubleshooting.'
 
 export type Probe = { mode: Mode; version: string | null; missing: string[]; message: string | null }
 
@@ -35,7 +38,9 @@ export function probe(f: ProbeFacts): Probe {
       message: `Jeeves needs Claude Code ${MIN_VERSION} or later (${seen}). Automatic rotation is off. Update Claude Code (claude update) and restart the session.`,
     }
   }
-  const missing = [...PRIMITIVES.filter(p => !f.primitives[p]).map(p => `$.${p}`), ...(f.stopHookRegistered ? [] : ['classic.Stop hook'])]
+  // Without the Stop hook there is no safe boundary and no handover (ADR-003/004), so not even assisted mode works.
+  if (!f.stopHookRegistered) return { mode: 'unsupported', version: f.version, missing: ['classic.Stop hook'], message: STOP_SKIPPED }
+  const missing = PRIMITIVES.filter(p => !f.primitives[p]).map(p => `$.${p}`)
   if (missing.length) {
     return {
       mode: 'assisted', version: f.version, missing,
