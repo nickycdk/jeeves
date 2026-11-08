@@ -1,7 +1,11 @@
 # Changelog
 
-## 0.2.0 (in progress)
+## 0.2.0 (release candidate; dated when tagged)
 
+Release notes: `docs/release-notes/v0.2.0.md`.
+
+- Jeeves notices when a plugin above it skips its Stop hook (on Claude Code 2.1.319, accounts in a Team organization get a built-in security plugin, `cc-plugin-sec-default`, that does this): after the first answer that ends without the hook, it switches to `unsupported`, shows `off: Stop hook skipped`, explains once, and refuses `/jeeves on`. Without that hook it cannot hand over at all.
+- The `/jeeves` command menu lists every command (`done`, `retry`, `defaults`, `stats` and `history --full` were missing).
 - A new task hands over at 40% when the model's context window is larger than 200K tokens (for example 1M), and at 50% otherwise or when the window is unknown. Chosen once when the task starts; `/jeeves threshold` still overrides it. `/jeeves status` shows the threshold in tokens too (`Threshold: 40% (~400K)`).
 - `/jeeves defaults`: per-project defaults for new tasks, `defaults threshold <n>` and `defaults check <cmd>` (up to 20), `defaults clear`. `/jeeves on` copies them into the new task (checks as task revisions, so `/jeeves task` shows them); running tasks are not changed. Kept in the state folder (`projects/<project>/config.json`); an unreadable file is ignored and `/jeeves status` says so. `/jeeves purge --project` deletes it.
 - When a task starts with no checks, `/jeeves on` suggests up to 4 from `package.json` scripts (`test`, `lint`, `typecheck`, `check`) and a top-level `Makefile` (`test`, `lint`), as `/jeeves check ...` lines to type. Nothing is added or run; script names with anything but letters, digits, `:`, `_` and `-` are not shown.

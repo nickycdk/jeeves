@@ -2,7 +2,7 @@
 
 A session-continuity plugin for Claude Code: when a long task fills the context, Jeeves saves a verified handover, starts a fresh conversation in the same terminal and continues the task there.
 
-**Status: public beta 0.1.0 (release candidate, not published yet).** It works on Claude Code 2.1.319 and later on macOS; see [Compatibility](docs/compatibility.md).
+**Status: public beta 0.2.0 (release candidate, not published yet).** It works on Claude Code 2.1.319 and later on macOS; see [Compatibility](docs/compatibility.md).
 
 ## The problem
 
@@ -14,6 +14,7 @@ Jeeves does that for you, inside your normal terminal session. At a threshold yo
 
 - Claude Code 2.1.319 or later (`claude --version`).
 - macOS. Linux should work but is untested.
+- Not a Claude account in a Team organization, for now: on Claude Code 2.1.319 a built-in plugin there runs before every installed plugin and skips the hooks Jeeves hands over with. Jeeves notices after the first answer and turns itself off (`/jeeves status`: `mode: unsupported`); see [Troubleshooting](docs/troubleshooting.md).
 - Nothing else: no API key, no server, no other software. Jeeves makes no network calls.
 
 ## Install
