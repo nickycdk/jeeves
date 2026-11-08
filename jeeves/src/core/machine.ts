@@ -1,4 +1,5 @@
 // The state machine (02 §4): reduce(state, input, ctx) -> { state, effects }. Pure: time and IDs come in through ctx.
+import { largeWindow } from './autostart.ts'
 import { evaluate } from './completion.ts'
 import type { LedgerRecord } from './evidence.ts'
 import { INERT, LEDGER_MAX, ROTATION_STATES, SCHEMA_VERSION, type Config, type Mode, type ReasonCode, type Rotation, type RotationStep, type SessionRecord, type State, type Status, type Trigger } from './types.ts'
@@ -141,6 +142,9 @@ export function stopFailureText(code: ReasonCode, error: string, resetsAt?: stri
   }
 }
 
+/** The model-switch message (spec §5.1), with the window rounded to thousands. */
+export const windowEndText = (window: number) => `Jeeves: not watching any more (this model's window is ${Math.round(window / 1000)}K); /jeeves on to watch anyway`
+
 /** ADR-004 (+A1): a main-loop Stop is a safe boundary when no background task and no subagent is running. Crons do not count. */
 export const isSafe = (b: { backgroundTasks: number; runningAgents: number }) => b.backgroundTasks === 0 && b.runningAgents === 0
 
@@ -228,6 +232,13 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
     }
     // Relative: a reading counts for the loop guard only once the session's start is known.
     const counts = rel === undefined || next.sessionStart?.pct != null
+    // ST-13.3 (spec §5.1, D-42): a reading showing a window auto-start would not take (`/model` to 200K) ends an auto
+    // task; explicit tasks keep their threshold. Not mid-rotation (the reading after it lands in CONTINUING), not on an unknown window (0).
+    if (state.origin === 'auto' && (state.status === 'MONITORING' || state.status === 'CONTINUING') && input.window > 0 && !largeWindow(input.window)) {
+      go('DISABLED', null, { rotation: null }, `window ${input.window}`)
+      effects.push({ type: 'RELEASE_LOCK', key: key('release') }, { type: 'TOAST', key: `-:window:${input.sessionId}`, text: windowEndText(input.window) })
+      return done()
+    }
     if (state.status === 'MONITORING') {
       if (p === undefined) return done()
       if (p >= T && !state.armedFired) return request('THRESHOLD')

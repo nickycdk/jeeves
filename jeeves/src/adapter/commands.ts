@@ -10,8 +10,9 @@ import { addRevision, apply, claim, heldByOther, liveTasks, ownTask, projectTask
 import { recover, restoredText } from './recover.ts'
 import { defaultsCommand, readDefaults } from './defaults.ts'
 import { autoCommand, setSessionOff } from './auto.ts'
-import type { AutoRow } from '../core/autostart.ts'
+import { reasonLine, type AutoRow } from '../core/autostart.ts'
 import { diagnose } from './diagnose.ts'
+import { eligibility } from './eligible.ts'
 import { fullHistory, statsText } from './history.ts'
 import { purge } from './purge.ts'
 import { firstActivationText, HELP, historyText, MSG, statusText } from './ui.ts'
@@ -48,10 +49,11 @@ export async function relay(rt: Runtime, args: string, caller: Caller): Promise<
     const { tasks, errors } = await projectTasks(rt)
     const me = await rt.port.sessionId()
     const picked = pickTask(tasks, me)
-    if (rest.trim() === '--diagnose') return diagnose(rt, me, picked, errors)
+    const autoRow = caller.autoRow ?? 'default'
+    if (rest.trim() === '--diagnose') return diagnose(rt, me, picked, errors, autoRow)
     // In the owning session show the live reading (never a stale one); another session's task shows its last stored reading.
     const task = picked?.state.activeSessionId === me ? { ...picked, state: { ...picked.state, lastContext: { ...(await rt.port.usage()), at: new Date(await rt.port.now()).toISOString() } } } : picked
-    return statusText({ probe: rt.probe, stateRoot: rt.stateRoot, stateRootError: rt.stateRootError, task, taskError: task ? null : errors[0] ?? null, thresholdOverride: rt.thresholdOverride, thresholdRelative: rt.thresholdRelative, defaultsError: (await readDefaults(rt)).error })
+    return statusText({ auto: task?.state.activeSessionId === me ? null : await autoLine(rt, autoRow), probe: rt.probe, stateRoot: rt.stateRoot, stateRootError: rt.stateRootError, task, taskError: task ? null : errors[0] ?? null, thresholdOverride: rt.thresholdOverride, thresholdRelative: rt.thresholdRelative, defaultsError: (await readDefaults(rt)).error })
   }
   if (sub === 'help') return HELP
   if (sub === 'history') {
@@ -234,4 +236,10 @@ async function suggestions(rt: Runtime, checks: number): Promise<string[]> {
 /** First `/jeeves on` on this machine (spec §4.1): where state lives, that a fresh conversation starts by itself, how to pause. */
 async function firstActivationNotice(rt: Runtime): Promise<string[]> {
   return (await rt.port.firstActivation()) ? firstActivationText(rt.stateRoot ?? '', rt.probe.mode === 'assisted') : []
+}
+
+/** ST-13.3: the status line on auto-start: the first reason this session is not watched, else where "on" came from. */
+async function autoLine(rt: Runtime, row: AutoRow): Promise<string> {
+  const e = await eligibility(rt, row)
+  return reasonLine(e.reasons) ?? `Auto-start: on (${e.auto.source})`
 }

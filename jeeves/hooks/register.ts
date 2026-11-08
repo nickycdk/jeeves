@@ -4,6 +4,7 @@ import type { ToolOutcome } from '../src/core/evidence.ts'
 import { chooseCommandName, FALLBACK, PRIMARY, relay } from '../src/adapter/commands.ts'
 import { recover, recoveryNotice } from '../src/adapter/recover.ts'
 import { upgradeCheck } from '../src/adapter/auto.ts'
+import { carryOver, decideAtStart, forget, stopSkipped } from '../src/adapter/eligible.ts'
 import { isAutoRow } from '../src/core/autostart.ts'
 import { markStopSkipped, runtime, type Options } from '../src/adapter/runtime.ts'
 import { captureFirstPrompt, compacted, heartbeat, managedNow, holdPrompt, measure, nudgeIfWaiting, onFreshSession, onStop, onTurnComplete, taskSection, onUserClear, recordTool, releaseOnExit, stopFailure, why } from '../src/adapter/task.ts'
@@ -59,6 +60,8 @@ export const register: Register = (on, options) => {
     }
     // ST-13.2 (spec §5.6): the upgrade check, once per install; an upgrader hears once that auto-start waits for them.
     await quietly($, opts, 'upgrade check', async rt => { if ((await upgradeCheck(rt))?.notice) rt.port.toast(MSG.upgradeNotice) })
+    // ST-13.3 (spec §5.1): whether this session may be auto-watched, decided once (a reload keeps it).
+    await quietly($, opts, 'eligibility', rt => decideAtStart(rt, e.isInteractive))
     // ST-6.1: a task an earlier session left (crash, exit mid-rotation) is named once; autoRecover continues it.
     await quietly($, opts, 'recovery scan', async rt => {
       const n = await recoveryNotice(rt)
@@ -88,7 +91,11 @@ export const register: Register = (on, options) => {
   // A user's /clear pauses the task (USER_CLEAR); any other end gives the lock up, state untouched.
   on('session.end', async ($, e, next) => {
     endedHere.add(e.sessionId)
-    await quietly($, opts, 'session end', rt => (e.reason === 'clear' ? onUserClear(rt, e.sessionId) : releaseOnExit(rt, e.sessionId)))
+    await quietly($, opts, 'session end', async rt => {
+      if (e.reason === 'clear') return onUserClear(rt, e.sessionId)
+      await releaseOnExit(rt, e.sessionId)
+      await forget(rt, e.sessionId)
+    })
     return next(e)
   })
   // ST-2.1: the person's first prompt after `/jeeves on` (no goal) is the task, byte for byte. Slash commands are not.
@@ -125,9 +132,11 @@ export const register: Register = (on, options) => {
         warnedSkip = true
         await quietly($, opts, 'stop skipped', async rt => {
           markStopSkipped(rt)
+          // ST-13.3: the R-25 re-check after the first answer; an auto task ends with its own message.
+          const endedAuto = await stopSkipped(rt)
           if (!rt.probe.message) return
           $.ui.status(offStatus(rt.probe))
-          $.ui.toast(rt.probe.message)
+          $.ui.toast(endedAuto ? MSG.autoUnsupported : rt.probe.message)
         })
       }
       await quietly($, opts, 'turn end', rt => onTurnComplete(rt, e.isAborted ? 'aborted' : e.reason))
@@ -177,7 +186,10 @@ export const register: Register = (on, options) => {
   // because $.command.run('clear') can resolve first.
   on('classic.SessionStart', async ($, e, next) => {
     let context: string | null = null
-    if (e.source === 'clear') await quietly($, opts, 'fresh session', async rt => { context = await onFreshSession(rt, e.session_id, endedHere) })
+    if (e.source === 'clear') await quietly($, opts, 'fresh session', async rt => {
+      await carryOver(rt, e.session_id, endedHere)
+      context = await onFreshSession(rt, e.session_id, endedHere)
+    })
     const base = await next(e)
     return context === null ? base : { ...base, additionalContext: [...(base.additionalContext ?? []), context] }
   }).catch(($, e, next) => next(e))

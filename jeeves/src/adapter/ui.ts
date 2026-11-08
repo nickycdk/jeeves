@@ -22,6 +22,8 @@ export type StatusView = {
   thresholdRelative?: number | null
   /** This project's config.json exists but is invalid (ST-11.1). */
   defaultsError?: string | null
+  /** ST-13.3: whether this session is auto-watched, and if not the first reason; set when it has no task of its own. */
+  auto?: string | null
 }
 
 /** D-25: this session's first reading + d, '?' until that reading; null when the relative override is off. */
@@ -87,6 +89,7 @@ export function statusText(v: StatusView): string {
   if (v.probe.missing[0] === 'classic.Stop hook') lines.push('Stop hook skipped by another plugin')
   else if (v.probe.mode === 'unsupported') lines.push(`Needs ${(v.probe.missing[0] ?? 'newer').replace('Claude Code ', '')}, this is ${v.probe.version ?? '?'}`)
   else if (v.probe.mode === 'assisted') lines.push(`Missing: ${v.probe.missing.join(', ')}`)
+  if (v.auto) lines.push(v.auto)
   if (v.taskError) lines.push(`Task state unreadable:`, v.taskError)
   else if (!v.task) lines.push('No managed task. Start with /jeeves on')
   else {
@@ -197,6 +200,8 @@ export const MSG = {
   autoSaved: (v: 'on' | 'off') => `Auto-start everywhere: ${v}. /jeeves defaults auto on|off sets one project, /jeeves off this session.`,
   autoOverridden: (row: 'on' | 'off') => `Saved, but /config → Auto-start is set to ${row}, which takes precedence.`,
   autoUnreadable: (why: string) => `Warning: auto.json is unreadable and ignored (${why.slice(0, 80)}). /jeeves auto on|off writes a new one.`,
+  // ST-13.3 (spec §5.1): the R-25 re-check ends an auto task.
+  autoUnsupported: "Jeeves: not watching any more (this account isn't supported); /jeeves status for details",
   upgradeNotice: 'Jeeves can now watch long sessions by itself. Type /jeeves auto on to turn it on. Nothing changes until you do.',
   autoOffSession: 'No managed task. Auto-start is off for the rest of this session; /jeeves on still starts a task.',
   defaultsUnreadable: (err: string) => `Project defaults unreadable (config.json: ${short(err).slice(0, 80)}); they are ignored. /jeeves defaults clear resets them.`,

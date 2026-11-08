@@ -5,6 +5,8 @@ import { MIN_VERSION } from '../core/probe.ts'
 import { gitVersion } from './git.ts'
 import type { Runtime } from './runtime.ts'
 import type { Task } from './task.ts'
+import type { AutoRow } from '../core/autostart.ts'
+import { eligibility } from './eligible.ts'
 
 /** Why a missing primitive may be missing: a hint, not a verdict. */
 const HINT: Record<string, string> = {
@@ -14,7 +16,7 @@ const HINT: Record<string, string> = {
 }
 
 /** `t`: the task status would show; `errors`: unreadable task folders. */
-export async function diagnose(rt: Runtime, me: string, t: Task | null, errors: readonly string[]): Promise<string> {
+export async function diagnose(rt: Runtime, me: string, t: Task | null, errors: readonly string[], row: AutoRow = 'default'): Promise<string> {
   const run = (argv: string[]) => rt.port.run(argv, { timeoutMs: 5000 }).catch(() => ({ exitCode: -1, stdout: '', stderr: '' }))
   const v = await rt.port.version().catch(() => null)
   const os = (await run(['uname', '-sr'])).stdout.trim() || 'unknown'
@@ -29,6 +31,7 @@ export async function diagnose(rt: Runtime, me: string, t: Task | null, errors: 
     `OS: ${os}`,
     rt.stateRoot ? `State folder: ${rt.stateRoot} (${rt.stateRootSource}), writable: ${writable}` : `State folder: none (${rt.stateRootError ?? 'unset'})`,
     `Git: ${git}; this folder: ${rt.identity ? (rt.identity.kind === 'git' ? `repository, project ${rt.projectId}` : `no repository, project ${rt.projectId}`) : 'git did not answer'}`,
+    await autoDiagnose(rt, row),
     ...(rt.thresholdOverride || rt.thresholdRelative || rt.crashAt ? [`Test settings: ${[rt.thresholdOverride && `threshold ${rt.thresholdOverride}%`, rt.thresholdRelative && `threshold +${rt.thresholdRelative}`, rt.crashAt && `crash at ${rt.crashAt}`].filter(Boolean).join(', ')}`] : []),
   ]
   if (!t) lines.push(`Task: none${errors.length ? ` (${errors.length} unreadable: ${errors[0]})` : ''}`)
@@ -56,4 +59,10 @@ export function tilde(text: string, home: string): string {
     i = j + home.length
   }
   return out + text.slice(i)
+}
+
+/** ST-13.3: auto-start's setting with its source, and every reason this session is not auto-watched (§5.1 order). */
+async function autoDiagnose(rt: Runtime, row: AutoRow): Promise<string> {
+  const e = await eligibility(rt, row)
+  return `Auto-start: ${e.auto.on ? 'on' : 'off'} (${e.auto.source}); ${e.reasons.length ? `not watched: ${e.reasons.join(', ')}` : 'this session is eligible'}`
 }
