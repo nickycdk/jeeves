@@ -10,7 +10,7 @@ import { mentionedPaths, validateHandover } from '../core/handover/validate.ts'
 import { COMPLETION_STATES, HELD_STATES, isSafe, reduce, type Input } from '../core/machine.ts'
 import { newRotationId, newTaskId } from '../core/ids.ts'
 import { join } from '../core/paths.ts'
-import { foldTask, newTaskState, parseRevision, renderChange, revFile, type ChangeKind, type TaskView } from '../core/task.ts'
+import { foldTask, newTaskState, windowThreshold, parseRevision, renderChange, revFile, type ChangeKind, type TaskView } from '../core/task.ts'
 import { DEFAULT_CONFIG, INERT, SCHEMA_VERSION, type ReasonCode, type State } from '../core/types.ts'
 import { runEffects, type EffectResult } from './effects.ts'
 import { shownThreshold, statusLine, transitionLine } from './ui.ts'
@@ -180,7 +180,8 @@ export async function startTask(rt: Runtime, sessionId: string, goal: string | n
   const facts = await gitFacts(rt.port, rt.identity)
   const lock = await rt.storage.acquireLock(dir, sessionId, at, now)
   await writeProjectRecord(rt, at)
-  let state = newTaskState({ taskId, projectId: rt.projectId!, thresholdPercent: DEFAULT_CONFIG.thresholdPercent, taskStartHead: facts.kind === 'git' ? facts.head : null, at })
+  const window = (await rt.port.usage().catch(() => null))?.window
+  let state = newTaskState({ taskId, projectId: rt.projectId!, thresholdPercent: windowThreshold(window), taskStartHead: facts.kind === 'git' ? facts.head : null, at })
   if (goal !== null && lock.ok) {
     await rt.storage.writeImmutable(join(dir, revFile(1)), goal)
     state = { ...state, taskRevision: 1 }

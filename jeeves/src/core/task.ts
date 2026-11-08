@@ -4,6 +4,9 @@ import { SCHEMA_VERSION, type State } from './types.ts'
 /** `task-rev-001.md`; rev 1 is the original prompt, byte for byte. */
 export const revFile = (n: number) => `task-rev-${String(n).padStart(3, '0')}.md`
 
+/** A new task's threshold when none is set (D-32): 40% above a 200K window, else 50% (also when the window is unknown). */
+export const windowThreshold = (window?: number) => (window !== undefined && window > 200_000 ? 40 : 50)
+
 /** A DISABLED task, ready for the reducer's ON. */
 export function newTaskState(t: { taskId: string; projectId: string; thresholdPercent: number; taskStartHead: string | null; at: string }): State {
   return {

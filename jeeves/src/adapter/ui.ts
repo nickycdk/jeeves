@@ -66,6 +66,12 @@ export function transitionLine(from: Status, to: Status, code: ReasonCode | null
   }
 }
 
+/** ` (~400K)`: the task threshold in tokens, when the window is known (ST-10.1). */
+const tokensAt = (window: number | undefined, pct: number) => {
+  const k = Math.round(((window ?? 0) * pct) / 100_000)
+  return k >= 1 ? ` (~${k}K)` : ''
+}
+
 export function statusText(v: StatusView): string {
   // AC-25: a task that fell back to assisted shows it, whatever the probe said.
   const lines = [`Jeeves  mode: ${v.task?.state.mode === 'assisted' ? 'assisted' : v.probe.mode}`]
@@ -80,7 +86,7 @@ export function statusText(v: StatusView): string {
     lines.push(
       `Task: ${s.taskId}`,
       `State: ${s.status}${s.reason ? ` (${s.reason})` : ''}`,
-      `Context: ${pct === undefined ? 'unknown' : `${Math.round(pct * 10) / 10}%`}  Threshold: ${shownThreshold(s, v.thresholdOverride, v.thresholdRelative)}%`,
+      `Context: ${pct === undefined ? 'unknown' : `${Math.round(pct * 10) / 10}%`}  Threshold: ${shownThreshold(s, v.thresholdOverride, v.thresholdRelative)}%${tokensAt(s.lastContext?.window, s.thresholdPercent)}`,
       ...(v.thresholdRelative ? [`TEST OVERRIDE +${v.thresholdRelative} (task setting ${s.thresholdPercent}%)`]
         : v.thresholdOverride ? [`TEST OVERRIDE (task setting ${s.thresholdPercent}%)`] : []),
       `Rotations: ${s.rotationCount}  Session: ${s.sessionSequence}`,

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.0 (in progress)
+
+- A new task hands over at 40% when the model's context window is larger than 200K tokens (for example 1M), and at 50% otherwise or when the window is unknown. Chosen once when the task starts; `/jeeves threshold` still overrides it. `/jeeves status` shows the threshold in tokens too (`Threshold: 40% (~400K)`).
+
 ## 0.1.0 (release candidate; dated when tagged)
 
 First public beta. Release notes: `docs/release-notes/v0.1.0.md`. Release artifact: `scripts/release-zip.sh` (reproducible zip + SHA-256), built and attested by `.github/workflows/release.yml` as a draft release; GitHub Actions pinned by commit SHA.

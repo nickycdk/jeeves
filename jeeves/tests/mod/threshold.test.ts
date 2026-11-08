@@ -86,3 +86,31 @@ test('50 concurrent /jeeves threshold commands append 50 event lines, none lost,
   expect(new Set(after.slice(before).map(e => e.detail)).size).toBe(50)
   expect(stateOf(h, dir).thresholdPercent).toBe(69)
 })
+
+test('ST-10.1: a new task takes 40% on a 1M window, 50% on 200K or unknown; /jeeves threshold still wins; status shows tokens', async ($, on) => {
+  const h = memHost(on)
+  bottom(on)
+  await start($)
+  h.usage = { window: 1_000_000 }
+  await relay($, 'on')
+  const [dir] = taskDirs(h)
+  expect(stateOf(h, dir!).thresholdPercent).toBe(40)
+  expect(await relay($, 'status')).toContain('Threshold: 40% (~400K)')
+  await relay($, 'threshold 60')
+  expect(stateOf(h, dir!).thresholdPercent).toBe(60)
+  // A later model switch does not change the chosen threshold.
+  h.usage = { window: 200_000 }
+  await measure($, 10)
+  expect(stateOf(h, dir!).thresholdPercent).toBe(60)
+})
+
+for (const [window, want] of [[200_000, 50], [0, 50]] as const) {
+  test(`ST-10.1: window ${window} -> ${want}%`, async ($, on) => {
+    const h = memHost(on)
+    bottom(on)
+    await start($)
+    h.usage = { window }
+    await relay($, 'on')
+    expect(stateOf(h, taskDirs(h)[0]!).thresholdPercent).toBe(want)
+  })
+}

@@ -72,3 +72,8 @@ test('AC-14: pause at 48% -> no request at 55%; resume -> request at the next me
   const resumed = walk([55], s)
   assert.deepEqual([resumed.s.status, resumed.requests], ['ROTATION_REQUESTED', 1])
 })
+
+test('ST-10.1: window default is 50% up to 200K or unknown, 40% above 200K', async () => {
+  const { windowThreshold } = await import('../../src/core/task.ts')
+  assert.deepEqual([undefined, 0, 128_000, 200_000, 200_001, 1_000_000].map(w => windowThreshold(w)), [50, 50, 50, 50, 40, 40])
+})

@@ -8,7 +8,7 @@ A session-continuity plugin for Claude Code: when a long task fills the context,
 
 A long task in one Claude Code conversation slowly fills the context window. Past the middle, answers get slower, earlier details get lost, and compaction summarises your work in ways you do not control. Starting a fresh conversation by hand means writing a summary, running `/clear`, pasting the summary back and explaining the task again.
 
-Jeeves does that for you, inside your normal terminal session. At a threshold you choose (default 50%), it asks Claude for a handover, checks it against git and its own record of what ran, saves it, runs `/clear`, and gives the fresh conversation your original task, the handover and the next steps. The task carries on.
+Jeeves does that for you, inside your normal terminal session. At a threshold you choose (default 50%; 40% when the context window is above 200K tokens), it asks Claude for a handover, checks it against git and its own record of what ran, saves it, runs `/clear`, and gives the fresh conversation your original task, the handover and the next steps. The task carries on.
 
 ## Requirements
 
@@ -76,7 +76,7 @@ All are `/jeeves <command>`. Only commands you type yourself change a task; anyt
 | `off` | End the task and release it. Nothing is deleted. |
 | `pause` / `resume` | No handover until `resume`. Kept across restarts. `resume` also continues after a `/clear` you typed, a rate limit or a disk error. |
 | `rotate` | Hand over now, at the next safe stop. |
-| `threshold <n>` | Hand over at n% context (20 to 90; default 50). Warns 5 points before. |
+| `threshold <n>` | Hand over at n% context (20 to 90; default 50, or 40 above a 200K window). Warns 5 points before. |
 | `task` | Show the original prompt, every change since and the Definition of Done. |
 | `dod <text>` | Add a done criterion (a new task revision, never an edit). |
 | `check <cmd>` | Add a verification command (stored as text, never run by Jeeves). |
@@ -100,7 +100,7 @@ In Claude Code: `/plugin configure jeeves@jeeves`. From a shell: `claude plugin 
 | `stateDir` | empty: `~/Library/Application Support/Jeeves` (Linux: `~/.local/state/jeeves`) | Absolute path for task state and handovers. The default is never inside a repository (Jeeves refuses one that would be); a path you set is used as given. |
 | `autoRecover` | off | At session start, continue an interrupted task by itself instead of asking you to type `/jeeves recover`. |
 
-Per task: `/jeeves threshold <n>` (default 50%). Fixed limits: 10 rotations per task, 3 handover attempts (1 + 2 retries), 2 failed rotations in a row, 3 unsafe stops or 20 minutes before pausing, handovers up to 12,000 characters.
+Per task: `/jeeves threshold <n>`. **Threshold default:** 50% when the context window is 200K tokens or less (or unknown), 40% above that, because half of a 1M window is a very long conversation. It is chosen once when the task starts; switching models later does not change it, and `/jeeves status` shows it in tokens so you can see what it means. Fixed limits: 10 rotations per task, 3 handover attempts (1 + 2 retries), 2 failed rotations in a row, 3 unsafe stops or 20 minutes before pausing, handovers up to 12,000 characters.
 
 ## Troubleshooting
 

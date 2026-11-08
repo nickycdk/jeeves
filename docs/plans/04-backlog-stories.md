@@ -576,6 +576,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 ## E10 — Fewer dead ends (v0.2)
 
 ### ST-10.1 Window-aware default threshold — S
+- **Status:** Solved (M8, 2026-11-08). Status shows `Threshold: 40% (~400K)` (the word "tokens" dropped to fit 40 columns). The test kit default window is now 200K, so the v0.1 tests keep their 50%.
 - **Cites:** FR-03, R-13, Q-5, D-32.
 - **Scope:** a new task takes its threshold from, in order: `/jeeves threshold` (explicit), the project default (ST-11.1), else the window default: **50%** when the context window is ≤ 200K tokens or unknown, **40%** above 200K. Chosen once at task creation from `usage().window`; a later model switch does not change it (status shows tokens, so the user can see it and set it). Out: changing tasks that already exist; `warnBeforePercent` stays 5 points.
 - **Depends on:** none.

@@ -51,7 +51,7 @@ export const T0 = Date.parse('2026-11-07T08:00:00.000Z')
 export function memHost(on: On, env: Record<string, string> = { HOME: '/home/t' }): MemHost {
   const h: MemHost = {
     commands: [], registered: [], toasts: [], status: [], version: '2.1.319', failProcess: false, files: new Map(), dirs: new Set(['/', '/work', '/work/proj']), cwd: '/work/proj', access: [], env, argv: [], failWrite: null,
-    sessionId: 'sess-test', agents: [], fills: [], turns: 0, logs: [], notes: [], clock: mock.clock(on, { now: T0 }), usage: { window: 1_000_000 }, rateLimits: [],
+    sessionId: 'sess-test', agents: [], fills: [], turns: 0, logs: [], notes: [], clock: mock.clock(on, { now: T0 }), usage: { window: 200_000 }, rateLimits: [],
   }
   mock.store(on)
   on('session.start', (_, e) => ({ cwd: e.cwd }))
