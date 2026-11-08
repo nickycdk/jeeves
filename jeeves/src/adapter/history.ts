@@ -1,6 +1,6 @@
 // ST-11.3: `/jeeves history --full`: per rotation, its sessions, context, cost, end reason and handover file with its
 // first next actions. Plain ASCII, 50 columns. Reads only; a handover that is missing or changed is said, not printed.
-import { HANDOVER_REF_RE, handoverFile } from '../core/handover/render.ts'
+import { HANDOVER_REF_RE } from '../core/handover/render.ts'
 import { join } from '../core/paths.ts'
 import { parseJson } from '../core/schema.ts'
 import type { EventLine, State } from '../core/types.ts'
@@ -12,7 +12,6 @@ const COLS = 50
 const ascii = (s: string) => s.replace(/[^\x20-\x7e]/g, '?')
 const cut = (s: string) => { const a = ascii(s); return a.length <= COLS ? a : `${a.slice(0, COLS - 3)}...` }
 const pct = (p: number | null) => (p === null ? '?' : `${Math.round(p * 10) / 10}%`)
-export const sessionFile = (n: number) => `sessions/${String(n).padStart(3, '0')}.json`
 
 /** The first numbered lines under "## Exact next actions". */
 function nextActions(text: string, max: number): string[] {
@@ -27,14 +26,14 @@ function nextActions(text: string, max: number): string[] {
   return out
 }
 
-/** Each handover's SHA-256 from its VALIDATING > ROTATING event (v0.2), plus the latest from state.json (all v0.1 has). */
-export function handoverHashes(s: State, events: readonly string[]): Map<string, string> {
+/** Each handover's SHA-256 and time from its VALIDATING > ROTATING event (v0.2), plus the latest from state.json (all v0.1 has). */
+export function handoverHashes(s: State, events: readonly string[], at = new Map<string, string>()): Map<string, string> {
   const sha = new Map<string, string>()
   for (const l of events) {
     let e: EventLine
     try { e = JSON.parse(l) as EventLine } catch { continue }
     const m = e.to === 'ROTATING' ? HANDOVER_REF_RE.exec(e.detail) : null
-    if (m) sha.set(m[1]!, m[2]!)
+    if (m) { sha.set(m[1]!, m[2]!); at.set(m[1]!, e.at) }
   }
   const latest = s.lastValidatedHandover ? HANDOVER_REF_RE.exec(s.lastValidatedHandover) : null
   if (latest) sha.set(latest[1]!, latest[2]!)
@@ -42,18 +41,27 @@ export function handoverHashes(s: State, events: readonly string[]): Map<string,
 }
 
 export async function fullHistory(rt: Runtime, dir: string, s: State, events: readonly string[]): Promise<string[]> {
-  const sha = handoverHashes(s, events)
-  const last = Math.max(s.rotationCount, ...[...sha.keys()].map(f => Number(/(\d+)\.md$/.exec(f)![1])))
-  if (last === 0) return ['', 'No rotations yet.']
-  const out = ['', 'Rotations:']
-  for (let n = 1; n <= last; n++) {
-    out.push(`Rotation ${n}: session ${n} > ${n + 1}`)
-    const rec = await rt.port.read(join(dir, sessionFile(n))).then(t => parseJson('session', t), () => null)
-    if (rec?.ok) {
-      const r = rec.value
+  const rotatedAt = new Map<string, string>()
+  const sha = handoverHashes(s, events, rotatedAt)
+  // Handover files that exist or were recorded: a /jeeves recover counts in rotationCount but writes no handover.
+  const onDisk = (await rt.port.listFiles(join(dir, 'history')).catch(() => [] as string[])).filter(f => /^handover-\d{3,}\.md$/.test(f)).map(f => `history/${f}`)
+  const files = [...new Set([...onDisk, ...sha.keys()])].sort()
+  if (!files.length) return ['', 'No handovers yet.']
+  // Session records are written only when a rotation's /clear ends a session; pair each handover with the first one
+  // that ended after it was saved (in order, for a v0.1 task whose events carry no refs).
+  const names = (await rt.port.listFiles(join(dir, 'sessions')).catch(() => [] as string[])).filter(f => /^\d{3,}\.json$/.test(f)).sort()
+  const recs = await Promise.all(names.map(async f => ({ f, r: await rt.port.read(join(dir, 'sessions', f)).then(t => parseJson('session', t), () => null) })))
+  const used = new Set<string>()
+  const out = ['', 'Handovers:']
+  for (const file of files) {
+    const t = rotatedAt.get(file)
+    const pick = recs.find(x => !used.has(x.f) && (!t || (x.r?.ok && (x.r.value.endedAt ?? '') >= t)))
+    out.push(`${file.replace('history/', '')}${pick ? ` (session ${Number(pick.f.slice(0, -5))})` : ''}`)
+    if (pick) used.add(pick.f)
+    if (pick?.r?.ok) {
+      const r = pick.r.value
       out.push(`  context ${pct(r.startPct)} > ${pct(r.endPct)}, cost ${r.costUsd === undefined ? 'unknown' : `$${r.costUsd.toFixed(2)}`}`, `  ended: ${r.endReason ?? 'unknown'}`)
-    } else out.push(`  ${sessionFile(n)}: ${rec ? 'unreadable' : 'missing'}`)
-    const file = handoverFile(n)
+    } else out.push(`  session record: ${pick ? 'unreadable' : 'none'}`)
     const text = await rt.port.read(join(dir, file)).catch(() => null)
     const want = sha.get(file)
     if (text === null) out.push(`  ${file}: missing`)

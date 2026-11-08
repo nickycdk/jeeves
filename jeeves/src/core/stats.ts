@@ -27,7 +27,8 @@ export function aggregate(tasks: readonly TaskFiles[], unreadable = 0): Stats {
   let rotations = 0, sessions = 0, atRotation = 0, atRotationN = 0, points = 0, tokens: number | null = 0, cost = 0, known = 0, unknown = 0
   const failures = new Map<ReasonCode, number>()
   for (const t of tasks) {
-    rotations += t.state.rotationCount
+    // A /jeeves recover also passes RESTORING (code STALE_LOCK) but is not a rotation.
+    rotations += t.events.filter(e => e.to === 'RESTORING' && e.from !== e.to && e.code !== 'STALE_LOCK').length
     sessions += t.sessions.length
     const bySeq = [...t.sessions].sort((a, b) => a.startedAt.localeCompare(b.startedAt))
     const window = t.state.lastContext?.window || 0

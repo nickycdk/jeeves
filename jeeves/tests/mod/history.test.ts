@@ -82,9 +82,21 @@ test('ST-11.3 AC 1, 4: --full lists each rotation: sessions, context, cost or un
   const full = await relay($, 'history --full')
   expect(full.startsWith(plain)).toBe(true)
   const extra = full.slice(plain.length)
-  for (const want of ['Rotation 1: session 1 > 2', 'context 3% > 52%, cost $0.42', 'ended: clear', 'history/handover-001.md', '1. [inferred] Fix precedence', 'Rotation 2: session 2 > 3', 'cost unknown', 'Add the CLI flag']) expect(extra).toContain(want)
+  for (const want of ['handover-001.md (session 1)', 'context 3% > 52%, cost $0.42', 'ended: clear', 'history/handover-001.md', '1. [inferred] Fix precedence', 'handover-002.md (session 2)', 'cost unknown', 'Add the CLI flag']) expect(extra).toContain(want)
   expect(extra).not.toContain('Fourth')
   for (const l of extra.split('\n')) { expect(l.length).toBeLessThanOrEqual(50); expect(/^[\x20-\x7e]*$/.test(l)).toBe(true) }
+})
+
+test('review fix: after a /jeeves recover (a rotation count with no handover) --full reports no missing handover', async ($, on) => {
+  const h = memHost(on)
+  bottom(on)
+  await start($)
+  await relay($, 'on')
+  const dir = [...h.files.keys()].find(f => f.endsWith('/state.json'))!.replace('/state.json', '')
+  h.files.set(`${dir}/state.json`, JSON.stringify({ ...JSON.parse(h.files.get(`${dir}/state.json`)!), rotationCount: 1 }))
+  const full = await relay($, 'history --full')
+  expect(full).toContain('No handovers yet.')
+  expect(full).not.toContain('missing')
 })
 
 test('ST-11.3 AC 2, 3: a missing or changed handover is reported, not printed; without --full nothing changes', async ($, on) => {

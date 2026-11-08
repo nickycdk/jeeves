@@ -28,7 +28,7 @@ test('P: stats over 50 tasks answers in < 100 ms', async ($, on) => {
   for (let i = 0; i < 50; i++) {
     const d = `${base}/t_20261108_${String(i).padStart(6, '0')}`
     h.files.set(`${d}/state.json`, JSON.stringify({ ...state, taskId: `t_20261108_${String(i).padStart(6, '0')}`, status: 'DISABLED', activeSessionId: null, rotationCount: 2 }))
-    h.files.set(`${d}/events.jsonl`, '')
+    h.files.set(`${d}/events.jsonl`, [1, 2].map(n => JSON.stringify({ v: 1, at: '2026-11-08T10:00:00.000Z', taskId: 'x', rotationId: `r${n}`, from: 'ROTATING', to: 'RESTORING', code: 'THRESHOLD', pct: 50, sessionId: null, detail: '' })).join('\n') + '\n')
     for (const n of [1, 2]) h.files.set(`${d}/sessions/00${n}.json`, JSON.stringify({ schemaVersion: 1, sessionId: `s${n}`, startedAt: `2026-11-08T1${n}:00:00.000Z`, endedAt: null, endReason: 'clear', startPct: 4, endPct: 50, costUsd: 0.1 }))
   }
   // Best of 3: this machine runs at high load averages, so one sample measures the scheduler, not the code.

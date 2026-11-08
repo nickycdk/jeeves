@@ -13,17 +13,17 @@ const ev = (to: EventLine['to'], code: EventLine['code'], from: EventLine['from'
 const A: TaskFiles = {
   state: validState({ rotationCount: 2, lastContext: { window: 1_000_000, at: '2026-11-08T10:00:00Z', percent: 12 } }),
   sessions: [sess(1, 3, 52, 'clear', 0.5), sess(2, 5, 50, 'clear'), sess(3, 4, 30, 'exit', 0.25)],
-  events: [ev('NEEDS_REVIEW', 'HANDOVER_INVALID'), ev('PAUSED', 'USER_PAUSE', 'MONITORING'), ev('NEEDS_REVIEW', 'HANDOVER_INVALID', 'NEEDS_REVIEW')],
+  events: [ev('NEEDS_REVIEW', 'HANDOVER_INVALID'), ev('PAUSED', 'USER_PAUSE', 'MONITORING'), ev('NEEDS_REVIEW', 'HANDOVER_INVALID', 'NEEDS_REVIEW'), ev('RESTORING', 'THRESHOLD', 'ROTATING'), ev('RESTORING', 'MANUAL', 'ROTATING')],
 }
 const B: TaskFiles = {
   state: validState({ rotationCount: 1, lastContext: null }),
   sessions: [sess(1, 2, 49, 'clear', 1), sess(2, 6, null, null, 0)],
-  events: [ev('NEEDS_REVIEW', 'POSSIBLE_LOOP', 'CONTINUING'), ev('NEEDS_REVIEW', 'HANDOVER_INVALID')],
+  events: [ev('NEEDS_REVIEW', 'POSSIBLE_LOOP', 'CONTINUING'), ev('NEEDS_REVIEW', 'HANDOVER_INVALID'), ev('RESTORING', 'THRESHOLD', 'ROTATING'), ev('RESTORING', 'STALE_LOCK', 'MONITORING')],
 }
 
 test('AC 1: figures match a fixture with known sessions', () => {
   const s = aggregate([A, B], 1)
-  assert.deepEqual([s.tasks, s.unreadable, s.rotations, s.sessions], [2, 1, 3, 5])
+  assert.deepEqual([s.tasks, s.unreadable, s.rotations, s.sessions], [2, 1, 3, 5], 'a recover (RESTORING STALE_LOCK) is not a rotation')
   assert.equal(s.avgAtRotation, (52 + 50 + 49) / 3)
   // cleared: A 52-5 + 50-4, B 49-6
   assert.equal(s.clearedPoints, 47 + 46 + 43)
