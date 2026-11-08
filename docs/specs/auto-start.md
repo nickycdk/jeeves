@@ -100,11 +100,12 @@ Precedence: session, then project, then the `/config` row when set to `on`/`off`
 
 An earlier install promised that nothing is recorded without `/jeeves on`. That promise is kept for those users:
 - **Upgrader:** at the first v0.3 session start, the plugin store has `firstActivationShown`, or the state folder holds any project. Jeeves writes `auto.json` with `{ "default": "off", "reason": "upgraded from 0.2" }`, so the decision never changes by itself.
+- **The check runs once per install.** Its result (`fresh` or `upgrader`) is written to the plugin store as `upgradeCheck` in the same step, and every later session skips the check. Without that marker, a fresh user's first auto task would create a project and their second session would be taken for an upgrader. v0.3 never writes `firstActivationShown`, so that key only ever means "v0.2 was activated here"; v0.3's own notices use their own keys.
 - They see one notice: `Jeeves can now watch long sessions by itself. Type /jeeves auto on to turn it on. Nothing changes until you do.`
 - **Fresh install:** neither is present, so auto-start is on, with the first-run notice (§5.4).
 - **Accepted gap:** someone who installed v0.2 but never activated it, or purged everything, looks like a fresh install and gets auto-start on. They may have read the v0.2 README promise. This is accepted because they still see the first-run notice before anything is recorded, and turning it off takes one command.
 - Their tasks, defaults and settings are unchanged.
-- **Changing `stateDir` later:** the new folder has no `auto.json`. The plugin-store key still marks the user as an upgrader, so the default stays off.
+- **Changing `stateDir` later:** the new folder has no `auto.json`, and the check is not run again: the default comes from `upgradeCheck` in the plugin store (off for an upgrader, on for a fresh install).
 
 ### 5.7 A `/clear` the user types
 
@@ -220,7 +221,7 @@ The 8-line limit holds. The commands line sits with the reason line and the warn
 | AC-40 | User `/clear`: ends an auto task with its message; pauses an explicit task with its message; status shows auto/explicit | I |
 | AC-41 | Live, non-Team account, haiku (1M window, seen in every M8 run). **1M fixture:** with and without Jeeves; reported: tokens and cost (cache reads included), number of rotations, pass/fail outcome (the fixture's checks pass after the last rotation). **200K: rotation rate and outcome, simulated window; cost compared on 1M only.** The 200K fixture runs with Jeeves only, under a test-only window override (`JEEVES_TEST=1` with `JEEVES_TEST_WINDOW_OVERRIDE=200000`, like the existing threshold override; never a user setting), so Jeeves applies the 50% rule and a ~100K threshold to a 1M session. Below 100K tokens the real window changes nothing, so the rotation rate and outcome match a real 200K window; what it cannot reproduce is the without-Jeeves baseline, which on a real 200K window would hit auto-compaction. Plus two rotations in auto mode with nothing typed but the task. The 200K result decides Q8; README cost wording covers 1M only | E |
 | AC-42 | Current goal: required in new handovers with the §5.3 checks; v1 blocks valid for older tasks; continuation order puts the user's words first and labels the summary; the rotation line shows it; the summary never changes the task, DoD or checks | U, I |
-| AC-43 | Upgrade: `firstActivationShown` or an existing project makes `auto.json` say off; never auto-watched until `/jeeves auto on` or the `/config` row; upgrade notice once; tasks, defaults and settings byte-identical after the first v0.3 session; fresh installs resolve to on; the `autoNoticeShown` and `firstActivationShown` keys are distinct | I |
+| AC-43 | Upgrade: the check runs once per install (`upgradeCheck` in the plugin store); a fresh install stays on in its second session after its first auto task; `/jeeves on` on a fresh install never makes it an upgrader; a new `stateDir` takes its default from `upgradeCheck`; `firstActivationShown` or an existing project makes `auto.json` say off; never auto-watched until `/jeeves auto on` or the `/config` row; upgrade notice once; tasks, defaults and settings byte-identical after the first v0.3 session; fresh installs resolve to on; the `autoNoticeShown` and `firstActivationShown` keys are distinct | I |
 | AC-44 | Cleanup deletes only ended auto tasks with no rotation, 7 days after they ended (`updatedAt`), under a custom `stateDir` too, with auto-start on or off; never explicit or rotated tasks | U, I |
 | AC-45 | Downgrade: a v0.2 build (test kit) refuses v0.3 tasks with `SCHEMA_TOO_NEW`, ignores a v0.3 `config.json` and `auto.json`; nothing is rewritten | I, C |
 | AC-46 | Auto tasks interrupted mid-rotation recover by themselves with a message, only in an interactive, full-mode, fresh session (they wait under `-p`/SDK, assisted, resumed); a typed `/jeeves recover` works anywhere; explicit tasks follow `autoRecover` | I |
@@ -340,6 +341,8 @@ The tier is set per request by the whole prompt, cache reads and writes included
 | Switch from 200K to 1M | Eligibility decided once at `session.start`; reason "200K window at start" (§5.1, AC-36) |
 | Cleanup age undefined | 7 days after the task ended (`updatedAt`) (§5.9, AC-44) |
 | Scope | Design frozen; further ideas go to §13 |
+
+**Editorial fix (plan review 2, 2026-11-08, no design change):** §5.6's upgrade check runs once per install, marked by the plugin-store key `upgradeCheck` holding its result; v0.3 never writes `firstActivationShown`; a new `stateDir` takes its default from `upgradeCheck`; AC-43 gains the two cases that would otherwise misclassify a fresh install.
 
 **Editorial fixes (review 4, no design change):** auto-compaction off means a 90% cap, now said in §5.5 as in AC-39; the R-25 re-check's ending message (§5.1); AC-41's 200K fixture uses a test-only simulated window for rotation rate and outcome, cost compared on 1M only, so Q7 shrinks to the cost recomputation plus an owner and a date.
 
