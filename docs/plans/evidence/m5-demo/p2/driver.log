@@ -1,0 +1,14 @@
+[    0.0s] spawn claude --plugin-dir ~/Desktop/Projects/jeeves/jeeves --model haiku --permission-mode acceptEdits --allowedTools Bash --debug-file /private/tmp/claude-501/-Users-user-Desktop-Projects-jeeves/3f5511e0-9729-41fb-b956-d174eb079288/scratchpad/demo2/p2-debug.log
+[    6.0s] type '/jeeves recover'
+[    6.8s] key Enter
+[   67.4s] TIMEOUT first recover
+[   67.4s] waiting 125 s for the dead lock to go stale
+[  192.4s] type '/jeeves recover'
+[  193.1s] key Enter
+[  198.5s] state ["CONTINUING", "MANUAL", 1, "47dc5d96-3a76-4ad0-9b30-6860f8e983bc"]
+[  203.5s] state ["MONITORING", null, 1, "47dc5d96-3a76-4ad0-9b30-6860f8e983bc"]
+[  213.6s] state ["HANDOVER_GENERATING", "THRESHOLD", 1, "47dc5d96-3a76-4ad0-9b30-6860f8e983bc"]
+[  238.6s] state ["CONTINUING", "THRESHOLD", 2, "b5592ab6-86e1-473f-a7a0-5a73a526626e"]
+[  243.6s] state ["MONITORING", null, 2, "b5592ab6-86e1-473f-a7a0-5a73a526626e"]
+[  248.6s] type '/cost'
+[  249.2s] key Enter
