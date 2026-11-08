@@ -106,3 +106,15 @@ test('autoRecover: at session start the interrupted task is continued without a 
   expect(continuations(prompts).length).toBe(1)
   expect(stateOf(h, dir).status).toBe('CONTINUING')
 })
+
+test('review fix 2: a recover refused for a changed handover gives the lock back at once', async ($, on) => {
+  const g = await generating($, on)
+  const { h, dir } = g
+  expect(await stop($, handover(g.taskId, g.rotationId))).toEqual({})
+  h.files.set(`${dir}/history/handover-001.md`, 'edited by hand')
+  await restart($, h)
+  await h.clock.advance(121_000)
+  expect(await relay($, 'recover')).toContain('no longer matches its checksum')
+  expect(h.files.has(`${dir}/lock.d/owner.json`)).toBe(false)
+  expect(stateOf(h, dir).status).toBe('ROTATING')
+})

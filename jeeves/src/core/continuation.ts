@@ -53,6 +53,16 @@ export type ContinuationInput = {
   gap?: boolean
 }
 
+/** Prompts the user typed during a handover, quoted exactly (ADR-010 A1). */
+export const heldBlock = (prompts: readonly string[]) => [
+  'Messages the user typed during rotation (their own words, quoted exactly; answer them as from the user):',
+  ...prompts.flatMap((m, k) => [`Message ${k + 1}:`, ...m.replace(/\r\n?/g, '\n').split('\n').map(l => `> ${l}`)]),
+]
+
+/** After a handover that ended in a pause, `/relay resume` delivers the messages it held, once (review fix 1). */
+export const heldPrompt = (prompts: readonly string[]) =>
+  ['Jeeves: the handover was stopped before a fresh conversation started, so these messages were never delivered.', ...heldBlock(prompts)].join('\n')
+
 /** The prompt Jeeves submits in the fresh conversation: what is built, where to pick up, and the user's held messages. */
 export function continuationPrompt(c: ContinuationInput): string {
   const n = c.narrative
@@ -76,10 +86,7 @@ export function continuationPrompt(c: ContinuationInput): string {
     : [
         'There is no validated handover yet. First check the repository state (git status, recent changes, tests) to see what is done, then continue the original task from there.',
       ]
-  const held = c.heldPrompts.length
-    ? ['', 'Messages the user typed during rotation (their own words, quoted exactly; answer them as from the user):',
-        ...c.heldPrompts.flatMap((m, k) => [`Message ${k + 1}:`, ...m.replace(/\r\n?/g, '\n').split('\n').map(l => `> ${l}`)])]
-    : []
+  const held = c.heldPrompts.length ? ['', ...heldBlock(c.heldPrompts)] : []
   return [
     ...(c.context ? [c.context, '', '---', ''] : []),
     `Jeeves: you are session ${c.session} of managed task ${c.taskId}. The previous conversation was cleared to free context. The original task${c.handoverFile ? ` and the latest validated handover (${c.handoverFile})` : ''} are in your context.`,

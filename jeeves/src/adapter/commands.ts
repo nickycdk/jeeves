@@ -1,10 +1,11 @@
 // /relay parsing and answers (ST-1.9, E2). Commands that change a task run only when the user typed them (FR-05).
 import { isThreshold, THRESHOLD_MAX, THRESHOLD_MIN } from '../core/machine.ts'
+import { heldPrompt } from '../core/continuation.ts'
 import { taskText } from '../core/task.ts'
 import type { State } from '../core/types.ts'
 import type { Runtime } from './runtime.ts'
 import { addRevision, apply, claim, heldByOther, liveTasks, ownTask, projectTasks, readTask, nudgeIfWaiting, restoreHere, startTask, takeLock, type Task } from './task.ts'
-import { recover } from './recover.ts'
+import { recover, restoredText } from './recover.ts'
 import { firstActivationText, HELP, MSG, statusText } from './ui.ts'
 
 export const PLUGIN = 'jeeves'
@@ -114,12 +115,12 @@ async function resume(rt: Runtime, tasks: Task[], me: string): Promise<string> {
   if (!(await claim(rt, target.dir, me))) return MSG.lockHeld(target.state.taskId)
   if (target.state.reason === 'USER_CLEAR') {
     // Restore path: this conversation is fresh; the task and its last handover go in as the next prompt.
-    const r = await restoreHere(rt, target.dir, { type: 'RESUME', lockOk: true, sessionId: me })
-    if (r !== null && typeof r === 'object') return MSG.repoMismatch(r.mismatch.expected, r.mismatch.actual)
-    return r === 'restored' ? MSG.restored(target.state.taskId) : r === 'unverified' ? MSG.handoverUnverified : MSG.noTask
+    return restoredText(await restoreHere(rt, target.dir, { type: 'RESUME', lockOk: true, sessionId: me }), MSG.restored(target.state.taskId), MSG.noTask)
   }
   const r = await apply(rt, target.dir, { type: 'RESUME', lockOk: true, sessionId: me })
   if (!r) return MSG.noTask
+  const held = r.forHook.find(f => f.type === 'SUBMIT_HELD')
+  if (held?.type === 'SUBMIT_HELD') rt.port.submitPromptSoon(heldPrompt(held.heldPrompts), err => rt.port.toast(MSG.heldNotSent(err)))
   return MSG.resumed(target.state.thresholdPercent, rt.thresholdOverride)
 }
 
@@ -149,9 +150,7 @@ async function continueHere(rt: Runtime, tasks: Task[], me: string, endedHere: R
   if (!target) return MSG.nothingToContinue
   if ((await rt.port.turns()) > 0) return MSG.continueNeedsFresh
   if (!(await takeLock(rt, target.dir, target.state.activeSessionId, me, endedHere))) return MSG.lockHeld(target.state.taskId)
-  const r = await restoreHere(rt, target.dir, { type: 'CONTINUE_CMD', sessionId: me })
-  if (r !== null && typeof r === 'object') return MSG.repoMismatch(r.mismatch.expected, r.mismatch.actual)
-  return r === 'restored' ? MSG.restored(target.state.taskId) : r === 'unverified' ? MSG.handoverUnverified : MSG.nothingToContinue
+  return restoredText(await restoreHere(rt, target.dir, { type: 'CONTINUE_CMD', sessionId: me }), MSG.restored(target.state.taskId), MSG.nothingToContinue)
 }
 
 async function threshold(rt: Runtime, tasks: Task[], me: string, arg: string): Promise<string> {

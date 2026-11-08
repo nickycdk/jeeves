@@ -139,13 +139,17 @@ export async function recover(rt: Runtime, me: string, endedHere: ReadonlySet<st
   if (!(await takeLock(rt, c.dir, c.state?.activeSessionId ?? null, me, endedHere))) return MSG.lockHeld(c.taskId)
   await removeOldTmp(rt, c.dir)
   const a = pick.a.kind === 'rebuild' ? (await rebuild(rt, c.dir, c.taskId), { gap: true, adopt: null }) : pick.a as Extract<Action, { kind: 'recover' }>
-  return answer(c.taskId, await restoreHere(rt, c.dir, { type: 'RECOVER', sessionId: me, ...(a.adopt ? { adopt: a.adopt } : {}) }, { gap: a.gap, adopt: a.adopt, relink }), pick.a.kind === 'rebuild')
+  const r = await restoreHere(rt, c.dir, { type: 'RECOVER', sessionId: me, ...(a.adopt ? { adopt: a.adopt } : {}) }, { gap: a.gap, adopt: a.adopt, relink })
+  // Refused with nothing changed: give the lock back, or every other session waits for it to go stale.
+  if (r === 'unverified' || r === null) await rt.storage.releaseLock(c.dir, me)
+  return restoredText(r, MSG.recovered(c.taskId, pick.a.kind === 'rebuild'), MSG.nothingToRecover)
 }
 
-function answer(taskId: string, r: Restored, rebuilt = false): string {
+/** The answer to a restore-path command (recover, resume after /clear, continue): `ok` when it continued. */
+export function restoredText(r: Restored, ok: string, none: string): string {
   if (r === 'unverified') return MSG.handoverUnverified
   if (r !== null && typeof r === 'object') return MSG.repoMismatch(r.mismatch.expected, r.mismatch.actual)
-  return r === 'restored' ? MSG.recovered(taskId, rebuilt) : MSG.nothingToRecover
+  return r === 'restored' ? ok : none
 }
 
 type Moved = { dir: string; state: State; oldPath: string }
@@ -180,10 +184,11 @@ async function movedTasks(rt: Runtime): Promise<Moved[]> {
 async function relinkHere(rt: Runtime, m: Moved, me: string): Promise<string> {
   if (!(await claim(rt, m.dir, me))) return MSG.lockHeld(m.state.taskId)
   const target = join(rt.projectDir!, 'tasks', m.state.taskId)
-  if (await rt.port.exists(target)) return MSG.relinkExists(target)
+  const refuse = async (text: string) => { await rt.storage.releaseLock(m.dir, me); return text }
+  if (await rt.port.exists(target)) return refuse(MSG.relinkExists(target))
   for (const argv of [['mkdir', '-p', join(rt.projectDir!, 'tasks')], ['mv', m.dir, target]]) {
     const r = await rt.port.run(argv)
-    if (r.exitCode !== 0) return MSG.relinkFailed(m.dir, r.stderr.trim().slice(0, 120))
+    if (r.exitCode !== 0) return refuse(MSG.relinkFailed(m.dir, r.stderr.trim().slice(0, 120)))
   }
   await writeProjectRecord(rt, new Date(await rt.port.now()).toISOString())
   await apply(rt, target, { type: 'RELINKED', projectId: rt.projectId! })
@@ -192,5 +197,5 @@ async function relinkHere(rt: Runtime, m: Moved, me: string): Promise<string> {
   const a = classify({ kind: 'state', state: r.value, lock: { kind: 'held', owner: me, stale: false }, leftover: await leftover(rt, target, r.value) }, me, () => false)
   if (a.kind !== 'recover') return MSG.nothingToRecover
   const done = await restoreHere(rt, target, { type: 'RECOVER', sessionId: me, ...(a.adopt ? { adopt: a.adopt } : {}) }, { gap: a.gap, adopt: a.adopt, relink: true })
-  return `${MSG.relinked(m.state.taskId, m.oldPath)} ${answer(m.state.taskId, done)}`
+  return `${MSG.relinked(m.state.taskId, m.oldPath)} ${restoredText(done, MSG.recovered(m.state.taskId, false), MSG.nothingToRecover)}`
 }

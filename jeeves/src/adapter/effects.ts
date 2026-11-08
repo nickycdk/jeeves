@@ -16,7 +16,7 @@ export type EffectResult = {
 }
 
 // RUN_CLEAR and SUBMIT_NUDGE wait for the hook to return (a turn.complete hook holds the turn), so the caller schedules them.
-const HOOK_BOUND = new Set<Effect['type']>(['BLOCK_STOP', 'INJECT_CONTEXT', 'CAPTURE_FACTS', 'PERSIST_HANDOVER', 'APPEND_NOTE', 'SUBMIT_CONTINUATION', 'RUN_CLEAR', 'SUBMIT_NUDGE'])
+const HOOK_BOUND = new Set<Effect['type']>(['BLOCK_STOP', 'INJECT_CONTEXT', 'CAPTURE_FACTS', 'PERSIST_HANDOVER', 'APPEND_NOTE', 'SUBMIT_CONTINUATION', 'SUBMIT_HELD', 'RUN_CLEAR', 'SUBMIT_NUDGE'])
 
 /** Run effects in order. `state` is the state after the transition (already persisted by the caller). */
 export async function runEffects(effects: Effect[], deps: { port: EnginePort; storage: Storage; taskDir: string; state: State }): Promise<EffectResult> {

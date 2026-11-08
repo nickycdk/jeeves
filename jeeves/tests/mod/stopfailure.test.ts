@@ -1,6 +1,6 @@
 // ST-6.2 / AC-23: classic.StopFailure pauses with the error's own code and fix; Jeeves never sends a prompt after it.
 import { expect, test } from 'claude-code/testing'
-import { generating, stateOf, turnEnd, until, type Kit } from './kit.ts'
+import { generating, relay, stateOf, submit, turnEnd, until, type Kit } from './kit.ts'
 
 const fail = ($: Kit, error: 'rate_limit' | 'authentication_failed' | 'overloaded', agent_id?: string) =>
   $.classic.StopFailure({ error, ...(agent_id ? { agent_id } : {}) } as never)
@@ -26,4 +26,17 @@ test('each code pauses with its own reason; a subagent failure changes nothing',
   await fail($, 'authentication_failed')
   expect([stateOf(h, dir).status, stateOf(h, dir).reason]).toEqual(['PAUSED', 'AUTH'])
   expect(h.toasts.at(-1)).toContain('Run /login')
+})
+
+test('review fix 1: a message held during a handover that a rate limit paused is delivered once by /relay resume', async ($, on) => {
+  const { h, dir, prompts } = await generating($, on)
+  await submit($, 'please also add a README')
+  await fail($, 'rate_limit')
+  expect(stateOf(h, dir).heldPrompts).toEqual(['please also add a README'])
+  expect(await relay($, 'resume')).toContain('Resumed')
+  await until(h, () => prompts.some(p => p.text.includes('> please also add a README')))
+  await h.clock.settle()
+  expect(prompts.filter(p => p.text.includes('> please also add a README')).length).toBe(1)
+  expect(prompts.at(-1)!.text.startsWith('Jeeves: the handover was stopped before a fresh conversation started')).toBe(true)
+  expect(stateOf(h, dir).heldPrompts).toEqual([])
 })

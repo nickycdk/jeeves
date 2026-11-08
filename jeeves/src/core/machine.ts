@@ -78,6 +78,8 @@ export type Effect = Keyed & (
   /** `prompt`: the restore path puts the context into the continuation prompt itself (ADR-003 channel note). */
   | { type: 'INJECT_CONTEXT'; via: 'session-start' | 'prompt' }
   | { type: 'SUBMIT_CONTINUATION'; heldPrompts: string[] }
+  /** `/relay resume` after a handover that ended in a pause: deliver the prompts it held (ADR-010). */
+  | { type: 'SUBMIT_HELD'; heldPrompts: string[] }
   | { type: 'TRANSFER_LOCK'; from: string | null; to: string }
   | { type: 'RELEASE_LOCK' }
   /** Write `sessions/NNN.json` once for the session that just ended (ST-4.2). */
@@ -510,7 +512,8 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
         effects.push({ type: 'INJECT_CONTEXT', key: key('RESTORED'), via: 'prompt' })
         return done()
       }
-      go('MONITORING', null, { armedFired: false, activeSessionId: input.sessionId, ...(input.sessionId !== state.activeSessionId ? { sessionStart: { at, pct: null } } : {}) })
+      go('MONITORING', null, { armedFired: false, activeSessionId: input.sessionId, heldPrompts: [], ...(input.sessionId !== state.activeSessionId ? { sessionStart: { at, pct: null } } : {}) })
+      if (state.heldPrompts.length) effects.push({ type: 'SUBMIT_HELD', key: key('held'), heldPrompts: state.heldPrompts })
       return done()
     }
 

@@ -2,6 +2,7 @@
 // a switched branch or a moved repository is never continued without the user's /relay recover --relink.
 import { expect, test } from 'claude-code/testing'
 import { bottom, generating, handover, PROMPT, relay, start, stateOf, stop, submit, taskDirs, until, type Kit } from './kit.ts'
+import { projectId } from '../../src/adapter/git.ts'
 import { memHost, type MemHost } from './memfs.ts'
 
 async function restart($: Kit, h: MemHost, sessionId = 'sess-2') {
@@ -96,4 +97,22 @@ test('moved repository: the task is found by its old folder, named with the fix,
   await until(h, () => continuations(prompts).length > 0)
   expect(continuations(prompts)[0]!.text).toContain('history/handover-001.md')
   expect([stateOf(h, moved!).status, stateOf(h, moved!).projectId]).toEqual(['CONTINUING', moved!.split('/').at(-3)])
+})
+
+test('review fix 3: relink refuses when the task already exists in this project; both folders untouched, lock given back', async ($, on) => {
+  const g = await generating($, on)
+  const { h, dir } = g
+  expect(await stop($, handover(g.taskId, g.rotationId))).toEqual({})
+  h.dirs.delete('/work/proj')
+  h.dirs.add('/work/moved')
+  h.cwd = '/work/moved'
+  const target = `/home/t/.local/state/jeeves/projects/${await projectId({ kind: 'none', cwd: '/work/moved' })}/tasks/${g.taskId}`
+  h.files.set(`${target}/note.txt`, 'already here')
+  h.dirs.add(target)
+  await restart($, h)
+  const before = h.files.get(`${dir}/state.json`)
+  expect(await relay($, 'recover --relink')).toBe(`Not relinked: ${target} already exists. Nothing was changed.`)
+  expect(h.files.get(`${dir}/state.json`)).toBe(before)
+  expect(h.files.get(`${target}/note.txt`)).toBe('already here')
+  expect(h.files.has(`${dir}/lock.d/owner.json`)).toBe(false)
 })
