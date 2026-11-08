@@ -153,8 +153,8 @@ Dependency order: E0 → E1 → E2 → E3 → E4 → E5 → (E6, E7 in parallel)
 ## E15 — v0.3 evidence and release (P1, v0.3)
 - **Status:** Open; ST-15.2 is blocked on spec Q7 (owner, date, a non-Team account) and the maintainer's go-ahead and budget.
 - **Goal:** Measure what auto-start costs and how it behaves live before any cost wording ships, decide Q8, ship v0.3.0.
-- **Scope:** the test-only window override; AC-41 live (1M fixture with and without Jeeves, auto mode, two rotations; 200K simulated fixture); Q8 decided from it; README cost wording only from the measured result; v0.3.0 release prep. **Out:** widening auto-start to 200K windows in v0.3.0 (v0.3.x, spec §13).
-- **Dependencies:** E13, E14. **Risks:** R-15, R-25 (the maintainer's account is a Team account), Q-12.
+- **Scope:** the test-only window override; AC-41 live: a dry run in a fresh-install state (AC-35 E), then a 1M fixture with and without Jeeves (auto mode, two rotations as the target) and a 200K simulated fixture, each under a spending cap; Q8 decided from it; README cost wording only from the measured result; v0.3.0 release prep. **Out:** widening auto-start to 200K windows in v0.3.0 (v0.3.x, spec §13).
+- **Dependencies:** ST-15.2 on E13 and ST-15.1 only (E14 changes no cost, rate or outcome); ST-15.3 on everything. **Risks:** R-15, R-25 (the maintainer's account is a Team account), Q-12, Q-13, Q-14.
 - **Cites:** AC-41, spec §7, §11.1, Q7, Q8.
 - **AC:** AC-41 has a PASS/FAIL result with its cost, or a recorded reason it could not run; Q8 answered; release zip reproducible.
 - **Artifact:** `docs/done/evidence/v0.3.0/`, draft release v0.3.0.

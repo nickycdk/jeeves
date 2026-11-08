@@ -238,7 +238,7 @@ All existing AC keep passing. The I-layer suite runs twice: once with `autoStart
 | Q4 | `/clear` in an auto task | End it, with a message (§5.7) |
 | Q5 | Current goal for all tasks | Yes, user's words first (§5.3) |
 | Q6 | Setting name | Auto-start, key `autoStart` |
-| Q7 | Who runs AC-41, on which non-Team account, and when | **Open: the one blocker to approval.** It blocks AC-41, Q8 and the README cost wording. Needs an owner and a date. Cost recomputed from current haiku prices (2026-11-08): about US$4–16 for the three runs, most likely US$7–8; proposed budget US$20 (§11.1). (The 200K window question is settled: simulated, AC-41) |
+| Q7 | Who runs AC-41, on which non-Team account, and when | **Open** (plan 07 Q-13; the spec itself is approved, D-40). It blocks AC-41, Q8 and the README cost wording. Needs an owner and a date. Cost recomputed from current haiku prices and checked against M4's real call count (2026-11-08): about US$9–35, most likely about US$29; proposed budget US$40 with per-run caps (§11.1). Preconditions and stop rules: plan ST-15.2. Q8's bar is plan Q-14. (The 200K window question is settled: simulated, AC-41) |
 | Q8 | Auto-start on 200K windows | Off at first; widen only if AC-41's simulated 200K fixture shows an acceptable rotation rate with a passing outcome. "Acceptable" is set by the maintainer before the run |
 
 ## 11. Rough size
@@ -254,41 +254,41 @@ All existing AC keep passing. The I-layer suite runs twice: once with `autoStart
   - privacy and README text
   - the I-layer suite in both modes, downgrade tests
 - **§6 (polish):** about 2 days more: hint, rotation line, `/jeeves handover`, quiet status line, `/jeeves` alone.
-- **Live E run (AC-41):** about US$4–16, most likely US$7–8 (§11.1); the earlier US$0.50–1.00 is withdrawn. The test-only window override is a few lines next to the existing threshold override.
+- **Live E run (AC-41):** about US$9–35, most likely about US$29 (§11.1); the earlier US$0.50–1.00 is withdrawn. The test-only window override is a few lines next to the existing threshold override.
 
 If v0.3 must be smaller, §6.1 (hint) and §6.5 (`/jeeves` alone) ship first among the polish, since they decide whether people who are not auto-watched ever see Jeeves.
 
 ### 11.1 AC-41 cost estimate (Q7)
 
-**Prices** (Claude Haiku 5.5, `claude-haiku-5-5`, the model of every M8 run; platform.claude.com/docs/en/about-claude/pricing, read 2026-11-08), US$ per million tokens:
+**Prices** (Claude Haiku 5.5, `claude-haiku-5-5`, the model of every M8 run; platform.claude.com/docs/en/about-claude/pricing, read 2026-11-08 and re-read for the 5× figure), US$ per million tokens:
 
 | Prompt | Input | Cache write 5 min | Cache write 1 h | Cache read | Output |
 |---|---|---|---|---|---|
 | up to 100K tokens | 0.10 | 0.125 | 0.20 | 0.01 | 0.50 |
 | over 100K tokens | 0.50 | 0.625 | 1.00 | 0.05 | 2.50 |
 
-The tier is set per request by the whole prompt, cache reads included: every call above 100K pays the higher prices on all its tokens. US-only inference (`inference_geo`) adds 10%.
+The tier is set per request by the whole prompt, cache reads and writes included ("a request over the threshold pays the higher prices even when part of its prompt is a cache hit"): every call above 100K pays 5× on every column. US-only inference (`inference_geo`) adds 10%.
 
-**Model** (an estimate, not a measurement; script kept out of the repo, its rules are these):
-- Each model call re-reads the whole context from the cache, writes the new tokens (`g` per call) to the cache and produces 500–2,000 output tokens (thinking included). A fresh conversation starts at 50K (R-15) and writes it once. A handover is one extra call at the threshold with 3K output.
-- **1M fixture:** 800K tokens of work. With Jeeves: 50K → 400K, rotation, 50K → 400K, rotation, 50K → 150K, done. Without Jeeves: the same work in one conversation, 50K → 850K.
-- **200K fixture (simulated):** the same 800K of work, rotating at 100K (50% of a 200K window), about 15 rotations. Every call stays near or below the 100K price line, so it is cheap.
-- Range: `g` from 10K down to 2.5K tokens per call (80 to 320 calls per 800K), 5-minute or 1-hour cache writes.
+**Model** (an estimate; the script is kept out of the repo, its rules are these):
+- Each model call re-reads the whole context from the cache, writes its new tokens (`g` per call) to the cache and produces 500–2,000 output tokens (thinking included). A fresh conversation starts at 50K (R-15) and writes it once. A handover is one extra call with 3K output.
+- **Checked against a real run:** M4 gate run 5 (six-steps fixture, `docs/done/evidence/m0-m7/m4-e2e/gate-run5/`) made about 51 model calls (37 tool calls plus 14 Stops, from its debug log) while its 5 sessions grew about 64K tokens in all: **`g` ≈ 1.3K tokens per call**. With that `g` the model gives US$0.091 for the run against US$0.078 recorded, so the per-call pricing holds and the call count is what matters. The first estimate (revision of 2026-11-08 morning, US$4–16) assumed `g` of 2.5–10K and was about 4× too low.
+- **1M fixture** (plan ST-15.2): about 1M tokens of work, so two rotations (about 750K needed) have margin. With Jeeves: 50K → 400K, rotation, 50K → 400K, rotation, 50K → about 350K, done. Without Jeeves: one conversation that reaches auto-compaction (taken as 950K, then about 100K) and finishes.
+- **200K fixture (simulated):** the fixture's first modules only, about 275K of work, rotating at 100K: about 5 rotations, every call near or below the 100K price line.
+- `g` is the main unknown: the `long-task` fixture may read and write bigger files per call than six-steps. Cost scales roughly with 1/`g`, so the dry run measures it before any paid run and this estimate is redone.
 
-| Run | Low (`g` 10K, 5 min) | Likely (`g` 5K, 5 min) | High (`g` 2.5K, 1 h, 2K output) |
-|---|---|---|---|
-| 1M with Jeeves (auto mode, two rotations) | 1.36 | 2.24–2.75 | 5.28 |
-| 1M without Jeeves | 2.34 | 4.22–4.79 | 9.41 |
-| 200K simulated, Jeeves only | 0.32 | 0.40–0.52 | 0.92 |
-| **Total** | **≈ 4.0** | **≈ 6.9–8.1** | **≈ 15.6** |
+| Run | Low (`g` 5K) | Middle (`g` 2.5K) | Likely (`g` 1.3K, as M4) | High (`g` 1.3K, 1 h cache, 2K output) |
+|---|---|---|---|---|
+| 1M with Jeeves (auto mode, two rotations) | 2.91 | 5.21 | 9.52 | 12.41 |
+| 1M without Jeeves (one compaction) | 5.50 | 10.36 | 19.37 | 22.51 |
+| 200K simulated, first modules, Jeeves only | 0.14 | 0.19 | 0.33 | 0.55 |
+| **Total (US$)** | **≈ 8.6** | **≈ 15.8** | **≈ 29.2** | **≈ 35.5** |
 
 **Reading it:**
-- The calls between 400K and 850K dominate the without-Jeeves run: each pays 5× the per-token prices of a call below 100K, and a 600K call's cache reads alone cost US$0.03. The model predicts the with-Jeeves run at roughly half the baseline. This is a prediction under the stated rules, not a result; it stays out of the README until AC-41 has measured it (§7).
-- Before the run, read the 1M session's `autoCompactThreshold`: if 850K is above it, the baseline compacts, which AC-41 reports as part of its outcome (and which lowers its cost).
-- The "two rotations in auto mode with nothing typed but the task" are the with-Jeeves 1M run, not a fourth run.
-- Not checked: Claude Code's real per-call growth and cache-write duration on this fixture, and whether the account bills in dollars or against a plan's usage limits.
+- The calls between 400K and 950K dominate the run without Jeeves: each pays 5× the per-token prices of a call below 100K, and a 600K call's cache reads alone cost US$0.03. The model predicts the run with Jeeves at roughly half the baseline. This is a prediction under the stated rules, not a result; it stays out of the README until AC-41 has measured it (§7).
+- The "two rotations in auto mode with nothing typed but the task" are the 1M run with Jeeves, not a fourth run.
+- Not checked: whether the account bills in dollars or against a plan's usage limits.
 
-**Proposed budget:** US$20 for all three runs, stopping if the first run (1M with Jeeves) passes US$8, since then the high case is being exceeded.
+**Proposed budget:** US$40 in all, with per-run caps (US$1 for the dry run and the 200K run, US$14 with Jeeves, US$25 without) and the stop rules in plan ST-15.2.
 
 ## 12. Revisions
 

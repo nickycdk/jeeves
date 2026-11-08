@@ -693,9 +693,9 @@ Spec: `docs/specs/auto-start.md` (approved, D-40). Section numbers below (§) re
 
 ### ST-13.1 Task origin, schema bumps, `auto.json` and downgrade safety — M
 - **Cites:** §5.3, §5.5, §5.11, ADR-005, ADR-009 A3, NFR-09.
-- **Scope:** state schema bump with a migration: `origin: auto | explicit` (v0.2 tasks read as `explicit`). Project `config.json` schema bump with an `autoStart` field (`on`/`off`, absent = not set). New `auto.json` in the state root (`{ default: on|off, reason? }`, schema-checked, atomic swap). A v0.2 build meeting v0.3 state refuses with `SCHEMA_TOO_NEW`, ignores the v0.3 `config.json` and never reads `auto.json`; nothing is rewritten. Out: any reader of these fields (later stories).
+- **Scope:** state schema bump with a migration: `origin: auto | explicit` (v0.2 tasks read as `explicit`). Project `config.json` schema bump with an `autoStart` field (`on`/`off`, absent = not set), written **only when `autoStart` is set**: any other defaults change keeps a v0.2-shaped file v0.2-shaped, and `defaults auto` cleared (or `defaults clear`) writes it back in the v0.2 shape, so a downgrade loses at most the auto setting, never the project's threshold or checks. New `auto.json` in the state root (`{ default: on|off, reason? }`, schema-checked, atomic swap). A v0.2 build meeting v0.3 state refuses with `SCHEMA_TOO_NEW`, ignores the v0.3 `config.json` and never reads `auto.json`; nothing is rewritten. Out: any reader of these fields (later stories).
 - **Depends on:** none.
-- **AC:** (1) a v0.2 `state.json` loads as `origin: explicit` and is written back only on its next normal write; (2) a v0.2 `config.json` keeps its defaults; (3) corrupt `auto.json` → ignored with a status warning, the default applies; (4) a v0.2 build (test kit) given v0.3 state, `config.json` and `auto.json` → `SCHEMA_TOO_NEW` / ignored, files byte-identical (AC-45).
+- **AC:** (1) a v0.2 `state.json` loads as `origin: explicit` and is written back only on its next normal write; (2) a v0.2 `config.json` keeps its defaults; (3) corrupt `auto.json` → ignored with a status warning, the default applies; (4) a v0.2 build (test kit) given v0.3 state, `config.json` and `auto.json` → `SCHEMA_TOO_NEW` / ignored, files byte-identical (AC-45); (5) changing the threshold or checks in v0.3 without setting `autoStart` leaves a `config.json` that a v0.2 build reads with its defaults intact; only a project with `autoStart` set gets the bumped schema.
 - **Tests:** U (guards, migration table, state corpus gains v0.3 files); I (`downgrade.test.ts` with a v0.2 build of the module); C (the downgrade case in the compat job).
 - **DoD:** + 02 §6.1 layout and §6.3 field; v0.3 release-notes line on downgrade.
 
@@ -709,7 +709,7 @@ Spec: `docs/specs/auto-start.md` (approved, D-40). Section numbers below (§) re
 
 ### ST-13.3 Eligibility at session start, reasons and model switch — M
 - **Cites:** §5.1, D-42, AC-36, AC-37.
-- **Scope:** at `session.start`, once per session: interactive, full mode, git work tree (subfolders and linked worktrees count), `$.session.usage().window` above 200K from the model setting, `$.session.turns()` 0, auto-start resolved on. The result and every failed reason are kept in process state (no task file). Status and `/jeeves status --diagnose` show the first reason in the §5.1 order with `(+N more)`, and all of them. The R-25 re-check after the first answer ends an auto task (DISABLED, files kept) with its message; a reading showing a non-eligible window ends it with `Jeeves: not watching any more (this model's window is 200K); /jeeves on to watch anyway`. Explicit tasks unchanged. Out: starting the task (ST-13.4).
+- **Scope:** at `session.start`, once per session: interactive, full mode, git work tree (subfolders and linked worktrees count), `$.session.usage().window` above 200K from the model setting, `$.session.turns()` 0, auto-start resolved on. The result and every failed reason are kept in process state (no task file). Status and `/jeeves status --diagnose` show the first reason in the §5.1 order with `(+N more)`, and all of them. The R-25 re-check after the first answer ends an auto task (DISABLED, files kept) with `Jeeves: not watching any more (this account isn't supported); /jeeves status for details`; a reading showing a non-eligible window ends it with `Jeeves: not watching any more (this model's window is 200K); /jeeves on to watch anyway`. Explicit tasks unchanged. Out: starting the task (ST-13.4).
 - **Depends on:** ST-13.2.
 - **AC:** (1) not eligible under `-p`/SDK, assisted, unsupported, outside git, 200K at start, resumed; no file written; (2) a later switch to 1M does not start watching, reason "200K window at start"; (3) reason order and `(+N more)` with several reasons; (4) model switch and R-25 re-check end an auto task with their messages; (5) an explicit task keeps its threshold across a model switch.
 - **Tests:** U (eligibility and reason-order table); I (`eligible.test.ts` with mock windows, turns and probe results).
@@ -726,7 +726,7 @@ Spec: `docs/specs/auto-start.md` (approved, D-40). Section numbers below (§) re
 - **Cites:** §5.5, AC-39.
 - **Scope:** skips the next handover: this task's threshold +10, warning again 5 points before, never past the cap (90%, or 5 points below `autoCompactThreshold` from `$.session.usage()` when lower, read at each `later`; auto-compaction off → 90%). At the cap: `Jeeves hands over at 85% (now 80%); can't postpone further. /jeeves off to keep this conversation.` Works in auto and explicit tasks; repeatable; does not stop a rotation already under way. User-typed only.
 - **Depends on:** ST-13.1.
-- **AC:** (1) +10 and a new warning; (2) cap from auto-compaction, and 90% when it is off or higher; (3) the cap message; (4) during ROTATION_REQUESTED or later → refused with `/jeeves pause` named; (5) explicit task too.
+- **AC:** (1) +10 and a new warning; (2) cap from auto-compaction, and 90% when it is off or higher; (3) the cap message; (4) during ROTATION_REQUESTED or later → refused with `/jeeves pause` named; (5) explicit task too; (6) `later` typed by Claude (not the user) → `MSG.userOnly`, threshold unchanged.
 - **Tests:** U (cap arithmetic); I (`later.test.ts`).
 - **DoD:** + README command table.
 
@@ -738,7 +738,7 @@ Spec: `docs/specs/auto-start.md` (approved, D-40). Section numbers below (§) re
 - **Tests:** U (parser and validator over new handover-corpus cases, continuation snapshot); I (`handover.test.ts`, `continue.test.ts` extended).
 - **DoD:** + ADR-003 amendment text in 02; handover instruction template; handover corpus.
 
-### ST-13.7 User `/clear` in auto tasks and auto-recovery — S
+### ST-13.7 User `/clear` in auto tasks and auto-recovery — M
 - **Cites:** §5.7, §5.8, ADR-010, D-43, AC-40, AC-46.
 - **Scope:** a user `/clear` in an auto task ends it (DISABLED, files kept) with `Jeeves: task ended (new conversation); the next prompt starts a new one`; the next typed prompt starts a new auto task. Explicit tasks pause as today, with `Jeeves: paused (you cleared the conversation); /jeeves resume continues the task`. `/jeeves on <goal>` in an auto task turns it explicit (the goal becomes a `goal:` revision). An auto task interrupted mid-rotation (HANDOVER_GENERATING … RESTORING) recovers by itself with a message whatever `autoRecover` says, only in an interactive, full-mode, fresh session; otherwise it waits. Typed `/jeeves recover` works anywhere. Status shows `(auto)` or `(explicit)`.
 - **Depends on:** ST-13.3, ST-13.4.
@@ -757,7 +757,7 @@ Spec: `docs/specs/auto-start.md` (approved, D-40). Section numbers below (§) re
 - **Cites:** §5.10, §8, AC-03, NFR-10.
 - **Scope:** PRIVACY.md, README and notices per §5.10 (fresh installs: what is recorded from the first typed prompt, on this machine only, never the transcript; upgraders: nothing changes until `/jeeves auto on`; opt-out levels; cleanup). The I-layer suite runs twice in CI, `autoStart` off and on. AC-03 test updated to the A3 wording.
 - **Depends on:** ST-13.2 … ST-13.8.
-- **AC:** (1) texts match the shipped behaviour (reviewed line by line against §5); (2) suite green in both modes; (3) NFR-10 grep after an auto-task E run finds no prompt text outside `task-rev-*` and `heldPrompts`.
+- **AC:** (1) texts match the shipped behaviour (reviewed line by line against §5); (2) suite green in both modes; (3) NFR-10 grep over the state folder after an I-layer auto task with a rotation finds no prompt text outside `task-rev-*` and `heldPrompts` (the E-layer grep runs in ST-15.2).
 - **Tests:** I (both modes); M (text review).
 - **DoD:** + CHANGELOG; release notes draft.
 
@@ -811,10 +811,16 @@ If v0.3 must be smaller, ST-14.1 and ST-14.2 ship first (spec §11).
 - **Tests:** U, I.
 
 ### ST-15.2 AC-41 live runs — M
-- **Cites:** AC-41, Q-13 (spec Q7), Q8, D-42, spec §11.1.
-- **Scope:** a `long-task` fixture (06 §2) with about 800K tokens of work and machine checks; three haiku runs on a non-Team account: 1M with Jeeves in auto mode (two rotations, nothing typed but the task), 1M without Jeeves, 200K simulated (ST-15.1). Report tokens and cost (cache reads included), rotations, outcome; read `autoCompactThreshold` before the baseline. The maintainer sets "acceptable" for Q8 before the run.
-- **Depends on:** E13, E14, ST-15.1; Q-13 answered. **Live run:** estimated US$4–16, most likely US$7–8; proposed budget US$20, stop if the first run passes US$8 (go-ahead and budget asked first).
-- **AC:** (1) each run PASS/FAIL with cost, or a recorded reason it did not run; (2) Q8 answered in 07; (3) README cost wording, if any, states what was measured, on which window, with cache effects.
+- **Cites:** AC-35 (E), AC-41, NFR-10, Q-13 (spec Q7), Q-14 (Q8's bar), D-42, spec §11.1.
+- **Scope:** a `long-task` fixture (06 §2) with about **1M tokens of work** in modules with their own checks, so two rotations at 40% (about 750K needed) have margin; the 200K run uses only its first modules (about 250–300K of work, 4–5 rotations). Three haiku runs on a non-Team account, after a dry run:
+  - **Preconditions (all runs):** a real interactive `claude` in a pseudo-terminal through `tests/pty/ptylib.py`, as in M4–M8 (never `-p` or the SDK: not eligible); the fixture is a git work tree; a fresh conversation; a **fresh-install state**: a macOS user on which Jeeves was never activated (no `firstActivationShown` in the plugin store; a clean Claude config directory is not enough, since a throwaway config is logged out, M6) and a scratch `JEEVES_STATE_DIR` holding no project. Otherwise Jeeves treats the machine as an upgrader and auto-start stays off.
+  - **Dry run (AC-35 E, about US$0.01–0.05):** one prompt, the fixture's first module, below 100K. Checks: the first-run notice (not the upgrade notice), an auto task with the prompt word for word, nothing recorded before it; `/cost` is local (no model call). It also measures tokens per call and cost per call, and the estimate in spec §11.1 is redone from them before any paid run.
+  - **Runs, cheapest first:** 200K simulated (ST-15.1, task started with `/jeeves on`); 1M with Jeeves in auto mode (nothing typed but the task); 1M without Jeeves (read `autoCompactThreshold` first; with 1M of work it reaches auto-compaction, which is reported as its outcome).
+  - **Report:** tokens and cost (cache reads included), rotations, outcome; NFR-10 grep of the state folder after the auto run.
+  - **Stop rules:** per-run caps of US$1 (dry run and 200K together), US$14 (1M with Jeeves), US$25 (1M without), and a hard total of US$40. Spend is read from Jeeves's session records at each rotation (with Jeeves) and from `/cost` every 10 minutes (without Jeeves; nothing is typed in the auto run). A run that passes its cap is stopped and reported as partial; the total cap stops AC-41.
+  - The maintainer sets Q8's bar (Q-14) before the 200K run.
+- **Depends on:** E13, ST-15.1; Q-13 and Q-14 answered. Not E14: nothing in it changes cost, rotation rate or outcome. **Live run:** estimated US$9–35, most likely about US$29 (spec §11.1); budget US$40 with the caps above (go-ahead and budget asked first).
+- **AC:** (1) the dry run passes, or AC-41 does not start; (2) each run PASS/FAIL with cost, or partial with the cap that stopped it, or a recorded reason it did not run; AC-41 with Jeeves needs at least one rotation, reports the count, and two is the target; (3) Q8 answered in 07 against the bar set beforehand; (4) README cost wording, if any, states what was measured, on which window, with cache effects.
 - **Tests:** E (this is the test).
 - **DoD:** + `docs/done/evidence/v0.3.0/AC-41/RESULT.md`.
 
@@ -832,4 +838,4 @@ If v0.3 must be smaller, ST-14.1 and ST-14.2 ship first (spec §11).
 
 **M8 (v0.2) count:** 12 stories (E10 3, E11 4, E12 5): 4 M, 8 S ≈ 10 engineer-days.
 
-**M9 (v0.3) count:** 17 stories (E13 9, E14 5, E15 3): 6 M, 11 S ≈ 14.5 engineer-days (E13 9.5, E14 2.5, E15 2.5). This is above the spec's rough 5 + 2 days (§11): the story midpoints include tests in both modes, the downgrade check and the live run.
+**M9 (v0.3) count:** 17 stories (E13 9, E14 5, E15 3): 7 M, 10 S ≈ 15.5 engineer-days (E13 10.5, E14 2.5, E15 2.5). This is above the spec's rough 5 + 2 days (§11): the story midpoints include tests in both modes, the downgrade check and the live run.
