@@ -22,9 +22,10 @@ export async function readDefaults(rt: Runtime): Promise<DefaultsRead> {
 const write = (rt: Runtime, d: ProjectDefaults) => rt.storage.replaceFile(pathOf(rt), JSON.stringify({ ...d, schemaVersion: defaultsVersion(d) }, null, 2) + '\n')
 
 const showText = (d: ProjectDefaults | null) => {
-  if (!d || (d.thresholdPercent === undefined && d.verificationCommands.length === 0)) return MSG.noDefaults
+  if (!d || (d.thresholdPercent === undefined && d.verificationCommands.length === 0 && !d.autoStart)) return MSG.noDefaults
   return ['Project defaults (for the next /jeeves on here):', `Threshold: ${d.thresholdPercent === undefined ? 'by context window' : `${d.thresholdPercent}%`}`,
-    ...(d.verificationCommands.length ? ['Checks:', ...d.verificationCommands.map(c => `  ${c}`)] : ['Checks: none'])].join('\n')
+    ...(d.verificationCommands.length ? ['Checks:', ...d.verificationCommands.map(c => `  ${c}`)] : ['Checks: none']),
+    ...(d.autoStart ? [`Auto-start: ${d.autoStart}`] : [])].join('\n')
 }
 
 /** `/jeeves defaults [threshold <n> | check <cmd> | clear]`; `userTyped` is required for every change (FR-05). */
@@ -34,7 +35,7 @@ export async function defaultsCommand(rt: Runtime, rest: string, userTyped: bool
   if (!rt.projectDir) return MSG.noProject(rt.stateRootError)
   const cur = await readDefaults(rt)
   if (sub === '') return cur.error ? MSG.defaultsUnreadable(cur.error) : showText(cur.value)
-  if (!['threshold', 'check', 'clear'].includes(sub)) return MSG.defaultsUsage
+  if (!['threshold', 'check', 'clear', 'auto'].includes(sub)) return MSG.defaultsUsage
   if (!userTyped) return MSG.userOnly
   const base: ProjectDefaults = cur.value ?? { schemaVersion: SCHEMA_VERSION, verificationCommands: [] }
   if (sub === 'clear') {
@@ -43,6 +44,12 @@ export async function defaultsCommand(rt: Runtime, rest: string, userTyped: bool
   }
   // A newer Jeeves's file or a hand edit: never overwrite it; clear above is the way out.
   if (cur.error) return MSG.defaultsUnreadable(cur.error)
+  if (sub === 'auto') {
+    const v = arg.toLowerCase()
+    if (v !== 'on' && v !== 'off') return MSG.defaultsUsage
+    await write(rt, { ...base, autoStart: v })
+    return MSG.defaultAutoSet(v)
+  }
   if (sub === 'threshold') {
     const n = /^\d+$/.test(arg) ? Number(arg) : NaN
     if (!isThreshold(n)) return MSG.thresholdRange(arg, THRESHOLD_MIN, THRESHOLD_MAX)

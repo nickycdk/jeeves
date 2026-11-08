@@ -50,12 +50,13 @@ const yieldTicks = async (n: number) => { for (let i = 0; i < n; i++) await Prom
 /** The mock clock starts here, so timestamps in assertions are readable. */
 export const T0 = Date.parse('2026-11-07T08:00:00.000Z')
 
-export function memHost(on: On, env: Record<string, string> = { HOME: '/home/t' }): MemHost {
+/** `store`: what the plugin store holds at the start (a v0.2 install's keys, an earlier upgrade check). */
+export function memHost(on: On, env: Record<string, string> = { HOME: '/home/t' }, store: Readonly<Record<string, unknown>> = {}): MemHost {
   const h: MemHost = {
     commands: [], registered: [], toasts: [], status: [], version: '2.1.319', failProcess: false, files: new Map(), dirs: new Set(['/', '/work', '/work/proj']), cwd: '/work/proj', access: [], env, argv: [], failWrite: null,
     sessionId: 'sess-test', agents: [], fills: [], turns: 0, logs: [], notes: [], clock: mock.clock(on, { now: T0 }), usage: { window: 200_000 }, rateLimits: [],
   }
-  mock.store(on)
+  mock.store(on, store)
   on('session.start', (_, e) => ({ cwd: e.cwd }))
   on('session.measure', (_, e) => ({ changed: e.changed }))
   on('classic.Stop', () => { const b = h.stopBlock?.(); return b ? { block: b } : {} })

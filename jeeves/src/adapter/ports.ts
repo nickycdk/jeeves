@@ -56,6 +56,12 @@ export interface EnginePort extends FsPort {
   now(): Promise<number>
   /** This plugin's version from its plugin.json, or null when unreadable. */
   pluginVersion(): Promise<string | null>
-  /** True only the first time it is asked on this machine (a `$.store` flag), so a notice shows once. */
+  /**
+   * True only the first time it is asked on this machine, so the `/jeeves on` notice shows once. v0.3 keeps it under its
+   * own store key: `firstActivationShown` is only ever read, so it keeps meaning "v0.2 was activated here" (ST-13.2).
+   */
   firstActivation(): Promise<boolean>
+  /** The plugin store (`$.store`), across sessions. */
+  storeGet(key: string): Promise<unknown>
+  storeSet(key: string, value: unknown): Promise<void>
 }

@@ -3,6 +3,7 @@ import type { EngineInterface } from 'claude-code'
 import { withoutStopHook, type Probe } from '../core/probe.ts'
 import { enginePort } from './engine-mod.ts'
 import type { EnginePort } from './ports.ts'
+import type { AutoRow } from '../core/autostart.ts'
 import type { RepoIdentity } from '../core/git.ts'
 import { projectDir, projectId, repoIdentity } from './git.ts'
 import { runProbe } from './probe.ts'
@@ -37,7 +38,7 @@ export const CRASH_POINTS = ['threshold', 'mid-handover', 'after-persist', 'befo
 export type CrashPoint = (typeof CRASH_POINTS)[number]
 
 /** `autoRecover`: run /jeeves recover by itself at session start when a task waits for it (userConfig, default off). */
-export type Options = { stateDir?: string | undefined; autoRecover?: boolean }
+export type Options = { stateDir?: string | undefined; autoRecover?: boolean; autoStart?: AutoRow }
 
 let current: Promise<Runtime> | null = null
 // R-25: set once this process saw a main turn answer without the Stop hook; a reload starts over and finds it again.

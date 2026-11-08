@@ -60,9 +60,11 @@ export function enginePort($: EngineInterface): EnginePort {
     now: () => $.clock.now(),
     pluginVersion: () => $.fs.read(`${$.plugin.root}/.claude-plugin/plugin.json`).then(t => String(JSON.parse(t).version ?? '') || null, () => null),
     firstActivation: async () => {
-      if ((await $.store.get('firstActivationShown')) === true) return false
-      await $.store.set('firstActivationShown', true)
+      if ((await $.store.get('firstActivationShown')) === true || (await $.store.get('activationNoticeShown')) === true) return false
+      await $.store.set('activationNoticeShown', true)
       return true
     },
+    storeGet: key => $.store.get(key),
+    storeSet: async (key, value) => { await $.store.set(key, value) },
   }
 }

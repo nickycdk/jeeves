@@ -78,7 +78,7 @@ test('/jeeves off: DISABLED, lock released, every file kept (FR-11)', async ($, 
   expect(h.files.get(`${dir}/task-rev-001.md`)).toBe(PROMPT)
   const events = h.files.get(`${dir}/events.jsonl`)!.trim().split('\n').map(l => JSON.parse(l))
   expect(events.map(e => `${e.from}>${e.to}`)).toEqual(['DISABLED>MONITORING', 'MONITORING>MONITORING', 'MONITORING>DISABLED'])
-  expect(await relay($, 'off')).toBe('No managed task. Start with /jeeves on')
+  expect(await relay($, 'off')).toBe('No managed task. Auto-start is off for the rest of this session; /jeeves on still starts a task.')
   // Turning on again starts a new task; the old one stays.
   await relay($, 'on')
   expect(taskDirs(h).length).toBe(2)

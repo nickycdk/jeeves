@@ -3,14 +3,16 @@ import type { CommandRunInput, EngineInterface, Register, Timer, ToolCallInput, 
 import type { ToolOutcome } from '../src/core/evidence.ts'
 import { chooseCommandName, FALLBACK, PRIMARY, relay } from '../src/adapter/commands.ts'
 import { recover, recoveryNotice } from '../src/adapter/recover.ts'
+import { upgradeCheck } from '../src/adapter/auto.ts'
+import { isAutoRow } from '../src/core/autostart.ts'
 import { markStopSkipped, runtime, type Options } from '../src/adapter/runtime.ts'
 import { captureFirstPrompt, compacted, heartbeat, managedNow, holdPrompt, measure, nudgeIfWaiting, onFreshSession, onStop, onTurnComplete, taskSection, onUserClear, recordTool, releaseOnExit, stopFailure, why } from '../src/adapter/task.ts'
 import { HEARTBEAT_MS } from '../src/core/lock.ts'
-import { ARGUMENT_HINT, HELD_TEXT, offStatus } from '../src/adapter/ui.ts'
+import { ARGUMENT_HINT, HELD_TEXT, MSG, offStatus } from '../src/adapter/ui.ts'
 
 
 async function answer($: EngineInterface, opts: Options, e: CommandRunInput, idle: boolean, endedHere: ReadonlySet<string>) {
-  try { return { text: await relay(await runtime($, opts), e.args, { userTyped: e.origin.kind === 'composer', idle, endedHere }) } } catch (err) {
+  try { return { text: await relay(await runtime($, opts), e.args, { userTyped: e.origin.kind === 'composer', idle, endedHere, autoRow: opts.autoStart ?? 'default' }) } } catch (err) {
     return { text: `Jeeves could not answer: ${why(err)}` }
   }
 }
@@ -31,7 +33,10 @@ async function quietly($: EngineInterface, opts: Options, what: string, work: (r
 }
 
 export const register: Register = (on, options) => {
-  const opts: Options = { stateDir: typeof options.stateDir === 'string' && options.stateDir ? options.stateDir : undefined, autoRecover: options.autoRecover === true }
+  const opts: Options = {
+    stateDir: typeof options.stateDir === 'string' && options.stateDir ? options.stateDir : undefined, autoRecover: options.autoRecover === true,
+    autoStart: isAutoRow(options.autoStart) ? options.autoStart : 'default',
+  }
   // Which name this process registered; rebuilt by session.start after a reload.
   let commandName: typeof PRIMARY | typeof FALLBACK | null = null
   let beat: Timer | null = null
@@ -52,6 +57,8 @@ export const register: Register = (on, options) => {
       $.ui.status(offStatus(rt.probe))
       if (!warnedSkip) $.ui.toast(rt.probe.message)
     }
+    // ST-13.2 (spec §5.6): the upgrade check, once per install; an upgrader hears once that auto-start waits for them.
+    await quietly($, opts, 'upgrade check', async rt => { if ((await upgradeCheck(rt))?.notice) rt.port.toast(MSG.upgradeNotice) })
     // ST-6.1: a task an earlier session left (crash, exit mid-rotation) is named once; autoRecover continues it.
     await quietly($, opts, 'recovery scan', async rt => {
       const n = await recoveryNotice(rt)

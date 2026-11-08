@@ -120,7 +120,7 @@ export const offStatus = (p: Probe) =>
   p.missing[0] === 'classic.Stop hook' ? 'off: Stop hook skipped' : p.mode === 'unsupported' ? `off: needs ${p.missing[0]}` : 'assisted mode'
 
 /** The `/jeeves` command menu's argument hint; a unit test keeps it in step with HELP. */
-export const ARGUMENT_HINT = 'on [goal] | off | pause | resume | rotate | continue | recover | done | retry | threshold <n> | defaults ... | task | dod <text> | check <cmd> | status [--diagnose] | history [--full] | stats | purge | help'
+export const ARGUMENT_HINT = 'on [goal] | off | pause | resume | rotate | continue | recover | done | retry | threshold <n> | defaults ... | auto [on|off] | task | dod <text> | check <cmd> | status [--diagnose] | history [--full] | stats | purge | help'
 
 export const HELP = [
   'Jeeves commands (/jeeves ...):',
@@ -135,6 +135,7 @@ export const HELP = [
   'retry         after a failed handover',
   'threshold <n> hand over at n% (20-90)',
   'defaults ...  this project\'s defaults',
+  'auto [on|off] auto-start everywhere',
   'task          original task + changes',
   'dod <text>    add a done criterion',
   'check <cmd>   add a check (never run)',
@@ -188,7 +189,16 @@ export const MSG = {
   notRotatable: (status: string) => `No handover now: the task is ${status}. /jeeves status shows why.`,
   suggestedChecks: (cmds: string[]) => `Suggested checks: ${cmds.map(c => `/jeeves check ${c}`).join(', ')}`,
   noDefaults: 'No defaults set for this project. /jeeves defaults threshold <n> or /jeeves defaults check <cmd> sets them for the next /jeeves on here.',
-  defaultsUsage: 'Usage: /jeeves defaults, /jeeves defaults threshold <20-90>, /jeeves defaults check <cmd>, /jeeves defaults clear',
+  defaultsUsage: 'Usage: /jeeves defaults, /jeeves defaults threshold <20-90>, /jeeves defaults check <cmd>, /jeeves defaults auto on|off, /jeeves defaults clear',
+  defaultAutoSet: (v: 'on' | 'off') => `Auto-start for this project: ${v}. It wins over /config and /jeeves auto here; /jeeves defaults clear resets it.`,
+  // ST-13.2 (spec §5.5, §5.6)
+  autoState: (on: boolean, source: string) => `Auto-start: ${on ? 'on' : 'off'} (${source}).`,
+  autoUsage: 'Usage: /jeeves auto shows auto-start; /jeeves auto on or /jeeves auto off sets it everywhere (kept in the state folder, not in Claude settings).',
+  autoSaved: (v: 'on' | 'off') => `Auto-start everywhere: ${v}. /jeeves defaults auto on|off sets one project, /jeeves off this session.`,
+  autoOverridden: (row: 'on' | 'off') => `Saved, but /config → Auto-start is set to ${row}, which takes precedence.`,
+  autoUnreadable: (why: string) => `Warning: auto.json is unreadable and ignored (${why.slice(0, 80)}). /jeeves auto on|off writes a new one.`,
+  upgradeNotice: 'Jeeves can now watch long sessions by itself. Type /jeeves auto on to turn it on. Nothing changes until you do.',
+  autoOffSession: 'No managed task. Auto-start is off for the rest of this session; /jeeves on still starts a task.',
   defaultsUnreadable: (err: string) => `Project defaults unreadable (config.json: ${short(err).slice(0, 80)}); they are ignored. /jeeves defaults clear resets them.`,
   defaultsCleared: 'Project defaults cleared. Running tasks are not changed.',
   defaultThresholdSet: (n: number) => `Default threshold for this project: ${n}%. It applies from the next /jeeves on here; running tasks are not changed.`,
@@ -214,7 +224,7 @@ export const MSG = {
   notPausable: (status: string) => `Nothing to pause: the task is ${status}.`,
   notPaused: (status: string) => `The task is ${status}, not paused.`,
   resumed: (t: number, override: number | null) => `Resumed: Jeeves hands over again at ${override ?? t}%${override ? ' (TEST OVERRIDE)' : ''}.`,
-  turnedOff: (taskId: string, dir: string) => `Jeeves off. Task ${taskId} is kept, nothing was deleted: ${dir}`,
+  turnedOff: (taskId: string, dir: string) => `Jeeves off. Task ${taskId} is kept, nothing was deleted: ${dir}. Auto-start is off for the rest of this session.`,
   heldNotSent: (err: unknown, held: readonly string[]) => `Jeeves could not deliver the messages you typed during the handover (${short(String(err))}). Please type them again: ${held.map(m => `"${short(m)}"`).join(', ')}`,
   submitFailed: (err: unknown) => `Jeeves could not send your goal (${short(String(err))}). Type it as your next prompt.`,
 }

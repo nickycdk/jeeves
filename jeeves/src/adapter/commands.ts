@@ -9,6 +9,8 @@ import type { Runtime } from './runtime.ts'
 import { addRevision, apply, claim, heldByOther, liveTasks, ownTask, projectTasks, readTask, nudgeIfWaiting, restoreHere, startTask, takeLock, type Task } from './task.ts'
 import { recover, restoredText } from './recover.ts'
 import { defaultsCommand, readDefaults } from './defaults.ts'
+import { autoCommand, setSessionOff } from './auto.ts'
+import type { AutoRow } from '../core/autostart.ts'
 import { diagnose } from './diagnose.ts'
 import { fullHistory, statsText } from './history.ts'
 import { purge } from './purge.ts'
@@ -35,7 +37,7 @@ export function pickTask<T extends { state: State }>(tasks: T[], sessionId: stri
  * only read. `idle`: no main-loop turn is open, so a requested handover needs the nudge to get a Stop (ST-4.7).
  * `endedHere`: session ids this process ended (by /clear), whose locks it may hand on.
  */
-export type Caller = { userTyped: boolean; idle?: boolean; endedHere: ReadonlySet<string> }
+export type Caller = { userTyped: boolean; idle?: boolean; endedHere: ReadonlySet<string>; autoRow?: AutoRow }
 
 const CHANGES = new Set(['purge', 'on', 'off', 'dod', 'check', 'threshold', 'pause', 'resume', 'continue', 'rotate', 'done', 'recover', 'retry'])
 
@@ -72,11 +74,14 @@ export async function relay(rt: Runtime, args: string, caller: Caller): Promise<
     return [taskText(own.state.taskId, view), ...errors.map(e => `Warning: ${e}`)].join('\n')
   }
   if (sub === 'defaults') return defaultsCommand(rt, rest, caller.userTyped)
+  if (sub === 'auto') return autoCommand(rt, rest, caller.userTyped, caller.autoRow ?? 'default')
   if (!CHANGES.has(sub)) return `Unknown command "${sub.slice(0, 20)}".\n${HELP}`
   if (!caller.userTyped) return MSG.userOnly
   const me = await rt.port.sessionId()
   // purge --all needs only the state folder, not this project (git may not have answered).
   if (sub === 'purge') return purge(rt, me, rest)
+  // ST-13.2: /jeeves off also keeps auto-start off for the rest of this session, with or without a task.
+  if (sub === 'off') await setSessionOff(rt)
   // R-25: no rotation can finish without the Stop hook, and none starts on an unsupported version.
   if (rt.probe.mode === 'unsupported' && ['on', 'resume', 'rotate', 'retry'].includes(sub)) return rt.probe.message ?? MSG.unsupported
   if (!rt.projectDir) return MSG.noProject(rt.stateRootError)
@@ -118,7 +123,7 @@ async function on(rt: Runtime, tasks: Task[], me: string, rest: string): Promise
 
 async function off(rt: Runtime, tasks: Task[], me: string): Promise<string> {
   const target = ownTask(tasks, me) ?? tasks.find(t => t.state.status !== 'DISABLED') ?? null
-  if (!target) return MSG.noTask
+  if (!target) return MSG.autoOffSession
   if (!(await claim(rt, target.dir, me))) return MSG.lockHeld(target.state.taskId)
   await apply(rt, target.dir, { type: 'OFF', sessionId: me })
   return MSG.turnedOff(target.state.taskId, target.dir)

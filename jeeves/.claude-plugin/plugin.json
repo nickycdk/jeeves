@@ -18,6 +18,13 @@
       "title": "Recover by itself",
       "description": "At session start, continue a task that an earlier session left interrupted (as /jeeves recover would), without asking. Off by default.",
       "default": false
+    },
+    "autoStart": {
+      "type": "string",
+      "title": "Auto-start",
+      "description": "Watch long sessions by itself, without /jeeves on. default follows /jeeves auto (on for new installs, off after an upgrade from 0.2); on or off here wins over /jeeves auto. A project's /jeeves defaults auto and /jeeves off for a session still win.",
+      "options": ["default", "on", "off"],
+      "default": "default"
     }
   }
 }
