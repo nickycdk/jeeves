@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "rotationId": "r_20261108_odbmof",
+  "capturedAt": "2026-11-08T11:04:25.647Z",
+  "git": {
+    "kind": "git",
+    "worktree": "/private/tmp/claude-501/-Users-user-Desktop-Projects-jeeves/7b5af765-7a8d-49d3-99eb-26546514b3e5/scratchpad/elayers2/b/repo",
+    "branch": "main",
+    "detached": false,
+    "head": "9e3e746424f59e0050edf4028653e0a924cae556",
+    "status": [],
+    "changedSinceStart": []
+  },
+  "crons": []
+}

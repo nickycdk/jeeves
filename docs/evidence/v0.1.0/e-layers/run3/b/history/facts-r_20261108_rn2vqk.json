@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "rotationId": "r_20261108_rn2vqk",
+  "capturedAt": "2026-11-08T11:08:00.055Z",
+  "git": {
+    "kind": "git",
+    "worktree": "/private/tmp/claude-501/-Users-user-Desktop-Projects-jeeves/7b5af765-7a8d-49d3-99eb-26546514b3e5/scratchpad/elayers3/b/repo",
+    "branch": "main",
+    "detached": false,
+    "head": "38664380773d73812d8119426ad01ead131198e9",
+    "status": [
+      {
+        "xy": "??",
+        "path": "stamp.txt"
+      }
+    ],
+    "changedSinceStart": [
+      "stamp.txt"
+    ]
+  },
+  "crons": []
+}

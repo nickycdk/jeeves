@@ -1,0 +1,23 @@
+[    0.0s] spawn claude --plugin-dir ~/Desktop/Projects/jeeves/jeeves --model haiku --permission-mode default --allowedTools Read Bash(npm test:*) Bash(git status:*) Bash(git log:*) Bash(git diff:*) Bash(wc:*) --debug-file /private/tmp/claude-501/-Users-user-Desktop-Projects-jeeves/7b5af765-7a8d-49d3-99eb-26546514b3e5/scratchpad/elayers3/b/claude-debug.log
+[    1.0s] key Down
+[    2.0s] key Enter
+[    9.4s] type '/jeeves on'
+[   10.1s] key Enter
+[   11.5s] type 'This is a test task with three steps; do them in order and do not skip any. 1) R'
+[   17.3s] key Enter
+[   19.7s] state ["MONITORING", null, 0, null]
+[   21.7s] state ["MONITORING", null, 0, 5.67]
+[   23.7s] state ["MONITORING", null, 0, 5.69]
+[   23.7s] DIALOG first permission dialog: holding it open 20 s
+[   43.7s] approve Enter on the preselected Yes
+[   43.7s] key Enter
+[   49.1s] state ["ROTATION_REQUESTED", "THRESHOLD", 0, 8.07]
+[   55.1s] state ["HANDOVER_GENERATING", "THRESHOLD", 0, 8.07]
+[   77.2s] state ["CONTINUING", "THRESHOLD", 1, 10.79]
+[   81.2s] state ["CONTINUING", "THRESHOLD", 1, 3.68]
+[   85.2s] state ["MONITORING", null, 1, 6.88]
+[  758.6s] type 'Answer without using any tools. In this conversation, can you see the contents o'
+[  761.5s] key Enter
+[  882.5s] TIMEOUT probe answer
+[  887.5s] type '/cost'
+[  888.2s] key Enter

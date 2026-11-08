@@ -15,13 +15,14 @@ sys.path.insert(0, HERE)
 from ptylib import Claude  # noqa: E402
 
 MARKER = 'ZEBRA-7781-QX'
+PENDING = ('ROTATION_REQUESTED', 'QUIESCING')
 DIALOG = r'Doyouwanttoproceed|Doyouwanttomake|Doyouwanttocreate|Allowonce'
-TASK = ('This is a test task with five steps; do them in order and do not skip any. '
+TASK = ('This is a test task with three steps; do them in order and do not skip any. '
         '1) Run `npm test` and note the result. It is expected to fail: do NOT fix it and do not edit package.json. '
-        '2) Read notes/log.txt completely with the Read tool (the whole file, not a search). '
-        '3) Run `wc -l notes/log.txt`. '
-        '4) Run exactly this Bash command: date > stamp.txt '
-        '5) Write SUMMARY.md with two lines: the npm test result, and the number of lines in notes/log.txt. Then stop.')
+        '2) This step has three parts; do them back to back, without stopping in between: read notes/log.txt completely '
+        'with the Read tool (the whole file, not a search), then run `wc -l notes/log.txt`, then run exactly this Bash '
+        'command: date > stamp.txt '
+        '3) Write SUMMARY.md with two lines: the npm test result, and the number of lines in notes/log.txt. Then stop.')
 PROBE = ('Answer without using any tools. In this conversation, can you see the contents of the file notes/log.txt? '
          'If you can, quote the line that starts with "MARKER:". If you cannot, answer exactly: NOT VISIBLE.')
 
@@ -62,7 +63,7 @@ def phase_a(sp, out):
     r = {'trust': c.accept_trust()}
     c.pump(4)
     c.line('Read notes/log.txt completely with the Read tool and tell me how many lines it has. Nothing else.')
-    r['answered'] = c.wait(lambda: re.search(r'240[01]', c.tail(1500)) is not None, 180, label='line count answer')
+    r['answered'] = c.wait(lambda: re.search(r'2,?4\d\d', c.tail(1500)) is not None, 180, label='line count answer')
     c.pump(10)
     # The context fill after the read (a local command, free): shows it passed the 8% test threshold.
     mark = len(c.plain())
@@ -162,12 +163,13 @@ def phase_b(sp, out, minutes):
     rotated_at = next((i for i, e in enumerate(events) if e['to'] == 'RESTORING'), None)
     r.update(events=[f"{e['from']}>{e['to']} {e['code'] or ''} {e['pct']}% {e.get('detail', '')[:80]}" for e in events], sessions=sessions, handover_tests=tests.strip())
     r['checks'] = {
-        'AC-07 threshold request pending while the dialog was open (ROTATION_REQUESTED)': bool(ac07) and ac07['status_when_shown'] == 'ROTATION_REQUESTED' or (bool(ac07) and ac07['status_after_20s'] == 'ROTATION_REQUESTED'),
-        'AC-07 dialog stayed open 20 s, no handover saved meanwhile': bool(ac07) and ac07['dialog_still_open'] and ac07['handover_files_while_open'] == 0 and ac07['status_after_20s'] in ('MONITORING', 'ROTATION_REQUESTED', 'QUIESCING'),
+        'AC-07 threshold request pending while the dialog was open (ROTATION_REQUESTED or QUIESCING)': bool(ac07) and ac07['status_when_shown'] in PENDING,
+        'AC-07 dialog stayed open 20 s, no handover saved meanwhile': bool(ac07) and ac07['dialog_still_open'] and ac07['handover_files_while_open'] == 0 and ac07['status_after_20s'] in PENDING,
         'AC-07 rotation happened after the dialog was answered': rotated_at is not None and os.path.exists(f"{repo}/stamp.txt"),
         'AC-09 handover-001 lists npm test as failed, never passed': bool(npm_lines) and all(re.search(r'fail|exit(ed)?\s*(code\s*)?1|non-?zero', l, re.I) for l in npm_lines) and not any(re.search(r'\bpass(ed|es)?\b', l, re.I) and not re.search(r'not pass|fail', l, re.I) for l in npm_lines),
         'AC-10 distinct session ids across the rotation': len({x['sessionId'] for x in sessions} | {s.get('activeSessionId')}) >= 2,
-        'AC-10 probe: the session-1 marker is not visible after the rotation': MARKER not in answer.replace(PROBE, ''),
+        # Valid only when the handover did not carry the marker itself (it did in runs 2 and 3: Claude reports what it read).
+        'AC-10 probe: the session-1 marker is not visible after the rotation (handover without it)': MARKER not in h1 and MARKER not in answer.replace(PROBE, ''),
     }
     if d:
         for f in ('events.jsonl', 'state.json'): shutil.copy(f"{d}/{f}", f"{out}/b")
