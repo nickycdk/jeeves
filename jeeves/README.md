@@ -10,8 +10,6 @@ A long task in one Claude Code conversation slowly fills the context window. Pas
 
 Jeeves does that for you, inside your normal terminal session. At a threshold you choose (default 50%), it asks Claude for a handover, checks it against git and its own record of what ran, saves it, runs `/clear`, and gives the fresh conversation your original task, the handover and the next steps. The task carries on.
 
-<!-- Demo GIF: recorded with the v0.1.0 evidence pack (ST-9.2). -->
-
 ## Requirements
 
 - Claude Code 2.1.319 or later (`claude --version`).
