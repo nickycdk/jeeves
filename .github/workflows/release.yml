@@ -29,7 +29,9 @@ jobs:
           done
           test -f "jeeves/docs/release-notes/$GITHUB_REF_NAME.md" || { echo "::error::jeeves/docs/release-notes/$GITHUB_REF_NAME.md is missing"; exit 1; }
       - run: jeeves/scripts/release-zip.sh HEAD dist
-      - uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2.4.0
+      # GitHub refuses attestations on user-owned private repos; public releases always get one.
+      - if: ${{ !github.event.repository.private }}
+        uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2.4.0
         with:
           subject-path: dist/*.zip
       - name: Draft release
