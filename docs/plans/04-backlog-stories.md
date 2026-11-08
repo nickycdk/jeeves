@@ -7,7 +7,7 @@ Stories are listed in dependency order; implement top to bottom. IDs are `ST-<ep
 
 Module names refer to `02-architecture-and-adrs.md` §3.
 
-**Progress (2026-11-08):** E0, E1, E2, E3, E4, E5 solved (M4 gate passed); E6 solved (M5 gate passed); plus ST-7.3. Each solved story has a **Status** line under its heading. Everything without one is open.
+**Progress (2026-11-08):** E0, E1, E2, E3, E4, E5 solved (M4 gate passed); E6 solved (M5 gate passed); E7 and E8 solved (M6 built; its gate waits for the maintainer's manual items: AC-01 on a fresh macOS user, the AC-02 Cursor checklist); plus ST-7.3. Each solved story has a **Status** line under its heading. Everything without one is open.
 
 ---
 
@@ -514,6 +514,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **DoD:** + recording.
 
 ### ST-8.2 Documentation set — M
+- **Status:** Solved (M6). README rewrite (problem, requirements, install/update/uninstall, quickstart, what it does and does not, stop reasons, modes, data, every command and setting with default, FAQ), `docs/troubleshooting.md`, `docs/architecture.md`, `docs/compatibility.md`, PRIVACY retention section. Walkthrough by a fresh agent that read only the docs: install, update, configure, uninstall worked; 13 doc problems found and fixed (2e329fc). Demo GIF left to ST-9.2.
 - **Cites:** FR-15, §17 README list, AC-21.
 - **Scope:** README (problem, demo GIF, requirements, install/update/uninstall, quickstart Cursor + Terminal, what auto does / doesn't / when it stops, data & privacy, commands, config, troubleshooting, FAQ), `docs/architecture.md`, `docs/troubleshooting.md`, `docs/compatibility.md`, `PRIVACY.md`.
 - **Depends on:** ST-4.8, ST-6.1.
@@ -531,6 +532,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **DoD:** standard.
 
 ### ST-8.4 Contributor experience — S
+- **Status:** Solved (M6). CONTRIBUTING (every script, test layers, PTY cost note, story/ADR process), `.github/ISSUE_TEMPLATE/{bug,feature,compatibility}.yml` (bug asks for `--diagnose`), PR template, CODE_OF_CONDUCT (Contributor Covenant 2.1 by reference; reporting address to be set at publication), root README. Fresh-clone walkthrough by a fresh agent: `npm ci`, 238 unit, 146 mod, lint, validate pass from the docs alone; full typecheck needs the engine types from one interactive `claude --plugin-dir .` (documented; `check-all.sh` falls back to core-only with a warning).
 - **Cites:** FR-15, AC-21.
 - **Scope:** CONTRIBUTING (setup, tests, PTY E2E cost note), issue/PR templates, CODE_OF_CONDUCT, `npm run` scripts listed.
 - **Depends on:** ST-1.1.
