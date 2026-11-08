@@ -1,6 +1,6 @@
 # Spec: Auto-start (installing Jeeves is the opt-in)
 
-**Status:** Draft, revision 3 (reviews 1 and 2 applied, §12). No plan or code yet. · **Date:** 2026-11-08 · **Target:** v0.3 (after v0.2.0 is public; §6 items may ship in v0.3.x) · **Changes:** ADR-009, AC-03, ADR-003, ADR-010, PRIVACY.md, README (§8) · **Relates to:** FR-05, FR-11, ADR-007, R-03, R-15, R-19, R-25.
+**Status:** Draft, revision 4 (reviews 1–3 applied, §12). **Design frozen:** further ideas go to §13, not to a revision 5. No plan or code yet. · **Date:** 2026-11-08 · **Target:** v0.3 (after v0.2.0 is public; §6 items may ship in v0.3.x) · **Changes:** ADR-009, AC-03, ADR-003, ADR-010, PRIVACY.md, README (§8) · **Relates to:** FR-05, FR-11, ADR-007, R-03, R-15, R-19, R-25.
 
 ## 1. Goal
 
@@ -30,7 +30,7 @@ Today a user must type `/jeeves on` before each task. They forget, and the sessi
 
 ### 5.1 When a session is auto-watched
 
-At `session.start` Jeeves decides once whether the session is **eligible**:
+At `session.start` Jeeves decides **once**, for the whole session, whether it is **eligible** (a later change, such as switching from a 200K to a 1M model, does not start watching; `/jeeves on` does):
 1. **Interactive**: `isInteractive` true. Never under `claude -p`, the SDK or background agents.
 2. **Full mode**: not assisted, not unsupported (old version or the R-25 skip, which is re-checked after the first answer and ends an auto task like item 4's switch).
 3. **A git repository**: inside a git work tree; subfolders and linked worktrees count (each worktree is its own project, as today).
@@ -47,14 +47,16 @@ An eligible session starts an auto task at the first typed prompt (§5.2), unles
 - **Then the fixable ones, easiest first:**
   1. off for this session (`/jeeves on`)
   2. off for this project (`/jeeves defaults auto on`)
-  3. off everywhere or not turned on after an upgrade (`/jeeves auto on`)
+  3. off everywhere (`/jeeves auto on`), or (3b) not turned on after an upgrade (`/jeeves auto on`)
   4. resumed conversation (start a new one)
   5. not a git repository
-  6. 200K window
+  6. 200K window at start
+
+When several reasons apply, the line ends with `(+N more)`, so a fix that removes only one reason doesn't look like the whole answer (`/jeeves status --diagnose` lists all).
 
 ### 5.2 Lazy start, near-threshold rule, grace period
 
-- Session start writes no task (the cleanup in §5.9 is the only write at session start).
+- Session start creates no task. The cleanup in §5.9 is the only write to task state at session start; the upgrade check (`auto.json`) and the notice key (`autoNoticeShown`) are the other writes there.
 - The task is created at the **first prompt typed at the terminal**: origin kind `composer`, not a slash command. Any other origin kind (`bridge`, `sdk`, `task-notification`, a plugin's `$.prompt.submit`, any other) never starts an auto task; one test per kind.
 - **Near-threshold rule.** If the first reading of a new auto task is within 10 points of the threshold (a large CLAUDE.md, a pasted log), the task ends at once (DISABLED, files kept) and Jeeves says so in one line: `Jeeves: not watching this session, context already at 34%; /jeeves on to watch anyway`.
 - **Grace period.** An auto task never rotates in its first 3 main turns.
@@ -85,11 +87,11 @@ The summary is data, never instructions (R-19). It cannot change the task, the D
 
 | Command or setting | Effect |
 |---|---|
-| `/jeeves later` (new) | Skips the next handover. This task's threshold moves up 10 points (never past 90%), with the warning again 5 points before. Works in auto and explicit tasks; repeatable. At 90% the warning says `Jeeves hands over at 90% (now 85%); can't postpone further. /jeeves off to keep this conversation.` A rotation already under way is not stopped (`/jeeves pause` stays for that) |
+| `/jeeves later` (new) | Skips the next handover. This task's threshold moves up 10 points, never past the **cap**, with the warning again 5 points before. The cap is 90%, or 5 points below the session's auto-compaction point when that is lower (`$.session.usage()` with a locally estimated breakdown gives `autoCompactThreshold` in tokens, no model call; read at each `later`, since a model switch moves it), so a postponed handover always comes before Claude Code compacts. Works in auto and explicit tasks; repeatable. At the cap the warning says `Jeeves hands over at 85% (now 80%); can't postpone further. /jeeves off to keep this conversation.` A rotation already under way is not stopped (`/jeeves pause` stays for that) |
 | `/jeeves off` | Ends the current task (files kept) and stops auto-start for the rest of this session |
 | `/jeeves on [goal]` | Always v0.2 behaviour: an **explicit** task. After `/jeeves off`, auto-start stays off for the session |
 | `/jeeves defaults auto off` / `on` | This project, in the project's `config.json` (schema bump; v0.2 ignores the file as made by a newer Jeeves); `defaults clear` resets it |
-| `/jeeves auto off` / `on` (new) | Everywhere: writes `auto.json` in Jeeves's state folder (never Claude settings) |
+| `/jeeves auto off` / `on` (new) | Everywhere: writes `auto.json` in Jeeves's state folder (never Claude settings). When the `/config` row is set to `on` or `off` and so takes precedence, it says so: `Saved, but /config → Auto-start is set to on, which takes precedence.` |
 | `/config` → Jeeves → **Auto-start** (`autoStart`) | Choice row: `default`, `on`, `off`. `on`/`off` here win over `auto.json`. `default` resolves from `auto.json`; without that file it is on for fresh installs and off for upgraders (§5.6) |
 
 Precedence: session, then project, then the `/config` row when set to `on`/`off`, then `auto.json`, then the fresh/upgrade default. `/jeeves status` names the source.
@@ -113,17 +115,17 @@ An earlier install promised that nothing is recorded without `/jeeves on`. That 
 
 ### 5.8 Interrupted sessions
 
-- **Mid-rotation (HANDOVER_GENERATING … RESTORING):** an **auto** task recovers by itself at the next session start, with a message, whatever `autoRecover` says. The user never asked for that rotation, so cleaning it up is not their job. An **explicit** task follows `autoRecover` as today.
+- **Mid-rotation (HANDOVER_GENERATING … RESTORING):** an **auto** task recovers by itself, with a message, whatever `autoRecover` says. The user never asked for that rotation, so cleaning it up is not their job. It does so only in a session that passes the same gates as auto-start: interactive, full mode, a fresh conversation (§5.1 items 1, 2 and 5). Under `-p`, the SDK, assisted mode or in a resumed conversation it waits for such a session. A typed `/jeeves recover` still works anywhere, as today. An **explicit** task follows `autoRecover` as today.
 - **Ended in MONITORING** (the session simply ended): the auto task is not resumed; the new session starts its own.
 
 ### 5.9 Cleanup
 
-At session start, Jeeves deletes **auto** tasks that ended (DISABLED or COMPLETED, or MONITORING with no live lock) **without a single rotation** and older than 7 days:
+At session start, Jeeves deletes **auto** tasks that ended (DISABLED or COMPLETED, or MONITORING with no live lock) **without a single rotation**, 7 days after they ended (the state's last update, `updatedAt`, not its creation):
 - through the existing purge code, under the resolved state folder (a custom `stateDir` included);
 - with auto-start on or off;
 - never touching explicit tasks or tasks with handovers.
 
-This is the one write at session start.
+This is the only write to task state at session start.
 
 ### 5.10 Privacy text
 
@@ -149,16 +151,19 @@ These complete the experience. They may ship in v0.3.x if v0.3 needs to be small
 
 A session that is **not** auto-watched gets one hint when its context reaches the point where a watched session would be warned (threshold − 5). Text:
 
-`Jeeves: this session is at 45%. /jeeves on would hand it over to a fresh conversation before it fills up.`
+`Jeeves: this session is at 45%. /jeeves on would hand it over to a fresh conversation before it fills up. /jeeves auto off hides this.`
 
-- When it appears: once per session, only for the fixable reasons 3–6 of §5.1 (not after the user turned it off for this session or project, not under `-p`).
+- When it appears: once per session, only for reason 3b (not turned on after an upgrade) and reasons 4–6 of §5.1. **Never after an explicit off at any level** (session, project, `/jeeves auto off`, the `/config` row), and never under `-p`.
+- When it stops: after 3 hints in a row that were not followed by `/jeeves on` or `/jeeves auto on` (a plugin-store counter, reset when the user acts on one). The text ends with `/jeeves auto off hides this.`
 - What it costs: no tokens, no files.
 - Why it matters: it covers the 200K windows until Q8 is decided, and it is how most people will find out what Jeeves does.
 
 ### 6.2 Easy to trust, easy to undo
 
 - The rotation line says how to get the old conversation back, which Claude Code keeps:
-  `Jeeves: handover validated (goal: finish the CSV parser), starting fresh. Previous conversation: claude --resume 1a2b3c4d`.
+  `Jeeves: handover validated (goal: finish the CSV parser), starting fresh. Previous conversation: claude --resume <full session id>`.
+- The full id is printed: `claude --resume` documents a session id or name, not a prefix. Jeeves already records the ending session's id in `sessions/NNN.json` at its own `/clear`.
+- **Resuming the old conversation** is safe: it has turns, so it is not auto-watched, and it does not own the task (the lock moved to the fresh conversation at the rotation). There `/jeeves status` says the task belongs to another session, as for any other session today. No second conversation can drive the same task.
 - **`/jeeves handover`** (new) shows the last handover: its file, the current goal, the first next actions, cut to the status width. Users can see what was carried over.
 
 ### 6.3 A quiet status line
@@ -208,18 +213,18 @@ The 8-line limit holds. The commands line sits with the reason line and the warn
 | AC | Requirement | Layers |
 |---|---|---|
 | AC-35 | Fresh install, eligible session: the notice shows at `session.start`; the first `composer` prompt **in that same session** creates the auto task, word for word; nothing is written before it; every other origin kind never starts one (one test per kind) | U, I, E |
-| AC-36 | Not eligible under `-p`/SDK, assisted, unsupported, outside git, 200K window (read at `session.start`, no task file written), resumed conversation; status shows the first reason in the §5.1 order when several apply | I |
+| AC-36 | Not eligible under `-p`/SDK, assisted, unsupported, outside git, 200K window (read at `session.start`, no task file written), resumed conversation; eligibility is decided once at `session.start` (a later switch to 1M does not start watching; the reason reads "200K window at start"); status shows the first reason in the §5.1 order and `(+N more)` when several apply | I |
 | AC-37 | Near-threshold rule with its message, 3-turn grace period, and a model switch to a non-eligible window ending the auto task with its message | U, I |
-| AC-38 | Opt-out levels and precedence (session, project, `/config` on/off, `auto.json`, default); `/jeeves auto on/off` writes only `auto.json`; Claude settings never written; `/jeeves on` after `/jeeves off` gives an explicit task and auto stays off for the session | U, I |
-| AC-39 | `/jeeves later` moves the threshold by 10, warns again, says "can't postpone further" at 90%, works in auto and explicit tasks, does not stop a running rotation | U, I |
+| AC-38 | Opt-out levels and precedence (session, project, `/config` on/off, `auto.json`, default); `/jeeves auto on/off` writes only `auto.json` and says when the `/config` row overrides it; Claude settings never written; `/jeeves on` after `/jeeves off` gives an explicit task and auto stays off for the session | U, I |
+| AC-39 | `/jeeves later` moves the threshold by 10, warns again, never past the cap (90%, or 5 points below the auto-compaction point when lower, auto-compaction off counted as no limit below 90%), says "can't postpone further" at the cap, works in auto and explicit tasks, does not stop a running rotation | U, I |
 | AC-40 | User `/clear`: ends an auto task with its message; pauses an explicit task with its message; status shows auto/explicit | I |
-| AC-41 | Live, non-Team account, haiku: two fixtures (200K and 1M), each with and without Jeeves. Reported: tokens and cost (cache reads included), number of rotations, and a pass/fail outcome (the fixture's checks pass after the last rotation). Plus two rotations in auto mode with nothing typed but the task. The 200K result decides Q8 | E |
+| AC-41 | Live, non-Team account: two fixtures (200K and 1M; haiku has a 1M window, seen in every M8 run; the 200K fixture needs a 200K model or setting, see Q7), each with and without Jeeves. Reported: tokens and cost (cache reads included), number of rotations, and a pass/fail outcome (the fixture's checks pass after the last rotation). Plus two rotations in auto mode with nothing typed but the task. The 200K result decides Q8 | E |
 | AC-42 | Current goal: required in new handovers with the §5.3 checks; v1 blocks valid for older tasks; continuation order puts the user's words first and labels the summary; the rotation line shows it; the summary never changes the task, DoD or checks | U, I |
 | AC-43 | Upgrade: `firstActivationShown` or an existing project makes `auto.json` say off; never auto-watched until `/jeeves auto on` or the `/config` row; upgrade notice once; tasks, defaults and settings byte-identical after the first v0.3 session; fresh installs resolve to on; the `autoNoticeShown` and `firstActivationShown` keys are distinct | I |
-| AC-44 | Cleanup deletes only ended auto tasks with no rotation, older than 7 days, under a custom `stateDir` too, with auto-start on or off; never explicit or rotated tasks | U, I |
+| AC-44 | Cleanup deletes only ended auto tasks with no rotation, 7 days after they ended (`updatedAt`), under a custom `stateDir` too, with auto-start on or off; never explicit or rotated tasks | U, I |
 | AC-45 | Downgrade: a v0.2 build (test kit) refuses v0.3 tasks with `SCHEMA_TOO_NEW`, ignores a v0.3 `config.json` and `auto.json`; nothing is rewritten | I, C |
-| AC-46 | Auto tasks interrupted mid-rotation recover by themselves at the next session start with a message; explicit tasks follow `autoRecover` | I |
-| AC-47 | §6: the hint (once per session, only for reasons 3–6, no files), the rotation line's `claude --resume` id, `/jeeves handover`, the quiet status line in auto tasks, `/jeeves` alone with reason and suggested commands within 8 lines | U, I |
+| AC-46 | Auto tasks interrupted mid-rotation recover by themselves with a message, only in an interactive, full-mode, fresh session (they wait under `-p`/SDK, assisted, resumed); a typed `/jeeves recover` works anywhere; explicit tasks follow `autoRecover` | I |
+| AC-47 | §6: the hint (once per session, only for reason 3b and reasons 4–6, never after an explicit off at any level, stops after 3 unanswered hints, ends with "/jeeves auto off hides this", no task files), the full resume id and a resumed old conversation that cannot drive the task, the rotation line's `claude --resume` id, `/jeeves handover`, the quiet status line in auto tasks, `/jeeves` alone with reason and suggested commands within 8 lines | U, I |
 
 All existing AC keep passing. The I-layer suite runs twice: once with `autoStart` off (v0.2 behaviour kept), once with it on.
 
@@ -233,7 +238,7 @@ All existing AC keep passing. The I-layer suite runs twice: once with `autoStart
 | Q4 | `/clear` in an auto task | End it, with a message (§5.7) |
 | Q5 | Current goal for all tasks | Yes, user's words first (§5.3) |
 | Q6 | Setting name | Auto-start, key `autoStart` |
-| Q7 | Who runs AC-41, on which non-Team account, and when | **Open: the one blocker to approval.** It blocks AC-41, Q8 and the README cost wording. Needs an owner and a date |
+| Q7 | Who runs AC-41, on which non-Team account, and when | **Open: the one blocker to approval.** It blocks AC-41, Q8 and the README cost wording. Needs an owner and a date. **Before assigning it, confirm two things:** (a) how to get a 200K window for the small fixture (a 200K model on that account, or a setting that caps the window), checked in a free session by reading `/jeeves status`'s threshold in tokens, no prompt sent; (b) the cost estimate, recomputed from current prices for the models chosen, since turns of 400–900K tokens dominate it |
 | Q8 | Auto-start on 200K windows | Off at first; widen only if AC-41's 200K fixture shows an acceptable rotation rate with a passing outcome. "Acceptable" is set by the maintainer before the run |
 
 ## 11. Rough size
@@ -249,7 +254,7 @@ All existing AC keep passing. The I-layer suite runs twice: once with `autoStart
   - privacy and README text
   - the I-layer suite in both modes, downgrade tests
 - **§6 (polish):** about 2 days more: hint, rotation line, `/jeeves handover`, quiet status line, `/jeeves` alone.
-- **Live E run (AC-41):** about US$0.50–1.00 with haiku, on a non-Team account.
+- **Live E run (AC-41):** cost to be estimated under Q7 (b) once the models are known; the earlier US$0.50–1.00 assumed haiku for both windows and is withdrawn.
 
 If v0.3 must be smaller, §6.1 (hint) and §6.5 (`/jeeves` alone) ship first among the polish, since they decide whether people who are not auto-watched ever see Jeeves.
 
@@ -287,3 +292,26 @@ If v0.3 must be smaller, §6.1 (hint) and §6.5 (`/jeeves` alone) ship first amo
 | `/jeeves` as the one command | Reason and suggested commands (§6.5) |
 | `autoRecover` for auto tasks | Auto tasks recover by themselves (§5.8, AC-46) |
 | Q7 | Still open, marked as the one blocker (§10) |
+
+**Revision 4 (review 3):**
+
+| Review point | Change |
+|---|---|
+| The hint nagged people who turned it off | Only for reason 3b (upgrade default) and 4–6, never after an explicit off at any level, stops after 3 unanswered hints, ends with "/jeeves auto off hides this" (§6.1, AC-47) |
+| Auto-recovery without auto-start's gates | Only in an interactive, full-mode, fresh session; otherwise waits; typed `/jeeves recover` works anywhere (§5.8, AC-46) |
+| `/jeeves later` could pass auto-compaction | Cap is 90% or 5 points below the auto-compaction point, read from `$.session.usage()` with no model call (§5.5, AC-39) |
+| `/jeeves auto` silently overridden | Says when the `/config` row takes precedence (§5.5, AC-38) |
+| AC-41 may not be runnable | Haiku's 1M window confirmed from M8 runs; the 200K fixture's model or setting and the cost are now preconditions of Q7; the old estimate withdrawn (AC-41, Q7, §11) |
+| Resume id | Full id (prefixes are not documented); the id is already recorded at Jeeves's own `/clear`; a resumed old conversation can't drive the task (§6.2, AC-47) |
+| Wording: "the one write at session start" | "The only write to task state at session start", other writes named (§5.2, §5.9) |
+| One-line reason could mislead | `(+N more)` (§5.1, AC-36) |
+| Switch from 200K to 1M | Eligibility decided once at `session.start`; reason "200K window at start" (§5.1, AC-36) |
+| Cleanup age undefined | 7 days after the task ended (`updatedAt`) (§5.9, AC-44) |
+| Scope | Design frozen; further ideas go to §13 |
+
+## 13. v0.3.x ideas (not in this spec)
+
+New ideas go here, not into a new revision.
+
+- A setting for the cleanup age (Q3), if someone asks.
+- Widening auto-start to 200K windows, once AC-41 has decided Q8.
