@@ -26,12 +26,18 @@ function nextActions(text: string, max: number): string[] {
   return out
 }
 
+const parseEvents = (lines: readonly string[]) => lines.flatMap(l => { try { return [JSON.parse(l) as EventLine] } catch { return [] } })
+
+/** A task's session records in file order; `r` is null when a file could not be read. */
+async function readSessions(rt: Runtime, dir: string) {
+  const names = (await rt.port.listFiles(join(dir, 'sessions')).catch(() => [] as string[])).filter(f => /^\d{3,}\.json$/.test(f)).sort()
+  return Promise.all(names.map(async f => ({ f, r: await rt.port.read(join(dir, 'sessions', f)).then(t => parseJson('session', t), () => null) })))
+}
+
 /** Each handover's SHA-256 and time from its VALIDATING > ROTATING event (v0.2), plus the latest from state.json (all v0.1 has). */
 export function handoverHashes(s: State, events: readonly string[], at = new Map<string, string>()): Map<string, string> {
   const sha = new Map<string, string>()
-  for (const l of events) {
-    let e: EventLine
-    try { e = JSON.parse(l) as EventLine } catch { continue }
+  for (const e of parseEvents(events)) {
     const m = e.to === 'ROTATING' ? HANDOVER_REF_RE.exec(e.detail) : null
     if (m) { sha.set(m[1]!, m[2]!); at.set(m[1]!, e.at) }
   }
@@ -49,8 +55,7 @@ export async function fullHistory(rt: Runtime, dir: string, s: State, events: re
   if (!files.length) return ['', 'No handovers yet.']
   // Session records are written only when a rotation's /clear ends a session; pair each handover with the first one
   // that ended after it was saved (in order, for a v0.1 task whose events carry no refs).
-  const names = (await rt.port.listFiles(join(dir, 'sessions')).catch(() => [] as string[])).filter(f => /^\d{3,}\.json$/.test(f)).sort()
-  const recs = await Promise.all(names.map(async f => ({ f, r: await rt.port.read(join(dir, 'sessions', f)).then(t => parseJson('session', t), () => null) })))
+  const recs = await readSessions(rt, dir)
   const used = new Set<string>()
   const out = ['', 'Handovers:']
   for (const file of files) {
@@ -74,10 +79,8 @@ export async function fullHistory(rt: Runtime, dir: string, s: State, events: re
 /** ST-11.4: `/jeeves stats`, for this project and the task status shows. Reads only. */
 export async function statsText(rt: Runtime, tasks: readonly { state: State; dir: string }[], unreadable: number, current: { state: State; dir: string } | null): Promise<string> {
   const files = await Promise.all(tasks.map(async t => {
-    const names = (await rt.port.listFiles(join(t.dir, 'sessions')).catch(() => [] as string[])).filter(n => /^\d{3,}\.json$/.test(n))
-    const recs = await Promise.all(names.map(n => rt.port.read(join(t.dir, 'sessions', n)).then(x => parseJson('session', x), () => null)))
-    const events = (await rt.storage.readEvents(t.dir)).flatMap(l => { try { return [JSON.parse(l) as EventLine] } catch { return [] } })
-    return { dir: t.dir, files: { state: t.state, sessions: recs.flatMap(r => (r?.ok ? [r.value] : [])), events } }
+    const [recs, events] = await Promise.all([readSessions(rt, t.dir), rt.storage.readEvents(t.dir).then(parseEvents)])
+    return { dir: t.dir, files: { state: t.state, sessions: recs.flatMap(({ r }) => (r?.ok ? [r.value] : [])), events } }
   }))
   const cur = current ? files.find(f => f.dir === current.dir) : undefined
   return [
