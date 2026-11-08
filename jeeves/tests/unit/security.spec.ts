@@ -37,3 +37,14 @@ test('T8: zero runtime dependencies; the one dev dependency is pinned exactly', 
   for (const [name, v] of Object.entries(pkg.devDependencies ?? {})) assert.match(String(v), /^\d+\.\d+\.\d+$/, `${name}@${v} is not pinned`)
 })
 
+
+test('F-8: every GitHub Action is pinned by commit SHA; only the release job may write', () => {
+  const dir = join(ROOT, '../.github/workflows')
+  for (const f of readdirSync(dir)) {
+    const text = readFileSync(join(dir, f), 'utf8')
+    for (const m of text.matchAll(/uses:\s*(\S+)/g)) assert.match(m[1]!, /^(\.\/|[\w.-]+\/[\w.-]+@[0-9a-f]{40}$)/, `${f}: ${m[1]}`)
+    assert.match(text, /^permissions:\n  contents: read$/m, `${f}: workflow-level permissions must be read-only`)
+    assert.doesNotMatch(text, /pull_request_target/, f)
+    if (f !== 'release.yml') assert.doesNotMatch(text, /contents: write|id-token: write/, f)
+  }
+})

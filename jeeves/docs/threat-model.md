@@ -55,7 +55,7 @@ Severity follows the impact if exploited, given the precondition.
 | F-5 | Instructions inside a handover reach later conversations (T3) | Low | Accepted; documented here and in PRIVACY.md |
 | F-6 | Two takers racing on a dead takeover guard can collide (`storage.ts` shortcut comment) | Low | Accepted for 0.1: needs several processes auto-recovering the same task in the same second |
 | F-7 | The state root gets mode 700 only when Jeeves creates it; a folder the user made keeps its own mode | Low | Accepted: deliberate (it may be a folder the user shares); the README names the folder |
-| F-8 | GitHub Actions in `.github/workflows` are pinned by tag, not by commit SHA (08 §4) | Low | Open: done when the release workflow lands (ST-9.3) |
+| F-8 | GitHub Actions in `.github/workflows` are pinned by tag, not by commit SHA (08 §4) | Low | Fixed in ST-9.3: every action pinned by commit SHA, checked by `tests/unit/security.spec.ts` |
 
 No Critical or High findings. Dependencies: none at runtime; one dev dependency (`typescript`, pinned exactly, lockfile committed).
 

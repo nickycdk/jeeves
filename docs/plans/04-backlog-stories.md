@@ -562,7 +562,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **DoD:** + `docs/evidence/v0.1.0/`.
 
 ### ST-9.3 Naming check and release pipeline — M
-- **Status:** Open. The name is chosen (Jeeves, D-22) and applied in code and docs; the availability and trademark check and the release pipeline are still to do.
+- **Status:** Prepared (M7, 2026-11-08); publishing is the maintainer's. Naming check: `docs/evidence/v0.1.0/naming-check.md` (usable for a free OSS beta; Medium trademark note on JEEVES.AI and a pending ASK JEEVES filing, confirm in TSDR). Release pipeline: `jeeves/scripts/release-zip.sh` (uncompressed `git archive`: same SHA-256 from two clean clones and the working tree, verified locally; the unzipped artifact passes `claude plugin validate`), `.github/workflows/release.yml` (tag → CI via `workflow_call` → zip + SHA-256 → provenance attestation → **draft** release), Actions pinned by SHA in all workflows; version 0.1.0 in `plugin.json`/`package.json`; release notes `jeeves/docs/release-notes/v0.1.0.md`. Not done: the dry run on a fork (no remote; maintainer), the tag, the publication, maintainer sign-off.
 - **Cites:** FR-15, R-10, PRD §17 branding.
 - **Scope:** check name/domain/GitHub/npm availability and trademark conflicts; release workflow (tag → CI → GitHub release with zip + checksums + provenance attestation); CHANGELOG; version bump in plugin.json.
 - **Depends on:** ST-9.1, ST-9.2.
