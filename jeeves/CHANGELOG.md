@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased (0.3)
+
+- State files for auto-start (ST-13.1): a task records whether it started by `/jeeves on` or by itself (`state.json` schema 2; 0.2 tasks read as started by `/jeeves on`), a project's `config.json` can hold `autoStart`, and a new `auto.json` in the state folder holds the setting for everywhere. Nothing reads them yet. **Going back to 0.2:** 0.2 refuses a task that 0.3 has touched ("update Jeeves") and never rewrites it; it ignores a project `config.json` only when `autoStart` is set there (every other one keeps its threshold and checks), and never reads `auto.json`. No data is lost either way.
+
 ## 0.2.0 (release candidate; dated when tagged)
 
 Release notes: `docs/release-notes/v0.2.0.md`.

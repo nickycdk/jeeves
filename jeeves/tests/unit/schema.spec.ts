@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { applyMigrations, check, migrate, MIGRATIONS, parseJson, type Kind } from '../../src/core/schema.ts'
-import { SCHEMA_VERSION } from '../../src/core/types.ts'
+import { AUTO_SCHEMA_VERSION, DEFAULTS_SCHEMA_VERSION, SCHEMA_VERSION, STATE_SCHEMA_VERSION } from '../../src/core/types.ts'
 import { prng, VALID, validState } from './helpers.ts'
 
 const KINDS = Object.keys(VALID) as Kind[]
@@ -64,11 +64,13 @@ test('v1 round-trips through JSON for every kind', () => {
 test('an unknown higher version is rejected as SCHEMA_TOO_NEW', () => {
   for (const k of KINDS) {
     const field = k === 'event' ? 'v' : 'schemaVersion'
-    const r = migrate(k, { ...VALID[k], [field]: SCHEMA_VERSION + 1 })
+    const r = migrate(k, { ...VALID[k], [field]: MIGRATIONS[k].length + 2 })
     assert.equal(r.ok, false)
     assert.equal(!r.ok && r.code, 'SCHEMA_TOO_NEW', k)
   }
-  assert.equal(MIGRATIONS.state.length + 1, SCHEMA_VERSION)
+  // Each kind's current version is its migration count + 1, and the writers use these constants.
+  const current = { state: STATE_SCHEMA_VERSION, defaults: DEFAULTS_SCHEMA_VERSION, auto: AUTO_SCHEMA_VERSION, config: SCHEMA_VERSION, project: SCHEMA_VERSION, session: SCHEMA_VERSION, lock: SCHEMA_VERSION, event: SCHEMA_VERSION }
+  for (const k of KINDS) assert.equal(MIGRATIONS[k].length + 1, current[k], k)
 })
 
 test('the migration pipeline applies each step in order', () => {

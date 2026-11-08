@@ -1,7 +1,7 @@
 // Runtime guards and migrations for every persisted contract (02 §6). Hand-written: no runtime deps (ADR-008).
 import {
-  DEFAULTS_CHECKS_MAX, LEDGER_COMMAND_MAX, LEDGER_MAX, MODES, REASON_CODES, ROTATION_STATES, ROTATION_STEPS, SCHEMA_VERSION, STATUSES, TRIGGERS,
-  type CommandEntry, type Config, type EditEntry, type EventLine, type LockOwner, type ProjectDefaults, type ProjectRecord, type SessionRecord, type State,
+  AUTO_SCHEMA_VERSION, DEFAULTS_CHECKS_MAX, DEFAULTS_SCHEMA_VERSION, LEDGER_COMMAND_MAX, LEDGER_MAX, MODES, ON_OFF, ORIGINS, REASON_CODES, ROTATION_STATES, ROTATION_STEPS,
+  SCHEMA_VERSION, STATE_SCHEMA_VERSION, STATUSES, TRIGGERS, type AutoFile, type CommandEntry, type Config, type EditEntry, type EventLine, type LockOwner, type ProjectDefaults, type ProjectRecord, type SessionRecord, type State,
 } from './types.ts'
 import { COMMIT_RE } from './git.ts'
 import { HANDOVER_REF_RE } from './handover/render.ts'
@@ -87,7 +87,7 @@ const ledgerEntry: Guard = (v, p, e) => {
 }
 
 const stateShape = obj<State>({
-  schemaVersion: ver, taskId: safeName, projectId: safeName,
+  schemaVersion: int(1, STATE_SCHEMA_VERSION), taskId: safeName, projectId: safeName, origin: oneOf(ORIGINS),
   status: oneOf(STATUSES), reason, mode: oneOf(MODES), taskRevision: int(0), sessionSequence: int(0),
   activeSessionId: nullable(str({ nonEmpty: true })), sessionStart: { optional: obj<NonNullable<State['sessionStart']>>({ at: iso, pct: nullable(num(0, 100)), firstPct: { optional: num(0, 100) } }) },
   rotation: nullable(rotation),
@@ -111,7 +111,11 @@ const config = obj<Config>({
   quiesceMaxTurns: int(1, 100), quiesceMaxMinutes: int(1, 1440), autoRecover: bool,
   handoverMaxChars: int(1000, 100_000), verificationCommands: arr(str({ nonEmpty: true, max: 2000 }), 50),
 })
-const defaults = obj<ProjectDefaults>({ schemaVersion: ver, thresholdPercent: { optional: int(20, 90) }, verificationCommands: arr(str({ nonEmpty: true, max: 2000 }), DEFAULTS_CHECKS_MAX) })
+const defaults = obj<ProjectDefaults>({
+  schemaVersion: int(1, DEFAULTS_SCHEMA_VERSION), thresholdPercent: { optional: int(20, 90) }, verificationCommands: arr(str({ nonEmpty: true, max: 2000 }), DEFAULTS_CHECKS_MAX),
+  autoStart: { optional: oneOf(ON_OFF) },
+})
+const auto = obj<AutoFile>({ schemaVersion: int(1, AUTO_SCHEMA_VERSION), default: oneOf(ON_OFF), reason: { optional: str({ max: 200 }) } })
 const project = obj<ProjectRecord>({ schemaVersion: ver, repoRoot: str({ nonEmpty: true }), worktree: str({ nonEmpty: true }), createdAt: iso })
 const session = obj<SessionRecord>({
   schemaVersion: ver, sessionId: str({ nonEmpty: true }), startedAt: iso, endedAt: nullable(iso),
@@ -124,14 +128,21 @@ const event = obj<EventLine>({
   detail: str({ max: 2000 }),
 })
 
-export type Kinds = { state: State; config: Config; defaults: ProjectDefaults; project: ProjectRecord; session: SessionRecord; lock: LockOwner; event: EventLine }
+export type Kinds = { state: State; config: Config; defaults: ProjectDefaults; project: ProjectRecord; session: SessionRecord; lock: LockOwner; event: EventLine; auto: AutoFile }
 export type Kind = keyof Kinds
-const GUARDS: { [K in Kind]: Guard } = { state, config, defaults, project, session, lock, event }
-const VERSION_FIELD: { [K in Kind]: string } = { state: 'schemaVersion', config: 'schemaVersion', defaults: 'schemaVersion', project: 'schemaVersion', session: 'schemaVersion', lock: 'schemaVersion', event: 'v' }
+const GUARDS: { [K in Kind]: Guard } = { state, config, defaults, project, session, lock, event, auto }
+const VERSION_FIELD: { [K in Kind]: string } = { state: 'schemaVersion', config: 'schemaVersion', defaults: 'schemaVersion', project: 'schemaVersion', session: 'schemaVersion', lock: 'schemaVersion', event: 'v', auto: 'schemaVersion' }
 
 type Migration = (old: Record<string, unknown>) => Record<string, unknown>
-/** MIGRATIONS[kind][n - 1] turns version n into n + 1. Empty until schema v2 exists. */
-export const MIGRATIONS: { [K in Kind]: Migration[] } = { state: [], config: [], defaults: [], project: [], session: [], lock: [], event: [] }
+/** MIGRATIONS[kind][n - 1] turns version n into n + 1; a kind's current version is its length + 1. */
+export const MIGRATIONS: { [K in Kind]: Migration[] } = {
+  state: [old => ({ ...old, origin: 'explicit' })], // v1 → v2 (v0.3): every v0.2 task was started by /jeeves on
+  config: [], defaults: [old => old], // v1 → v2 (v0.3): only adds the optional autoStart
+  project: [], session: [], lock: [], event: [], auto: [],
+}
+
+/** The version a project `config.json` is written with: v2 only while `autoStart` is set, so a v0.2 build keeps the project's threshold and checks after a downgrade. */
+export const defaultsVersion = (d: ProjectDefaults) => (d.autoStart === undefined ? 1 : DEFAULTS_SCHEMA_VERSION)
 
 /** Validate an already-current value. */
 export function check<K extends Kind>(kind: K, v: unknown): Result<Kinds[K]> {

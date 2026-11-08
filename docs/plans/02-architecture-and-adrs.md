@@ -228,9 +228,10 @@ All JSON files carry `schemaVersion` (start at 1). `schema.ts` has a migration f
 ### 6.1 Layout
 ```
 <stateRoot>/
+  auto.json                        v0.3 auto-start everywhere { schemaVersion: 1, default: on|off, reason? } (ADR-009 A3, ST-13.1); written by /jeeves auto and the upgrade check; invalid → ignored
   projects/<projectId>/            projectId = sha256(realpath(git common dir) + "|" + realpath(worktree root))[:16]
     project.json                   { schemaVersion, repoRoot, worktree, createdAt }
-    config.json                    v0.2 per-project defaults { schemaVersion, thresholdPercent?, verificationCommands (≤ 20) } (ADR-009 A2, ST-11.1); invalid → ignored, said in status
+    config.json                    per-project defaults { schemaVersion, thresholdPercent?, verificationCommands (≤ 20), autoStart? } (ADR-009 A2, ST-11.1; autoStart v0.3, ST-13.1); written as schema 2 only while autoStart is set, else schema 1 (v0.2 keeps reading it after a downgrade); invalid → ignored, said in status
     tasks/<taskId>/                taskId = "t_" + yyyymmdd + "_" + 6 random base32
       task.md                      current task view (rendered from revisions)
       task-rev-001.md …            immutable; rev 1 = verbatim original prompt
@@ -254,7 +255,7 @@ All JSON files carry `schemaVersion` (start at 1). `schema.ts` has a migration f
 
 ### 6.3 `state.json`
 ```json
-{ "schemaVersion": 1, "taskId": "t_20261107_k3m9qa", "projectId": "9f2c…", "status": "MONITORING",
+{ "schemaVersion": 2, "taskId": "t_20261107_k3m9qa", "projectId": "9f2c…", "origin": "explicit", "status": "MONITORING",
   "reason": null, "mode": "full", "taskRevision": 1, "sessionSequence": 2,
   "activeSessionId": "ceec6272-…", "rotation": null,
   "lastValidatedHandover": "history/handover-001.md#sha256:…",
@@ -263,6 +264,7 @@ All JSON files carry `schemaVersion` (start at 1). `schema.ts` has a migration f
   "armedFired": false, "heldPrompts": [], "taskStartHead": "a1b2c3…",
   "lastErrorCode": null, "updatedAt": "2026-11-07T08:00:00Z" }
 ```
+`origin` (schema 2, v0.3, ST-13.1): `auto` or `explicit`; a schema-1 file from v0.2 migrates to `explicit` on read and is written as schema 2 at its next write, after which v0.2 refuses it with `SCHEMA_TOO_NEW` (spec §5.11). The other files (config, project, session, lock, events) stay at schema 1.
 `rotation` while active: `{ rotationId, trigger: "THRESHOLD|MANUAL|COMPACTED", requestedAt, sourceSessionId, targetSessionId|null, step, retries, quiesceCount }`.
 
 ### 6.4 Handover narrative block (Claude writes) and merged file

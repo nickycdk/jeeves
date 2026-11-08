@@ -1,6 +1,19 @@
 // Domain types for Jeeves (02 §4, §6). Pure: no engine, no I/O.
 
+/** Current version of the files that have not changed since v0.1 (config, project, session, lock, event). */
 export const SCHEMA_VERSION = 1
+/** v0.3 (ST-13.1): `state.json` gains `origin`. */
+export const STATE_SCHEMA_VERSION = 2
+/** v0.3 (ST-13.1): project `config.json` gains `autoStart`; written as v2 only while it is set, so v0.2 keeps reading the others. */
+export const DEFAULTS_SCHEMA_VERSION = 2
+/** v0.3 (ST-13.1): `auto.json` in the state root. */
+export const AUTO_SCHEMA_VERSION = 1
+
+export const ORIGINS = ['auto', 'explicit'] as const
+/** How a task started: `/jeeves on` (explicit) or auto-start (ADR-009 A3). Tasks from v0.2 read as explicit. */
+export type TaskOrigin = (typeof ORIGINS)[number]
+export const ON_OFF = ['on', 'off'] as const
+export type OnOff = (typeof ON_OFF)[number]
 
 export const STATUSES = [
   'DISABLED', 'MONITORING', 'ROTATION_REQUESTED', 'QUIESCING', 'HANDOVER_GENERATING', 'VALIDATING',
@@ -66,8 +79,13 @@ export type ProjectDefaults = {
   schemaVersion: number
   thresholdPercent?: number
   verificationCommands: string[]
+  /** v0.3: auto-start for this project; absent = not set (spec §5.5). */
+  autoStart?: OnOff
 }
 export const DEFAULTS_CHECKS_MAX = 20
+
+/** `<stateRoot>/auto.json` (v0.3, spec §5.5–5.6): auto-start everywhere, written by `/jeeves auto` and the upgrade check. */
+export type AutoFile = { schemaVersion: number; default: OnOff; reason?: string }
 
 export type Rotation = {
   rotationId: string
@@ -98,6 +116,7 @@ export type State = {
   schemaVersion: number
   taskId: string
   projectId: string
+  origin: TaskOrigin
   status: Status
   reason: ReasonCode | null
   mode: Mode

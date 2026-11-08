@@ -1,5 +1,5 @@
 // The managed task (FR-05, ADR-007): a new task's state, and its append-only revision files. Pure.
-import { SCHEMA_VERSION, type State } from './types.ts'
+import { STATE_SCHEMA_VERSION, type State, type TaskOrigin } from './types.ts'
 
 /** `task-rev-001.md`; rev 1 is the original prompt, byte for byte. */
 export const revFile = (n: number) => `task-rev-${String(n).padStart(3, '0')}.md`
@@ -8,9 +8,9 @@ export const revFile = (n: number) => `task-rev-${String(n).padStart(3, '0')}.md
 export const windowThreshold = (window?: number) => (window !== undefined && window > 200_000 ? 40 : 50)
 
 /** A DISABLED task, ready for the reducer's ON. */
-export function newTaskState(t: { taskId: string; projectId: string; thresholdPercent: number; taskStartHead: string | null; at: string }): State {
+export function newTaskState(t: { taskId: string; projectId: string; thresholdPercent: number; taskStartHead: string | null; at: string; origin?: TaskOrigin }): State {
   return {
-    schemaVersion: SCHEMA_VERSION, taskId: t.taskId, projectId: t.projectId, status: 'DISABLED', reason: null, mode: 'full',
+    schemaVersion: STATE_SCHEMA_VERSION, taskId: t.taskId, projectId: t.projectId, origin: t.origin ?? 'explicit', status: 'DISABLED', reason: null, mode: 'full',
     taskRevision: 0, sessionSequence: 1, activeSessionId: null, rotation: null, lastValidatedHandover: null,
     rotationCount: 0, consecutiveFailures: 0, thresholdPercent: t.thresholdPercent, lastContext: null, armedFired: false,
     warnedSessionId: null, heldPrompts: [], pauseRequested: false, taskStartHead: t.taskStartHead, lastErrorCode: null, ledger: [], updatedAt: t.at,

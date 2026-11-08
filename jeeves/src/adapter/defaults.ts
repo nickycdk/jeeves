@@ -1,7 +1,7 @@
 // ST-11.1 (ADR-009 A2): per-project defaults in projects/<projectId>/config.json (state folder, never the repository).
 import { isThreshold, THRESHOLD_MAX, THRESHOLD_MIN } from '../core/machine.ts'
 import { join } from '../core/paths.ts'
-import { parseJson } from '../core/schema.ts'
+import { defaultsVersion, parseJson } from '../core/schema.ts'
 import { DEFAULTS_CHECKS_MAX, SCHEMA_VERSION, type ProjectDefaults } from '../core/types.ts'
 import type { Runtime } from './runtime.ts'
 import { MSG } from './ui.ts'
@@ -19,7 +19,7 @@ export async function readDefaults(rt: Runtime): Promise<DefaultsRead> {
   return r.ok ? { value: r.value, error: null } : { value: null, error: r.errors[0] ?? 'invalid' }
 }
 
-const write = (rt: Runtime, d: ProjectDefaults) => rt.storage.replaceFile(pathOf(rt), JSON.stringify(d, null, 2) + '\n')
+const write = (rt: Runtime, d: ProjectDefaults) => rt.storage.replaceFile(pathOf(rt), JSON.stringify({ ...d, schemaVersion: defaultsVersion(d) }, null, 2) + '\n')
 
 const showText = (d: ProjectDefaults | null) => {
   if (!d || (d.thresholdPercent === undefined && d.verificationCommands.length === 0)) return MSG.noDefaults
