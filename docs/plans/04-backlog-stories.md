@@ -7,7 +7,7 @@ Stories are listed in dependency order; implement top to bottom. IDs are `ST-<ep
 
 Module names refer to `02-architecture-and-adrs.md` §3.
 
-**Progress (2026-11-08):** E0, E1, E2, E3, E4, E5 solved (M4 gate passed); E6 solved (M5 gate passed); E7 and E8 solved (M6 gate passed: AC-01 fresh macOS user and AC-02 Cursor checklist, maintainer-reported); E9: ST-9.1 solved, ST-9.2 agent part done, ST-9.3 prepared (M7 built, gate open); plus ST-7.3. Each solved story has a **Status** line under its heading. Everything without one is open.
+**Progress (2026-11-08):** E0, E1, E2, E3, E4, E5 solved (M4 gate passed); E6 solved (M5 gate passed); E7 and E8 solved (M6 gate passed: AC-01 fresh macOS user and AC-02 Cursor checklist, maintainer-reported); E9: ST-9.1 solved, ST-9.2 agent part done, ST-9.3 prepared (M7 built, gate open); plus ST-7.3. M8 (v0.2, E10–E12) built 2026-11-08: E10 and E11 solved, E12 awaiting the maintainer's sign-off of ST-12.5 (`handoff-m8.md`). Each solved story has a **Status** line under its heading. Everything without one is open.
 
 ---
 
@@ -570,6 +570,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **AC:** reproducible artifact (same hash from clean checkout); release notes state exact capabilities and supported versions.
 - **Tests:** dry-run release on a fork.
 - **DoD:** + maintainer sign-off.
+- **Status:** Built, awaiting maintainer sign-off (M8, 2026-11-08). Version 0.2.0 in the three fields, CHANGELOG, `jeeves/docs/release-notes/v0.2.0.md`, `docs/evidence/v0.2.0/README.md`. Zip identical from two clean clones of `c5ff1b1` (SHA-256 `a721d510…ceee`); validate passes on the unzipped artifact. Notes list Team accounts as unsupported and no longer claim VS Code. No tag, no release (D-37).
 
 ---
 
@@ -676,6 +677,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **AC:** each phase PASS, FAIL (with a fix or a filed follow-up) or NOT EXERCISED with the reason; nothing left "unverified" without a line in the evidence.
 - **Tests:** E (this is the test).
 - **DoD:** + `docs/evidence/v0.2.0/e-layers/RESULT.md` with cost per phase.
+- **Status:** Solved (M8, 2026-11-08): AC met, not all phases pass. d, e (relink), h PASS; c and g FAIL with an external cause: on Team accounts Claude Code 2.1.319 seats `cc-plugin-sec-default` in the prepend tier and it skips Jeeves's Stop, SessionStart, compact and compose hooks (R-25, Q-11, D-39). Follow-up built: Jeeves detects the skip and turns itself off (verified live). e's startup-notice check failed in the driver only; f NOT EXERCISED (I layer). AC-07 E stays open. Tracked summary with costs: `docs/evidence/v0.2.0/README.md` (raw `e-layers/run*/` gitignored). Live spend US$0.1111 of US$1.
 
 ### ST-12.5 v0.2.0 release prep — S
 - **Cites:** FR-15, 08 §6.

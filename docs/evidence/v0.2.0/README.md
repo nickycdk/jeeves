@@ -50,4 +50,4 @@ Driver: `jeeves/tests/pty/e_layers_v2.py`. One haiku session per phase, each wit
 
 ## Release artifact
 
-`jeeves/scripts/release-zip.sh` from two clean clones of the release-prep commit: identical SHA-256 (see `handoff-m8.md`), and `claude plugin validate` passes on the unzipped artifact. Tag and publication are the maintainer's (D-37: no public release yet).
+`jeeves/scripts/release-zip.sh` from two clean clones of `c5ff1b1`: identical `jeeves-0.2.0.zip`, SHA-256 `a721d510979f2376ffb90bd7e6a1694a2bfff290264ed1495590c63f1d03ceee` (180 files, no home path). `claude plugin validate` passes on the unzipped marketplace root and `--strict` on its `jeeves/` folder. A tag on a later commit gives a different SHA (the zip carries the commit time). Tag and publication are the maintainer's (D-37: no public release yet).

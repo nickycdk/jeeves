@@ -102,7 +102,7 @@ Dependency order: E0 → E1 → E2 → E3 → E4 → E5 → (E6, E7 in parallel)
 - **Artifact:** GitHub release, evidence pack (demo video dropped, D-34).
 
 ## E10 — Fewer dead ends (P1, v0.2)
-- **Status:** Planned (M8), waits for approval.
+- **Status:** Solved (M8, 2026-11-08); AC met (U + I), see `docs/evidence/v0.2.0/README.md`.
 - **Goal:** A failed handover or a suspected loop is no longer a dead end, and the default threshold suits large-window models.
 - **Scope:** `/jeeves retry` for NEEDS_REVIEW(HANDOVER_INVALID) and NEEDS_REVIEW(POSSIBLE_LOOP) (POSSIBLE_LOOP moves from FAILED to NEEDS_REVIEW); a window-aware default threshold (50% up to a 200K window, 40% above). **Out:** automatic retries; any retry that weakens validation.
 - **User value:** recover from a bad handover in one command instead of `/jeeves off` and a new task; rotations on 1M models before 500K tokens.
@@ -112,7 +112,7 @@ Dependency order: E0 → E1 → E2 → E3 → E4 → E5 → (E6, E7 in parallel)
 - **Artifact:** I-layer tests + state-table rows in 02 §4.
 
 ## E11 — Setup and insight (P1, v0.2)
-- **Status:** Planned (M8), waits for approval.
+- **Status:** Solved (M8, 2026-11-08); AC met (U + I), see `docs/evidence/v0.2.0/README.md`.
 - **Goal:** Less typing per task, and a view of what Jeeves has done.
 - **Scope:** per-project defaults (`/jeeves defaults`: threshold and verification commands, stored in the state folder), check suggestions from the repo's own scripts at `/jeeves on`, `/jeeves history --full`, `/jeeves stats`. **Out:** a settings UI, the handover diff pane (P1, deferred), anything that runs repo commands from the plugin.
 - **User value:** `/jeeves on` in a configured project needs no further setup; users see rotations, cost and context cleared.
@@ -122,7 +122,7 @@ Dependency order: E0 → E1 → E2 → E3 → E4 → E5 → (E6, E7 in parallel)
 - **Artifact:** I-layer snapshots of each command.
 
 ## E12 — Compatibility and live coverage (P1, v0.2)
-- **Status:** Planned (M8), waits for approval.
+- **Status:** Built (M8, 2026-11-08), gate open: ST-12.1 closed with the floor at 2.1.319 (D-38), ST-12.2 dropped (D-36), ST-12.3 solved, ST-12.4 solved with c and g failing for an external cause (R-25), ST-12.5 awaiting sign-off.
 - **Goal:** Widen the supported Claude Code range on evidence, close the live-unverified paths, ship v0.2.0.
 - **Scope:** floor 2.1.303 (compat matrix + one live rotation), VS Code terminal checklist (maintainer), live runs for compaction, `autoRecover`, REPO_MISMATCH on a moved repo, the `/clear` stall via `endedHere`, `/plugin configure`, the AC-07 E layer, Q-9 (a second blocking Stop hook), v0.2.0 release prep. **Out:** Linux official and Windows (P1/P2, deferred).
 - **Dependencies:** E10, E11; v0.1.0 released (M7). **Risks:** A-01, R-21.
