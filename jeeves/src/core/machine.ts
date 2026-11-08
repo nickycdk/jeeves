@@ -509,7 +509,8 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
         return edit({ pauseRequested: true }, 'pause-requested', 'pause requested; applies after the continuation')
       }
       if (!ACTIVE(state.status)) return ignore('nothing to pause')
-      go('PAUSED', 'USER_PAUSE', { rotation: null, armedFired: false })
+      // Paused in a continued session: the rotation succeeded, so the failure count resets as at rearm (review fix).
+      go('PAUSED', 'USER_PAUSE', { rotation: null, armedFired: false, ...(state.status === 'CONTINUING' ? { consecutiveFailures: 0 } : {}) })
       return done()
 
     case 'RESUME': {

@@ -744,3 +744,15 @@ test('ST-10.3: a second loop after a retry, counter used up -> FAILED(POSSIBLE_L
   const ok = run(st('CONTINUING', { consecutiveFailures: 1 }), measure(10))
   assert.deepEqual([ok.state.status, ok.state.consecutiveFailures], ['MONITORING', 0])
 })
+
+test('review fix: a continued rotation paused and resumed resets the failure count; one later failure does not end the task', () => {
+  const continued = st('CONTINUING', { rotation: rot({ step: 'CONTINUED' }), consecutiveFailures: 1 })
+  const paused = run(continued, { type: 'PAUSE' }).state
+  assert.equal(paused.consecutiveFailures, 0)
+  const resumed = run(paused, { type: 'RESUME', lockOk: true, sessionId: 'sess-a' }).state
+  const unsafe = run(st('QUIESCING', { rotation: rot({ quiesceCount: 3 }), consecutiveFailures: resumed.consecutiveFailures }), stop(1, 0)).state
+  assert.equal(unsafe.consecutiveFailures, 1)
+  assert.equal(run({ ...unsafe, status: 'MONITORING', reason: null, rotation: null }, measure(60)).state.status, 'ROTATION_REQUESTED')
+  // a pause in MONITORING keeps the count (only a continued rotation proves success)
+  assert.equal(run(st('MONITORING', { consecutiveFailures: 1 }), { type: 'PAUSE' }).state.consecutiveFailures, 1)
+})
