@@ -58,13 +58,14 @@ test('AC 4: a rebuilt state is valid, NEEDS_REVIEW(STATE_CORRUPT), and keeps wha
     'not json',
     JSON.stringify({ v: 1, at: AT, taskId: 't_1', detail: 'x', sessionId: 'sess-last' }),
   ]
-  const s = rebuildState({ taskId: 't_1', projectId: 'p', events, revisions: 3, handover: { ref: 'history/handover-002.md#sha256:' + 'c'.repeat(64), count: 2 }, sessions: 2, at: AT })
+  const s = rebuildState({ taskId: 't_1', projectId: 'p', events, revisions: 3, handover: { ref: 'history/handover-002.md#sha256:' + 'c'.repeat(64), count: 2 }, sessions: 2, startHead: 'a1b2c3d4e5f6', at: AT })
   assert.ok(check('state', s).ok, JSON.stringify(check('state', s)))
   assert.deepEqual([s.status, s.reason, s.taskRevision, s.rotationCount, s.sessionSequence, s.thresholdPercent, s.activeSessionId],
     ['NEEDS_REVIEW', 'STATE_CORRUPT', 3, 2, 3, 60, 'sess-last'])
   assert.equal(s.lastValidatedHandover, 'history/handover-002.md#sha256:' + 'c'.repeat(64))
-  const empty = rebuildState({ taskId: 't_2', projectId: 'p', events: [], revisions: 0, handover: null, sessions: 0, at: AT })
-  assert.deepEqual([empty.status, empty.lastValidatedHandover, empty.activeSessionId], ['NEEDS_REVIEW', null, null])
+  assert.equal(s.taskStartHead, 'a1b2c3d4e5f6')
+  const empty = rebuildState({ taskId: 't_2', projectId: 'p', events: [], revisions: 0, handover: null, sessions: 0, startHead: null, at: AT })
+  assert.deepEqual([empty.status, empty.lastValidatedHandover, empty.activeSessionId, empty.thresholdPercent], ['NEEDS_REVIEW', null, null, DEFAULT_CONFIG.thresholdPercent])
 })
 
 test('RECOVER: a new rotation in RESTORING, owned here, held prompts kept; refused for tasks with nothing to recover', () => {
@@ -82,10 +83,10 @@ test('RECOVER: a new rotation in RESTORING, owned here, held prompts kept; refus
 
 test('ST-6.5: DISK_FAILED blocks once, keeping the rotation out; REPO_MISMATCH blocks for this session; resume leaves BLOCKED(DISK) only', () => {
   const ctx: Ctx = { now: Date.parse(AT) + 1000, config: DEFAULT_CONFIG, newRotationId: 'r_x' }
-  const d = reduce(st('ROTATION_REQUESTED'), { type: 'DISK_FAILED', path: '/s/t', error: 'EIO' }, ctx)
+  const d = reduce(st('ROTATION_REQUESTED'), { type: 'DISK_FAILED', path: '/s/t', error: 'EIO', to: 'QUIESCING' }, ctx)
   assert.deepEqual([d.state.status, d.state.reason, d.state.rotation], ['BLOCKED', 'DISK', null])
   assert.ok(d.effects.some(e => e.type === 'TOAST' && e.text.includes('/s/t') && e.text.includes('/relay resume')))
-  assert.ok(reduce(d.state, { type: 'DISK_FAILED', path: '/s/t', error: 'EIO' }, ctx).ignored, 'one block, one toast')
+  assert.ok(reduce(d.state, { type: 'DISK_FAILED', path: '/s/t', error: 'EIO', to: 'MONITORING' }, ctx).ignored, 'one block, one toast')
   assert.equal(reduce(d.state, { type: 'RESUME', lockOk: true, sessionId: ME }, ctx).state.status, 'MONITORING')
   const m = reduce(st('ROTATING'), { type: 'REPO_MISMATCH', sessionId: ME, detail: 'x' }, ctx)
   assert.deepEqual([m.state.status, m.state.reason, m.state.activeSessionId], ['BLOCKED', 'REPO_MISMATCH', ME])
@@ -93,4 +94,17 @@ test('ST-6.5: DISK_FAILED blocks once, keeping the rotation out; REPO_MISMATCH b
   // The blocking session may run /relay recover again (re-check or --relink).
   assert.equal(classify(found(m.state, { kind: 'held', owner: ME, stale: false }), ME, never).kind, 'recover')
   assert.equal(reduce(m.state, { type: 'RELINKED', projectId: 'p2' }, ctx).state.projectId, 'p2')
+})
+
+test('code review 2-4: a mismatch blocks from assisted NEEDS_REVIEW too and keeps the adopted handover; a disk error never overwrites a stop', () => {
+  const ctx: Ctx = { now: Date.parse(AT) + 1000, config: DEFAULT_CONFIG, newRotationId: 'r_x' }
+  const assisted = reduce(st('NEEDS_REVIEW', { reason: 'ROTATE_UNAVAILABLE', mode: 'assisted' }), { type: 'REPO_MISMATCH', sessionId: ME, detail: 'x' }, ctx)
+  assert.deepEqual([assisted.state.status, assisted.state.reason], ['BLOCKED', 'REPO_MISMATCH'])
+  assert.equal(classify(found(assisted.state, { kind: 'held', owner: ME, stale: false }), ME, never).kind, 'recover')
+  const newer = 'history/handover-002.md#sha256:' + 'd'.repeat(64)
+  assert.equal(reduce(st('VALIDATING'), { type: 'REPO_MISMATCH', sessionId: ME, detail: 'x', adopt: newer }, ctx).state.lastValidatedHandover, newer)
+  assert.ok(reduce(st('PAUSED', { reason: 'USER_CLEAR' }), { type: 'DISK_FAILED', path: '/s', error: 'EIO', to: 'RESTORING' }, ctx).ignored)
+  assert.ok(reduce(st('CONTINUING'), { type: 'DISK_FAILED', path: '/s', error: 'EIO', to: 'FAILED' }, ctx).ignored)
+  assert.ok(reduce(st('NEEDS_REVIEW', { reason: 'DOD_UNMET' }), { type: 'DISK_FAILED', path: '/s', error: 'EIO', to: 'COMPLETED' }, ctx).ignored)
+  assert.equal(reduce(st('CONTINUING'), { type: 'DISK_FAILED', path: '/s', error: 'EIO', to: 'MONITORING' }, ctx).state.status, 'BLOCKED')
 })

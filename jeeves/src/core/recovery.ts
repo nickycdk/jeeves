@@ -1,7 +1,7 @@
 // Recovery (02 §8, ST-6.1): what to do with a task found on disk that no live session runs. Pure.
 import { recoverable } from './machine.ts'
 import { newTaskState } from './task.ts'
-import type { State } from './types.ts'
+import { DEFAULT_CONFIG, type State } from './types.ts'
 
 /** The task lock as found: `owner` is the session in owner.json (null when unreadable). */
 export type LockView = { kind: 'free' } | { kind: 'held'; owner: string | null; stale: boolean }
@@ -62,6 +62,8 @@ export type Remains = {
   handover: { ref: string; count: number } | null
   /** How many `sessions/NNN.json` files exist. */
   sessions: number
+  /** The task's start commit (or its prefix) as the newest handover recorded it. */
+  startHead: string | null
   at: string
 }
 
@@ -70,7 +72,7 @@ export function rebuildState(r: Remains): State {
   const lines = r.events.flatMap(l => { try { return [JSON.parse(l) as Record<string, unknown>] } catch { return [] } })
   const last = lines.at(-1)
   const threshold = [...lines].reverse().map(l => /^threshold (\d+)%$/.exec(String(l.detail ?? ''))?.[1]).find(Boolean)
-  const base = newTaskState({ taskId: r.taskId, projectId: r.projectId, thresholdPercent: threshold ? Number(threshold) : 50, taskStartHead: null, at: r.at })
+  const base = newTaskState({ taskId: r.taskId, projectId: r.projectId, thresholdPercent: threshold ? Number(threshold) : DEFAULT_CONFIG.thresholdPercent, taskStartHead: r.startHead, at: r.at })
   return {
     ...base, status: 'NEEDS_REVIEW', reason: 'STATE_CORRUPT', lastErrorCode: 'STATE_CORRUPT',
     taskRevision: r.revisions, sessionSequence: r.sessions + 1, rotationCount: r.handover?.count ?? 0,

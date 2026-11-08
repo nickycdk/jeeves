@@ -8,7 +8,7 @@ This file is enough to start in a clean session. The working rules, code map and
 
 1. `git status` clean; `git log --oneline -1` shows the commit that added this file.
 2. **The Mac must be awake and on power, lid open.** In the M5 session it was on battery with the lid closed: it kept sleeping (`pmset -g log`, `ioreg -r -k AppleClamshellState`), which froze live runs and made `claude plugin test` fail at random with `timed out after 5000 ms` (the pre-M5 code failed the same way). An Android emulator from another project also kept the load near 45. Check `uptime` and `pmset -g batt` first.
-3. `SR_TEST_TMP=<scratchpad> jeeves/scripts/check-all.sh`: expected **235 unit, 133 mod, validate passes**, exit 0. The last clean full run was before the review fixes (133/133 mod at 23:57 on 2026-11-07); after them, typecheck, lint and all 235 unit tests passed, and every mod failure seen was a load/sleep timeout in a file that differed from run to run. **Re-establish a clean run first.**
+3. `SR_TEST_TMP=<scratchpad> jeeves/scripts/check-all.sh`: expected **237 unit, 137 mod, validate passes**, exit 0 (clean on 2026-11-08 06:40 after all three reviews). Under heavy load or sleep the mod suite fails at random with `timed out after 5000 ms` in files that differ per run (the pre-M5 code too): rerun before suspecting a fault.
 4. `claude --version` (2.1.319 at handoff).
 
 ## 2. Close the M5 gate (do this before M6)
@@ -40,6 +40,7 @@ It kills `claude` at `JEEVES_TEST_CRASH=before-clear` (handover-001 saved, state
 - `hooks/register.ts`: `classic.StopFailure` (main loop), `session.compact` (precompute skipped while managed; afterwards COMPACTED + nudge when idle), startup recovery scan + `autoRecover` (new `userConfig` row).
 - Commands: `/relay recover`, `/relay recover --relink`; `/relay on` with another live session's task starts a separate task (D-27).
 - Tests: `tests/unit/{recovery,messages,no-git-mutation}.spec.ts`; `tests/mod/{recover,crash,repo,concurrency,compact,stopfailure}.test.ts`; `memfs.ts` gained `cwd`, `git` stub, `access` audit log, folder `mv`, `rateLimits`, StopFailure/compact bottoms; `kit.ts` `fakeGit`; `tests/pty/{concurrency,demo_recover}.py`; `scripts/crash-report.mjs` (`npm run crash:report`).
+- Reviews: two `/ponytail:ponytail-review` passes and one `/code-review` pass on the M5 range, all findings fixed (0515e5d, 23f8f9e and the commit after this list): held messages delivered on resume; recover gives the lock back on refusal (also after relink); rebuild copies the old state aside; a read error is never "corrupt"; one task per session in recover; REPO_MISMATCH keeps an adopted handover and also blocks from assisted NEEDS_REVIEW; a disk error never overwrites a stop; unknown `recover` arguments refused; rate-limit reset from the fullest window that has one; rebuilt state keeps the default threshold and the start commit prefix.
 - Docs: README Troubleshooting, CHANGELOG, `docs/state-machine.md` notes, 02 §4 recover row, 07 D-27 (Accepted) and D-28 (Proposed), R-05/R-12 updated.
 
 ## 4. Engine and environment rules learned in M5 (2.1.319)

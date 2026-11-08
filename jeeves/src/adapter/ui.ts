@@ -102,6 +102,8 @@ export const MSG = {
   relinked: (taskId: string, oldPath: string) => `Task ${taskId} moved here from ${oldPath}.`,
   relinkExists: (target: string) => `Not relinked: ${target} already exists. Nothing was changed.`,
   relinkFailed: (dir: string, err: string) => `Not relinked: moving ${dir} failed (${err}). Nothing else was changed.`,
+  recoverUsage: 'Usage: /relay recover, or /relay recover --relink to continue after a branch switch or a moved folder.',
+  notRebuilt: (taskId: string) => `Task ${taskId}: its state.json can be read again (or could not be read at all), so nothing was rebuilt. Type /relay recover again; /relay status shows it.`,
   recoverMine: 'This session runs the task already: nothing to recover. /relay status shows it.',
   recoverTooNew: (taskId: string) => `Task ${taskId} was saved by a newer Jeeves (SCHEMA_TOO_NEW). Update Jeeves; nothing was changed.`,
   recoverPaused: 'The task is paused, not interrupted: /relay resume continues it.',

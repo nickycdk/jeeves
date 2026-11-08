@@ -132,3 +132,37 @@ test('second review 1: a rebuild whose write fails leaves the unreadable state.j
   expect([...h.files.keys()].some(f => f.startsWith(`${dir}/state.json.corrupt-`))).toBe(true)
   expect(await relay($, 'status')).toContain('Task state unreadable')
 })
+
+test('code review 1: with its own active task, /relay recover refuses instead of taking the crashed one too', async ($, on) => {
+  const g = await generating($, on)
+  const { h, dir } = g
+  await restart($, h)
+  await h.clock.advance(121_000)
+  // Seed this session as the owner of a second, running task.
+  const mine = dir.replace(/[^/]+$/, 't_20261108_mine01')
+  h.files.set(`${mine}/state.json`, JSON.stringify({ ...stateOf(h, dir), taskId: 't_20261108_mine01', status: 'MONITORING', reason: null, rotation: null, activeSessionId: 'sess-2', updatedAt: '2026-11-07T09:00:00.000Z' }))
+  expect(await relay($, 'recover')).toBe('This session runs the task already: nothing to recover. /relay status shows it.')
+  expect(stateOf(h, dir).status).toBe('HANDOVER_GENERATING')
+})
+
+test('code review 5: a state.json that fails to read (I/O) is never called corrupt or rebuilt', async ($, on) => {
+  const g = await generating($, on)
+  const { h, dir } = g
+  const before = h.files.get(`${dir}/state.json`)
+  h.failRead = p => p === `${dir}/state.json`
+  await restart($, h)
+  await h.clock.advance(121_000)
+  expect(h.toasts.some(t => t.includes('unreadable'))).toBe(false)
+  expect(await relay($, 'recover')).toContain('Nothing to recover')
+  h.failRead = undefined
+  expect(h.files.get(`${dir}/state.json`)).toBe(before)
+  expect([...h.files.keys()].some(f => f.includes('state.json.corrupt-'))).toBe(false)
+})
+
+test('code review 9: an unknown argument to /relay recover is refused with the usage', async ($, on) => {
+  const g = await generating($, on)
+  await restart($, g.h)
+  await g.h.clock.advance(121_000)
+  expect(await relay($, 'recover --relnk')).toBe('Usage: /relay recover, or /relay recover --relink to continue after a branch switch or a moved folder.')
+  expect(stateOf(g.h, g.dir).status).toBe('HANDOVER_GENERATING')
+})

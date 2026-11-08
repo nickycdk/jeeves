@@ -44,7 +44,7 @@ export function enginePort($: EngineInterface): EnginePort {
       const c = (await $.session.usage()).context
       return { window: c.window, ...(c.percent !== undefined ? { percent: c.percent } : {}), ...(c.tokens !== undefined ? { tokens: c.tokens } : {}) }
     },
-    rateLimitReset: () => $.session.usage().then(u => [...u.rateLimits].sort((a, b) => b.percentUsed - a.percentUsed)[0]?.resetsAt ?? null, () => null),
+    rateLimitReset: () => $.session.usage().then(u => [...u.rateLimits].sort((a, b) => b.percentUsed - a.percentUsed).find(w => w.resetsAt)?.resetsAt ?? null, () => null),
     costUsd: () => $.session.usage().then(u => u.cost?.usd ?? null, () => null),
     runCommand: async name => { await $.command.run({ command: name, args: '' }) },
     after: (ms, fn) => { $.clock.after(ms, fn) },

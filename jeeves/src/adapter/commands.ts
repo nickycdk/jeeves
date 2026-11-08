@@ -66,7 +66,7 @@ export async function relay(rt: Runtime, args: string, caller: Caller): Promise<
     case 'continue': return continueHere(rt, tasks, me, caller.endedHere)
     case 'rotate': return rotate(rt, tasks, me, caller.idle === true)
     case 'done': return confirmDone(rt, tasks, me, caller.endedHere)
-    case 'recover': return recover(rt, me, caller.endedHere, rest.trim() === '--relink')
+    case 'recover': return rest.trim() === '' || rest.trim() === '--relink' ? recover(rt, me, caller.endedHere, rest.trim() === '--relink') : MSG.recoverUsage
     default: return revise(rt, tasks, me, sub as 'dod' | 'check', rest)
   }
 }

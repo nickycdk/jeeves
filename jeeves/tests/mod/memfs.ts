@@ -14,6 +14,8 @@ export type MemHost = {
   env: Record<string, string>
   argv: string[][]
   failWrite: ((path: string) => boolean) | null
+  /** A read that fails with an I/O error (not a missing file). */
+  failRead?: (path: string) => boolean
   sessionId: string
   clock: MockClock
   /** What `$.agent.list()` answers (status only matters). */
@@ -77,6 +79,7 @@ export function memHost(on: On, env: Record<string, string> = { HOME: '/home/t' 
   on('fs.read', async (_, e) => {
     h.access.push({ sid: h.sessionId, op: 'read', path: e.path })
     await yieldTicks(3) // lets concurrent callers interleave, as a real disk does
+    if (h.failRead?.(e.path)) return { deny: `EIO: ${e.path}` }
     const t = h.files.get(e.path)
     return t === undefined ? { deny: `ENOENT: ${e.path}` } : { value: t }
   })

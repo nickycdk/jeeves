@@ -84,6 +84,7 @@ async function rebuild(rt: Runtime, dir: string, taskId: string): Promise<State>
     taskId, projectId: rt.projectId!, at, events: await rt.storage.readEvents(dir).catch(() => []),
     revisions: await count(rt, n => join(dir, revFile(n))), handover: h ? { ref: h.ref, count: h.n } : null,
     sessions: await count(rt, n => join(dir, `sessions/${String(n).padStart(3, '0')}.json`)),
+    startHead: h ? /Files changed since the task started \(([0-9a-f]{7,40})\)/.exec(h.text)?.[1] ?? null : null,
   })
   const kept = `state.json.corrupt-${at.replace(/[-:.]/g, '')}`
   // Copied, not moved: if the rebuilt state cannot be written, the original stays in place and the task stays visible.
@@ -123,6 +124,8 @@ async function nothing(rt: Runtime, acts: { c: Candidate; a: Action }[]): Promis
  */
 export async function recover(rt: Runtime, me: string, endedHere: ReadonlySet<string>, relink = false): Promise<string> {
   const acts = (await candidates(rt)).map(c => ({ c, a: classify(c.found, me, s => endedHere.has(s)) }))
+  // One task per session: a second one's lock would go without heartbeats and look stale to everyone else.
+  if (acts.some(x => x.a.kind === 'mine')) return MSG.recoverMine
   const pick = acts.find(x => x.a.kind === 'recover' || x.a.kind === 'rebuild')
   if (!pick) {
     // ST-6.5: nothing here, but a task whose repository folder is gone may be this one, moved.
@@ -133,6 +136,11 @@ export async function recover(rt: Runtime, me: string, endedHere: ReadonlySet<st
   const { c } = pick
   if (!(await takeLock(rt, c.dir, c.state?.activeSessionId ?? null, me, endedHere))) return MSG.lockHeld(c.taskId)
   await removeOldTmp(rt, c.dir)
+  if (pick.a.kind === 'rebuild' && (await rt.storage.readState(c.dir).catch(() => null))?.ok !== false) {
+    // Readable again (or unreadable for another reason than its content): never overwrite a state that may be fine.
+    await rt.storage.releaseLock(c.dir, me)
+    return MSG.notRebuilt(c.taskId)
+  }
   const a = pick.a.kind === 'rebuild' ? (await rebuild(rt, c.dir, c.taskId), { gap: true, adopt: null }) : pick.a as Extract<Action, { kind: 'recover' }>
   const r = await restoreHere(rt, c.dir, { type: 'RECOVER', sessionId: me, ...(a.adopt ? { adopt: a.adopt } : {}) }, { gap: a.gap, adopt: a.adopt, relink })
   // Refused with nothing changed: give the lock back, or every other session waits for it to go stale.
@@ -192,5 +200,6 @@ async function relinkHere(rt: Runtime, m: Moved, me: string): Promise<string> {
   const a = classify({ kind: 'state', state: r.value, lock: { kind: 'held', owner: me, stale: false }, leftover: await leftover(rt, target, r.value) }, me, () => false)
   if (a.kind !== 'recover') return MSG.nothingToRecover
   const done = await restoreHere(rt, target, { type: 'RECOVER', sessionId: me, ...(a.adopt ? { adopt: a.adopt } : {}) }, { gap: a.gap, adopt: a.adopt, relink: true })
+  if (done === 'unverified' || done === null) await rt.storage.releaseLock(target, me)
   return `${MSG.relinked(m.state.taskId, m.oldPath)} ${restoredText(done, MSG.recovered(m.state.taskId, false), MSG.nothingToRecover)}`
 }

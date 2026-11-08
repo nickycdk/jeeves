@@ -35,12 +35,13 @@ export async function projectTasks(rt: Runtime): Promise<{ tasks: Task[]; errors
   const tasks: Task[] = [], errors: string[] = [], broken: Broken[] = []
   for (const name of await rt.port.listDirs(tasksDir)) {
     const dir = join(tasksDir, name)
-    const r = await rt.storage.readState(dir).catch(err => ({ ok: false as const, errors: [String(err)] }))
+    const r = await rt.storage.readState(dir).catch(err => ({ ok: false as const, errors: [String(err)], io: true }))
     if (r === null) continue
     if (r.ok) tasks.push({ state: r.value, dir })
     else {
       errors.push(`${name}: ${r.errors[0] ?? 'invalid'}`)
-      broken.push({ dir, name, tooNew: 'code' in r && r.code === 'SCHEMA_TOO_NEW' })
+      // A read that failed (I/O, permissions) is not a corrupt file: never offered for a rebuild.
+      if (!('io' in r)) broken.push({ dir, name, tooNew: 'code' in r && r.code === 'SCHEMA_TOO_NEW' })
     }
   }
   return { tasks: tasks.sort(recentFirst), errors, broken }
@@ -65,7 +66,7 @@ async function transition(rt: Runtime, dir: string, prev: State, input: Input): 
     try {
       await rt.storage.writeState(dir, out.state)
     } catch (err) {
-      await blockOnDisk(rt, dir, state, err)
+      await blockOnDisk(rt, dir, state, out.state.status, err)
       throw err
     }
     state = out.state
@@ -82,9 +83,9 @@ async function transition(rt: Runtime, dir: string, prev: State, input: Input): 
  * checkpoint; BLOCKED(DISK) is written over it if the disk takes that write. If not, the status line says so (no toast
  * per failed write).
  */
-async function blockOnDisk(rt: Runtime, dir: string, prev: State, err: unknown): Promise<void> {
+async function blockOnDisk(rt: Runtime, dir: string, prev: State, to: State['status'], err: unknown): Promise<void> {
   if (!(err instanceof StorageError) || err.code !== 'DISK') return
-  const out = reduce(prev, { type: 'DISK_FAILED', path: dir, error: err.message }, { now: await rt.port.now(), config: DEFAULT_CONFIG, newRotationId: '-' })
+  const out = reduce(prev, { type: 'DISK_FAILED', path: dir, error: err.message, to }, { now: await rt.port.now(), config: DEFAULT_CONFIG, newRotationId: '-' })
   if (out.state === prev) return
   try {
     await rt.storage.writeState(dir, out.state)
@@ -627,7 +628,7 @@ export async function restoreHere(rt: Runtime, dir: string, input: Input, opts: 
   // ST-6.5: never continue on another branch than the handover's, unless the user relinks (`/relay recover --relink`).
   const mismatch = opts.relink ? null : await branchMismatch(rt, h.text)
   if (mismatch) {
-    await apply(rt, dir, { type: 'REPO_MISMATCH', sessionId: await rt.port.sessionId(), detail: `handover branch ${mismatch.expected}, repository on ${mismatch.actual}` })
+    await apply(rt, dir, { type: 'REPO_MISMATCH', sessionId: await rt.port.sessionId(), detail: `handover branch ${mismatch.expected}, repository on ${mismatch.actual}`, ...(opts.adopt ? { adopt: opts.adopt } : {}) })
     return { mismatch }
   }
   const r = await apply(rt, dir, input)

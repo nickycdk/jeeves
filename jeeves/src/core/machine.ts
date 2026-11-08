@@ -57,9 +57,11 @@ export type Input =
    */
   | { type: 'RECOVER'; sessionId: string; adopt?: string }
   /** A state write failed (ST-6.5): the last written state stays the checkpoint; this is written in its place if it can be. */
-  | { type: 'DISK_FAILED'; path: string; error: string }
+  /** `to`: the status the failed write was going to record. */
+  | { type: 'DISK_FAILED'; path: string; error: string; to: Status }
   /** The repository is not the one the handover describes (ST-6.5): no continuation; this session keeps the lock. */
-  | { type: 'REPO_MISMATCH'; sessionId: string; detail: string }
+  /** `adopt`: the handover the restore was built on (recovery may have adopted a newer one than the state records). */
+  | { type: 'REPO_MISMATCH'; sessionId: string; detail: string; adopt?: string }
   /** `/relay recover --relink` moved the task into this project's folder (the repository moved, ST-6.5). */
   | { type: 'RELINKED'; projectId: string }
 
@@ -570,14 +572,17 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
     }
 
     case 'DISK_FAILED':
-      if (state.status === 'DISABLED' || state.status === 'BLOCKED' || state.status === 'COMPLETED') return ignore('nothing to block')
+      // Only a running task is blocked. A failed write into or out of a stop (PAUSED, NEEDS_REVIEW, FAILED, ...) keeps the
+      // checkpoint as it is: overwriting it would lose its reason, and /relay resume would then skip it.
+      if (!ACTIVE(state.status) || INERT.includes(input.to)) return ignore('only a running task is blocked')
       go('BLOCKED', 'DISK', { rotation: null, armedFired: false }, `${input.path}: ${input.error}`)
       effects.push({ type: 'TOAST', key: '-:disk', text: diskText(input.path, input.error) })
       return done()
 
     case 'REPO_MISMATCH':
-      if (!recoverable(state) && state.status !== 'PAUSED') return ignore('nothing to block')
-      go('BLOCKED', 'REPO_MISMATCH', { rotation: null, armedFired: false, activeSessionId: input.sessionId }, input.detail)
+      // From any task a restore path can reach (recover, resume after /clear, assisted continue), so /relay recover can follow.
+      if (state.status === 'DISABLED' || state.status === 'COMPLETED' || state.status === 'FAILED') return ignore('nothing to block')
+      go('BLOCKED', 'REPO_MISMATCH', { rotation: null, armedFired: false, activeSessionId: input.sessionId, ...(input.adopt ? { lastValidatedHandover: input.adopt } : {}) }, input.detail)
       return done()
 
     case 'RELINKED':
