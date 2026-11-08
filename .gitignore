@@ -49,3 +49,6 @@ docs/plans/handoff-m4b.md
 docs/plans/handoff-m5.md
 docs/plans/handoff-m6.md
 docs/plans/handoff-m7.md
+
+# Raw live-run logs (scratch paths contain the home folder); summaries are tracked
+docs/evidence/v0.2.0/e-layers/run*/

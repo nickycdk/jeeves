@@ -643,6 +643,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 ## E12 — Compatibility and live coverage (v0.2)
 
 ### ST-12.1 Claude Code floor 2.1.303 — S
+- **Status:** Closed without lowering (M8, 2026-11-08, D-38): floor stays 2.1.319. Test kit matrix 2.1.302/303/310/316/319: all pass (2.1.316 had one timing flake; 171/171 on rerun). No live run on 2.1.303.
 - **Cites:** Q-4, NFR-06, AC-22, D-33.
 - **Scope:** `compat.yml` matrix 2.1.303 … current; one PTY rotation (haiku) on 2.1.303 in a scratch config and state folder; if it passes, `MIN_VERSION` = 2.1.303 and `docs/compatibility.md` regenerated. If it fails: floor stays 2.1.319, result recorded, no further work.
 - **Depends on:** none. **Live run:** ~US$0.05–0.10 (budget asked first).
