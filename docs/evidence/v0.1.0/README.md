@@ -2,7 +2,7 @@
 
 Every acceptance criterion of the PRD (06 §3) with its result and its evidence. **Claude Code:** 2.1.319 (macOS, Darwin 27.2) unless a row says otherwise. Result: **PASS**, **FAIL**, **NOT SUPPORTED** or **OPEN** (the evidence is not there yet). Layers (06 §1): U unit, I mod/integration (engine test kit), P storage/process, E live PTY run, M manual, C compatibility job.
 
-Paths: `plans/` = `docs/plans/evidence/`, `tests/` = `jeeves/tests/`. Every U/I/P test runs in `jeeves/scripts/check-all.sh` (2026-11-08: 246 unit, 151 mod, all pass).
+Paths: `plans/` = `docs/plans/evidence/`, `tests/` = `tibbs/tests/`. Every U/I/P test runs in `tibbs/scripts/check-all.sh` (2026-11-08: 246 unit, 151 mod, all pass).
 
 | AC | Requirement | Result | Layers | Evidence |
 |---|---|---|---|---|
@@ -24,19 +24,19 @@ Paths: `plans/` = `docs/plans/evidence/`, `tests/` = `jeeves/tests/`. Every U/I/
 | AC-16 | Crash recovery at each point | PASS | P, I, E | [`plans/m5-crash/crash-matrix.md`](../../plans/evidence/m5-crash/crash-matrix.md) (6/6), `tests/unit/crash.spec.ts`, `tests/mod/crash.test.ts`; E: [`plans/m5-demo/RESULT.md`](../../plans/evidence/m5-demo/RESULT.md) (real SIGKILL, one recovery) |
 | AC-17 | Corrupt handover → NEEDS_REVIEW, earlier file unchanged | PASS | U, I | `tests/mod/handover.test.ts` (2 retries, hash unchanged), `tests/unit/validate.spec.ts` |
 | AC-18 | Isolation, a single owner | PASS | I, E | `tests/mod/concurrency.test.ts`; E: [`plans/m5-concurrency/RESULT.md`](../../plans/evidence/m5-concurrency/RESULT.md) (4 real processes, 17/17) |
-| AC-19 | No git mutation, no permission bypass | PASS | U, E | `tests/unit/no-git-mutation.spec.ts`, `tests/unit/security.spec.ts`; E: snapshots in [`plans/m5-demo/RESULT.md`](../../plans/evidence/m5-demo/RESULT.md). Security review: [`jeeves/docs/threat-model.md`](../../../jeeves/docs/threat-model.md) |
+| AC-19 | No git mutation, no permission bypass | PASS | U, E | `tests/unit/no-git-mutation.spec.ts`, `tests/unit/security.spec.ts`; E: snapshots in [`plans/m5-demo/RESULT.md`](../../plans/evidence/m5-demo/RESULT.md). Security review: [`tibbs/docs/threat-model.md`](../../../tibbs/docs/threat-model.md) |
 | AC-20 | Uninstall is clean | PASS | P | [`plans/m6-install/RESULT.md`](../../plans/evidence/m6-install/RESULT.md) (settings as before install except the `enabledPlugins` entry) |
-| AC-21 | Contributor docs work | PASS | M | Fresh-clone walkthrough by a fresh agent (04 ST-8.4 status), `jeeves/CONTRIBUTING.md` |
-| AC-22 | Compatibility matrix | PASS (local) | C | [`jeeves/docs/compatibility.md`](../../../jeeves/docs/compatibility.md) (2.1.303 … 2.1.319 pass; older refused). The `compat.yml` job has not run: no remote yet |
+| AC-21 | Contributor docs work | PASS | M | Fresh-clone walkthrough by a fresh agent (04 ST-8.4 status), `tibbs/CONTRIBUTING.md` |
+| AC-22 | Compatibility matrix | PASS (local) | C | [`tibbs/docs/compatibility.md`](../../../tibbs/docs/compatibility.md) (2.1.303 … 2.1.319 pass; older refused). The `compat.yml` job has not run: no remote yet |
 | AC-23 | Clear failure messages | PASS | U, I | `tests/fixtures/messages.txt` snapshot (`tests/unit/messages.spec.ts`), `tests/mod/stopfailure.test.ts`, `tests/mod/repo.test.ts` |
-| AC-24 | Open-source artifacts | OPEN (release) | M | Present: LICENSE, README, CONTRIBUTING, SECURITY, PRIVACY, CHANGELOG, CODE_OF_CONDUCT, issue and PR templates, docs. `jeeves/.claude-plugin/icon.png` (512 px placeholder; `claude plugin validate --profile directory` passes). Missing: the release page (maintainer). Checklist: 08 §9 |
-| AC-25 | Honest assisted mode | PASS | I, M | `tests/mod/assisted.test.ts`, `tests/unit/ui.spec.ts`; README "Modes"; claims in `jeeves/docs/release-notes/v0.1.0.md` follow 08 §7 |
+| AC-24 | Open-source artifacts | OPEN (release) | M | Present: LICENSE, README, CONTRIBUTING, SECURITY, PRIVACY, CHANGELOG, CODE_OF_CONDUCT, issue and PR templates, docs. `tibbs/.claude-plugin/icon.png` (512 px placeholder; `claude plugin validate --profile directory` passes). Missing: the release page (maintainer). Checklist: 08 §9 |
+| AC-25 | Honest assisted mode | PASS | I, M | `tests/mod/assisted.test.ts`, `tests/unit/ui.spec.ts`; README "Modes"; claims in `tibbs/docs/release-notes/v0.1.0.md` follow 08 §7 |
 
 ## Other release evidence
 
-- Security review (ST-9.1): [`jeeves/docs/threat-model.md`](../../../jeeves/docs/threat-model.md): no Critical or High findings; F-1…F-3 fixed.
+- Security review (ST-9.1): [`tibbs/docs/threat-model.md`](../../../tibbs/docs/threat-model.md): no Critical or High findings; F-1…F-3 fixed.
 - Naming check (ST-9.3): [`naming-check.md`](naming-check.md).
-- Release artifact: `jeeves/scripts/release-zip.sh` gives the same SHA-256 from two clean clones (verified 2026-11-08 at `e34c350`); `.github/workflows/release.yml` builds, attests and drafts the release.
+- Release artifact: `tibbs/scripts/release-zip.sh` gives the same SHA-256 from two clean clones (verified 2026-11-08 at `e34c350`); `.github/workflows/release.yml` builds, attests and drafts the release.
 
 ## Live runs for this pack
 

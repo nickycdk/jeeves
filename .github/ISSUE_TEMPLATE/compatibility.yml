@@ -1,11 +1,11 @@
 name: Compatibility report
-description: Jeeves on a Claude Code version, OS or terminal not in docs/compatibility.md
+description: Tibbs on a Claude Code version, OS or terminal not in docs/compatibility.md
 labels: [compat]
 body:
   - type: textarea
     id: diagnose
     attributes:
-      label: Output of /jeeves status --diagnose
+      label: Output of /tibbs status --diagnose
       render: text
     validations:
       required: true

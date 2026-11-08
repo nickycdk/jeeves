@@ -1,0 +1,14 @@
+StopFailure rate_limit: Paused (RATE_LIMIT): the usage limit is reached. Then type /tibbs resume.
+StopFailure authentication_failed: Paused (AUTH): Claude Code is not logged in (authentication_failed). Run /login, then /tibbs resume.
+StopFailure billing_error: Paused (BILLING): your account has a billing problem (billing_error). Fix it, then /tibbs resume.
+StopFailure overloaded: Paused (OVERLOADED): the API is overloaded. Wait a few minutes, then /tibbs resume.
+StopFailure server_error: Paused (API_ERROR): the API returned an error (server_error). /tibbs resume tries again.
+StopFailure invalid_request: Paused (API_ERROR): the API returned an error (invalid_request). /tibbs resume tries again.
+StopFailure unknown: Paused (API_ERROR): the API returned an error (unknown). /tibbs resume tries again.
+StopFailure rate_limit (reset known): Paused (RATE_LIMIT): the usage limit is reached. It resets at 2026-11-07 14:00 UTC. Then type /tibbs resume.
+Outdated version: Tibbs needs Claude Code 2.1.319 or later (this is 2.1.280). Automatic rotation is off. Update Claude Code (claude update) and restart the session.
+Disk error: Blocked (DISK): Tibbs could not write its task files in /state/projects/p/tasks/t_1 (write /state/projects/p/tasks/t_1/state.json.tmp-0123456789ab: EIO). The last saved state is kept. Free disk space or fix that folder's permissions, then type /tibbs resume.
+Wrong branch: Blocked (REPO_MISMATCH): the handover was written on branch main, but the repository is on feature/x. Nothing was continued. Switch back to main and type /tibbs recover, or type /tibbs recover --relink to continue on feature/x.
+Wrong path: Task t_1 was started in /work/old, which no longer exists (REPO_MISMATCH). If you moved the repository here, type /tibbs recover --relink to continue it here.
+Lock held: Another session owns task t_1 and is still running (LOCK_HELD), so nothing was changed. If that session is gone, try again in 42 s.
+Unreadable state: Task t_1: its state.json is unreadable. /tibbs recover rebuilds it from the task's files (nothing is deleted).
