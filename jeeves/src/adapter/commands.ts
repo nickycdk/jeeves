@@ -4,7 +4,7 @@ import { heldPrompt } from '../core/continuation.ts'
 import { suggestChecks } from '../core/suggest.ts'
 import { taskText } from '../core/task.ts'
 import { join } from '../core/paths.ts'
-import { DEFAULT_CONFIG, type State } from '../core/types.ts'
+import type { State } from '../core/types.ts'
 import type { Runtime } from './runtime.ts'
 import { addRevision, apply, claim, heldByOther, liveTasks, ownTask, projectTasks, readTask, nudgeIfWaiting, restoreHere, startTask, takeLock, type Task } from './task.ts'
 import { recover, restoredText } from './recover.ts'
@@ -171,10 +171,11 @@ async function retry(rt: Runtime, tasks: Task[], me: string, idle: boolean): Pro
     const other = tasks.find(t => retryable(t.state) && t.state.activeSessionId !== me)
     return other ? MSG.lockHeld(other.state.taskId) : MSG.nothingToRetry
   }
-  if (own.state.consecutiveFailures >= DEFAULT_CONFIG.maxConsecutiveFailures) return MSG.retryUsedUp(own.state.consecutiveFailures)
   const r = await apply(rt, own.dir, { type: 'RETRY_CMD' })
-  if (r?.state.status === 'MONITORING') return MSG.retryWatching
-  if (r?.state.status !== 'ROTATION_REQUESTED') return MSG.notRotatable(r?.state.status ?? own.state.status)
+  if (!r) return MSG.noTask
+  if (r.state.status === 'MONITORING') return MSG.retryWatching
+  // The reducer refuses a retry only when the failure limit is used up (the task is retryable here).
+  if (r.state.status !== 'ROTATION_REQUESTED') return MSG.retryUsedUp(r.state.consecutiveFailures)
   if (idle) await nudgeIfWaiting(rt)
   return MSG.retryRequested
 }
