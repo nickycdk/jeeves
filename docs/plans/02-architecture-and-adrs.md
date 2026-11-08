@@ -31,6 +31,7 @@ Format: Context → Decision → Consequences → Alternatives rejected. All ADR
 - **Consequences:** Users on unsupported versions get a precise message and no rotation (FR-01).
 - **Rejected:** Silent fallback (PRD forbids hidden degradation).
 - **Amendment A1 (2026-11-07, ST-1.8):** No `typeof` presence checks: Claude Code 2.1.319's module scanner refuses a `$` noun used as a value (`$.command is used as a value`), and there is no capability API. The probe is: version gate; one harmless call each to `$.session.usage()` and `$.process.run(['true'])`; `$.command.run` and `$.prompt.submit` are checked at first use, where a rejection switches the task to `assisted` (as above for `/clear`). Logged as D-16 in 07 §2.
+- **Amendment A2 (2026-11-08, R-25, D-39):** the "`classic.Stop` hook registered" fact is gone (nothing could observe it). Instead, a main turn that ends with an answer, not interrupted, without Jeeves's `classic.Stop` running marks the Stop hook as skipped for the process: mode `unsupported` (not assisted: without Stop there is no boundary and no handover), measuring and prompt holding stop, and `on`/`resume`/`rotate`/`retry` are refused. A version refusal keeps its own message.
 
 ### ADR-003 — Handover format: verified facts + sentinel-delimited Markdown narrative
 - **Context:** FR-06/07 need structure, deterministic facts and readable Markdown (NFR-09). Plugin-registered tools have no permission field, so a handover tool might prompt for permission and needs ToolSearch.
