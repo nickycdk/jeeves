@@ -114,12 +114,11 @@ export const register: Register = (on, options) => {
   on('turn.complete', async ($, e, next) => {
     if (e.agentId === undefined) {
       turnOpen = false
-      if (stopSeen === false && e.reason === 'answer') {
-        stopSeen = null
-        markStopSkipped()
+      if (stopSeen === false && e.reason === 'answer' && !e.isAborted && !warnedSkip) {
+        warnedSkip = true
         await quietly($, opts, 'stop skipped', async rt => {
-          if (warnedSkip || !rt.probe.message) return
-          warnedSkip = true
+          markStopSkipped(rt)
+          if (!rt.probe.message) return
           $.ui.status('off: Stop hook skipped')
           $.ui.toast(rt.probe.message)
         })

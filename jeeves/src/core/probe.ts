@@ -30,6 +30,7 @@ export function compareVersions(a: string, b: string): number | null {
 }
 
 export function probe(f: ProbeFacts): Probe {
+  if (!f.stopHookRegistered) return withoutStopHook(probe({ ...f, stopHookRegistered: true }))
   const cmp = f.version === null ? null : compareVersions(f.version, MIN_VERSION)
   if (cmp === null || cmp < 0) {
     const seen = f.version === null ? 'its version could not be read' : `this is ${f.version}`
@@ -38,8 +39,6 @@ export function probe(f: ProbeFacts): Probe {
       message: `Jeeves needs Claude Code ${MIN_VERSION} or later (${seen}). Automatic rotation is off. Update Claude Code (claude update) and restart the session.`,
     }
   }
-  // Without the Stop hook there is no safe boundary and no handover (ADR-003/004), so not even assisted mode works.
-  if (!f.stopHookRegistered) return { mode: 'unsupported', version: f.version, missing: ['classic.Stop hook'], message: STOP_SKIPPED }
   const missing = PRIMITIVES.filter(p => !f.primitives[p]).map(p => `$.${p}`)
   if (missing.length) {
     return {
@@ -48,4 +47,9 @@ export function probe(f: ProbeFacts): Probe {
     }
   }
   return { mode: 'full', version: f.version, missing: [], message: null }
+}
+
+/** Without the Stop hook there is no safe boundary and no handover (ADR-003/004), so not even assisted mode works. A version refusal stays. */
+export function withoutStopHook(p: Probe): Probe {
+  return p.mode === 'unsupported' ? p : { mode: 'unsupported', version: p.version, missing: ['classic.Stop hook'], message: STOP_SKIPPED }
 }

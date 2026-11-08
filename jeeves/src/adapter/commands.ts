@@ -84,11 +84,11 @@ export async function relay(rt: Runtime, args: string, caller: Caller): Promise<
     case 'off': return off(rt, tasks, me)
     case 'threshold': return threshold(rt, tasks, me, rest.trim())
     case 'pause': return pause(rt, tasks, me)
-    case 'resume': return resume(rt, tasks, me)
+    case 'resume': return rt.probe.mode === 'unsupported' ? rt.probe.message ?? MSG.unsupported : resume(rt, tasks, me)
     case 'continue': return continueHere(rt, tasks, me, caller.endedHere)
-    case 'rotate': return rotate(rt, tasks, me, caller.idle === true)
+    case 'rotate': return rt.probe.mode === 'unsupported' ? rt.probe.message ?? MSG.unsupported : rotate(rt, tasks, me, caller.idle === true)
     case 'done': return confirmDone(rt, tasks, me, caller.endedHere)
-    case 'retry': return retry(rt, tasks, me, caller.idle === true)
+    case 'retry': return rt.probe.mode === 'unsupported' ? rt.probe.message ?? MSG.unsupported : retry(rt, tasks, me, caller.idle === true)
     case 'recover': return rest.trim() === '' || rest.trim() === '--relink' ? recover(rt, me, caller.endedHere, rest.trim() === '--relink') : MSG.recoverUsage
     default: return revise(rt, tasks, me, sub as 'dod' | 'check', rest)
   }

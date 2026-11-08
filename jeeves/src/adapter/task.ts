@@ -257,6 +257,7 @@ export async function captureFirstPrompt(rt: Runtime, text: string): Promise<voi
  * /clear this process has under way (between session.end and the fresh SessionStart the new id owns nothing yet).
  */
 export async function holdPrompt(rt: Runtime, text: string, endedHere: ReadonlySet<string>): Promise<boolean> {
+  if (rt.probe.mode === 'unsupported') return false
   const me = await rt.port.sessionId()
   const { tasks } = await projectTasks(rt)
   const t = ownTask(tasks, me) ?? tasks.find(clearingHere(endedHere)) ?? null
@@ -311,6 +312,7 @@ const exactPercent = (c: { percent?: number; tokens?: number; window: number }) 
 
 /** `session.measure` with a context change: the main conversation's `usage().context` (FR-02). Missing percent stays unknown. */
 export async function measure(rt: Runtime, c: { percent?: number; tokens?: number; window: number }): Promise<Applied | null> {
+  if (rt.probe.mode === 'unsupported') return null // nothing automatic: a request could never be answered
   const sessionId = await rt.port.sessionId()
   const percent = exactPercent(c)
   const r = await applyOwn(rt, { type: 'MEASURE', window: c.window, sessionId, ...(percent !== undefined ? { percent } : {}), ...(c.tokens !== undefined ? { tokens: c.tokens } : {}) })

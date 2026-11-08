@@ -74,6 +74,11 @@ test('AC 4: a corrupt config.json is ignored with a warning; the task still star
   expect(reply).toContain('defaults unreadable')
   expect(stateOf(h, taskDirs(h)[0]!).thresholdPercent).toBe(50)
   expect(await relay($, 'status')).toContain('defaults unreadable')
+  // review fix: a change never overwrites the unreadable file (it may be a newer Jeeves's); clear still resets it
+  for (const cmd of ['defaults threshold 60', 'defaults check npm test']) expect(await relay($, cmd)).toContain('unreadable')
+  expect(h.files.get(configOf(h)!)).toBe('{ not json')
+  await relay($, 'defaults clear')
+  expect(await relay($, 'defaults threshold 60')).not.toContain('unreadable')
 })
 
 test('AC 5, 6: clear removes them; purge --project removes the file; only typed commands change them', async ($, on) => {

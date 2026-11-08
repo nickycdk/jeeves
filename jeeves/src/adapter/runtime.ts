@@ -1,6 +1,6 @@
 // Per-process context, rebuilt after every reload (no state lives only in memory; this is all derived).
 import type { EngineInterface } from 'claude-code'
-import type { Probe } from '../core/probe.ts'
+import { withoutStopHook, type Probe } from '../core/probe.ts'
 import { enginePort } from './engine-mod.ts'
 import type { EnginePort } from './ports.ts'
 import type { RepoIdentity } from '../core/git.ts'
@@ -43,8 +43,8 @@ let current: Promise<Runtime> | null = null
 // R-25: set once this process saw a main turn answer without the Stop hook; a reload starts over and finds it again.
 let stopSkipped = false
 
-/** The Stop hook is being skipped: re-probe on the next runtime() call. */
-export function markStopSkipped(): void { stopSkipped = true; current = null }
+/** The Stop hook is being skipped: this runtime and any later one (session.start re-probes) say so. Same storage and queue. */
+export function markStopSkipped(rt: Runtime): void { stopSkipped = true; rt.probe = withoutStopHook(rt.probe) }
 
 /** One storage (one write queue) per process. Reset by `session.start` so a reload re-probes. */
 export function runtime($: EngineInterface, options: Options, refresh = false): Promise<Runtime> {
@@ -55,7 +55,7 @@ export function runtime($: EngineInterface, options: Options, refresh = false): 
 async function build($: EngineInterface, options: Options): Promise<Runtime> {
   const port = enginePort($)
   const storage = createStorage(port)
-  const probe = await runProbe($, !stopSkipped)
+  const probe = await runProbe($, true).then(p => stopSkipped ? withoutStopHook(p) : p)
   let stateRoot: string | null = null, stateRootError: string | null = null, stateRootSource: StateRootSource | null = null
   const id = await port.cwd().then(cwd => repoIdentity(port, cwd)).catch(() => null)
   try {

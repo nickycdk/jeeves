@@ -1,7 +1,7 @@
 // Review fix 1: a user's /clear pauses the task (USER_CLEAR) instead of leaving it to a session id that no longer exists.
 import type { SessionMeasureInput } from 'claude-code'
 import { expect, test } from 'claude-code/testing'
-import { bottom, engineClear, generating, PROMPT, relay, start, stateOf, submit, taskDirs, turnEnd, turnStart, until, type Kit } from './kit.ts'
+import { bottom, engineClear, generating, PROMPT, relay, start, stateOf, stop, submit, taskDirs, turnEnd, turnStart, until, type Kit } from './kit.ts'
 import { memHost } from './memfs.ts'
 
 const measure = ($: Kit, percent: number) =>
@@ -59,6 +59,7 @@ for (const at of ['ROTATION_REQUESTED', 'HANDOVER_GENERATING'] as const) {
     }
     const before = prompts.length
     await engineClear($, h, 'sess-fresh')
+    await stop($, 'ok') // the engine raises Stop before every answered turn's end
     await turnEnd($)
     await h.clock.advance(5_000)
     await until(h, () => true)

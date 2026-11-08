@@ -1,6 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 import { memHost } from './memfs.ts'
-import { relay, stop, turnEnd, turnStart } from './kit.ts'
+import type { SessionMeasureInput } from 'claude-code'
+import { bottom, PROMPT, relay, start as kitStart, stateOf, stop, submit, taskDirs, turnEnd, turnStart } from './kit.ts'
 
 const SKIPPED = 'Jeeves cannot hand over in this session: its Stop hook does not run (a plugin above it, such as cc-plugin-sec-default on Team accounts, skips it). Automatic rotation is off. See troubleshooting.'
 
@@ -61,4 +62,22 @@ test('a turn whose Stop reaches Jeeves, an aborted turn, or a subagent turn: sti
   expect(h.status).toEqual([])
   expect(h.toasts).toEqual([])
   expect(await relay($, 'status')).toContain('mode: full')
+})
+
+test('review fix: a task started before the skip was found never requests, holds a prompt or rotates; an interrupt is no skip', async ($, on) => {
+  const h = memHost(on)
+  const got = bottom(on)
+  await kitStart($)
+  await relay($, 'on')
+  await submit($, PROMPT)
+  const dir = taskDirs(h)[0]!
+  await turnStart($); await $.turn.complete({ answer: '', durationMs: 1, isAborted: true, turnId: 't1', reason: 'answer' })
+  expect(await relay($, 'status')).toContain('mode: full')
+  await turnStart($, 't2'); await turnEnd($, 'answer', 't2')
+  await $.session.measure({ context: { window: 1_000_000, percent: 95 }, rateLimits: [], changed: ['context'] } satisfies SessionMeasureInput)
+  expect(stateOf(h, dir).status).toBe('MONITORING')
+  await submit($, 'next step')
+  expect(got.map(g => g.text)).toContain('next step')
+  for (const cmd of ['rotate', 'retry', 'resume']) expect(await relay($, cmd)).toBe(SKIPPED)
+  expect(stateOf(h, dir).status).toBe('MONITORING')
 })

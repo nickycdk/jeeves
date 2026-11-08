@@ -41,6 +41,8 @@ export async function defaultsCommand(rt: Runtime, rest: string, userTyped: bool
     await write(rt, { schemaVersion: SCHEMA_VERSION, verificationCommands: [] })
     return MSG.defaultsCleared
   }
+  // A newer Jeeves's file or a hand edit: never overwrite it; clear above is the way out.
+  if (cur.error) return MSG.defaultsUnreadable(cur.error)
   if (sub === 'threshold') {
     const n = /^\d+$/.test(arg) ? Number(arg) : NaN
     if (!isThreshold(n)) return MSG.thresholdRange(arg, THRESHOLD_MIN, THRESHOLD_MAX)
