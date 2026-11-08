@@ -1,6 +1,6 @@
 # Handover: M9 (v0.3 auto-start), after ST-13.2
 
-**Date:** 2026-11-08 · **Claude Code:** 2.1.319 · **Branch:** `main`, **11 commits ahead of `origin`, not pushed** (`f683378` … this handover). Paths are relative to the repo root. The previous handover (v0.2.0 release steps, the spec's road to approval) is `docs/done/handoffs/handoff-v0.2-release-v0.3-spec.md`.
+**Date:** 2026-11-08 · **Claude Code:** 2.1.319 · **Branch:** `main`, **12 commits ahead of `origin`, not pushed** (`f683378` … this handover). Paths are relative to the repo root. The previous handover (v0.2.0 release steps, the spec's road to approval) is `docs/done/handoffs/handoff-v0.2-release-v0.3-spec.md`.
 
 ## 1. Where things stand
 
@@ -16,13 +16,14 @@
    - Decide once at `session.start`: `isInteractive`, probe mode `full`, git work tree (`rt.identity.kind === 'git'`), `$.session.usage().window` > 200K, `$.session.turns()` 0, and `autoStartNow(rt, opts.autoStart)` from `src/adapter/auto.ts`. Keep the result and every failed reason in process memory or the store (no task file). A reload reruns `session.start` with turns > 0, so store the decision keyed by session id (as `autoOffSession` does) rather than recomputing it.
    - Reason order and `(+N more)`: spec §5.1. The `/jeeves status` line that names the reason (and the auto-start source, left over from ST-13.2) lands here; the status view has an 8-line limit (`statusText` in `src/adapter/ui.ts`, `tests/unit/ui.spec.ts`).
    - Messages: R-25 re-check `Jeeves: not watching any more (this account isn't supported); /jeeves status for details`; model switch `Jeeves: not watching any more (this model's window is 200K); /jeeves on to watch anyway`. They end only **auto** tasks; no auto task exists until ST-13.4, so test them with a state whose `origin` is `auto`.
-2. ST-13.4 (lazy start, first-run notice `autoNoticeShown`, near-threshold, grace), then ST-13.5 … ST-13.9, E14, ST-15.1. ST-15.2 (live) needs the account (D-44) and a go-ahead and budget first.
+2. ST-13.4 (lazy start, first-run notice `autoNoticeShown`, near-threshold, grace), then ST-13.5 … ST-13.9, E14, ST-15.1. ST-15.2 (live) is approved (D-46) once the account (D-44) is set up.
 3. **Still the maintainer's (from the v0.2 handover):** the v0.2.0 public release steps (install test from a tag, make the repo public, tag, publish the draft; optionally purge old commit ids, decide on `jeeves-release-test`). Team accounts (R-25, Q-11) unchanged.
 
 ## 3. Open items for the maintainer (none blocks E13 or E14)
 
 - **Q-13 and Q-14 are decided** (delegated to the agent, D-44, D-45): the maintainer logs in a non-Team, dollar-billed account (Console API key preferred) on a separate macOS user, the agent builds and runs AC-41, target 2026-11-20 after E13 and ST-15.1; 200K auto-start widens only if the outcome passes, median growth between rotations is ≥ 40K tokens (none under 20K), no loop or review stops (at most one handover retry) and no work is repeated.
-- Still the maintainer's: that account and macOS user, and the go-ahead and budget (US$40) for any live run.
+- **AC-41 go-ahead and US$40 budget approved (D-46)**, with the per-run caps in ST-15.2, valid once E13 and ST-15.1 pass, the D-44 account and macOS user are set up, and the dry run's redone estimate stays within US$40; otherwise stop and ask. Any other live run still needs its own go-ahead.
+- Still the maintainer's: setting up that account and the separate macOS user.
 
 ## 4. Facts worth keeping
 
