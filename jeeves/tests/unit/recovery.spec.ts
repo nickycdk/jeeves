@@ -25,7 +25,7 @@ test('02 §8 row 1: state.json unreadable -> rebuild; too new -> left alone', ()
 test('02 §8 row 3: HANDOVER_GENERATING (and the steps before it) with a stale lock -> recover from the last handover, with the gap note', () => {
   for (const s of ['MONITORING', 'ROTATION_REQUESTED', 'QUIESCING', 'HANDOVER_GENERATING'] as const) assert.deepEqual(c(found(st(s))), { kind: 'recover', gap: true, adopt: null }, s)
   // VALIDATING: the interrupted rotation's handover was saved but not recorded: adopt it, nothing was lost after it.
-  assert.deepEqual(c(found(st('VALIDATING'), STALE, 'history/handover-002.md#sha256:b')), { kind: 'recover', gap: false, adopt: 'history/handover-002.md#sha256:b' })
+  assert.deepEqual(c(found(st('VALIDATING'), STALE, `history/handover-002.md#sha256:${'b'.repeat(64)}`)), { kind: 'recover', gap: false, adopt: `history/handover-002.md#sha256:${'b'.repeat(64)}` })
   assert.deepEqual(c(found(st('VALIDATING'))), { kind: 'recover', gap: true, adopt: null })
 })
 

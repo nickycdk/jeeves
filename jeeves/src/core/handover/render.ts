@@ -28,6 +28,8 @@ export type RenderInput = {
 }
 
 export const handoverFile = (n: number) => `history/handover-${String(n).padStart(3, '0')}.md`
+/** `state.lastValidatedHandover`: the handover file (group 1) and its SHA-256 (group 2). Never a path outside history/ (ST-9.1). */
+export const HANDOVER_REF_RE = /^(history\/handover-\d{3,}\.md)#sha256:([0-9a-f]{64})$/
 const rev = (n: number) => `task-rev-${String(n).padStart(3, '0')}.md`
 const LIST_MAX = 50
 const list = <T>(xs: readonly T[], line: (x: T) => string, none: string) =>

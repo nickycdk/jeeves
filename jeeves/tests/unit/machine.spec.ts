@@ -107,10 +107,10 @@ test('row 10: HANDOVER_GENERATING + Stop with a valid block -> VALIDATING, persi
   const o = run(st('HANDOVER_GENERATING', { rotation: rot({ step: 'HANDOVER_REQUESTED' }) }), stop(0, 0, { ok: true }))
   assert.equal(o.state.status, 'VALIDATING')
   assert.ok(types(o.effects).includes('PERSIST_HANDOVER'))
-  const p = run(o.state, { type: 'HANDOVER_PERSISTED', ok: true, ref: 'history/handover-001.md#sha256:ab' })
+  const p = run(o.state, { type: 'HANDOVER_PERSISTED', ok: true, ref: `history/handover-001.md#sha256:${'a'.repeat(64)}` })
   assert.equal(p.state.status, 'ROTATING')
   assert.equal(p.state.rotation?.step, 'HANDOVER_PERSISTED')
-  assert.equal(p.state.lastValidatedHandover, 'history/handover-001.md#sha256:ab')
+  assert.equal(p.state.lastValidatedHandover, `history/handover-001.md#sha256:${'a'.repeat(64)}`)
   const fail = run(o.state, { type: 'HANDOVER_PERSISTED', ok: false })
   assert.deepEqual([fail.state.status, fail.state.reason], ['NEEDS_REVIEW', 'DISK'])
 })
@@ -124,10 +124,10 @@ test('row 11: HANDOVER_GENERATING + invalid block, retries left -> block with th
 })
 
 test('row 12: HANDOVER_GENERATING + invalid, retries exhausted -> NEEDS_REVIEW(HANDOVER_INVALID), last good handover kept', () => {
-  const s = st('HANDOVER_GENERATING', { rotation: rot({ step: 'HANDOVER_REQUESTED', retries: 2 }), lastValidatedHandover: 'history/handover-001.md#sha256:aa' })
+  const s = st('HANDOVER_GENERATING', { rotation: rot({ step: 'HANDOVER_REQUESTED', retries: 2 }), lastValidatedHandover: `history/handover-001.md#sha256:${'a'.repeat(64)}` })
   const o = run(s, stop(0, 0, { ok: false, errors: ['x'] }))
   assert.deepEqual([o.state.status, o.state.reason], ['NEEDS_REVIEW', 'HANDOVER_INVALID'])
-  assert.equal(o.state.lastValidatedHandover, 'history/handover-001.md#sha256:aa')
+  assert.equal(o.state.lastValidatedHandover, `history/handover-001.md#sha256:${'a'.repeat(64)}`)
   assert.ok(!types(o.effects).includes('BLOCK_STOP'))
   assert.ok(!types(o.effects).includes('RUN_CLEAR'))
 })
@@ -139,7 +139,7 @@ test('row 13: HANDOVER_GENERATING + turn aborted -> PAUSED(USER_INTERRUPT), no h
 })
 
 test('row 14: ROTATING + turn.complete -> schedule /clear once', () => {
-  const s = st('ROTATING', { rotation: rot({ step: 'HANDOVER_PERSISTED' }), lastValidatedHandover: 'history/handover-001.md#sha256:1' })
+  const s = st('ROTATING', { rotation: rot({ step: 'HANDOVER_PERSISTED' }), lastValidatedHandover: `history/handover-001.md#sha256:${'1'.repeat(64)}` })
   const o = run(s, { type: 'TURN_COMPLETE', reason: 'answer', handoverVerified: true })
   assert.deepEqual(types(o.effects), ['RUN_CLEAR'])
   assert.equal(o.effects[0]?.key, 'r1:CLEAR_SCHEDULED')
@@ -147,12 +147,12 @@ test('row 14: ROTATING + turn.complete -> schedule /clear once', () => {
 })
 
 test('ST-4.1 AC 2: a handover that no longer verifies (or was not checked) never clears -> NEEDS_REVIEW(HANDOVER_INVALID)', () => {
-  const s = st('ROTATING', { rotation: rot({ step: 'HANDOVER_PERSISTED' }), lastValidatedHandover: 'history/handover-001.md#sha256:1' })
+  const s = st('ROTATING', { rotation: rot({ step: 'HANDOVER_PERSISTED' }), lastValidatedHandover: `history/handover-001.md#sha256:${'1'.repeat(64)}` })
   for (const i of [{ type: 'TURN_COMPLETE', reason: 'answer', handoverVerified: false }, { type: 'TURN_COMPLETE', reason: 'answer' }] as const) {
     const o = run(s, i)
     assert.deepEqual([o.state.status, o.state.reason, o.state.rotation], ['NEEDS_REVIEW', 'HANDOVER_INVALID', null])
     assert.ok(!types(o.effects).includes('RUN_CLEAR'))
-    assert.equal(o.state.lastValidatedHandover, 'history/handover-001.md#sha256:1', 'the saved handover ref is kept')
+    assert.equal(o.state.lastValidatedHandover, `history/handover-001.md#sha256:${'1'.repeat(64)}`, 'the saved handover ref is kept')
   }
 })
 
@@ -167,7 +167,7 @@ test('D-23: IDLE in ROTATION_REQUESTED -> one nudge per rotation; nowhere else',
 })
 
 test('row 15: ROTATING + session.end(clear) -> sourceSessionId recorded, session record written once', () => {
-  const s = st('ROTATING', { rotation: rot({ step: 'CLEAR_SCHEDULED' }), lastValidatedHandover: 'history/handover-001.md#sha256:1', sessionSequence: 2,
+  const s = st('ROTATING', { rotation: rot({ step: 'CLEAR_SCHEDULED' }), lastValidatedHandover: `history/handover-001.md#sha256:${'1'.repeat(64)}`, sessionSequence: 2,
     sessionStart: { at: '2026-11-07T07:00:00.000Z', pct: 4 }, lastContext: { percent: 51, window: 1, at: AT } })
   const o = run(s, { type: 'SESSION_END', reason: 'clear', sessionId: 'sess-a' })
   assert.equal(o.state.status, 'ROTATING')
@@ -182,7 +182,7 @@ test('row 15: ROTATING + session.end(clear) -> sourceSessionId recorded, session
 })
 
 test('ST-4.2: a /clear before Jeeves scheduled one is the user\'s (USER_CLEAR); a fresh session with the old id is refused', () => {
-  const s = st('ROTATING', { rotation: rot({ step: 'HANDOVER_PERSISTED' }), lastValidatedHandover: 'history/handover-001.md#sha256:1' })
+  const s = st('ROTATING', { rotation: rot({ step: 'HANDOVER_PERSISTED' }), lastValidatedHandover: `history/handover-001.md#sha256:${'1'.repeat(64)}` })
   const o = run(s, { type: 'SESSION_END', reason: 'clear', sessionId: 'sess-a' })
   assert.deepEqual([o.state.status, o.state.reason, o.state.rotation], ['PAUSED', 'USER_CLEAR', null])
   assert.ok(!types(o.effects).includes('WRITE_SESSION'))
@@ -201,7 +201,7 @@ test('ST-4.2: the session start is recorded at ON and in the fresh session; its 
 })
 
 test('row 16: ROTATING + SessionStart(clear) -> RESTORING, target id, lock to new id, inject context', () => {
-  const s = st('ROTATING', { rotation: rot({ step: 'CLEARED', sourceSessionId: 'sess-a' }), lastValidatedHandover: 'history/handover-001.md#sha256:1' })
+  const s = st('ROTATING', { rotation: rot({ step: 'CLEARED', sourceSessionId: 'sess-a' }), lastValidatedHandover: `history/handover-001.md#sha256:${'1'.repeat(64)}` })
   const o = run(s, { type: 'SESSION_START_CLEAR', sessionId: 'sess-b', handoverOk: true })
   assert.equal(o.state.status, 'RESTORING')
   assert.equal(o.state.rotation?.targetSessionId, 'sess-b')
@@ -230,7 +230,7 @@ test('row 18: RESTORING + context ready -> CONTINUING, submit continuation with 
 })
 
 test('ST-4.3: a fresh session whose handover no longer verifies takes the task but injects nothing -> NEEDS_REVIEW', () => {
-  const s = st('ROTATING', { rotation: rot({ step: 'CLEARED', sourceSessionId: 'sess-a' }), lastValidatedHandover: 'history/handover-001.md#sha256:1' })
+  const s = st('ROTATING', { rotation: rot({ step: 'CLEARED', sourceSessionId: 'sess-a' }), lastValidatedHandover: `history/handover-001.md#sha256:${'1'.repeat(64)}` })
   const o = run(s, { type: 'SESSION_START_CLEAR', sessionId: 'sess-b', handoverOk: false })
   assert.deepEqual([o.state.status, o.state.reason, o.state.activeSessionId, o.state.rotation], ['NEEDS_REVIEW', 'HANDOVER_INVALID', 'sess-b', null])
   assert.deepEqual(types(o.effects), ['LOG_EVENT', 'TRANSFER_LOCK', 'TOAST'])
@@ -429,7 +429,7 @@ test('a whole rotation runs MONITORING -> ... -> MONITORING with effects in orde
   const seen: string[] = []
   const step = (i: Input) => { const o = run(s, i); s = o.state; seen.push(...o.effects.filter(e => e.type !== 'LOG_EVENT').map(e => e.type)) }
   step(measure(52)); step({ type: 'TOOL_RESULT', main: true }); step(stop()); step(stop(0, 0, { ok: true }))
-  step({ type: 'HANDOVER_PERSISTED', ok: true, ref: 'history/handover-001.md#sha256:1' }); step({ type: 'TURN_COMPLETE', reason: 'answer', handoverVerified: true })
+  step({ type: 'HANDOVER_PERSISTED', ok: true, ref: `history/handover-001.md#sha256:${'1'.repeat(64)}` }); step({ type: 'TURN_COMPLETE', reason: 'answer', handoverVerified: true })
   step({ type: 'SESSION_END', reason: 'clear', sessionId: 'sess-a' }); step({ type: 'SESSION_START_CLEAR', sessionId: 'sess-b', handoverOk: true })
   step({ type: 'CONTEXT_READY' }); step(measure(undefined, 'sess-b')); step(measure(3, 'sess-b'))
   assert.equal(s.status, 'MONITORING')
@@ -452,7 +452,7 @@ test('property: 300 seeded random walks of 200 inputs keep every invariant (02 Â
       case 5: return { type: 'COMPACTED' }
       case 6: return { type: 'TOOL_RESULT', main: true }
       case 7: case 8: return stop(rnd.int(2), rnd.int(2), rnd.next() < 0.6 ? { ok: true } : { ok: false, errors: ['bad'] })
-      case 9: return { type: 'HANDOVER_PERSISTED', ok: rnd.next() < 0.9, ref: `history/handover-00${rnd.int(9)}.md#sha256:ab` }
+      case 9: return { type: 'HANDOVER_PERSISTED', ok: rnd.next() < 0.9, ref: `history/handover-00${rnd.int(9)}.md#sha256:${'a'.repeat(64)}` }
       case 10: return rnd.next() < 0.2 ? { type: 'IDLE' } : { type: 'TURN_COMPLETE', reason: rnd.pick(['answer', 'aborted', 'refusal', 'error'] as const), handoverVerified: rnd.next() < 0.9 }
       case 11: return { type: 'SESSION_END', reason: rnd.pick(['clear', 'clear', 'exit']), sessionId: sid }
       case 12: return { type: 'SESSION_START_CLEAR', sessionId: sid, handoverOk: rnd.next() < 0.9 }
@@ -472,7 +472,7 @@ test('property: 300 seeded random walks of 200 inputs keep every invariant (02 Â
       case 'MONITORING': return measure(40 + rnd.int(30), sid)
       case 'ROTATION_REQUESTED': case 'QUIESCING': return rnd.next() < 0.3 ? { type: 'TOOL_RESULT', main: true } : stop(rnd.next() < 0.2 ? 1 : 0, 0)
       case 'HANDOVER_GENERATING': return stop(0, 0, rnd.next() < 0.8 ? { ok: true } : { ok: false, errors: ['bad'] })
-      case 'VALIDATING': return { type: 'HANDOVER_PERSISTED', ok: true, ref: 'history/handover-001.md#sha256:ab' }
+      case 'VALIDATING': return { type: 'HANDOVER_PERSISTED', ok: true, ref: `history/handover-001.md#sha256:${'a'.repeat(64)}` }
       case 'ROTATING': return s.rotation!.step === 'HANDOVER_PERSISTED' ? { type: 'TURN_COMPLETE', reason: 'answer', handoverVerified: true }
         : s.rotation!.step === 'CLEAR_SCHEDULED' ? { type: 'SESSION_END', reason: 'clear', sessionId: sid }
         : { type: 'SESSION_START_CLEAR', sessionId: `${sid}+`, handoverOk: true }
@@ -611,9 +611,9 @@ test('ST-4.5 consecutive failures: each failed rotation counts, a continued one 
 })
 
 test('ST-4.6: assisted mode never schedules /clear; CONTINUE_CMD only from NEEDS_REVIEW(ROTATE_UNAVAILABLE), restore path', () => {
-  const s = st('ROTATING', { mode: 'assisted', rotation: rot({ step: 'HANDOVER_PERSISTED' }), lastValidatedHandover: 'history/handover-001.md#sha256:1' })
+  const s = st('ROTATING', { mode: 'assisted', rotation: rot({ step: 'HANDOVER_PERSISTED' }), lastValidatedHandover: `history/handover-001.md#sha256:${'1'.repeat(64)}` })
   const o = run(s, { type: 'TURN_COMPLETE', reason: 'answer', handoverVerified: true })
-  assert.deepEqual([o.state.status, o.state.reason, o.state.lastValidatedHandover], ['NEEDS_REVIEW', 'ROTATE_UNAVAILABLE', 'history/handover-001.md#sha256:1'])
+  assert.deepEqual([o.state.status, o.state.reason, o.state.lastValidatedHandover], ['NEEDS_REVIEW', 'ROTATE_UNAVAILABLE', `history/handover-001.md#sha256:${'1'.repeat(64)}`])
   assert.ok(!types(o.effects).includes('RUN_CLEAR'))
   const c = run(o.state, { type: 'CONTINUE_CMD', sessionId: 'sess-b' })
   assert.deepEqual([c.state.status, c.state.activeSessionId, c.state.rotation?.targetSessionId], ['RESTORING', 'sess-b', 'sess-b'])

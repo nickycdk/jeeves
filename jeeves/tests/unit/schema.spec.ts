@@ -41,6 +41,7 @@ test('specific value errors', () => {
     ['state', validState({ status: 'ROTATING', rotation: { rotationId: '../x', trigger: 'THRESHOLD' as never, requestedAt: '2026-11-07T08:00:00Z', sourceSessionId: null, targetSessionId: null, step: 'REQUESTED', retries: 0, quiesceCount: 0, noteAppended: false } }), 'rotation.rotationId: "../x" is not a safe name'],
     ['state', validState({ taskStartHead: '--output=/tmp/x' }), 'taskStartHead: "--output=/tmp/x" is not a commit hash'],
     ['state', validState({ lastValidatedHandover: '../../notes.md#sha256:ab' }), 'lastValidatedHandover: "../../notes.md#sha256:ab" is not a handover reference'],
+    ['state', validState({ lastValidatedHandover: 'history/handover-001.md#sha256:ab' }), 'lastValidatedHandover: "history/handover-001.md#sha256:ab" is not a handover reference'],
     ['event', { ...VALID.event, taskId: '-rf' }, 'taskId: "-rf" is not a safe name'],
     ['config', { ...VALID.config, verificationCommands: [''] }, 'verificationCommands[0]: must not be empty'],
     ['event', { ...VALID.event, detail: 'x'.repeat(2001) }, 'detail: longer than 2000 characters'],

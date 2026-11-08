@@ -3,6 +3,8 @@ import {
   LEDGER_COMMAND_MAX, LEDGER_MAX, MODES, REASON_CODES, ROTATION_STATES, ROTATION_STEPS, SCHEMA_VERSION, STATUSES, TRIGGERS,
   type CommandEntry, type Config, type EditEntry, type EventLine, type LockOwner, type ProjectRecord, type SessionRecord, type State,
 } from './types.ts'
+import { COMMIT_RE } from './git.ts'
+import { HANDOVER_REF_RE } from './handover/render.ts'
 
 export type Result<T> =
   | { ok: true; value: T }
@@ -63,8 +65,8 @@ const pattern = (re: RegExp, what: string): Guard => (v, p, e) => {
   if (!re.test(v)) e.push(`${p}: "${v.slice(0, 40)}" is not ${what}`)
 }
 const safeName = pattern(/^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$/, 'a safe name')
-const commitHash = pattern(/^[0-9a-f]{4,64}$/, 'a commit hash')
-const handoverRef = pattern(/^history\/handover-\d{3,}\.md#sha256:[0-9a-f]*$/, 'a handover reference')
+const commitHash = pattern(COMMIT_RE, 'a commit hash')
+const handoverRef = pattern(HANDOVER_REF_RE, 'a handover reference')
 
 const contextReading = obj<NonNullable<State['lastContext']>>({
   percent: { optional: num(0, 100) }, tokens: { optional: int(0) }, window: int(0), at: iso,

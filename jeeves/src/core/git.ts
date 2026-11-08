@@ -62,3 +62,6 @@ export function sameRepo(stored: { repoRoot: string; worktree: string }, now: Re
     ? stored.repoRoot === now.commonDir && stored.worktree === now.worktree
     : stored.repoRoot === now.cwd && stored.worktree === now.cwd
 }
+
+/** A commit id as git prints it (abbreviated or full, SHA-1 or SHA-256): never an option such as "--output=..." (ST-9.1). */
+export const COMMIT_RE = /^[0-9a-f]{4,64}$/

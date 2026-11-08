@@ -21,10 +21,12 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
-      - name: The tag matches plugin.json
+      - name: The tag matches every version field
         run: |
-          v=$(node -p "require('./jeeves/.claude-plugin/plugin.json').version")
-          test "v$v" = "$GITHUB_REF_NAME" || { echo "::error::tag $GITHUB_REF_NAME, but plugin.json says $v"; exit 1; }
+          for f in jeeves/.claude-plugin/plugin.json jeeves/package.json jeeves/package-lock.json; do
+            v=$(node -p "require('./$f').version")
+            test "v$v" = "$GITHUB_REF_NAME" || { echo "::error::tag $GITHUB_REF_NAME, but $f says $v"; exit 1; }
+          done
           test -f "jeeves/docs/release-notes/$GITHUB_REF_NAME.md" || { echo "::error::jeeves/docs/release-notes/$GITHUB_REF_NAME.md is missing"; exit 1; }
       - run: jeeves/scripts/release-zip.sh HEAD dist
       - uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2.4.0

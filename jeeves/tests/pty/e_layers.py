@@ -118,13 +118,16 @@ def phase_b(sp, out, minutes):
     r['task_saved'] = c.wait(lambda: st().get('taskRevision', 0) >= 1, 30, label='task saved')
 
     deadline, last, ac07, approvals = time.time() + minutes * 60, None, None, []
+    # Only output after the last approval counts: an answered dialog's text stays in the scrollback.
+    seen = len(c.plain())
+    def dialog_open(): return re.search(DIALOG, re.sub(r'\s', '', c.plain()[seen:])) is not None
     while time.time() < deadline:
         if not c.pump(2): c.note('claude exited'); break
         s = st()
         lc = s.get('lastContext') or {}
         now = (s.get('status'), s.get('reason'), s.get('rotationCount'), lc.get('percent'))
         if now != last: c.note('state', json.dumps(now)); last = now
-        if re.search(DIALOG, c.squeezed(1500)):
+        if dialog_open():
             if ac07 is None:
                 # AC-07: hold the dialog open, then check nothing rotated while it was open.
                 before = dict(s)
@@ -134,16 +137,17 @@ def phase_b(sp, out, minutes):
                 ac07 = {
                     'status_when_shown': before.get('status'), 'status_after_20s': after.get('status'),
                     'pct_when_shown': (before.get('lastContext') or {}).get('percent'),
-                    'dialog_still_open': re.search(DIALOG, c.squeezed(1500)) is not None,
+                    'dialog_still_open': dialog_open(),
                     'handover_files_while_open': len(glob.glob(f"{task_dir()}/history/handover-*.md")) if task_dir() else 0,
                     'screen': c.tail(800),
                 }
             c.note('approve', 'Enter on the preselected Yes')
             approvals.append(round(c.now(), 1))
             c.enter(); c.pump(3)
+            seen = len(c.plain())
         if not s.get('rotationCount') and s.get('status') in ('NEEDS_REVIEW', 'COMPLETED', 'FAILED', 'PAUSED'):
             c.note('stop', f"task ended without a rotation: {s.get('status')} {s.get('reason')}"); break
-        if (s.get('rotationCount') or 0) >= 1 and s.get('status') in ('MONITORING', 'COMPLETED', 'NEEDS_REVIEW') and idle(c, 25) and not re.search(DIALOG, c.squeezed(1500)):
+        if (s.get('rotationCount') or 0) >= 1 and s.get('status') in ('MONITORING', 'COMPLETED', 'NEEDS_REVIEW') and idle(c, 25) and not dialog_open():
             break
     r['ac07'], r['approvals'] = ac07, approvals
     s = st()
@@ -168,12 +172,13 @@ def phase_b(sp, out, minutes):
     r['checks'] = {
         'AC-07 threshold request pending while the dialog was open (ROTATION_REQUESTED or QUIESCING)': bool(ac07) and ac07['status_when_shown'] in PENDING,
         'AC-07 dialog stayed open 20 s, no handover saved meanwhile': bool(ac07) and ac07['dialog_still_open'] and ac07['handover_files_while_open'] == 0 and ac07['status_after_20s'] in PENDING,
-        'AC-07 rotation happened after the dialog was answered': rotated_at is not None and os.path.exists(f"{repo}/stamp.txt"),
+        'AC-07 rotation happened after the dialog was answered': bool(ac07) and ac07['handover_files_while_open'] == 0 and rotated_at is not None and os.path.exists(f"{repo}/stamp.txt"),
         'AC-09 handover-001 lists npm test as failed, never passed': bool(npm_lines) and all(re.search(r'fail|exit(ed)?\s*(code\s*)?1|non-?zero', l, re.I) for l in npm_lines) and not any(re.search(r'\bpass(ed|es)?\b', l, re.I) and not re.search(r'not pass|fail', l, re.I) for l in npm_lines),
-        'AC-10 distinct session ids across the rotation': len({x['sessionId'] for x in sessions} | {s.get('activeSessionId')}) >= 2,
-        # Valid only when the handover did not carry the marker itself (it did in runs 2 and 3: Claude reports what it read).
-        'AC-10 probe: the session-1 marker is not visible after the rotation (handover without it)': MARKER not in h1 and MARKER not in answer.replace(PROBE, ''),
+        'AC-10 distinct session ids across the rotation': len({x['sessionId'] for x in sessions} | ({s['activeSessionId']} if s.get('activeSessionId') else set())) >= 2,
     }
+    # The probe counts only when the handover did not carry the marker itself (it did in runs 2 and 3: Claude reports what it read).
+    r['probe'] = 'inconclusive (the handover quotes the marker)' if MARKER in h1 else 'counted'
+    if MARKER not in h1: r['checks']['AC-10 probe: the session-1 marker is not visible after the rotation'] = MARKER not in answer.replace(PROBE, '')
     if d:
         for f in ('events.jsonl', 'state.json'): shutil.copy(f"{d}/{f}", f"{out}/b")
         for sub in ('sessions', 'history'):
@@ -206,6 +211,7 @@ def main():
     lines = [f"# E layers (AC-03, AC-07, AC-09, AC-10): {'PASS' if checks and all(checks.values()) else 'FAIL'}", '',
              f"Claude Code {version} · model haiku · macOS · PTY driver `tests/pty/e_layers.py` · cost about US${total}", '',
              '| Check | Result |', '|---|---|', *[f"| {k} | {'PASS' if v else 'FAIL'} |" for k, v in checks.items()], '',
+             f"AC-10 probe: {b.get('probe', '-')}", '',
              f"AC-07 detail: {json.dumps({k: v for k, v in (b.get('ac07') or {}).items() if k != 'screen'})}", '',
              'Handover-001 "Tests and checks":', '', *[f"    {l}" for l in (b.get('handover_tests') or '(none)').splitlines()], '',
              'Probe answer (tail):', '', *[f"    {l}" for l in (b.get('probe_answer') or '').strip().splitlines()[-12:]], '',
