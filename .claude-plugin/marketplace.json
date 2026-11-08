@@ -1,15 +1,15 @@
 {
-  "name": "tibbs",
+  "name": "jeeves",
   "owner": {
-    "name": "Tibbs contributors"
+    "name": "Jeeves contributors"
   },
   "metadata": {
-    "description": "Tibbs: session continuity for Claude Code."
+    "description": "Jeeves: session continuity for Claude Code."
   },
   "plugins": [
     {
-      "name": "tibbs",
-      "source": "./tibbs",
+      "name": "jeeves",
+      "source": "./jeeves",
       "description": "Session continuity for Claude Code: rotates a long task into fresh conversations with a verified handover."
     }
   ]

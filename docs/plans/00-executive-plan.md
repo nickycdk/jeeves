@@ -1,6 +1,6 @@
-# 00 — Executive Plan: Tibbs
+# 00 — Executive Plan: Jeeves
 
-**Tibbs was called Jeeves until 2026-11-08 (D-35)** and SessionRelay before 2026-11-07 (D-22). These plans keep the names they were written with: read `/jeeves` as `/tibbs`, `jeeves/` as `tibbs/` and `JEEVES_*` as `TIBBS_*`. The PRD file and older evidence keep the old names.
+Jeeves was called SessionRelay until 2026-11-07 (D-22); the PRD file and older evidence keep the old name.
 
 **Date:** 2026-11-07 · **Source:** `docs/specs/sessionrelay-product-engineering-spec.md` (PRD v1.0) · **Verified against:** Claude Code 2.1.319 (macOS, Darwin 23.6) · **Status:** Approved (D-15). M0 … M6 solved (M4 gate: two live runs with 5 and 4 unattended rotations, `evidence/m4-e2e/RESULT.md`; M5 gate: crash matrix 6/6 and the kill-mid-rotation demo, `evidence/m5-demo/RESULT.md`, 2026-11-08). M6 gate: passed 2026-11-08 (AC-01 on a fresh macOS user and the AC-02 Cursor checklist passed, maintainer-reported, `evidence/m6-gate/RESULT.md`). M7 (public beta) built 2026-11-08, gate open for the maintainer's Cursor demo, release and sign-off (`handoff-m7.md`). Progress per milestone: `05-delivery-milestones.md` § Status.
 

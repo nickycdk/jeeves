@@ -1,12 +1,12 @@
 name: Bug report
-description: Tibbs did something wrong or stopped unexpectedly
+description: Jeeves did something wrong or stopped unexpectedly
 labels: [bug]
 body:
   - type: textarea
     id: diagnose
     attributes:
-      label: Output of /tibbs status --diagnose
-      description: Type `/tibbs status --diagnose` in the affected session and paste the result. It shows your home folder as ~ and redacts known secret formats; read it before posting.
+      label: Output of /jeeves status --diagnose
+      description: Type `/jeeves status --diagnose` in the affected session and paste the result. It shows your home folder as ~ and redacts known secret formats; read it before posting.
       render: text
     validations:
       required: true
@@ -19,7 +19,7 @@ body:
   - type: textarea
     id: history
     attributes:
-      label: Output of /tibbs history (optional)
+      label: Output of /jeeves history (optional)
       render: text
   - type: input
     id: terminal

@@ -1,5 +1,5 @@
 .DS_Store
 node_modules/
-tibbs/.claude-plugin/types/
-tibbs/tsconfig.engine.json
+jeeves/.claude-plugin/types/
+jeeves/tsconfig.engine.json
 __pycache__/

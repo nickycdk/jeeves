@@ -1,9 +1,0 @@
-{
-  "extends": "./tsconfig.json",
-  "include": [
-    "~/Desktop/Projects/jeeves/tibbs/.claude-plugin/types",
-    "hooks",
-    "src",
-    "tests/mod"
-  ]
-}
