@@ -34,9 +34,12 @@ export async function projectTasks(rt: Runtime): Promise<{ tasks: Task[]; errors
   // shortcut: reads every task's state.json per call; cache the owned task's folder if task counts grow large.
   const tasksDir = join(rt.projectDir, 'tasks')
   const tasks: Task[] = [], errors: string[] = [], broken: Broken[] = []
-  for (const name of await rt.port.listDirs(tasksDir)) {
+  const names = await rt.port.listDirs(tasksDir)
+  // Read in parallel (stats over 50 tasks, ST-11.4); handled below in folder order.
+  const reads = await Promise.all(names.map(name => rt.storage.readState(join(tasksDir, name)).catch(err => ({ ok: false as const, errors: [String(err)], io: true }))))
+  for (const [i, name] of names.entries()) {
     const dir = join(tasksDir, name)
-    const r = await rt.storage.readState(dir).catch(err => ({ ok: false as const, errors: [String(err)], io: true }))
+    const r = reads[i]!
     if (r === null) continue
     if (r.ok) tasks.push({ state: r.value, dir })
     else {
