@@ -7,12 +7,12 @@ Each version was installed from npm into a scratch folder and ran `claude plugin
 
 | Claude Code | validate --strict | mod tests | supported |
 |---|---|---|---|
-| 2.1.287 | FAIL | FAIL (0 pass, 143 fail) | no (below minimum) |
-| 2.1.295 | FAIL | FAIL (0 pass, 143 fail) | no (below minimum) |
-| 2.1.303 | pass | pass (143) | no (below minimum) |
-| 2.1.310 | pass | pass (143) | no (below minimum) |
-| 2.1.316 | pass | pass (143) | no (below minimum) |
-| 2.1.319 | pass | pass (143) | yes |
+| 2.1.287 | FAIL | FAIL (0 pass, 149 fail) | no (below minimum) |
+| 2.1.295 | FAIL | FAIL (0 pass, 149 fail) | no (below minimum) |
+| 2.1.303 | pass | pass (149) | no (below minimum) |
+| 2.1.310 | pass | pass (149) | no (below minimum) |
+| 2.1.316 | pass | pass (149) | no (below minimum) |
+| 2.1.319 | pass | pass (149) | yes |
 
-- 2.1.287: validate says `modules../register.ts: plugin: <plugin>/hooks/register.ts, compiled line 41 'const rt = await runtime($, opts, true);': $ is passed to "runtime", imported from "../src/adapter/runtime.ts": $ is followed only into a funct`
-- 2.1.295: validate says `modules../register.ts: plugin: <plugin>/hooks/register.ts, compiled line 41 'const rt = await runtime($, opts, true);': $ is passed to "runtime", imported from "../src/adapter/runtime.ts": $ is followed only into a funct`
+- 2.1.287: validate says `modules../register.ts: plugin: <plugin>/hooks/register.ts, compiled line 41 'const rt = await runtime($, opts, true);': $ is passed to "runtime", imported from "../src/adapter/runtime.ts": $ is followed only into a function declared in this same file, never across an import; $ is always sp… [+115 chars]`
+- 2.1.295: validate says `modules../register.ts: plugin: <plugin>/hooks/register.ts, compiled line 41 'const rt = await runtime($, opts, true);': $ is passed to "runtime", imported from "../src/adapter/runtime.ts": $ is followed only into a function declared in this same file, never across an import; $ is always sp… [+115 chars]`

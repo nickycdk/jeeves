@@ -26,21 +26,21 @@ At the Claude Code prompt:
 /plugin install jeeves --marketplace <owner>/jeeves
 ```
 
-or from a shell: `claude plugin install jeeves --marketplace <owner>/jeeves`. From a clone of this repository, give the clone's path instead: `claude plugin install jeeves --marketplace /path/to/jeeves`. (`<owner>` is set when the repository is published.) Then, in any project, type `/jeeves status`.
+or from a shell: `claude plugin install jeeves --marketplace <owner>/jeeves`. From a clone of this repository, give the clone's path instead: `claude plugin install jeeves --marketplace /path/to/jeeves`. (`<owner>` is set when the repository is published.) The note "2 userConfig options not yet set" is fine: both settings are optional. Then, in any project, start `claude` and type `/jeeves status`; a fresh install answers `Jeeves  mode: full` and `No managed task. Start with /jeeves on`.
 
 **Update:** `claude plugin update jeeves@jeeves` (third-party marketplaces do not update by themselves).
 
-**Uninstall:** `claude plugin uninstall jeeves@jeeves`. This removes the plugin and its entry in your settings, nothing else: your task files stay. Delete them first with `/jeeves purge --all`, or afterwards by deleting `~/Library/Application Support/Jeeves` (Linux: `~/.local/state/jeeves`).
+**Uninstall:** `claude plugin uninstall jeeves@jeeves`. This removes the plugin and its `enabledPlugins` entry in your settings; `claude plugin marketplace remove jeeves` also removes the marketplace entry. Your task files stay. Delete them first with `/jeeves purge --all`, or afterwards by deleting `~/Library/Application Support/Jeeves` (Linux: `~/.local/state/jeeves`).
 
 ## Quickstart
 
 The same in Terminal, iTerm, Cursor's or VS Code's integrated terminal: Jeeves lives inside Claude Code, not in the terminal.
 
 1. Open your project and start `claude`.
-2. Type `/jeeves on`. The next prompt you type is saved word for word as the task. (Or `/jeeves on <goal>`: the goal is saved and sent as the first prompt.)
+2. Type `/jeeves on`. Jeeves answers `Jeeves on: task t_... Your next prompt is saved word for word as the task.` (the first time on a machine, plus three lines on where it keeps files and how to pause). Or `/jeeves on <goal>`: the goal is saved and sent as the first prompt.
 3. Optional: `/jeeves check npm test` adds a command that proves the task is done, and `/jeeves dod <text>` a done criterion. Jeeves stores them as text and never runs them; Claude does, and Jeeves checks the result.
-4. Type your task and work as usual. The entry under the prompt shows `Jeeves 12%/50%`.
-5. At 50% Jeeves takes over between turns: `Jeeves: handover requested`, `... validated, starting fresh`, then the fresh conversation continues. You do not type anything.
+4. Type your task and work as usual. The entry under the prompt shows `Jeeves ?/50%` until Claude's first reply, then `Jeeves 12%/50%`.
+5. At 50% Jeeves takes over between turns: `Jeeves: handover requested`, `... validated, starting fresh`, then the fresh conversation continues. In full mode you type nothing, unless Claude asks for a permission as it would without Jeeves.
 
 `/jeeves pause` stops handovers until `/jeeves resume`; `/jeeves off` ends the task (files kept).
 
@@ -50,7 +50,7 @@ The same in Terminal, iTerm, Cursor's or VS Code's integrated terminal: Jeeves l
 
 **It does not:** run your commands or tests, change git (no commit, stash, checkout or reset, ever), touch your permissions or settings, send anything over the network, or answer permission prompts for you. It never claims a task is done without evidence: a task is completed only when Claude reports it with the checks you gave and Jeeves's record shows them passing, or when you confirm with `/jeeves done`.
 
-**It stops and tells you** when: the handover is invalid 3 times (`NEEDS_REVIEW`), the fresh conversation is already near the threshold (`POSSIBLE_LOOP`), 10 rotations are reached (`MAX_ROTATIONS`), work is still in flight after 3 stops or 20 minutes (`UNSAFE_BOUNDARY`), you interrupt the handover or type `/clear` yourself, the API reports a rate limit, login, billing or overload error, a disk write fails, or the repository moved or changed branch. `/jeeves status` says why, in one line, and what to type.
+**It stops and tells you** when: the handover fails its checks 3 times, 1 try and 2 retries (`NEEDS_REVIEW`), the fresh conversation is already near the threshold (`POSSIBLE_LOOP`), 10 rotations are reached (`MAX_ROTATIONS`), work is still in flight after 3 stops or 20 minutes (`UNSAFE_BOUNDARY`), you interrupt the handover or type `/clear` yourself, the API reports a rate limit, login, billing or overload error, a disk write fails, or the repository moved or changed branch. `/jeeves status` says why, in one line, and what to type.
 
 ## Modes
 
@@ -66,7 +66,7 @@ While a task is on, Jeeves keeps one entry under the prompt: `Jeeves 34%/50%` (c
 
 ## Data and privacy
 
-Everything stays on your machine, in the state folder (`/jeeves status` shows it; never inside your repository): your task prompt, the handovers, a redacted log of state changes and of the last 200 commands. Never the transcript or file contents. Known secret formats are masked; what that catches and misses is in [PRIVACY.md](PRIVACY.md). Delete it with `/jeeves purge` or by deleting the folder.
+Everything stays on your machine, in the state folder (`/jeeves status` shows it; never inside your repository unless you set `stateDir` there): your task prompt, the handovers with a git facts snapshot each, a redacted log of state changes and of the last 200 commands and edited file paths. Never the transcript or file contents. Known secret formats are masked. The full list, and what masking catches and misses, is in [PRIVACY.md](PRIVACY.md). Delete it with `/jeeves purge --all` (or `--task`, `--project`) or by deleting the folder.
 
 ## Commands
 
@@ -87,21 +87,22 @@ All are `/jeeves <command>`. Only commands you type yourself change a task; anyt
 | `recover [--relink]` | Continue a task an earlier session left interrupted (crash, closed terminal). `--relink` continues after a branch switch or a moved folder. |
 | `status [--diagnose]` | Mode, task, state, context, threshold, rotations, state folder. `--diagnose`: a redacted report for a bug report. |
 | `history` | The last 20 state changes and a rotations summary. |
-| `purge --task <id> \| --project \| --all` | Delete task files, after you confirm with a code. |
+| `purge --task <id> \| --project \| --all` | List the task folders that would be deleted and give a code. A running task is never deleted. |
+| `purge confirm <code>` | Delete them (within 2 minutes; a wrong code cancels). |
 | `help` | The command list. |
 
 If another plugin already owns `/jeeves`, Jeeves registers `/relay` instead and says so.
 
 ## Settings
 
-In `/config` (or `claude plugin configure jeeves@jeeves`):
+In Claude Code: `/plugin configure jeeves@jeeves`. From a shell: `claude plugin configure jeeves@jeeves` shows them; set one with `claude plugin install jeeves@jeeves --config autoRecover=true`.
 
 | Setting | Default | What it does |
 |---|---|---|
-| `stateDir` | empty: `~/Library/Application Support/Jeeves` (Linux: `~/.local/state/jeeves`) | Absolute path for task state and handovers. Jeeves refuses a default inside your repository. |
+| `stateDir` | empty: `~/Library/Application Support/Jeeves` (Linux: `~/.local/state/jeeves`) | Absolute path for task state and handovers. The default is never inside a repository (Jeeves refuses one that would be); a path you set is used as given. |
 | `autoRecover` | off | At session start, continue an interrupted task by itself instead of asking you to type `/jeeves recover`. |
 
-Per task: `/jeeves threshold <n>` (default 50%). Fixed limits: 10 rotations per task, 2 handover retries, 2 failed rotations in a row, 3 unsafe stops or 20 minutes before pausing, handovers up to 12,000 characters.
+Per task: `/jeeves threshold <n>` (default 50%). Fixed limits: 10 rotations per task, 3 handover attempts (1 + 2 retries), 2 failed rotations in a row, 3 unsafe stops or 20 minutes before pausing, handovers up to 12,000 characters.
 
 ## Troubleshooting
 
@@ -113,7 +114,7 @@ The common cases, with what to type, are in [docs/troubleshooting.md](docs/troub
 
 **What if Claude Code updates and breaks something?** Jeeves checks the version and its capabilities at every start. If `/clear` stops working for plugins it falls back to assisted mode and says so; it never pretends to rotate.
 
-**Will the fresh conversation redo work?** The continuation prompt lists what is done, which files changed, which checks ran with what result and what not to repeat. The M4 live runs completed a six-step task across 5 rotations with no step done twice.
+**Will the fresh conversation redo work?** The continuation prompt lists what is done, which files changed, which checks ran with what result and what not to repeat. In the M4 gate runs a six-step task completed across 5 rotations with no step done twice ([evidence](../docs/plans/evidence/m4-e2e/RESULT.md)).
 
 **Two terminals in the same project?** Each session gets its own task; one session cannot change another's (`LOCK_HELD`).
 

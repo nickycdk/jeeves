@@ -2,7 +2,9 @@
 # Local equivalent of CI plus the mod checks: typecheck, lint, test, test:mod, validate.
 set -e
 cd "$(dirname "$0")/.."
-npm run -s typecheck
+# Without the engine types (a fresh clone that never ran `claude --plugin-dir .`) only src/core is type-checked.
+if [ -n "$CLAUDE_CODE_TYPES" ] || [ -d .claude-plugin/types ]; then npm run -s typecheck
+else echo 'WARNING: engine types missing, so hooks/ and src/adapter/ are NOT type-checked. Run `claude --plugin-dir .` once (see CONTRIBUTING).'; npm run -s typecheck -- --core-only; fi
 npm run -s lint
 out=$(mktemp); npm test > "$out" 2>&1 || { cat "$out"; exit 1; }
 grep -E '^# (tests|pass|fail)' "$out"; rm -f "$out"

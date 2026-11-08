@@ -20,7 +20,7 @@ const fromEnv = process.env.CLAUDE_CODE_TYPES
 const include = fromEnv ? [resolve(fromEnv)] : existsSync(resolve(laid, 'claude-code/index.d.ts')) ? [laid] : null
 if (!include) {
   console.error('typecheck: engine types not found. Load this folder once with `claude --plugin-dir .`\n' +
-    '(Claude Code writes .claude-plugin/types/), or set CLAUDE_CODE_TYPES to a claude-code.d.ts file.\n' +
+    '(Claude Code writes .claude-plugin/types/), or set CLAUDE_CODE_TYPES to its claude-code/index.d.ts.\n' +
     'Use `npm run typecheck -- --core-only` to check src/core alone.')
   process.exit(1)
 }

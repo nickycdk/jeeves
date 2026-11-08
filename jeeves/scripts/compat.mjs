@@ -26,7 +26,7 @@ for (const v of versions) {
   const test = run(['plugin', 'test', '.'])
   const out = test.stdout + test.stderr
   const n = re => Number(re.exec(out)?.[1] ?? NaN)
-  const why = (validate.stdout + validate.stderr).split('\n').find(l => l.includes('❯'))?.replaceAll(copy, '<plugin>').replace(/^\s*❯\s*/, '').replaceAll('`', "'").slice(0, 220) ?? ''
+  const why = (validate.stdout + validate.stderr).split('\n').find(l => l.includes('❯'))?.replaceAll(copy, '<plugin>').replace(/^\s*❯\s*/, '').replaceAll('`', "'") ?? ''
   rows.push({ v, why, validate: validate.status === 0, pass: n(/^\s*(\d+) pass/m), fail: n(/^\s*(\d+) fail/m), ok: test.status === 0 })
   console.log(v, rows.at(-1))
 }

@@ -7,7 +7,7 @@ Thanks for helping. Jeeves is small on purpose: no runtime dependencies, a pure 
 Requirements: Node 22.6 or later, git, and Claude Code 2.1.319 or later on `PATH` (only for the mod checks; no login is needed for them).
 
 ```sh
-git clone <repo url> jeeves && cd jeeves/jeeves   # the plugin lives in the jeeves/ folder
+git clone <repo url> jeeves && cd jeeves/jeeves   # the plugin (the folder with package.json) is jeeves/ inside the clone
 npm ci
 npm test                 # unit tests: no Claude Code needed
 npm run test:mod         # the hooks in Claude Code's test kit
@@ -22,13 +22,13 @@ npm run test:mod         # the hooks in Claude Code's test kit
 | `npm run lint` | `tsc` on `src/core` plus `scripts/lint.mjs`: core purity (no `$`, no I/O), no git-mutating argv, no runtime dependencies | Node |
 | `npm run typecheck` | `tsc --strict` on hooks, adapter and mod tests against the engine's types (see below); `-- --core-only` without them | Node (+ engine types) |
 | `npm run validate` | `claude plugin validate . --strict` | Claude Code |
-| `scripts/check-all.sh` | All of the above plus the marketplace check, as CI would; run it before every commit | Claude Code |
+| `scripts/check-all.sh` | All of the above plus the marketplace check; run it before every commit. Without the engine types it checks `src/core` only and says so | Claude Code (+ engine types) |
 | `npm run compat -- <scratch> <versions...>` | Installs each Claude Code version from npm into `<scratch>` and runs validate + test there; rewrites `docs/compatibility.md` | Claude Code from npm, network |
 | `npm run crash:report` | Runs the crash matrix mod tests and rewrites the crash-matrix evidence file | Claude Code |
 | `npm run docs:state` | Regenerates `docs/state-machine.md` from the transition table | Node |
 | `npm run e2e:pty -- <scratch> ...` | Live end-to-end run in a real `claude` (see below) | Claude Code, logged in, **costs usage** |
 
-`npm run typecheck` needs the engine's type declarations. Claude Code writes them into `.claude-plugin/types/` the first time it loads this folder with `claude --plugin-dir .` in an interactive session (you can quit right after). You can also point `CLAUDE_CODE_TYPES` at a `claude-code.d.ts` file. They are not committed: they belong to Claude Code.
+`npm run typecheck` needs the engine's type declarations. Claude Code writes them into `.claude-plugin/types/` (the API is `.claude-plugin/types/claude-code/index.d.ts`) the first time it loads this folder: run `claude --plugin-dir .` here once, trust the folder, then `/exit`. No login is needed for that. There is no non-interactive way to get them. You can also point `CLAUDE_CODE_TYPES` at an `index.d.ts` written that way for another checkout. They are not committed: they belong to Claude Code.
 
 Under heavy load or system sleep the mod suite can fail at random with `timed out after 5000 ms` in a different file each run. Rerun before suspecting your change.
 
