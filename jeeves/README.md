@@ -15,6 +15,7 @@ Jeeves does that for you, inside your normal terminal session. At a threshold yo
 - Claude Code 2.1.319 or later (`claude --version`).
 - macOS. Linux should work but is untested.
 - Not a Claude account in a Team organization, for now: on Claude Code 2.1.319 a built-in plugin there runs before every installed plugin and skips the hooks Jeeves hands over with. Jeeves notices after the first answer and turns itself off (`/jeeves status`: `mode: unsupported`); see [Troubleshooting](docs/troubleshooting.md).
+- Claude Code must let plugins run `/clear`. On 2.1.319 this works and is part of the typed plugin API, but it is not documented as a supported use and could change. If it stops working, Jeeves falls back to assisted mode (you type `/clear`, then `/jeeves continue`) and says so.
 - Nothing else: no API key, no server, no other software. Jeeves makes no network calls.
 
 ## Install
@@ -57,7 +58,7 @@ The same in Terminal, iTerm, Cursor's or VS Code's integrated terminal: Jeeves l
 
 - **full**: Jeeves runs `/clear` itself after a verified handover and continues the task in the fresh conversation. No keystroke is needed.
 - **assisted**: used when this Claude Code cannot run `/clear` for a plugin (or refused it once). Jeeves never claims automatic rotation here. It saves the verified handover and asks you to run `/clear`, then `/jeeves continue`, which sends the task and handover into the fresh conversation.
-- **unsupported**: this Claude Code version is too old; Jeeves stays off and says which version it needs.
+- **unsupported**: this Claude Code version is too old, or another plugin skips the hooks Jeeves needs (a Team account, see Requirements); Jeeves stays off and says why.
 
 ## What you see
 
