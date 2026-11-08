@@ -30,7 +30,8 @@ def snapshot(repo):
         'refs': git(repo, 'for-each-ref', '--format=%(refname) %(objectname)').splitlines(),
         'stash': git(repo, 'stash', 'list').splitlines(),
         'reflog': git(repo, 'reflog', '--format=%gs').splitlines(),
-        'worktrees': git(repo, 'worktree', 'list', '--porcelain').splitlines(),
+        # HEAD lines move with every commit Claude makes; the worktrees and their branches must not change.
+        'worktrees': [l for l in git(repo, 'worktree', 'list', '--porcelain').splitlines() if not l.startswith('HEAD ')],
         'git_config': sha(f"{repo}/.git/config"),
         'settings': {p: sha(p) for p in (f"{home}/.claude/settings.json", f"{home}/.claude/settings.local.json", f"{repo}/.claude/settings.json", f"{repo}/.claude/settings.local.json")},
     }
@@ -107,16 +108,20 @@ def main():
     p2 = Claude(f"{out}/p2", PLUGIN, repo, [*args, '--debug-file', debug2], env)
     p2.accept_trust()
     p2.pump(5)
-    r['startup notice names the task'] = p2.wait(lambda: 'ROTATING' in p2.squeezed(6000) and 'relayrecover' in p2.squeezed(6000), 20, label='notice')
+    # Toasts and command answers are read from the debug log: the TUI redraws, so the screen tail is unreliable.
+    dbg = lambda: open(debug2, errors='replace').read() if os.path.exists(debug2) else ''
+    recovered = lambda: any(json.loads(l)['code'] == 'STALE_LOCK' for l in open(f"{task_dir()}/events.jsonl"))
+    r['startup notice names the task'] = p2.wait(lambda: '/relay recover continues it here' in dbg() or '/relay recover takes it over' in dbg(), 60, label='notice')
     p2.line('/relay recover')
-    p2.wait(lambda: 'LOCK_HELD' in p2.squeezed(6000) or 'Recoveringtask' in p2.squeezed(6000), 30, label='first recover')
-    m = re.search(r'tryagainin(\d+)s', p2.squeezed(6000))
-    r['first recover refused while the lock is live (LOCK_HELD)'] = 'LOCK_HELD' in p2.squeezed(6000)
-    wait = int(m.group(1)) + 3 if m else 125
-    p2.note('waiting', f'{wait} s for the dead lock to go stale')
-    p2.pump(wait)
-    p2.line('/relay recover')
-    r['second recover continues'] = p2.wait(lambda: 'Recoveringtask' in p2.squeezed(6000), 30, label='recover')
+    p2.wait(lambda: recovered() or 'LOCK_HELD' in dbg(), 60, label='first recover')
+    r['first recover: refused while the dead lock was live'] = not recovered()
+    if not recovered():
+        m = re.search(r'try again in (\d+) s', dbg())
+        wait = int(m.group(1)) + 3 if m else 125
+        p2.note('waiting', f'{wait} s for the dead lock to go stale')
+        p2.pump(wait)
+        p2.line('/relay recover')
+    r['recover continues'] = p2.wait(recovered, 60, label='recover')
     recover_at = len(p2.typed)
     # Let the recovered session work: until a later rotation has continued, the task completes, or time runs out.
     rotations0 = state().get('rotationCount', 0)
@@ -151,7 +156,8 @@ def main():
     new_reflog = after['reflog'][:len(after['reflog']) - len(before['reflog'])]
     p1_cost = sum(PRICE[k] * (e.get('message', {}).get('usage') or {}).get(k, 0) for e in transcript(p1_sid) if e.get('type') == 'assistant' for k in PRICE) / 1e6 if p1_sid else None
     rest_cost = sum(x.get('costUsd', 0) for x in sessions if x['sessionId'] != p1_sid) + (float(costs[-1]) if costs else 0)
-    checks = {k: bool(v) for k, v in r.items() if k not in ('claude_version', 'override', 'state left by the dead process', 'keystrokes after /relay recover')}
+    info = ('claude_version', 'override', 'state left by the dead process', 'keystrokes after /relay recover', 'first recover: refused while the dead lock was live')
+    checks = {k: bool(v) for k, v in r.items() if k not in info}
     checks['dead process left ROTATING with handover-001 saved'] = r['state left by the dead process']['status'] == 'ROTATING' and str(r['state left by the dead process']['lastValidatedHandover']).startswith('history/handover-001.md')
     checks['exactly one recovery (one STALE_LOCK -> RESTORING event)'] = len(recovered) == 1
     checks['exactly one continuation prompt in the recovering session'] = len(conts) == 1
@@ -176,6 +182,7 @@ def main():
              f"Claude Code {r['claude_version']} · haiku · relative override {a.override} · crash point before-clear (SIGKILL)",
              f"Cost about US${round((p1_cost or 0) + rest_cost, 4)} (killed session {round(p1_cost or 0, 4)}, estimated from its transcript at haiku list prices; other sessions {round(rest_cost, 4)})", '',
              '| Check | Result |', '|---|---|', *[f"| {k} | {'PASS' if v else 'FAIL'} |" for k, v in checks.items()], '',
+             f"First /relay recover refused while the dead lock was live: {r['first recover: refused while the dead lock was live']} (then retried once it was stale)",
              f"State left by the dead process: {json.dumps(r['state left by the dead process'])}", f"Final state: {json.dumps(r['final'])}", '',
              'Git log:', *[f"- {x}" for x in log], '', 'New reflog entries:', *[f"- {x}" for x in new_reflog], '', 'Events:', *[f"- {e}" for e in r['events']], '']
     open(f"{out}/RESULT.md", 'w').write('\n'.join(lines))
