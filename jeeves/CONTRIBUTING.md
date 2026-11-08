@@ -31,7 +31,7 @@ npm run e2e:pty -- <scratch dir> [--override 8.5] [--chars 6000] [--minutes 30] 
 `tests/pty/driver.py` (Python: Node has no pseudo-terminal without a native dependency) builds the `six-steps`
 fixture with `tests/fixtures/build-repo.ts`, starts `claude --plugin-dir . --model haiku` in it with
 `JEEVES_TEST=1`, `JEEVES_STATE_DIR` in the scratch folder and the test threshold override, types only the setup
-(`/relay on`, `/relay check ./verify.sh`, then the task) and then nothing until the task ends. It needs `claude` on
+(`/jeeves on`, `/jeeves check ./verify.sh`, then the task) and then nothing until the task ends. It needs `claude` on
 PATH, logged in. Each step's test file holds a table of reference cases (`--chars` per file) that Claude reads to do
 the step, so context grows enough to rotate within a few steps (a padded `verify.sh` did not work: the model sent its
 output to /dev/null). Under the override the loop guard uses a 1-point margin (see `docs/state-machine.md`).

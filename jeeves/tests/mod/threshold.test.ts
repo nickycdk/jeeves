@@ -1,4 +1,4 @@
-// ST-2.4: threshold trigger through the hooks, concurrency, /relay threshold, and the test override.
+// ST-2.4: threshold trigger through the hooks, concurrency, /jeeves threshold, and the test override.
 import type { SessionMeasureInput } from 'claude-code'
 import { expect, test } from 'claude-code/testing'
 import { bottom, PROMPT, relay, start, stateOf, submit, taskDirs, type Kit } from './kit.ts'
@@ -42,7 +42,7 @@ test('concurrent duplicate measures past the threshold give exactly one request 
   expect(stateOf(h, dir).rotation.rotationId).toBe(reqs[0].rotationId)
 })
 
-test('/relay threshold: 20..90 accepted and used; anything else rejected with the range', async ($, on) => {
+test('/jeeves threshold: 20..90 accepted and used; anything else rejected with the range', async ($, on) => {
   const { h, dir } = await onTask($, on)
   for (const bad of ['19', '91', '50.5', 'abc', '']) {
     expect(await relay($, `threshold ${bad}`)).toContain('Threshold must be a whole number from 20 to 90')
@@ -77,7 +77,7 @@ test('the override is ignored without JEEVES_TEST=1', async ($, on) => {
 })
 
 // ST-1.3 AC 1 carried over: 50 concurrent writers through the plugin's own hooks, every event line lands.
-test('50 concurrent /relay threshold commands append 50 event lines, none lost, all valid JSON', async ($, on) => {
+test('50 concurrent /jeeves threshold commands append 50 event lines, none lost, all valid JSON', async ($, on) => {
   const { h, dir } = await onTask($, on)
   const before = events(h, dir).length
   await Promise.all(Array.from({ length: 50 }, (_, i) => relay($, `threshold ${20 + i}`)))

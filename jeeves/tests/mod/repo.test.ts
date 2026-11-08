@@ -1,5 +1,5 @@
 // ST-6.5 / AC-23: a failed state write blocks the task (DISK) with the folder and the fix, keeping the last checkpoint;
-// a switched branch or a moved repository is never continued without the user's /relay recover --relink.
+// a switched branch or a moved repository is never continued without the user's /jeeves recover --relink.
 import { expect, test } from 'claude-code/testing'
 import { bottom, generating, handover, PROMPT, relay, start, stateOf, stop, submit, taskDirs, until, type Kit } from './kit.ts'
 import { projectId } from '../../src/adapter/git.ts'
@@ -12,7 +12,7 @@ async function restart($: Kit, h: MemHost, sessionId = 'sess-2') {
 }
 const continuations = (prompts: { text: string }[]) => prompts.filter(p => p.text.includes('Jeeves: you are session'))
 
-test('DISK: a failed state write -> BLOCKED(DISK), the toast names the folder and the fix; nothing rotates; /relay resume continues', async ($, on) => {
+test('DISK: a failed state write -> BLOCKED(DISK), the toast names the folder and the fix; nothing rotates; /jeeves resume continues', async ($, on) => {
   const h = memHost(on)
   bottom(on)
   await start($)
@@ -24,7 +24,7 @@ test('DISK: a failed state write -> BLOCKED(DISK), the toast names the folder an
   await $.session.measure({ context: { window: 1_000_000, percent: 30 }, rateLimits: [], changed: ['context'] })
   expect([stateOf(h, dir).status, stateOf(h, dir).reason]).toEqual(['BLOCKED', 'DISK'])
   expect(h.toasts.at(-1)).toContain(`Blocked (DISK): Jeeves could not write its task files in ${dir}`)
-  expect(h.toasts.at(-1)).toContain('Free disk space or fix that folder\'s permissions, then type /relay resume.')
+  expect(h.toasts.at(-1)).toContain('Free disk space or fix that folder\'s permissions, then type /jeeves resume.')
   await $.session.measure({ context: { window: 1_000_000, percent: 80 }, rateLimits: [], changed: ['context'] })
   expect(stateOf(h, dir).status).toBe('BLOCKED')
   expect(await relay($, 'resume')).toContain('Resumed')
@@ -53,7 +53,7 @@ test('REPO_MISMATCH: recover on another branch than the handover\'s -> BLOCKED, 
   g.branch.name = 'feature/x'
   await restart($, h)
   const said = await relay($, 'recover')
-  expect(said).toBe('Blocked (REPO_MISMATCH): the handover was written on branch main, but the repository is on feature/x. Nothing was continued. Switch back to main and type /relay recover, or type /relay recover --relink to continue on feature/x.')
+  expect(said).toBe('Blocked (REPO_MISMATCH): the handover was written on branch main, but the repository is on feature/x. Nothing was continued. Switch back to main and type /jeeves recover, or type /jeeves recover --relink to continue on feature/x.')
   expect([stateOf(h, dir).status, stateOf(h, dir).reason, stateOf(h, dir).activeSessionId]).toEqual(['BLOCKED', 'REPO_MISMATCH', 'sess-2'])
   expect(await relay($, 'recover')).toContain('(REPO_MISMATCH)')
   await h.clock.settle()
@@ -65,7 +65,7 @@ test('REPO_MISMATCH: recover on another branch than the handover\'s -> BLOCKED, 
   expect(stateOf(h, dir).status).toBe('CONTINUING')
 })
 
-test('REPO_MISMATCH: switching back to the handover\'s branch lets a plain /relay recover continue', async ($, on) => {
+test('REPO_MISMATCH: switching back to the handover\'s branch lets a plain /jeeves recover continue', async ($, on) => {
   const g = await generating($, on, { git: true })
   const { h, prompts } = g
   expect(await stop($, handover(g.taskId, g.rotationId))).toEqual({})
@@ -85,7 +85,7 @@ test('moved repository: the task is found by its old folder, named with the fix,
   h.dirs.add('/work/moved')
   h.cwd = '/work/moved'
   await restart($, h)
-  expect(await relay($, 'recover')).toBe(`Task ${g.taskId} was started in /work/proj, which no longer exists (REPO_MISMATCH). If you moved the repository here, type /relay recover --relink to continue it here.`)
+  expect(await relay($, 'recover')).toBe(`Task ${g.taskId} was started in /work/proj, which no longer exists (REPO_MISMATCH). If you moved the repository here, type /jeeves recover --relink to continue it here.`)
   expect(h.files.has(`${dir}/state.json`)).toBe(true)
   const said = await relay($, 'recover --relink')
   expect(said).toContain(`Task ${g.taskId} moved here from /work/proj.`)

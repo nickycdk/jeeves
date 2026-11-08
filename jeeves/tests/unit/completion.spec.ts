@@ -48,7 +48,7 @@ test('the instruction names the task, the exact commands and the block lines; de
   const t = completionInstruction('t_1', ['./verify.sh'])
   assert.ok(t.includes('<<<JEEVES-COMPLETE v1 task=t_1') && t.includes('JEEVES-COMPLETE>>>') && t.includes('- `./verify.sh`'))
   assert.equal(completionInstruction('t_1', ['./verify.sh']), t)
-  assert.match(completionInstruction('t_1', []), /\/relay done/)
+  assert.match(completionInstruction('t_1', []), /\/jeeves done/)
   // The template itself parses back as a block with the commands as checks.
   assert.deepEqual(parseComplete(t)?.checks, ['./verify.sh'])
 })

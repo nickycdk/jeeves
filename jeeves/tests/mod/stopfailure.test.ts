@@ -12,7 +12,7 @@ test('a rate limit during the handover: PAUSED(RATE_LIMIT) with the reset time; 
   await fail($, 'rate_limit')
   const s = stateOf(h, dir)
   expect([s.status, s.reason, s.consecutiveFailures]).toEqual(['PAUSED', 'RATE_LIMIT', 0])
-  expect(h.toasts.at(-1)).toBe('Paused (RATE_LIMIT): the usage limit is reached. It resets at 2026-11-07 14:00 UTC. Then type /relay resume.')
+  expect(h.toasts.at(-1)).toBe('Paused (RATE_LIMIT): the usage limit is reached. It resets at 2026-11-07 14:00 UTC. Then type /jeeves resume.')
   await turnEnd($)
   await h.clock.advance(5_000)
   await until(h, () => true)
@@ -28,7 +28,7 @@ test('each code pauses with its own reason; a subagent failure changes nothing',
   expect(h.toasts.at(-1)).toContain('Run /login')
 })
 
-test('review fix 1: a message held during a handover that a rate limit paused is delivered once by /relay resume', async ($, on) => {
+test('review fix 1: a message held during a handover that a rate limit paused is delivered once by /jeeves resume', async ($, on) => {
   const { h, dir, prompts } = await generating($, on)
   await submit($, 'please also add a README')
   await fail($, 'rate_limit')

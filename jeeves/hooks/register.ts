@@ -44,7 +44,7 @@ export const register: Register = (on, options) => {
     const rt = await runtime($, opts, true)
     commandName = chooseCommandName(await $.command.list())
     await $.command.register({ name: commandName, description: 'Jeeves: keep a long task going across fresh conversations', argumentHint: 'on [goal] | off | pause | resume | rotate | continue | recover | threshold <n> | task | dod <text> | check <cmd> | status | help' })
-    if (commandName === FALLBACK) $.ui.toast('/relay is taken by another command, so Jeeves uses /jeeves.')
+    if (commandName === FALLBACK) $.ui.toast('/jeeves is taken by another command, so Jeeves uses /relay.')
     if (rt.probe.mode !== 'full' && rt.probe.message) {
       $.ui.status(rt.probe.mode === 'unsupported' ? `off: needs ${rt.probe.missing[0]}` : 'assisted mode')
       $.ui.toast(rt.probe.message)
@@ -61,9 +61,9 @@ export const register: Register = (on, options) => {
     return next(e)
   })
 
-  on('command.run', { command: 'relay' }, async ($, e, next) => (commandName === PRIMARY ? answer($, opts, e, !turnOpen, endedHere) : next(e)))
+  on('command.run', { command: 'jeeves' }, async ($, e, next) => (commandName === PRIMARY ? answer($, opts, e, !turnOpen, endedHere) : next(e)))
     .catch(($, e, next) => (next.called ? next(e) : { text: 'Jeeves could not answer (internal error).' }))
-  on('command.run', { command: 'jeeves' }, async ($, e, next) => (commandName === FALLBACK ? answer($, opts, e, !turnOpen, endedHere) : next(e)))
+  on('command.run', { command: 'relay' }, async ($, e, next) => (commandName === FALLBACK ? answer($, opts, e, !turnOpen, endedHere) : next(e)))
     .catch(($, e, next) => (next.called ? next(e) : { text: 'Jeeves could not answer (internal error).' }))
 
   // ST-2.3: only a context change counts; rate-limit or cost changes never move the reading (AC-04).
@@ -81,7 +81,7 @@ export const register: Register = (on, options) => {
     await quietly($, opts, 'session end', rt => (e.reason === 'clear' ? onUserClear(rt, e.sessionId) : releaseOnExit(rt, e.sessionId)))
     return next(e)
   })
-  // ST-2.1: the person's first prompt after `/relay on` (no goal) is the task, byte for byte. Slash commands are not.
+  // ST-2.1: the person's first prompt after `/jeeves on` (no goal) is the task, byte for byte. Slash commands are not.
   // ST-4.4: during a handover a typed prompt is held for the fresh conversation; slash commands still run.
   on('prompt.submit', async ($, e, next) => {
     if (e.origin.kind !== 'composer' || e.command || e.isMeta) return next(e)

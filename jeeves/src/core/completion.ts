@@ -74,7 +74,7 @@ export function completionInstruction(taskId: string, commands: readonly string[
     COMPLETE_CLOSE,
     commands.length
       ? `Before writing it, after your last edit, run each of these as its own Bash command, exactly as written, with nothing before or after it (no ;, &&, pipes or echo): ${commands.map(c => `\`${c}\``).join(', ')}. Jeeves checks the block against the exit codes of those exact commands.`
-      : 'This task has no verification commands, so the user confirms completion with /relay done.',
+      : 'This task has no verification commands, so the user confirms completion with /jeeves done.',
     'List open problems under Blockers instead of "none". Never write the block before the task is done.',
   ].join('\n')
 }

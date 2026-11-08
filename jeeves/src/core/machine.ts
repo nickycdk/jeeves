@@ -10,9 +10,9 @@ export type Input =
   /** A user command wrote task revision `revision` (FR-05; never model text). */
   /** `pending`: the revision wrote the first queued change (pendingChanges[0]), which is now done. */
   | { type: 'REVISED'; revision: number; pending?: boolean }
-  /** `/relay dod|check` before the original prompt is captured (taskRevision 0): kept until rev 1 exists. */
+  /** `/jeeves dod|check` before the original prompt is captured (taskRevision 0): kept until rev 1 exists. */
   | { type: 'QUEUE_CHANGE'; kind: 'dod' | 'check'; text: string }
-  /** `/relay threshold <n>`, n a whole number 20..90 (FR-03). */
+  /** `/jeeves threshold <n>`, n a whole number 20..90 (FR-03). */
   | { type: 'SET_THRESHOLD'; percent: number }
   /** `fromTool`: read at a main-loop tool result, so after a model call (D-25 counts only those as a session's start). */
   | { type: 'MEASURE'; percent?: number; tokens?: number; window: number; sessionId: string; fromTool?: boolean }
@@ -43,16 +43,16 @@ export type Input =
   | { type: 'HOLD_PROMPT'; text: string }
   | { type: 'PAUSE' }
   | { type: 'RESUME'; lockOk: boolean; sessionId: string }
-  /** `/relay continue` in a fresh conversation (assisted mode, ST-4.6); the command already holds the lock. */
+  /** `/jeeves continue` in a fresh conversation (assisted mode, ST-4.6); the command already holds the lock. */
   | { type: 'CONTINUE_CMD'; sessionId: string }
   /** classic.StopFailure on the main loop (ST-6.2). `resetsAt`: when the exhausted rate-limit window resets, if known. */
   | { type: 'STOP_FAILURE'; error: string; resetsAt?: string }
   /** Claude's JEEVES-COMPLETE block at a main-loop Stop: the task's verification commands and the block's blockers (ST-5.2). */
   | { type: 'COMPLETE_BLOCK'; commands: string[]; blockers: string[] }
-  /** `/relay done`: the user confirms a completion Jeeves could not verify (ADR-007). */
+  /** `/jeeves done`: the user confirms a completion Jeeves could not verify (ADR-007). */
   | { type: 'DONE_CMD'; sessionId: string }
   /**
-   * `/relay recover` (ST-6.1, 02 §8): this session took the lock of a task no live session runs and continues it here
+   * `/jeeves recover` (ST-6.1, 02 §8): this session took the lock of a task no live session runs and continues it here
    * (restore path). `adopt`: the interrupted rotation's saved handover, recorded now (its state swap never happened).
    */
   | { type: 'RECOVER'; sessionId: string; adopt?: string }
@@ -62,7 +62,7 @@ export type Input =
   /** The repository is not the one the handover describes (ST-6.5): no continuation; this session keeps the lock. */
   /** `adopt`: the handover the restore was built on (recovery may have adopted a newer one than the state records). */
   | { type: 'REPO_MISMATCH'; sessionId: string; detail: string; adopt?: string }
-  /** `/relay recover --relink` moved the task into this project's folder (the repository moved, ST-6.5). */
+  /** `/jeeves recover --relink` moved the task into this project's folder (the repository moved, ST-6.5). */
   | { type: 'RELINKED'; projectId: string }
 
 export type InputType = Input['type']
@@ -80,7 +80,7 @@ export type Effect = Keyed & (
   /** `prompt`: the restore path puts the context into the continuation prompt itself (ADR-003 channel note). */
   | { type: 'INJECT_CONTEXT'; via: 'session-start' | 'prompt' }
   | { type: 'SUBMIT_CONTINUATION'; heldPrompts: string[] }
-  /** `/relay resume` after a handover that ended in a pause: deliver the prompts it held (ADR-010). */
+  /** `/jeeves resume` after a handover that ended in a pause: deliver the prompts it held (ADR-010). */
   | { type: 'SUBMIT_HELD'; heldPrompts: string[] }
   | { type: 'TRANSFER_LOCK'; from: string | null; to: string }
   | { type: 'RELEASE_LOCK' }
@@ -119,23 +119,23 @@ export function stopFailureCode(error: string): ReasonCode {
   }
 }
 
-/** A task `/relay recover` may continue: active, blocked, or stopped because its state.json had to be rebuilt. */
+/** A task `/jeeves recover` may continue: active, blocked, or stopped because its state.json had to be rebuilt. */
 export const recoverable = (s: State) =>
   ACTIVE(s.status) || s.status === 'BLOCKED' || (s.status === 'NEEDS_REVIEW' && s.reason === 'STATE_CORRUPT')
 
 /** ST-6.5 / AC-23: a failed task-file write names the folder and the fix. */
 export const diskText = (path: string, error: string) =>
-  `Blocked (DISK): Jeeves could not write its task files in ${path} (${error.slice(0, 120)}). The last saved state is kept. Free disk space or fix that folder's permissions, then type /relay resume.`
+  `Blocked (DISK): Jeeves could not write its task files in ${path} (${error.slice(0, 120)}). The last saved state is kept. Free disk space or fix that folder's permissions, then type /jeeves resume.`
 
 /** What the user should do about each StopFailure code (ST-6.2, AC-23). Jeeves never retries by itself. */
 export function stopFailureText(code: ReasonCode, error: string, resetsAt?: string): string {
   const reset = resetsAt && !Number.isNaN(Date.parse(resetsAt)) ? new Date(resetsAt).toISOString().slice(0, 16).replace('T', ' ') + ' UTC' : null
   switch (code) {
-    case 'RATE_LIMIT': return `Paused (RATE_LIMIT): the usage limit is reached.${reset ? ` It resets at ${reset}.` : ''} Then type /relay resume.`
-    case 'AUTH': return `Paused (AUTH): Claude Code is not logged in (${error}). Run /login, then /relay resume.`
-    case 'BILLING': return `Paused (BILLING): your account has a billing problem (${error}). Fix it, then /relay resume.`
-    case 'OVERLOADED': return 'Paused (OVERLOADED): the API is overloaded. Wait a few minutes, then /relay resume.'
-    default: return `Paused (API_ERROR): the API returned an error (${error}). /relay resume tries again.`
+    case 'RATE_LIMIT': return `Paused (RATE_LIMIT): the usage limit is reached.${reset ? ` It resets at ${reset}.` : ''} Then type /jeeves resume.`
+    case 'AUTH': return `Paused (AUTH): Claude Code is not logged in (${error}). Run /login, then /jeeves resume.`
+    case 'BILLING': return `Paused (BILLING): your account has a billing problem (${error}). Fix it, then /jeeves resume.`
+    case 'OVERLOADED': return 'Paused (OVERLOADED): the API is overloaded. Wait a few minutes, then /jeeves resume.'
+    default: return `Paused (API_ERROR): the API returned an error (${error}). /jeeves resume tries again.`
   }
 }
 
@@ -183,10 +183,10 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
     return done()
   }
 
-  // ADR-002: no automatic /clear here; the saved handover waits for the user's /clear and /relay continue (AC-25).
+  // ADR-002: no automatic /clear here; the saved handover waits for the user's /clear and /jeeves continue (AC-25).
   const unavailable = (detail: string): Output => {
     go('NEEDS_REVIEW', 'ROTATE_UNAVAILABLE', { rotation: null, mode: 'assisted' }, detail)
-    effects.push({ type: 'TOAST', key: key('assisted'), text: 'Automatic /clear is unavailable. The handover is saved. Run /clear, then type /relay continue.' })
+    effects.push({ type: 'TOAST', key: key('assisted'), text: 'Automatic /clear is unavailable. The handover is saved. Run /clear, then type /jeeves continue.' })
     return done()
   }
 
@@ -195,12 +195,12 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
     if (state.consecutiveFailures >= ctx.config.maxConsecutiveFailures) {
       const last = state.lastErrorCode ?? 'API_ERROR'
       go('FAILED', last, { rotation: null }, `${state.consecutiveFailures} failed rotations in a row`)
-      effects.push({ type: 'TOAST', key: `-:failed:${state.consecutiveFailures}`, text: `Stopped: ${state.consecutiveFailures} handovers in a row failed (last ${last}). Run /relay status.` })
+      effects.push({ type: 'TOAST', key: `-:failed:${state.consecutiveFailures}`, text: `Stopped: ${state.consecutiveFailures} handovers in a row failed (last ${last}). Run /jeeves status.` })
       return done()
     }
     if (state.rotationCount >= ctx.config.maxRotationsPerTask) {
       go('PAUSED', 'MAX_ROTATIONS', { rotation: null, armedFired: false }, `${state.rotationCount} rotations`)
-      effects.push({ type: 'TOAST', key: `-:max:${state.rotationCount}`, text: `Paused: this task reached ${state.rotationCount} rotations, the limit (MAX_ROTATIONS). /relay off ends it.` })
+      effects.push({ type: 'TOAST', key: `-:max:${state.rotationCount}`, text: `Paused: this task reached ${state.rotationCount} rotations, the limit (MAX_ROTATIONS). /jeeves off ends it.` })
       return done()
     }
     const rotation: Rotation = {
@@ -242,7 +242,7 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
         return done()
       }
       go('FAILED', 'POSSIBLE_LOOP', { rotation: null }, `fresh session already at ${p}%`)
-      effects.push({ type: 'TOAST', key: key('loop'), text: `Stopped: the fresh session is already at ${p}% (threshold ${shown(rel !== undefined ? rearmBelow : T)}%). Possible rotation loop. Run /relay status.` })
+      effects.push({ type: 'TOAST', key: key('loop'), text: `Stopped: the fresh session is already at ${p}% (threshold ${shown(rel !== undefined ? rearmBelow : T)}%). Possible rotation loop. Run /jeeves status.` })
       return done()
     }
     return done()
@@ -254,7 +254,7 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
       if (input.mode === 'unsupported') return ignore('this Claude Code version is not supported')
       if (!input.lockAcquired) {
         next = { ...state, lastErrorCode: 'LOCK_HELD', updatedAt: at }
-        effects.push({ type: 'TOAST', key: '-:lock-held', text: 'Another session owns this task (LOCK_HELD). /relay status shows it read-only.' })
+        effects.push({ type: 'TOAST', key: '-:lock-held', text: 'Another session owns this task (LOCK_HELD). /jeeves status shows it read-only.' })
         return done()
       }
       go('MONITORING', null, { mode: input.mode, activeSessionId: input.sessionId, armedFired: false, rotation: null, sessionStart: { at, pct: null } })
@@ -321,7 +321,7 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
         const why = [input.backgroundTasks && `${input.backgroundTasks} background task(s)`, input.runningAgents && `${input.runningAgents} running agent(s)`].filter(Boolean).join(', ')
         if (count > ctx.config.quiesceMaxTurns || waited > ctx.config.quiesceMaxMinutes * 60_000) {
           go('PAUSED', 'UNSAFE_BOUNDARY', { rotation: null, armedFired: false }, `no safe point after ${count} stops: ${why}`)
-          effects.push({ type: 'TOAST', key: key('unsafe'), text: `Paused: no safe point to hand over (${why}). Finish the work, then /relay resume.` })
+          effects.push({ type: 'TOAST', key: key('unsafe'), text: `Paused: no safe point to hand over (${why}). Finish the work, then /jeeves resume.` })
           return done()
         }
         if (state.status === 'ROTATION_REQUESTED') go('QUIESCING', r.trigger, {}, `waiting: ${why}`)
@@ -338,7 +338,7 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
         }
         if (h.fatal) {
           go('NEEDS_REVIEW', h.fatal, { rotation: null, armedFired: true }, h.errors.slice(0, 3).join('; '))
-          effects.push({ type: 'TOAST', key: key('fatal'), text: `Handover stopped (${h.fatal}): ${h.errors[0] ?? 'see /relay status'}. Nothing was cleared.` })
+          effects.push({ type: 'TOAST', key: key('fatal'), text: `Handover stopped (${h.fatal}): ${h.errors[0] ?? 'see /jeeves status'}. Nothing was cleared.` })
           return done()
         }
         if (r.retries < ctx.config.maxHandoverRetries) {
@@ -347,7 +347,7 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
           return done()
         }
         go('NEEDS_REVIEW', 'HANDOVER_INVALID', { rotation: null, armedFired: true }, h.errors.slice(0, 3).join('; '))
-        effects.push({ type: 'TOAST', key: key('invalid'), text: 'Handover was invalid after retries. Nothing was cleared. Run /relay status.' })
+        effects.push({ type: 'TOAST', key: key('invalid'), text: 'Handover was invalid after retries. Nothing was cleared. Run /jeeves status.' })
         return done()
       }
       return ignore('nothing to do at this stop')
@@ -378,7 +378,7 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
         // ST-4.1 AC 2: never /clear on a handover that changed or vanished since it was verified.
         if (input.handoverVerified !== true) {
           go('NEEDS_REVIEW', 'HANDOVER_INVALID', { rotation: null }, 'saved handover no longer matches its hash')
-          effects.push({ type: 'TOAST', key: key('changed'), text: 'The saved handover changed on disk, so Jeeves did not clear. Run /relay status.' })
+          effects.push({ type: 'TOAST', key: key('changed'), text: 'The saved handover changed on disk, so Jeeves did not clear. Run /jeeves status.' })
           return done()
         }
         if (state.mode !== 'full') return unavailable('assisted mode: Jeeves does not clear by itself')
@@ -413,7 +413,7 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
       // A /clear Jeeves did not schedule (ROTATING before CLEAR_SCHEDULED) is the user's: pause, never a rotation (ST-4.2 AC 2).
       if (!ACTIVE(state.status) && state.status !== 'PAUSED') return ignore('no active task')
       go('PAUSED', 'USER_CLEAR', { rotation: null, armedFired: false }, 'conversation cleared by the user')
-      effects.push({ type: 'TOAST', key: `-:user-clear:${input.sessionId}`, text: 'You cleared the conversation, so Jeeves paused this task. /relay status shows it.' })
+      effects.push({ type: 'TOAST', key: `-:user-clear:${input.sessionId}`, text: 'You cleared the conversation, so Jeeves paused this task. /jeeves status shows it.' })
       return done()
 
     case 'SESSION_START_CLEAR': {
@@ -428,7 +428,7 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
         go('NEEDS_REVIEW', 'HANDOVER_INVALID', { rotation: null, activeSessionId: input.sessionId, sessionStart: { at, pct: null } }, 'handover unreadable or changed at the fresh session')
         effects.push(
           { type: 'TRANSFER_LOCK', key: key('lock'), from: state.activeSessionId, to: input.sessionId },
-          { type: 'TOAST', key: key('changed'), text: 'The saved handover could not be verified, so Jeeves did not continue. Run /relay status.' },
+          { type: 'TOAST', key: key('changed'), text: 'The saved handover could not be verified, so Jeeves did not continue. Run /jeeves status.' },
         )
         return done()
       }
@@ -446,21 +446,21 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
       return unavailable('/clear was refused')
 
     case 'CONTINUE_CMD': {
-      if (state.status !== 'NEEDS_REVIEW' || state.reason !== 'ROTATE_UNAVAILABLE') return ignore('no handover waiting for /relay continue')
+      if (state.status !== 'NEEDS_REVIEW' || state.reason !== 'ROTATE_UNAVAILABLE') return ignore('no handover waiting for /jeeves continue')
       const rotation: Rotation = {
         rotationId: ctx.newRotationId, trigger: 'MANUAL', requestedAt: at, sourceSessionId: state.activeSessionId,
         targetSessionId: input.sessionId, step: 'RESTORED', retries: 0, quiesceCount: 0, noteAppended: false,
       }
-      go('RESTORING', 'MANUAL', { rotation, activeSessionId: input.sessionId, sessionStart: { at, pct: null } }, '/relay continue (assisted)')
+      go('RESTORING', 'MANUAL', { rotation, activeSessionId: input.sessionId, sessionStart: { at, pct: null } }, '/jeeves continue (assisted)')
       effects.push({ type: 'INJECT_CONTEXT', key: key('RESTORED'), via: 'prompt' })
       return done()
     }
 
     case 'SUBMIT_FAILED':
       if (state.status !== 'CONTINUING') return ignore('no continuation pending')
-      // The held prompts were cleared for the continuation that did not go out: keep them for /relay continue.
+      // The held prompts were cleared for the continuation that did not go out: keep them for /jeeves continue.
       go('NEEDS_REVIEW', 'ROTATE_UNAVAILABLE', { rotation: null, mode: 'assisted', heldPrompts: [...input.heldPrompts, ...state.heldPrompts] }, 'continuation prompt rejected')
-      effects.push({ type: 'TOAST', key: key('assisted'), text: 'Jeeves could not send the continuation. The handover is saved: type /relay continue.' })
+      effects.push({ type: 'TOAST', key: key('assisted'), text: 'Jeeves could not send the continuation. The handover is saved: type /jeeves continue.' })
       return done()
 
     case 'CONTEXT_READY': {
@@ -534,7 +534,7 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
       if (!COMPLETION_STATES.includes(state.status)) return ignore('completion only while monitoring or before a handover is asked')
       if (input.commands.length === 0) {
         go('NEEDS_REVIEW', 'DOD_UNMET', { rotation: null }, 'Claude reports done; the task has no verification commands')
-        effects.push({ type: 'TOAST', key: key('dod-none'), text: 'Claude says the task is done. It has no verification commands, so confirm with /relay done.' })
+        effects.push({ type: 'TOAST', key: key('dod-none'), text: 'Claude says the task is done. It has no verification commands, so confirm with /jeeves done.' })
         return done()
       }
       const ev = evaluate(input.commands, state.ledger, input.blockers)
@@ -551,13 +551,13 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
         return done()
       }
       go('NEEDS_REVIEW', 'DOD_UNMET', { rotation: null }, `missing: ${missing.join('; ')}`)
-      effects.push({ type: 'TOAST', key: key('dod'), text: `Not marked done: ${missing.length} check(s) missing or failing. /relay status shows the task; /relay done confirms by hand.` })
+      effects.push({ type: 'TOAST', key: key('dod'), text: `Not marked done: ${missing.length} check(s) missing or failing. /jeeves status shows the task; /jeeves done confirms by hand.` })
       return done()
     }
 
     case 'RECOVER': {
       if (!recoverable(state)) return ignore('nothing to recover')
-      // A new rotation keyed by its own id: a second /relay recover finds RESTORING/CONTINUING owned by this session.
+      // A new rotation keyed by its own id: a second /jeeves recover finds RESTORING/CONTINUING owned by this session.
       const rotation: Rotation = {
         rotationId: ctx.newRotationId, trigger: 'MANUAL', requestedAt: at, sourceSessionId: state.activeSessionId,
         targetSessionId: input.sessionId, step: 'RESTORED', retries: 0, quiesceCount: 0, noteAppended: false,
@@ -566,21 +566,21 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
       go('RESTORING', 'STALE_LOCK', {
         rotation, activeSessionId: input.sessionId, sessionStart: { at, pct: null }, armedFired: false, pauseRequested: false,
         completionAsked: false, lastValidatedHandover: from,
-      }, `recovered by /relay recover from ${state.status}${from ? ` with ${from.split('#')[0]}` : ' with no handover'}`)
+      }, `recovered by /jeeves recover from ${state.status}${from ? ` with ${from.split('#')[0]}` : ' with no handover'}`)
       effects.push({ type: 'INJECT_CONTEXT', key: key('RESTORED'), via: 'prompt' })
       return done()
     }
 
     case 'DISK_FAILED':
       // Only a running task is blocked. A failed write into or out of a stop (PAUSED, NEEDS_REVIEW, FAILED, ...) keeps the
-      // checkpoint as it is: overwriting it would lose its reason, and /relay resume would then skip it.
+      // checkpoint as it is: overwriting it would lose its reason, and /jeeves resume would then skip it.
       if (!ACTIVE(state.status) || INERT.includes(input.to)) return ignore('only a running task is blocked')
       go('BLOCKED', 'DISK', { rotation: null, armedFired: false }, `${input.path}: ${input.error}`)
       effects.push({ type: 'TOAST', key: '-:disk', text: diskText(input.path, input.error) })
       return done()
 
     case 'REPO_MISMATCH':
-      // From any task a restore path can reach (recover, resume after /clear, assisted continue), so /relay recover can follow.
+      // From any task a restore path can reach (recover, resume after /clear, assisted continue), so /jeeves recover can follow.
       if (state.status === 'DISABLED' || state.status === 'COMPLETED' || state.status === 'FAILED') return ignore('nothing to block')
       go('BLOCKED', 'REPO_MISMATCH', { rotation: null, armedFired: false, activeSessionId: input.sessionId, ...(input.adopt ? { lastValidatedHandover: input.adopt } : {}) }, input.detail)
       return done()
@@ -590,9 +590,9 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
       return edit({ projectId: input.projectId }, 'relinked', `relinked to project ${input.projectId}`)
 
     case 'DONE_CMD':
-      if (state.status !== 'NEEDS_REVIEW' || state.reason !== 'DOD_UNMET') return ignore('nothing waits for /relay done')
+      if (state.status !== 'NEEDS_REVIEW' || state.reason !== 'DOD_UNMET') return ignore('nothing waits for /jeeves done')
       // A user approval, logged apart from evidence-based completion (from NEEDS_REVIEW, detail says who decided).
-      go('COMPLETED', 'COMPLETED', { rotation: null, activeSessionId: input.sessionId }, 'approved by the user with /relay done (not verified by checks)')
+      go('COMPLETED', 'COMPLETED', { rotation: null, activeSessionId: input.sessionId }, 'approved by the user with /jeeves done (not verified by checks)')
       effects.push({ type: 'RELEASE_LOCK', key: key('release') })
       return done()
   }

@@ -76,6 +76,7 @@ Format: Context → Decision → Consequences → Alternatives rejected. All ADR
 - **Clarified (M0, S-05):** `claude plugin validate` does not type-check. `npm run typecheck` must run `tsc --strict` on `hooks/` and `src/` against the engine-written `claude-code` types: S-05 hit a silently ignored argument that only `tsc` caught.
 
 ### ADR-009 — Opt-in managed task and command surface
+- **Amendment A1 (2026-11-08, maintainer, D-29):** the command is **`/jeeves`**, matching the product name; `/relay` is now the fallback when `/jeeves` is taken. Every `/relay <sub>` in these plans reads as `/jeeves <sub>`.
 - **Decision:** One registered command `/relay <subcommand>`; if `relay` is taken (`$.command.list()`), register `/jeeves` and say so. A managed task starts with `/relay on [goal]`: with a goal, that text is the original task and is submitted as the first prompt; without one, the next user prompt is captured verbatim at `prompt.submit` (origin composer). Nothing is automatic without opt-in (AC-03). Settings: `userConfig` rows (threshold, autoRecover, stateDir) plus per-task overrides via `/relay threshold`.
 
 ### ADR-010 — Input and `/clear` during rotation

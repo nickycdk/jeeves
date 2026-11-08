@@ -1,6 +1,6 @@
 // ST-4.3 / AC-11: the fresh conversation gets the task, its DoD and the verified handover in SessionStart
 // additionalContext; once /clear resolves the continuation goes out with no keystroke (CONTINUING); the first low
-// reading rearms. The restore path (/relay resume after the user's /clear) puts the context in the prompt itself.
+// reading rearms. The restore path (/jeeves resume after the user's /clear) puts the context in the prompt itself.
 import type { SessionMeasureInput } from 'claude-code'
 import { expect, test } from 'claude-code/testing'
 import { FRESH_CONTINUE_MS } from '../../src/adapter/task.ts'
@@ -92,11 +92,11 @@ test('a rejected continuation prompt -> NEEDS_REVIEW(ROTATE_UNAVAILABLE), assist
   await turnEnd($)
   await until(h, () => stateOf(h, dir).status === 'NEEDS_REVIEW')
   expect([stateOf(h, dir).reason, stateOf(h, dir).mode]).toEqual(['ROTATE_UNAVAILABLE', 'assisted'])
-  // Review fix 1: the held words are kept for /relay continue, not lost with the refused prompt.
+  // Review fix 1: the held words are kept for /jeeves continue, not lost with the refused prompt.
   expect(stateOf(h, dir).heldPrompts).toEqual(['keep these words'])
 })
 
-test('restore path: /relay resume after the user\'s /clear continues here with the context inside the prompt', async ($, on) => {
+test('restore path: /jeeves resume after the user\'s /clear continues here with the context inside the prompt', async ($, on) => {
   const h = memHost(on)
   const prompts = bottom(on)
   await start($)

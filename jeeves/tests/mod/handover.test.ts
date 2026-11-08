@@ -31,7 +31,7 @@ test('AC-17: three invalid handovers -> 2 retries with specific errors, then NEE
   expect([h.files.get(`${dir}/history/handover-001.md`), h.files.get(`${dir}/handover.md`)]).toEqual([old, old])
   expect(h.files.has(`${dir}/history/handover-002.md`)).toBe(false)
   expect(clears).toEqual([])
-  expect(h.toasts.at(-1)).toBe('Handover was invalid after retries. Nothing was cleared. Run /relay status.')
+  expect(h.toasts.at(-1)).toBe('Handover was invalid after retries. Nothing was cleared. Run /jeeves status.')
   // Stop blocks for the whole rotation: the request plus 2 retries = 3, under the cap of 4 (engine cap 8).
   expect(1 + blocks.length <= 4).toBe(true)
 })

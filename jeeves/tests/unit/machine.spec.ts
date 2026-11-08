@@ -24,7 +24,7 @@ const stop = (bg = 0, agents = 0, handover?: { ok: true } | { ok: false; errors:
 
 // ---- One test per row of the 02 §4 table ----
 
-test('row 1: DISABLED + /relay on (supported, lock acquired) -> MONITORING', () => {
+test('row 1: DISABLED + /jeeves on (supported, lock acquired) -> MONITORING', () => {
   const o = run(st('DISABLED'), { type: 'ON', mode: 'full', lockAcquired: true, sessionId: 's9' })
   assert.equal(o.state.status, 'MONITORING')
   assert.equal(o.state.activeSessionId, 's9')
@@ -63,7 +63,7 @@ test('row 4: MONITORING + measure(undefined) -> lastContext unknown, never 0', (
   assert.ok(!('percent' in o.state.lastContext!))
 })
 
-test('row 5: MONITORING/CONTINUING + /relay rotate or COMPACTED -> ROTATION_REQUESTED (MANUAL/COMPACTED)', () => {
+test('row 5: MONITORING/CONTINUING + /jeeves rotate or COMPACTED -> ROTATION_REQUESTED (MANUAL/COMPACTED)', () => {
   assert.equal(run(st('MONITORING'), { type: 'ROTATE_CMD' }).state.rotation?.trigger, 'MANUAL')
   assert.equal(run(st('CONTINUING', { rotation: rot({ step: 'CONTINUED' }) }), { type: 'COMPACTED' }).state.rotation?.trigger, 'COMPACTED')
 })
@@ -216,7 +216,7 @@ test('row 17: ROTATING + runCommand rejects -> NEEDS_REVIEW(ROTATE_UNAVAILABLE),
   const o = run(st('ROTATING', { rotation: rot({ step: 'CLEAR_SCHEDULED' }) }), { type: 'CLEAR_FAILED' })
   assert.deepEqual([o.state.status, o.state.reason, o.state.mode], ['NEEDS_REVIEW', 'ROTATE_UNAVAILABLE', 'assisted'])
   const toast = o.effects.find(e => e.type === 'TOAST')
-  assert.match(toast?.type === 'TOAST' ? toast.text : '', /Run \/clear, then type \/relay continue/)
+  assert.match(toast?.type === 'TOAST' ? toast.text : '', /Run \/clear, then type \/jeeves continue/)
 })
 
 test('row 18: RESTORING + context ready -> CONTINUING, submit continuation with held prompts', () => {
@@ -236,12 +236,12 @@ test('ST-4.3: a fresh session whose handover no longer verifies takes the task b
   assert.deepEqual(types(o.effects), ['LOG_EVENT', 'TRANSFER_LOCK', 'TOAST'])
 })
 
-test('ST-4.3: a rejected continuation prompt -> NEEDS_REVIEW(ROTATE_UNAVAILABLE), assisted, /relay continue offered', () => {
+test('ST-4.3: a rejected continuation prompt -> NEEDS_REVIEW(ROTATE_UNAVAILABLE), assisted, /jeeves continue offered', () => {
   const o = run(st('CONTINUING', { rotation: rot({ step: 'CONTINUED' }) }), { type: 'SUBMIT_FAILED', heldPrompts: ['fix the typo too'] })
   assert.deepEqual([o.state.status, o.state.reason, o.state.mode], ['NEEDS_REVIEW', 'ROTATE_UNAVAILABLE', 'assisted'])
   assert.deepEqual(o.state.heldPrompts, ['fix the typo too'], 'review fix 1: the user\'s held words survive a refused continuation')
   const t = o.effects.find(e => e.type === 'TOAST')
-  assert.match(t?.type === 'TOAST' ? t.text : '', /\/relay continue/)
+  assert.match(t?.type === 'TOAST' ? t.text : '', /\/jeeves continue/)
   assert.ok(run(st('MONITORING'), { type: 'SUBMIT_FAILED', heldPrompts: [] }).ignored)
 })
 
@@ -261,7 +261,7 @@ test('row 20: CONTINUING + measure >= T-10 -> FAILED(POSSIBLE_LOOP), no rotation
   assert.equal(o.state.rotation, null)
 })
 
-test('row 21: any active + /relay pause -> PAUSED(USER_PAUSE), cancelling a requested rotation; deferred while a handover is in flight', () => {
+test('row 21: any active + /jeeves pause -> PAUSED(USER_PAUSE), cancelling a requested rotation; deferred while a handover is in flight', () => {
   // VALIDATING pauses at once: nothing is cleared yet (M3 review fix 3).
   for (const s of ['MONITORING', 'ROTATION_REQUESTED', 'QUIESCING', 'VALIDATING', 'CONTINUING'] as const) {
     const o = run(st(s, s === 'CONTINUING' ? { rotation: rot({ step: 'CONTINUED' }) } : {}), { type: 'PAUSE' })
@@ -283,7 +283,7 @@ test('row 21: any active + /relay pause -> PAUSED(USER_PAUSE), cancelling a requ
   assert.deepEqual([cancelled.status, cancelled.rotation, cancelled.armedFired], ['PAUSED', null, false])
 })
 
-test('row 22: PAUSED + /relay resume -> MONITORING, or RESTORING via the restore path after USER_CLEAR', () => {
+test('row 22: PAUSED + /jeeves resume -> MONITORING, or RESTORING via the restore path after USER_CLEAR', () => {
   const m = run(st('PAUSED', { reason: 'USER_PAUSE' }), { type: 'RESUME', lockOk: true, sessionId: 'sess-a' })
   assert.equal(m.state.status, 'MONITORING')
   const r = run(st('PAUSED', { reason: 'USER_CLEAR', activeSessionId: 'old' }), { type: 'RESUME', lockOk: true, sessionId: 'new' })
@@ -331,7 +331,7 @@ test('rows 24-25: MONITORING/CONTINUING + COMPLETE block -> COMPLETED with evide
   assert.ok(!types(no.effects).includes('BLOCK_STOP'))
 })
 
-test('ST-5.2: no verification commands -> NEEDS_REVIEW at once; /relay done confirms as a distinct user event; blockers never pass', () => {
+test('ST-5.2: no verification commands -> NEEDS_REVIEW at once; /jeeves done confirms as a distinct user event; blockers never pass', () => {
   const none = run(st('MONITORING'), { type: 'COMPLETE_BLOCK', commands: [], blockers: [] })
   assert.deepEqual([none.state.status, none.state.reason], ['NEEDS_REVIEW', 'DOD_UNMET'])
   const done = run(none.state, { type: 'DONE_CMD', sessionId: 'sess-z' })
@@ -360,7 +360,7 @@ test('ST-5.2: a requested rotation that asked nothing yet gives way to a passing
   }
 })
 
-test('row 26: any + /relay off -> DISABLED, state kept, lock released', () => {
+test('row 26: any + /jeeves off -> DISABLED, state kept, lock released', () => {
   for (const s of STATUSES.filter(s => s !== 'DISABLED')) {
     const o = run(st(s, { rotationCount: 3 }), { type: 'OFF', sessionId: 'sess-a' })
     assert.equal(o.state.status, 'DISABLED', s)
@@ -552,7 +552,7 @@ test('HANDOVER_GENERATING + a fatal handover outcome -> NEEDS_REVIEW(code) at on
   assert.deepEqual(types(o.effects), ['LOG_EVENT', 'TOAST'])
 })
 
-test('review fix 3: /relay pause in VALIDATING (nothing cleared yet) pauses at once; ROTATING still defers', () => {
+test('review fix 3: /jeeves pause in VALIDATING (nothing cleared yet) pauses at once; ROTATING still defers', () => {
   const v = run(st('VALIDATING', { rotation: rot({ step: 'HANDOVER_REQUESTED' }) }), { type: 'PAUSE' })
   assert.deepEqual([v.state.status, v.state.reason, v.state.rotation], ['PAUSED', 'USER_PAUSE', null])
   const r = run(st('ROTATING', { rotation: rot({ step: 'HANDOVER_PERSISTED' }) }), { type: 'PAUSE' })

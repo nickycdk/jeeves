@@ -34,7 +34,7 @@ export type Runtime = {
 export const CRASH_POINTS = ['threshold', 'mid-handover', 'after-persist', 'before-clear', 'before-inject', 'before-submit'] as const
 export type CrashPoint = (typeof CRASH_POINTS)[number]
 
-/** `autoRecover`: run /relay recover by itself at session start when a task waits for it (userConfig, default off). */
+/** `autoRecover`: run /jeeves recover by itself at session start when a task waits for it (userConfig, default off). */
 export type Options = { stateDir?: string | undefined; autoRecover?: boolean }
 
 let current: Promise<Runtime> | null = null

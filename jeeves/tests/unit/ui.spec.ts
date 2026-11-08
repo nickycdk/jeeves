@@ -20,7 +20,7 @@ test('no task: says so and how to start', () => {
   const t = statusText(view())
   shape(t)
   assert.equal(t.split('\n')[0], 'Jeeves  mode: full')
-  assert.ok(t.includes('No managed task. Start with /relay on'))
+  assert.ok(t.includes('No managed task. Start with /jeeves on'))
   assert.ok(t.split('\n').at(-1)!.startsWith('Path: ...'))
 })
 
@@ -52,10 +52,10 @@ test('unsupported and assisted modes and a broken state folder still fit', () =>
 })
 
 test('command name: relay unless someone else has it', () => {
-  assert.equal(chooseCommandName([]), 'relay')
-  assert.equal(chooseCommandName([{ name: 'relay', plugin: 'jeeves' }]), 'relay', 'our own registration from before a reload')
-  assert.equal(chooseCommandName([{ name: 'relay', plugin: 'other' }]), 'jeeves')
-  assert.equal(chooseCommandName([{ name: 'relay' }]), 'jeeves', 'a user command')
+  assert.equal(chooseCommandName([]), 'jeeves')
+  assert.equal(chooseCommandName([{ name: 'jeeves', plugin: 'jeeves' }]), 'jeeves', 'our own registration from before a reload')
+  assert.equal(chooseCommandName([{ name: 'jeeves', plugin: 'other' }]), 'relay')
+  assert.equal(chooseCommandName([{ name: 'jeeves' }]), 'relay', 'a user command')
 })
 
 test('pickTask prefers this session, then the latest non-disabled task', () => {
@@ -82,7 +82,7 @@ test('status of a stopped task names the reason code and explains it', () => {
   const t = statusText(view({ task: { state, dir: '/x' } }))
   shape(t)
   assert.ok(t.includes('State: PAUSED (USER_PAUSE)'))
-  assert.ok(t.includes('Paused by you. /relay resume'))
+  assert.ok(t.includes('Paused by you. /jeeves resume'))
 })
 
 test('AC-25: a task that fell back to assisted shows mode assisted and the one thing to do, never automatic rotation', () => {
@@ -90,8 +90,8 @@ test('AC-25: a task that fell back to assisted shows mode assisted and the one t
   const t = statusText(view({ task: { state, dir: `${root}/t` } }))
   shape(t)
   assert.equal(t.split('\n')[0], 'Jeeves  mode: assisted')
-  assert.ok(t.includes('Run /clear, then /relay continue.'))
+  assert.ok(t.includes('Run /clear, then /jeeves continue.'))
   assert.ok(!/automatic|by itself/i.test(t))
-  assert.match(firstActivationText('/s', true).join('\n'), /asks you to run \/clear, then \/relay continue/)
+  assert.match(firstActivationText('/s', true).join('\n'), /asks you to run \/clear, then \/jeeves continue/)
   assert.ok(!/by itself/.test(firstActivationText('/s', true).join('\n')))
 })

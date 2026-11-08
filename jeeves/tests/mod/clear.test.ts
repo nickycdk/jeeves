@@ -19,14 +19,14 @@ test('after /clear: task PAUSED(USER_CLEAR), lock given up, said plainly; off wo
   h.sessionId = 'sess-after-clear'
   expect([stateOf(h, dir!).status, stateOf(h, dir!).reason]).toEqual(['PAUSED', 'USER_CLEAR'])
   expect(h.files.has(`${dir}/lock.d/owner.json`)).toBe(false)
-  expect(h.toasts).toContain('You cleared the conversation, so Jeeves paused this task. /relay status shows it.')
+  expect(h.toasts).toContain('You cleared the conversation, so Jeeves paused this task. /jeeves status shows it.')
 
   const status = await relay($, 'status')
   expect(status).toContain('State: PAUSED (USER_CLEAR)')
   expect(status).toContain('You cleared the conversation.')
   await measure($, 80)
   expect(stateOf(h, dir!).status).toBe('PAUSED')
-  expect(await relay($, 'on')).toBe(`Task ${stateOf(h, dir!).taskId} from an earlier session is PAUSED here. /relay resume continues it, or /relay off ends it.`)
+  expect(await relay($, 'on')).toBe(`Task ${stateOf(h, dir!).taskId} from an earlier session is PAUSED here. /jeeves resume continues it, or /jeeves off ends it.`)
   expect(stateOf(h, dir!).status).toBe('PAUSED')
   expect(await relay($, 'off')).toContain('nothing was deleted')
   expect(stateOf(h, dir!).status).toBe('DISABLED')
@@ -42,7 +42,7 @@ test('a /clear with no task changes nothing', async ($, on) => {
 
 // ST-6.3: a /clear typed during a requested or running handover pauses (USER_CLEAR); the fresh conversation gets nothing unasked.
 for (const at of ['ROTATION_REQUESTED', 'HANDOVER_GENERATING'] as const) {
-  test(`ST-6.3: a user /clear in ${at} pauses and never auto-continues; /relay resume does, once`, async ($, on) => {
+  test(`ST-6.3: a user /clear in ${at} pauses and never auto-continues; /jeeves resume does, once`, async ($, on) => {
     let h: ReturnType<typeof memHost>, dir: string, prompts: { text: string }[]
     if (at === 'HANDOVER_GENERATING') ({ h, dir, prompts } = await generating($, on))
     else {

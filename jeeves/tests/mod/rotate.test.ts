@@ -46,7 +46,7 @@ test('AC 2: a handover changed on disk after validation -> no /clear, NEEDS_REVI
   await h.clock.settle()
   expect(clears).toEqual([])
   expect([stateOf(h, dir).status, stateOf(h, dir).reason]).toEqual(['NEEDS_REVIEW', 'HANDOVER_INVALID'])
-  expect(h.toasts.at(-1)).toBe('The saved handover changed on disk, so Jeeves did not clear. Run /relay status.')
+  expect(h.toasts.at(-1)).toBe('The saved handover changed on disk, so Jeeves did not clear. Run /jeeves status.')
 })
 
 test('AC 2: no turn.complete clears before the handover is persisted', async ($, on) => {

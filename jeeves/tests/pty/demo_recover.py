@@ -1,6 +1,6 @@
 # M5 gate demo (AC-16 E layer, AC-19 E layer): a real `claude` runs six-steps; the process is killed mid-rotation
 # (JEEVES_TEST_CRASH=before-clear: handover saved and verified, state ROTATING, /clear not run); a new `claude` starts,
-# /relay recover is typed once the dead lock is stale, and the task continues exactly once. Git refs, stash, config and
+# /jeeves recover is typed once the dead lock is stale, and the task continues exactly once. Git refs, stash, config and
 # Claude settings files are snapshotted before and after (AC-19).
 #
 #   python3 tests/pty/demo_recover.py <scratch dir> --out <evidence dir> [--override +0.8] [--minutes 15]
@@ -82,10 +82,10 @@ def main():
     p1 = Claude(f"{out}/p1", PLUGIN, repo, [*args, '--debug-file', debug1], {**env, 'JEEVES_TEST_CRASH': 'before-clear'})
     r['p1 trust'] = p1.accept_trust()
     p1.pump(4)
-    p1.line('/relay on')
-    r['p1 on'] = p1.wait(lambda: 'Jeeveson:task' in p1.squeezed(4000), 30, label='/relay on')
+    p1.line('/jeeves on')
+    r['p1 on'] = p1.wait(lambda: 'Jeeveson:task' in p1.squeezed(4000), 30, label='/jeeves on')
     p1.pump(1)
-    p1.line('/relay check ./verify.sh')
+    p1.line('/jeeves check ./verify.sh')
     p1.wait(lambda: len(state().get('pendingChanges') or []) == 1, 30, label='check queued')
     p1.pump(1)
     p1.line(task)
@@ -111,8 +111,8 @@ def main():
     # Toasts and command answers are read from the debug log: the TUI redraws, so the screen tail is unreliable.
     dbg = lambda: open(debug2, errors='replace').read() if os.path.exists(debug2) else ''
     recovered = lambda: any(json.loads(l)['code'] == 'STALE_LOCK' for l in open(f"{task_dir()}/events.jsonl"))
-    r['startup notice names the task'] = p2.wait(lambda: '/relay recover continues it here' in dbg() or '/relay recover takes it over' in dbg(), 60, label='notice')
-    p2.line('/relay recover')
+    r['startup notice names the task'] = p2.wait(lambda: '/jeeves recover continues it here' in dbg() or '/jeeves recover takes it over' in dbg(), 60, label='notice')
+    p2.line('/jeeves recover')
     p2.wait(lambda: recovered() or 'LOCK_HELD' in dbg(), 60, label='first recover')
     r['first recover: refused while the dead lock was live'] = not recovered()
     if not recovered():
@@ -120,7 +120,7 @@ def main():
         wait = int(m.group(1)) + 3 if m else 125
         p2.note('waiting', f'{wait} s for the dead lock to go stale')
         p2.pump(wait)
-        p2.line('/relay recover')
+        p2.line('/jeeves recover')
     r['recover continues'] = p2.wait(recovered, 60, label='recover')
     recover_at = len(p2.typed)
     # Let the recovered session work: until a later rotation has continued, the task completes, or time runs out.
@@ -133,7 +133,7 @@ def main():
         if now != last: p2.note('state', json.dumps(now)); last = now
         if s.get('status') in ('COMPLETED', 'NEEDS_REVIEW', 'FAILED', 'PAUSED', 'BLOCKED'): break
         if s.get('rotationCount', 0) >= rotations0 + 1 and s.get('status') == 'MONITORING': break
-    r['keystrokes after /relay recover'] = len(p2.typed) - recover_at
+    r['keystrokes after /jeeves recover'] = len(p2.typed) - recover_at
     try:
         p2.pump(5)
         p2.line('/cost')
@@ -156,13 +156,13 @@ def main():
     new_reflog = after['reflog'][:len(after['reflog']) - len(before['reflog'])]
     p1_cost = sum(PRICE[k] * (e.get('message', {}).get('usage') or {}).get(k, 0) for e in transcript(p1_sid) if e.get('type') == 'assistant' for k in PRICE) / 1e6 if p1_sid else None
     rest_cost = sum(x.get('costUsd', 0) for x in sessions if x['sessionId'] != p1_sid) + (float(costs[-1]) if costs else 0)
-    info = ('claude_version', 'override', 'state left by the dead process', 'keystrokes after /relay recover', 'first recover: refused while the dead lock was live')
+    info = ('claude_version', 'override', 'state left by the dead process', 'keystrokes after /jeeves recover', 'first recover: refused while the dead lock was live')
     checks = {k: bool(v) for k, v in r.items() if k not in info}
     checks['dead process left ROTATING with handover-001 saved'] = r['state left by the dead process']['status'] == 'ROTATING' and str(r['state left by the dead process']['lastValidatedHandover']).startswith('history/handover-001.md')
     checks['exactly one recovery (one STALE_LOCK -> RESTORING event)'] = len(recovered) == 1
     checks['exactly one continuation prompt in the recovering session'] = len(conts) == 1
     checks['continuation built from handover-001'] = bool(conts) and 'history/handover-001.md' in texts(conts[0])
-    checks['no keystroke after /relay recover until the end of the run'] = r['keystrokes after /relay recover'] == 0
+    checks['no keystroke after /jeeves recover until the end of the run'] = r['keystrokes after /jeeves recover'] == 0
     checks['no step committed twice'] = all(v <= 1 for v in step_commits.values())
     checks['AC-19 stash list unchanged'] = before['stash'] == after['stash']
     checks['AC-19 refs: only refs/heads/main moved'] = [x for x in before['refs'] if not x.startswith('refs/heads/main ')] == [x for x in after['refs'] if not x.startswith('refs/heads/main ')]
@@ -178,11 +178,11 @@ def main():
     for name, dbg in (('p1', debug1), ('p2', debug2)):
         if os.path.exists(dbg): open(f"{out}/{name}/jeeves-debug.log", 'w').writelines(l for l in open(dbg, errors='replace') if re.search(r'\(jeeves\)|\[jeeves\]|jeeves@|jeeves: ', l))
     json.dump(r, open(f"{out}/result.json", 'w'), indent=1, ensure_ascii=False)
-    lines = [f"# M5 demo, kill mid-rotation -> /relay recover: {'PASS' if all(checks.values()) else 'FAIL'}", '',
+    lines = [f"# M5 demo, kill mid-rotation -> /jeeves recover: {'PASS' if all(checks.values()) else 'FAIL'}", '',
              f"Claude Code {r['claude_version']} · haiku · relative override {a.override} · crash point before-clear (SIGKILL)",
              f"Cost about US${round((p1_cost or 0) + rest_cost, 4)} (killed session {round(p1_cost or 0, 4)}, estimated from its transcript at haiku list prices; other sessions {round(rest_cost, 4)})", '',
              '| Check | Result |', '|---|---|', *[f"| {k} | {'PASS' if v else 'FAIL'} |" for k, v in checks.items()], '',
-             f"First /relay recover refused while the dead lock was live: {r['first recover: refused while the dead lock was live']} (then retried once it was stale)",
+             f"First /jeeves recover refused while the dead lock was live: {r['first recover: refused while the dead lock was live']} (then retried once it was stale)",
              f"State left by the dead process: {json.dumps(r['state left by the dead process'])}", f"Final state: {json.dumps(r['final'])}", '',
              'Git log:', *[f"- {x}" for x in log], '', 'New reflog entries:', *[f"- {x}" for x in new_reflog], '', 'Events:', *[f"- {e}" for e in r['events']], '']
     open(f"{out}/RESULT.md", 'w').write('\n'.join(lines))

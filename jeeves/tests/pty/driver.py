@@ -1,5 +1,5 @@
 # PTY E2E (ST-4.8; AC-10, AC-11, AC-12, AC-13): a real interactive `claude` runs the `six-steps` fixture under a low
-# test threshold, so the task crosses it several times. The driver types only the setup (/relay on, /relay check
+# test threshold, so the task crosses it several times. The driver types only the setup (/jeeves on, /jeeves check
 # ./verify.sh, then the task prompt), then nothing until the task ends, and checks the result on disk.
 #
 #   npm run e2e:pty -- <scratch dir> [--override 8.5] [--chars 6000] [--minutes 30] [--out <evidence dir>]
@@ -53,11 +53,11 @@ def main():
     r = {'override': a.override, 'chars': a.chars, 'claude_version': subprocess.run(['claude', '--version'], capture_output=True, text=True).stdout.strip()}
     r['trust'] = c.accept_trust()
     c.pump(4)
-    c.line('/relay on')
-    r['on'] = c.wait(lambda: 'Jeeveson:task' in c.squeezed(4000), 30, label='/relay on')
+    c.line('/jeeves on')
+    r['on'] = c.wait(lambda: 'Jeeveson:task' in c.squeezed(4000), 30, label='/jeeves on')
     c.pump(1)
     # The check goes before the prompt: a command typed while Claude works waits for the turn to end (debug run 1).
-    c.line('/relay check ./verify.sh')
+    c.line('/jeeves check ./verify.sh')
     r['check_queued'] = c.wait(lambda: len(state().get('pendingChanges') or []) == 1, 30, label='check queued')
     c.pump(1)
     c.line(task)

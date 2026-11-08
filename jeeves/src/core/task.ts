@@ -24,7 +24,7 @@ const HEADER = 'Jeeves task revision'
 
 /** Revision n >= 2: a short header, a blank line, then the user's text exactly as typed. */
 export function renderChange(n: number, kind: ChangeKind, text: string, at: string): string {
-  return `${HEADER} ${n}\nKind: ${kind}\nMeaning: ${LABEL[kind]}\nAdded by: /relay ${kind}, typed by the user\nAt: ${at}\n\n${text}`
+  return `${HEADER} ${n}\nKind: ${kind}\nMeaning: ${LABEL[kind]}\nAdded by: /jeeves ${kind}, typed by the user\nAt: ${at}\n\n${text}`
 }
 
 /** Rev 1 is the original prompt as is; later ones are parsed back from `renderChange`. Null when a file is not one of ours. */
@@ -48,7 +48,7 @@ export function foldTask(revs: Revision[]): TaskView {
 
 const ORIGINAL_SHOWN = 1500
 
-/** `/relay task`: the original prompt, every change since (each typed by the user), and the current DoD and checks. */
+/** `/jeeves task`: the original prompt, every change since (each typed by the user), and the current DoD and checks. */
 export function taskText(taskId: string, v: TaskView): string {
   const original = v.original.length > ORIGINAL_SHOWN ? `${v.original.slice(0, ORIGINAL_SHOWN)}\n[... ${v.original.length - ORIGINAL_SHOWN} more characters in ${revFile(1)}]` : v.original
   const list = (xs: string[], none: string) => (xs.length ? xs.map(x => `- ${x}`) : [none])
@@ -61,8 +61,8 @@ export function taskText(taskId: string, v: TaskView): string {
     ...v.changes.map(c => `${revFile(c.n)}  ${c.kind === 'dod' ? 'DoD' : 'check'}: ${c.text}`),
     '',
     'Current Definition of Done:',
-    ...list(v.dod, '(none: /relay dod <text> adds one)'),
+    ...list(v.dod, '(none: /jeeves dod <text> adds one)'),
     'Verification commands (never run by Jeeves):',
-    ...list(v.checks, '(none: /relay check <command> adds one)'),
+    ...list(v.checks, '(none: /jeeves check <command> adds one)'),
   ].join('\n')
 }

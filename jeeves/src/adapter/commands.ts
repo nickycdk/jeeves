@@ -1,4 +1,4 @@
-// /relay parsing and answers (ST-1.9, E2). Commands that change a task run only when the user typed them (FR-05).
+// /jeeves parsing and answers (ST-1.9, E2). Commands that change a task run only when the user typed them (FR-05).
 import { isThreshold, THRESHOLD_MAX, THRESHOLD_MIN } from '../core/machine.ts'
 import { heldPrompt } from '../core/continuation.ts'
 import { taskText } from '../core/task.ts'
@@ -9,10 +9,10 @@ import { recover, restoredText } from './recover.ts'
 import { firstActivationText, HELP, MSG, statusText } from './ui.ts'
 
 export const PLUGIN = 'jeeves'
-export const PRIMARY = 'relay'
-export const FALLBACK = 'jeeves'
+export const PRIMARY = 'jeeves'
+export const FALLBACK = 'relay'
 
-/** `relay` unless another plugin, the user or an MCP server already has it (ADR-009). */
+/** `jeeves` unless another plugin, the user or an MCP server already has it (ADR-009, amended by D-29). */
 export function chooseCommandName(existing: readonly { name: string; plugin?: string }[]): typeof PRIMARY | typeof FALLBACK {
   return existing.some(c => c.name === PRIMARY && c.plugin !== PLUGIN) ? FALLBACK : PRIMARY
 }
@@ -171,7 +171,7 @@ async function revise(rt: Runtime, tasks: Task[], me: string, kind: 'dod' | 'che
   return n === null ? MSG.waitingForPrompt : n === 'pending' ? MSG.revisePending(kind) : MSG.revised(n, kind)
 }
 
-/** First `/relay on` on this machine (spec §4.1): where state lives, that a fresh conversation starts by itself, how to pause. */
+/** First `/jeeves on` on this machine (spec §4.1): where state lives, that a fresh conversation starts by itself, how to pause. */
 async function firstActivationNotice(rt: Runtime): Promise<string[]> {
   return (await rt.port.firstActivation()) ? firstActivationText(rt.stateRoot ?? '', rt.probe.mode === 'assisted') : []
 }

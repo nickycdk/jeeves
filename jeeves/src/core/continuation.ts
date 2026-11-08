@@ -49,7 +49,7 @@ export type ContinuationInput = {
   heldPrompts: readonly string[]
   /** Restore path (no /clear, no SessionStart): the context goes into the prompt itself (ADR-003). */
   context?: string
-  /** `/relay recover` after the previous session stopped unexpectedly: work after the handover may exist (02 §8). */
+  /** `/jeeves recover` after the previous session stopped unexpectedly: work after the handover may exist (02 §8). */
   gap?: boolean
 }
 
@@ -59,7 +59,7 @@ export const heldBlock = (prompts: readonly string[]) => [
   ...prompts.flatMap((m, k) => [`Message ${k + 1}:`, ...m.replace(/\r\n?/g, '\n').split('\n').map(l => `> ${l}`)]),
 ]
 
-/** After a handover that ended in a pause, `/relay resume` delivers the messages it held, once (review fix 1). */
+/** After a handover that ended in a pause, `/jeeves resume` delivers the messages it held, once (review fix 1). */
 export const heldPrompt = (prompts: readonly string[]) =>
   ['Jeeves: the handover was stopped before a fresh conversation started, so these messages were never delivered.', ...heldBlock(prompts)].join('\n')
 

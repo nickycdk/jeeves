@@ -1,9 +1,9 @@
-// ST-2.1: /relay on|off and verbatim capture of the first prompt, through the plugin's own hooks.
+// ST-2.1: /jeeves on|off and verbatim capture of the first prompt, through the plugin's own hooks.
 import { expect, test } from 'claude-code/testing'
 import { bottom, PROMPT, relay, start, stateOf, submit, taskDirs, until } from './kit.ts'
 import { memHost, T0 } from './memfs.ts'
 
-test('/relay on, then the next typed prompt is stored byte for byte as task-rev-001.md and passes unchanged', async ($, on) => {
+test('/jeeves on, then the next typed prompt is stored byte for byte as task-rev-001.md and passes unchanged', async ($, on) => {
   const h = memHost(on)
   const engine = bottom(on)
   await start($)
@@ -40,7 +40,7 @@ test('slash commands, meta prompts and prompts from anyone but the person are ne
   expect(h.files.get(`${dir}/task-rev-001.md`)).toBe('the real task')
 })
 
-test('/relay on <goal>: the goal is rev 1 as typed and is sent as the first prompt', async ($, on) => {
+test('/jeeves on <goal>: the goal is rev 1 as typed and is sent as the first prompt', async ($, on) => {
   const h = memHost(on)
   const engine = bottom(on)
   await start($)
@@ -54,7 +54,7 @@ test('/relay on <goal>: the goal is rev 1 as typed and is sent as the first prom
   expect(engine).toEqual([{ text: goal, origin: 'plugin' }])
 })
 
-test('AC-03: without /relay on there are no task files and prompts pass untouched', async ($, on) => {
+test('AC-03: without /jeeves on there are no task files and prompts pass untouched', async ($, on) => {
   const h = memHost(on)
   const engine = bottom(on)
   await start($)
@@ -64,7 +64,7 @@ test('AC-03: without /relay on there are no task files and prompts pass untouche
   expect(engine).toEqual([{ text: PROMPT, origin: 'composer' }])
 })
 
-test('/relay off: DISABLED, lock released, every file kept (FR-11)', async ($, on) => {
+test('/jeeves off: DISABLED, lock released, every file kept (FR-11)', async ($, on) => {
   const h = memHost(on)
   bottom(on)
   await start($)
@@ -78,7 +78,7 @@ test('/relay off: DISABLED, lock released, every file kept (FR-11)', async ($, o
   expect(h.files.get(`${dir}/task-rev-001.md`)).toBe(PROMPT)
   const events = h.files.get(`${dir}/events.jsonl`)!.trim().split('\n').map(l => JSON.parse(l))
   expect(events.map(e => `${e.from}>${e.to}`)).toEqual(['DISABLED>MONITORING', 'MONITORING>MONITORING', 'MONITORING>DISABLED'])
-  expect(await relay($, 'off')).toBe('No managed task. Start with /relay on')
+  expect(await relay($, 'off')).toBe('No managed task. Start with /jeeves on')
   // Turning on again starts a new task; the old one stays.
   await relay($, 'on')
   expect(taskDirs(h).length).toBe(2)
@@ -104,10 +104,10 @@ test('LOCK_HELD: another live session\'s task stays its own; on starts a separat
   expect(stateOf(h, dir!).status).toBe('DISABLED')
 })
 
-test('only the person may change a task: a plugin-run /relay on is refused, status still answers', async ($, on) => {
+test('only the person may change a task: a plugin-run /jeeves on is refused, status still answers', async ($, on) => {
   const h = memHost(on)
   await start($)
-  expect(await relay($, 'on take over', 'plugin')).toBe('Only you can change a Jeeves task: type the /relay command yourself.')
+  expect(await relay($, 'on take over', 'plugin')).toBe('Only you can change a Jeeves task: type the /jeeves command yourself.')
   expect(taskDirs(h)).toEqual([])
   expect(await relay($, 'status', 'plugin')).toContain('No managed task.')
 })

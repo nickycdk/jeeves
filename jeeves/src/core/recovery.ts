@@ -67,7 +67,7 @@ export type Remains = {
   at: string
 }
 
-/** A state rebuilt from what survives, always NEEDS_REVIEW(STATE_CORRUPT): the user decides, through /relay recover. */
+/** A state rebuilt from what survives, always NEEDS_REVIEW(STATE_CORRUPT): the user decides, through /jeeves recover. */
 export function rebuildState(r: Remains): State {
   const lines = r.events.flatMap(l => { try { return [JSON.parse(l) as Record<string, unknown>] } catch { return [] } })
   const last = lines.at(-1)

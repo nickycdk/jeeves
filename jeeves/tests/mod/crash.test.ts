@@ -1,5 +1,5 @@
 // ST-6.7 / AC-16 crash matrix (I layer): the process dies at each named point of a rotation (JEEVES_TEST_CRASH, test
-// only: the plugin stops dead there). A new session starts, waits out the dead session's lock and types /relay recover.
+// only: the plugin stops dead there). A new session starts, waits out the dead session's lock and types /jeeves recover.
 // Each point must give exactly one continuation, from the right handover, and no handover written twice.
 import { expect, test } from 'claude-code/testing'
 import { CRASH_POINTS, type CrashPoint } from '../../src/adapter/runtime.ts'
@@ -56,7 +56,7 @@ async function restartAndRecover($: Kit, h: MemHost) {
 }
 
 for (const point of CRASH_POINTS) {
-  test(`AC-16 crash point "${point}": restart + /relay recover -> exactly one continuation, no handover written twice`, async ($, on) => {
+  test(`AC-16 crash point "${point}": restart + /jeeves recover -> exactly one continuation, no handover written twice`, async ($, on) => {
     const { h, dir, prompts, handovers } = await dieAt($, on, point)
     expect(stateOf(h, dir).status).toBe(LEFT[point])
     if (point === 'before-inject') expect(stateOf(h, dir).rotation.step).toBe('CLEARED')

@@ -1,6 +1,6 @@
 // ST-5.2 / AC-13: completion only on verified DoD. "Done" text does nothing; a JEEVES-COMPLETE block without
 // evidence gets one block listing the checks; still missing -> NEEDS_REVIEW(DOD_UNMET); evidence after the last edit
-// -> COMPLETED with a summary, the lock released and no rotation after. /relay done is the user's own decision.
+// -> COMPLETED with a summary, the lock released and no rotation after. /jeeves done is the user's own decision.
 import type { SessionMeasureInput, ToolCallResult } from 'claude-code'
 import { expect, test } from 'claude-code/testing'
 import { bottom, PROMPT, relay, start, stateOf, submit, taskDirs, until, type Kit } from './kit.ts'
@@ -53,7 +53,7 @@ test('AC-13: "done" alone does nothing; a block before the check runs is blocked
   expect(await relay($, 'on')).toContain('Jeeves on: task')
 })
 
-test('AC-13: an edit after the passing check invalidates it; still missing after the one block -> NEEDS_REVIEW(DOD_UNMET); /relay done confirms', async ($, on) => {
+test('AC-13: an edit after the passing check invalidates it; still missing after the one block -> NEEDS_REVIEW(DOD_UNMET); /jeeves done confirms', async ($, on) => {
   const { h, dir, taskId } = await task($, on)
   await $.tool.call({ tool: 'Bash', command: 'npm test' })
   await $.tool.call({ tool: 'Edit', file_path: '/work/proj/src/a.js', old_string: 'a', new_string: 'b' })
@@ -67,21 +67,21 @@ test('AC-13: an edit after the passing check invalidates it; still missing after
   expect([stateOf(h, dir).status, stateOf(h, dir).reason]).toEqual(['NEEDS_REVIEW', 'DOD_UNMET'])
   expect(h.toasts.at(-1)).toContain('Not marked done: 1 check(s) missing or failing.')
 
-  expect(await relay($, 'done', 'plugin')).toBe('Only you can change a Jeeves task: type the /relay command yourself.')
+  expect(await relay($, 'done', 'plugin')).toBe('Only you can change a Jeeves task: type the /jeeves command yourself.')
   expect(await relay($, 'done')).toBe(`Task ${taskId} marked done by you (recorded as your decision, not verified by checks).`)
   const last = h.files.get(`${dir}/events.jsonl`)!.trim().split('\n').map(l => JSON.parse(l)).at(-1)
-  expect([last.from, last.to, last.code, last.detail]).toEqual(['NEEDS_REVIEW', 'COMPLETED', 'COMPLETED', 'approved by the user with /relay done (not verified by checks)'])
-  expect(await relay($, 'done')).toBe('Nothing waits for /relay done: only a task stopped as DOD_UNMET can be confirmed by hand.')
+  expect([last.from, last.to, last.code, last.detail]).toEqual(['NEEDS_REVIEW', 'COMPLETED', 'COMPLETED', 'approved by the user with /jeeves done (not verified by checks)'])
+  expect(await relay($, 'done')).toBe('Nothing waits for /jeeves done: only a task stopped as DOD_UNMET can be confirmed by hand.')
 })
 
-test('no verification commands -> NEEDS_REVIEW at once, and the system prompt says /relay done confirms', async ($, on) => {
+test('no verification commands -> NEEDS_REVIEW at once, and the system prompt says /jeeves done confirms', async ($, on) => {
   const { h, dir, taskId } = await task($, on, null)
   const sections = (await compose($)).sections
   expect(sections.at(-1)?.id).toBe('jeeves:task')
-  expect(sections.at(-1)?.text).toContain('the user confirms completion with /relay done')
+  expect(sections.at(-1)?.text).toContain('the user confirms completion with /jeeves done')
   expect(await stopWith($, complete(taskId))).toEqual({})
   expect([stateOf(h, dir).status, stateOf(h, dir).reason]).toEqual(['NEEDS_REVIEW', 'DOD_UNMET'])
-  expect(h.toasts.at(-1)).toBe('Claude says the task is done. It has no verification commands, so confirm with /relay done.')
+  expect(h.toasts.at(-1)).toBe('Claude says the task is done. It has no verification commands, so confirm with /jeeves done.')
 })
 
 test('the system prompt carries the completion block with the exact checks while a task is active, and nothing otherwise', async ($, on) => {
@@ -101,12 +101,12 @@ test('the system prompt carries the completion block with the exact checks while
   expect((await compose($)).sections.map(s => s.id)).toEqual(['intro'])
 })
 
-test('review fix 2: /relay done from another live session is LOCK_HELD; after this process\'s own /clear it hands the lock on', async ($, on) => {
+test('review fix 2: /jeeves done from another live session is LOCK_HELD; after this process\'s own /clear it hands the lock on', async ($, on) => {
   const { h, dir, taskId } = await task($, on, null)
   await stopWith($, complete(taskId))
   expect(stateOf(h, dir).reason).toBe('DOD_UNMET')
   h.sessionId = 'sess-other-process'
-  expect(await relay($, 'done')).toBe(`Another running session owns task ${taskId} here (LOCK_HELD). /relay status shows it read-only.`)
+  expect(await relay($, 'done')).toBe(`Another running session owns task ${taskId} here (LOCK_HELD). /jeeves status shows it read-only.`)
   expect(stateOf(h, dir).status).toBe('NEEDS_REVIEW')
   h.sessionId = 'sess-test'
   await $.session.end({ reason: 'clear', sessionId: 'sess-test', resume: { id: 'sess-test' } })

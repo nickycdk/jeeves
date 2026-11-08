@@ -1,5 +1,5 @@
 // ST-4.6 / AC-25: assisted mode is honest. A refused /clear keeps the verified handover (NEEDS_REVIEW,
-// ROTATE_UNAVAILABLE); status says assisted and what to do; /relay continue works only in a fresh conversation and
+// ROTATE_UNAVAILABLE); status says assisted and what to do; /jeeves continue works only in a fresh conversation and
 // continues there with the task and handover inside the prompt.
 import { expect, test } from 'claude-code/testing'
 import { engineClear, generating, handover, relay, stateOf, stop, turnEnd, until } from './kit.ts'
@@ -12,19 +12,19 @@ test('AC-25: /clear refused -> assisted, status says so; continue refused with t
   await turnEnd($)
   await until(h, () => stateOf(h, dir).status === 'NEEDS_REVIEW')
   expect([stateOf(h, dir).reason, stateOf(h, dir).mode]).toEqual(['ROTATE_UNAVAILABLE', 'assisted'])
-  expect(h.toasts.at(-1)).toBe('Automatic /clear is unavailable. The handover is saved. Run /clear, then type /relay continue.')
+  expect(h.toasts.at(-1)).toBe('Automatic /clear is unavailable. The handover is saved. Run /clear, then type /jeeves continue.')
 
   const status = await relay($, 'status')
   expect(status.split('\n')[0]).toBe('Jeeves  mode: assisted')
   expect(status).toContain('State: NEEDS_REVIEW (ROTATE_UNAVAILABLE)')
-  expect(status).toContain('Run /clear, then /relay continue.')
+  expect(status).toContain('Run /clear, then /jeeves continue.')
   expect(status).not.toMatch(/automatic|by itself/i)
 
   // AC 2: not in a conversation that already has turns.
   h.turns = 3
-  expect(await relay($, 'continue')).toBe('Run /clear first: /relay continue works only in a fresh conversation, so the old one is not mixed in.')
+  expect(await relay($, 'continue')).toBe('Run /clear first: /jeeves continue works only in a fresh conversation, so the old one is not mixed in.')
   expect(stateOf(h, dir).status).toBe('NEEDS_REVIEW')
-  expect(await relay($, 'continue', 'plugin')).toBe('Only you can change a Jeeves task: type the /relay command yourself.')
+  expect(await relay($, 'continue', 'plugin')).toBe('Only you can change a Jeeves task: type the /jeeves command yourself.')
 
   ctl.rejectClear = false
   await engineClear($, h, 'sess-2')
@@ -37,7 +37,7 @@ test('AC-25: /clear refused -> assisted, status says so; continue refused with t
   expect(text).toContain('1. [inferred] Fix precedence in `src/parse.js`.')
   const s = stateOf(h, dir)
   expect([s.status, s.activeSessionId, s.mode, JSON.parse(h.files.get(`${dir}/lock.d/owner.json`)!).ownerSessionId]).toEqual(['CONTINUING', 'sess-2', 'assisted', 'sess-2'])
-  expect(await relay($, 'continue')).toBe('No handover is waiting for /relay continue. /relay status shows the task.')
+  expect(await relay($, 'continue')).toBe('No handover is waiting for /jeeves continue. /jeeves status shows the task.')
 })
 
 test('a task already in assisted mode never runs /clear: the next rotation waits for the user at once', async ($, on) => {

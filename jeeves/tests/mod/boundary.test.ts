@@ -50,7 +50,7 @@ test('after quiesceMaxTurns unsafe Stops the task pauses with UNSAFE_BOUNDARY an
   const { h, dir } = await requested($, on)
   for (let i = 0; i < 4; i++) expect((await stop($, { background_tasks: [SHELL] })).block).toBeUndefined()
   expect([stateOf(h, dir).status, stateOf(h, dir).reason]).toEqual(['PAUSED', 'UNSAFE_BOUNDARY'])
-  expect(h.toasts.at(-1)).toBe('Paused: no safe point to hand over (1 background task(s)). Finish the work, then /relay resume.')
+  expect(h.toasts.at(-1)).toBe('Paused: no safe point to hand over (1 background task(s)). Finish the work, then /jeeves resume.')
 })
 
 test('an interrupted turn asks for nothing; an interrupt during the handover pauses (USER_INTERRUPT)', async ($, on) => {

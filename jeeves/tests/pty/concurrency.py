@@ -1,5 +1,5 @@
 # PTY E2E for AC-18 / ST-6.6: real `claude` processes at once in one repository, its linked worktree and a second
-# repository. Only /relay commands are typed (answered locally), so no model call is made.
+# repository. Only /jeeves commands are typed (answered locally), so no model call is made.
 #
 #   python3 tests/pty/concurrency.py <scratch dir> --out <evidence dir>
 import argparse, glob, json, os, re, shutil, subprocess, sys
@@ -34,23 +34,23 @@ def main():
     for c in procs.values(): c.pump(3)
 
     p1, p2, p3, p4 = procs.values()
-    p1.line('/relay on')
+    p1.line('/jeeves on')
     r['p1 on'] = p1.wait(lambda: seen(p1, 'Jeeveson:task'), 30, label='p1 on')
-    p2.line('/relay status')
+    p2.line('/jeeves status')
     r['p2 status (read-only view of p1 task)'] = p2.wait(lambda: seen(p2, 'State:MONITORING'), 30, label='p2 status')
-    p2.line('/relay on')
+    p2.line('/jeeves on')
     r['p2 on: LOCK_HELD for p1 task, separate task'] = p2.wait(lambda: seen(p2, '(LOCK_HELD);itstaysthatsession') and seen(p2, 'Startingaseparatetask'), 30, label='p2 on')
-    p2.line('/relay off')
+    p2.line('/jeeves off')
     r['p2 off ends its own task'] = p2.wait(lambda: seen(p2, 'Jeevesoff.'), 30, label='p2 off')
-    p2.line('/relay off')
+    p2.line('/jeeves off')
     r['p2 off again: LOCK_HELD for p1 task'] = p2.wait(lambda: len(re.findall('LOCK_HELD', p2.squeezed(8000))) >= 2, 30, label='p2 off again')
-    p2.line('/relay recover')
+    p2.line('/jeeves recover')
     r['p2 recover: LOCK_HELD'] = p2.wait(lambda: seen(p2, 'isstillrunning(LOCK_HELD)'), 30, label='p2 recover')
-    p3.line('/relay on')
+    p3.line('/jeeves on')
     r['p3 (linked worktree) on, no LOCK_HELD'] = p3.wait(lambda: seen(p3, 'Jeeveson:task'), 30, label='p3 on') and 'LOCK_HELD' not in p3.squeezed(6000)
-    p4.line('/relay on')
+    p4.line('/jeeves on')
     r['p4 (second repo) on, no LOCK_HELD'] = p4.wait(lambda: seen(p4, 'Jeeveson:task'), 30, label='p4 on') and 'LOCK_HELD' not in p4.squeezed(6000)
-    p1.line('/relay status')
+    p1.line('/jeeves status')
     r['p1 still owns its task (MONITORING)'] = p1.wait(lambda: len(re.findall('State:MONITORING', p1.squeezed(8000))) >= 1, 20, label='p1 status')
     for c in procs.values():
         c.line('/cost')
@@ -73,7 +73,7 @@ def main():
     checks['p2 task DISABLED, others MONITORING'] = sorted(t['status'] for t in tasks) == ['DISABLED', 'MONITORING', 'MONITORING', 'MONITORING']
     checks['no model call (no cost shown or $0.00)'] = all(not v or float(v[-1]) == 0 for v in costs.values())
     lines = [f"# AC-18 concurrency (PTY): {'PASS' if all(checks.values()) else 'FAIL'}", '',
-             f"Claude Code {r['claude_version']} · 4 processes at once · only /relay commands typed (no model call)", '',
+             f"Claude Code {r['claude_version']} · 4 processes at once · only /jeeves commands typed (no model call)", '',
              '| Check | Result |', '|---|---|', *[f"| {k} | {'PASS' if v else 'FAIL'} |" for k, v in checks.items()], '',
              'Tasks on disk (project, task, status, session, lock owner):',
              *[f"- {t['project']} {t['task']} {t['status']} {t['session'][:8] if t['session'] else None} lock={t['lock'][:8] if t['lock'] else None}" for t in tasks],

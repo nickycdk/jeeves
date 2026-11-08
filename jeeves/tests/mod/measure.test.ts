@@ -53,7 +53,7 @@ test('AC-04: a rate-limit-only measure changes nothing, even with a high context
   expect(stateOf(h, dir).lastContext.percent).toBe(20)
 })
 
-test('AC-03: measures from 0 to 95% without /relay on leave no files and no effects', async ($, on) => {
+test('AC-03: measures from 0 to 95% without /jeeves on leave no files and no effects', async ($, on) => {
   const h = memHost(on)
   bottom(on)
   await start($)

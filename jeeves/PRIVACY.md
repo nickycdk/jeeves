@@ -4,9 +4,9 @@ Jeeves runs on your machine and sends nothing anywhere. It has no server, no tel
 
 ## What it stores
 
-Everything sits in the state folder (`/relay status` shows where; never inside your repository unless you set `stateDir` there):
+Everything sits in the state folder (`/jeeves status` shows where; never inside your repository unless you set `stateDir` there):
 
-- your original task prompt, word for word (`task-rev-001.md`), and each `/relay dod` / `/relay check` you type;
+- your original task prompt, word for word (`task-rev-001.md`), and each `/jeeves dod` / `/jeeves check` you type;
 - `state.json`: the task's state, the last context reading, and the evidence ledger: the last 200 commands Claude ran (redacted, at most 300 characters each, with exit status) and the paths of files it edited;
 - handovers Claude writes at each rotation (`history/handover-NNN.md`) and a facts snapshot per rotation (branch, HEAD, `git status` entries, scheduled crons);
 - `events.jsonl`: one short, redacted line per state change.

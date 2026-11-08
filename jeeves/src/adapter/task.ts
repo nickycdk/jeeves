@@ -206,7 +206,7 @@ async function adoptLeftovers(rt: Runtime, dir: string, s: State): Promise<State
 }
 
 /**
- * `/relay dod|check` typed before the first prompt become the next revisions once rev 1 exists, in the order typed
+ * `/jeeves dod|check` typed before the first prompt become the next revisions once rev 1 exists, in the order typed
  * (FR-05). Called wherever a revision is written, so a queue left by a failed write is flushed at the next chance.
  */
 async function flushPending(rt: Runtime, dir: string, s: State): Promise<State> {
@@ -625,7 +625,7 @@ export async function restoreHere(rt: Runtime, dir: string, input: Input, opts: 
   if (!before?.ok) return null
   const h = await latestHandover(rt, dir, opts.adopt ? { ...before.value, lastValidatedHandover: opts.adopt } : before.value)
   if (!h.ok) return 'unverified'
-  // ST-6.5: never continue on another branch than the handover's, unless the user relinks (`/relay recover --relink`).
+  // ST-6.5: never continue on another branch than the handover's, unless the user relinks (`/jeeves recover --relink`).
   const mismatch = opts.relink ? null : await branchMismatch(rt, h.text)
   if (mismatch) {
     await apply(rt, dir, { type: 'REPO_MISMATCH', sessionId: await rt.port.sessionId(), detail: `handover branch ${mismatch.expected}, repository on ${mismatch.actual}`, ...(opts.adopt ? { adopt: opts.adopt } : {}) })

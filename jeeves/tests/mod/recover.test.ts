@@ -1,5 +1,5 @@
 // ST-6.1 / AC-16 (I layer): a task left by a dead session is named at the next session start and continued once by
-// /relay recover, from the last validated handover; never while another session's lock is live; a lost state.json is
+// /jeeves recover, from the last validated handover; never while another session's lock is live; a lost state.json is
 // rebuilt, never deleted.
 import { expect, test } from 'claude-code/testing'
 import { generating, handover, relay, start, stateOf, stop, until, type Kit } from './kit.ts'
@@ -19,7 +19,7 @@ test('AC 1-3: crash in ROTATING -> notice, LOCK_HELD while the lock is live, the
   expect(stateOf(h, dir).status).toBe('ROTATING')
   // The process dies here: no turn.complete, no /clear, no session.end.
   await restart($, h)
-  expect(h.toasts.at(-1)).toBe(`Task ${g.taskId} is ROTATING in another session. If that session stopped, /relay recover takes it over once it has been silent for 2 minutes.`)
+  expect(h.toasts.at(-1)).toBe(`Task ${g.taskId} is ROTATING in another session. If that session stopped, /jeeves recover takes it over once it has been silent for 2 minutes.`)
   const live = await relay($, 'recover')
   expect(live).toContain('(LOCK_HELD)')
   expect(live).toMatch(/try again in \d+ s/)
@@ -27,7 +27,7 @@ test('AC 1-3: crash in ROTATING -> notice, LOCK_HELD while the lock is live, the
 
   await h.clock.advance(121_000)
   await start($)
-  expect(h.toasts.at(-1)).toBe(`Task ${g.taskId} was left ROTATING by an earlier session. /relay recover continues it here.`)
+  expect(h.toasts.at(-1)).toBe(`Task ${g.taskId} was left ROTATING by an earlier session. /jeeves recover continues it here.`)
   expect(await relay($, 'recover')).toBe(`Recovering task ${g.taskId} here: Jeeves sends the task and its last validated handover as the next prompt.`)
   await until(h, () => continuations(prompts).length > 0)
   await h.clock.settle()
@@ -38,9 +38,9 @@ test('AC 1-3: crash in ROTATING -> notice, LOCK_HELD while the lock is live, the
   expect(cont[0]!.text).not.toContain('stopped unexpectedly')
   const s = stateOf(h, dir)
   expect([s.status, s.activeSessionId, JSON.parse(h.files.get(`${dir}/lock.d/owner.json`)!).ownerSessionId]).toEqual(['CONTINUING', 'sess-2', 'sess-2'])
-  expect(h.files.get(`${dir}/events.jsonl`)).toContain('recovered by /relay recover from ROTATING with history/handover-001.md')
+  expect(h.files.get(`${dir}/events.jsonl`)).toContain('recovered by /jeeves recover from ROTATING with history/handover-001.md')
 
-  expect(await relay($, 'recover')).toBe('This session runs the task already: nothing to recover. /relay status shows it.')
+  expect(await relay($, 'recover')).toBe('This session runs the task already: nothing to recover. /jeeves status shows it.')
   // From yet another session, while this one is alive: refused.
   h.sessionId = 'sess-3'
   expect(await relay($, 'recover')).toContain('(LOCK_HELD)')
@@ -68,7 +68,7 @@ test('AC 4: an unreadable state.json is rebuilt (NEEDS_REVIEW(STATE_CORRUPT) fir
   h.files.set(`${dir}/state.json.tmp-0123456789ab`, 'half')
   h.files.set(`${dir}/notes.tmp-0123456789ab`, 'not ours')
   await restart($, h)
-  expect(h.toasts.at(-1)).toContain('its state.json is unreadable. /relay recover rebuilds it')
+  expect(h.toasts.at(-1)).toContain('its state.json is unreadable. /jeeves recover rebuilds it')
   expect(await relay($, 'status')).toContain('Task state unreadable')
   await h.clock.advance(121_000)
   expect(await relay($, 'recover')).toContain('(state.json rebuilt; the old file is kept)')
@@ -90,7 +90,7 @@ test('a paused task, or no task, is not "recovered"', async ($, on) => {
   await restart($, h)
   await h.clock.advance(121_000)
   await relay($, 'off')
-  expect(await relay($, 'recover')).toBe('Nothing to recover: no task here was interrupted. /relay status shows the task.')
+  expect(await relay($, 'recover')).toBe('Nothing to recover: no task here was interrupted. /jeeves status shows the task.')
 })
 
 test('autoRecover: at session start the interrupted task is continued without a command', { options: { autoRecover: true } }, async ($, on) => {
@@ -133,7 +133,7 @@ test('second review 1: a rebuild whose write fails leaves the unreadable state.j
   expect(await relay($, 'status')).toContain('Task state unreadable')
 })
 
-test('code review 1: with its own active task, /relay recover refuses instead of taking the crashed one too', async ($, on) => {
+test('code review 1: with its own active task, /jeeves recover refuses instead of taking the crashed one too', async ($, on) => {
   const g = await generating($, on)
   const { h, dir } = g
   await restart($, h)
@@ -141,7 +141,7 @@ test('code review 1: with its own active task, /relay recover refuses instead of
   // Seed this session as the owner of a second, running task.
   const mine = dir.replace(/[^/]+$/, 't_20261108_mine01')
   h.files.set(`${mine}/state.json`, JSON.stringify({ ...stateOf(h, dir), taskId: 't_20261108_mine01', status: 'MONITORING', reason: null, rotation: null, activeSessionId: 'sess-2', updatedAt: '2026-11-07T09:00:00.000Z' }))
-  expect(await relay($, 'recover')).toBe('This session runs the task already: nothing to recover. /relay status shows it.')
+  expect(await relay($, 'recover')).toBe('This session runs the task already: nothing to recover. /jeeves status shows it.')
   expect(stateOf(h, dir).status).toBe('HANDOVER_GENERATING')
 })
 
@@ -159,10 +159,10 @@ test('code review 5: a state.json that fails to read (I/O) is never called corru
   expect([...h.files.keys()].some(f => f.includes('state.json.corrupt-'))).toBe(false)
 })
 
-test('code review 9: an unknown argument to /relay recover is refused with the usage', async ($, on) => {
+test('code review 9: an unknown argument to /jeeves recover is refused with the usage', async ($, on) => {
   const g = await generating($, on)
   await restart($, g.h)
   await g.h.clock.advance(121_000)
-  expect(await relay($, 'recover --relnk')).toBe('Usage: /relay recover, or /relay recover --relink to continue after a branch switch or a moved folder.')
+  expect(await relay($, 'recover --relnk')).toBe('Usage: /jeeves recover, or /jeeves recover --relink to continue after a branch switch or a moved folder.')
   expect(stateOf(g.h, g.dir).status).toBe('HANDOVER_GENERATING')
 })

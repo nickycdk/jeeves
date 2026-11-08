@@ -1,4 +1,4 @@
-// ST-4.7 / AC-15: /relay rotate runs the threshold's pipeline. One host runs a threshold rotation, then a manual one;
+// ST-4.7 / AC-15: /jeeves rotate runs the threshold's pipeline. One host runs a threshold rotation, then a manual one;
 // the traces (event transitions, Jeeves's prompts, Stop blocks, /clear) are identical except the trigger code.
 import type { SessionMeasureInput, ToolCallResult } from 'claude-code'
 import { expect, test } from 'claude-code/testing'
@@ -56,18 +56,18 @@ test('AC-15: the manual trace equals the threshold trace except THRESHOLD -> MAN
   expect([stateOf(h, dir).rotationCount, stateOf(h, dir).activeSessionId, auto.final]).toEqual([2, 'sess-3', 'MONITORING'])
 })
 
-test('AC 2: /relay rotate never restarts before a validated handover; refused outside MONITORING/CONTINUING', async ($, on) => {
+test('AC 2: /jeeves rotate never restarts before a validated handover; refused outside MONITORING/CONTINUING', async ($, on) => {
   const h = memHost(on)
   bottom(on)
   const clears: string[] = []
   on('command.run', (_, e) => { clears.push(e.command); return { text: '' } })
   await start($)
-  expect(await relay($, 'rotate')).toBe('No managed task. Start with /relay on')
+  expect(await relay($, 'rotate')).toBe('No managed task. Start with /jeeves on')
   await relay($, 'on')
   await submit($, PROMPT)
   const dir = taskDirs(h)[0]!
   await relay($, 'rotate')
-  expect(await relay($, 'rotate')).toBe('No handover now: the task is ROTATION_REQUESTED. /relay status shows why.')
+  expect(await relay($, 'rotate')).toBe('No handover now: the task is ROTATION_REQUESTED. /jeeves status shows why.')
   // An invalid handover three times: nothing is cleared, ever.
   await $.classic.Stop({ stop_hook_active: false, last_assistant_message: 'ok', background_tasks: [], session_crons: [] })
   for (let i = 0; i < 3; i++) await stop($, 'no block here')
@@ -75,5 +75,5 @@ test('AC 2: /relay rotate never restarts before a validated handover; refused ou
   await h.clock.settle()
   expect(clears).toEqual([])
   expect([stateOf(h, dir).status, stateOf(h, dir).reason]).toEqual(['NEEDS_REVIEW', 'HANDOVER_INVALID'])
-  expect(await relay($, 'rotate', 'plugin')).toBe('Only you can change a Jeeves task: type the /relay command yourself.')
+  expect(await relay($, 'rotate', 'plugin')).toBe('Only you can change a Jeeves task: type the /jeeves command yourself.')
 })

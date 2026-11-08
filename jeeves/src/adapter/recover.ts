@@ -1,4 +1,4 @@
-// `/relay recover` and the startup notice (ST-6.1, 02 §5.3, §8): continue a task that no live session runs.
+// `/jeeves recover` and the startup notice (ST-6.1, 02 §5.3, §8): continue a task that no live session runs.
 import { parseHandover } from '../core/handover/parse.ts'
 import { handoverFile } from '../core/handover/render.ts'
 import { STALE_MS } from '../core/lock.ts'
@@ -50,7 +50,7 @@ async function candidates(rt: Runtime): Promise<Candidate[]> {
   return out
 }
 
-/** At session start: one line about a task that waits for /relay recover, or null. Never changes anything. */
+/** At session start: one line about a task that waits for /jeeves recover, or null. Never changes anything. */
 export async function recoveryNotice(rt: Runtime): Promise<{ text: string; recover: boolean } | null> {
   const me = await rt.port.sessionId()
   for (const c of await candidates(rt)) {
@@ -117,7 +117,7 @@ async function nothing(rt: Runtime, acts: { c: Candidate; a: Action }[]): Promis
 }
 
 /**
- * `/relay recover`: the most recent task no live session runs is continued here, once. Takes the lock (refused while
+ * `/jeeves recover`: the most recent task no live session runs is continued here, once. Takes the lock (refused while
  * another session holds a live one), rebuilds an unreadable state.json first, then the restore path: task and last
  * validated handover in the continuation prompt, with a note when work after that handover may exist. Idempotent:
  * afterwards the task is this session's (RESTORING/CONTINUING), so a second recover finds nothing to do.
@@ -183,7 +183,7 @@ async function movedTasks(rt: Runtime): Promise<Moved[]> {
   return out.sort((a, b) => b.state.updatedAt.localeCompare(a.state.updatedAt))
 }
 
-/** `/relay recover --relink` (the user confirmed): move the task folder into this project, then recover it here. */
+/** `/jeeves recover --relink` (the user confirmed): move the task folder into this project, then recover it here. */
 async function relinkHere(rt: Runtime, m: Moved, me: string): Promise<string> {
   if (!(await claim(rt, m.dir, me))) return MSG.lockHeld(m.state.taskId)
   const target = join(rt.projectDir!, 'tasks', m.state.taskId)

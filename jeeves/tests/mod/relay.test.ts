@@ -8,19 +8,19 @@ const startSession = (t: { session: { start: (e: { cwd: string; surface: 'termin
 const typed = (command: string, args: string) => ({ command, args, origin: { kind: 'composer' as const }, presentation: { isFullscreen: false, columns: 80 } })
 const sha16 = async (s: string) => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)))].map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 16)
 
-test('/relay status with no task: mode full and how to start, within 8 lines x 40 columns', async ($, on) => {
+test('/jeeves status with no task: mode full and how to start, within 8 lines x 40 columns', async ($, on) => {
   const h = memHost(on, { HOME: '/home/t' })
   await startSession($)
-  expect(h.registered).toEqual(['relay'])
-  const r = await $.command.run(typed('relay', 'status'))
+  expect(h.registered).toEqual(['jeeves'])
+  const r = await $.command.run(typed('jeeves', 'status'))
   const lines = (r.text ?? '').split('\n')
   expect(lines[0]).toBe('Jeeves  mode: full')
-  expect(lines).toContain('No managed task. Start with /relay on')
+  expect(lines).toContain('No managed task. Start with /jeeves on')
   expect(lines.length).toBeLessThanOrEqual(8)
   for (const l of lines) expect(l.length).toBeLessThanOrEqual(40)
 })
 
-test("/relay status reads another session's task state through $.fs (its stored reading)", async ($, on) => {
+test("/jeeves status reads another session's task state through $.fs (its stored reading)", async ($, on) => {
   const h = memHost(on, { HOME: '/home/t' })
   const dir = `${ROOT}/projects/${await sha16('nogit|/work/proj')}/tasks/t_20261107_k3m9qa`
   h.files.set(`${dir}/state.json`, JSON.stringify({
@@ -31,7 +31,7 @@ test("/relay status reads another session's task state through $.fs (its stored 
   }))
   h.dirs.add(dir)
   await startSession($)
-  const text = (await $.command.run(typed('relay', ''))).text ?? ''
+  const text = (await $.command.run(typed('jeeves', ''))).text ?? ''
   expect(text).toContain('Task: t_20261107_k3m9qa')
   expect(text).toContain('State: MONITORING')
   expect(text).toContain('Context: 18%  Threshold: 50%')
@@ -40,26 +40,26 @@ test("/relay status reads another session's task state through $.fs (its stored 
 test('unknown subcommand shows help; help lists the commands', async ($, on) => {
   memHost(on)
   await startSession($)
-  const unknown = (await $.command.run(typed('relay', 'frobnicate now'))).text ?? ''
+  const unknown = (await $.command.run(typed('jeeves', 'frobnicate now'))).text ?? ''
   expect(unknown).toContain('Unknown command "frobnicate".')
   expect(unknown).toContain('status        mode, task, context')
-  expect((await $.command.run(typed('relay', 'help'))).text).toContain('Jeeves commands (/relay ...):')
+  expect((await $.command.run(typed('jeeves', 'help'))).text).toContain('Jeeves commands (/jeeves ...):')
 })
 
-test('name collision: falls back to /jeeves and says so; /relay stays the other owner\'s', async ($, on) => {
+test('name collision: falls back to /relay and says so; /jeeves stays the other owner\'s', async ($, on) => {
   const h = memHost(on)
-  h.commands = [{ name: 'relay', description: 'someone else', source: 'plugin', plugin: 'other' }]
+  h.commands = [{ name: 'jeeves', description: 'someone else', source: 'plugin', plugin: 'other' }]
   on('command.run', (_, e) => ({ text: `engine ran /${e.command}` }))
   await startSession($)
-  expect(h.registered).toEqual(['jeeves'])
-  expect(h.toasts).toContain('/relay is taken by another command, so Jeeves uses /jeeves.')
-  expect((await $.command.run(typed('relay', 'status'))).text).toBe('engine ran /relay')
-  expect((await $.command.run(typed('jeeves', 'status'))).text).toContain('mode: full')
+  expect(h.registered).toEqual(['relay'])
+  expect(h.toasts).toContain('/jeeves is taken by another command, so Jeeves uses /relay.')
+  expect((await $.command.run(typed('jeeves', 'status'))).text).toBe('engine ran /jeeves')
+  expect((await $.command.run(typed('relay', 'status'))).text).toContain('mode: full')
 })
 
 test('a state root failure is reported in status, not thrown', async ($, on) => {
   memHost(on, {})
   await startSession($)
-  const text = (await $.command.run(typed('relay', 'status'))).text ?? ''
+  const text = (await $.command.run(typed('jeeves', 'status'))).text ?? ''
   expect(text).toContain('State folder: error')
 })
