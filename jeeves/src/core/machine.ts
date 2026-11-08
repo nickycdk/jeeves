@@ -374,7 +374,8 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
         effects.push({ type: 'TOAST', key: key('disk'), text: 'Could not save the handover (DISK). Nothing was cleared.' })
         return done()
       }
-      go('ROTATING', state.rotation!.trigger, { lastValidatedHandover: input.ref })
+      // The ref in the event keeps every handover's hash, for /jeeves history --full (ST-11.3).
+      go('ROTATING', state.rotation!.trigger, { lastValidatedHandover: input.ref }, input.ref)
       setRotation({ step: 'HANDOVER_PERSISTED' })
       return done()
 

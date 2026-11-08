@@ -127,7 +127,7 @@ export const HELP = [
   'check <cmd>   add a check (never run)',
   'status        mode, task, context',
   'status --diagnose  report for a bug',
-  'history       last 20 state changes',
+  'history [--full]  state changes',
   'purge ...     delete task files',
   'help          this list',
 ].join('\n')

@@ -10,6 +10,7 @@ import { addRevision, apply, claim, heldByOther, liveTasks, ownTask, projectTask
 import { recover, restoredText } from './recover.ts'
 import { defaultsCommand, readDefaults } from './defaults.ts'
 import { diagnose } from './diagnose.ts'
+import { fullHistory } from './history.ts'
 import { purge } from './purge.ts'
 import { firstActivationText, HELP, historyText, MSG, statusText } from './ui.ts'
 
@@ -54,7 +55,10 @@ export async function relay(rt: Runtime, args: string, caller: Caller): Promise<
   if (sub === 'history') {
     const { tasks } = await projectTasks(rt)
     const t = pickTask(tasks, await rt.port.sessionId()) ?? tasks[0]
-    return t ? historyText(t.state, await rt.storage.readEvents(t.dir)) : MSG.noTask
+    if (!t) return MSG.noTask
+    const events = await rt.storage.readEvents(t.dir)
+    const text = historyText(t.state, events)
+    return rest.trim() === '--full' ? [text, ...(await fullHistory(rt, t.dir, t.state, events))].join('\n') : text
   }
   if (sub === 'task') {
     const own = ownTask((await projectTasks(rt)).tasks, await rt.port.sessionId())

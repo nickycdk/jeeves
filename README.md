@@ -45,7 +45,7 @@ At the threshold you'll see `Jeeves: handover requested`, then `Jeeves: handover
 | `/jeeves pause` / `resume` | Stop handovers for a while |
 | `/jeeves recover` | Continue a task a crashed or closed session left behind |
 | `/jeeves retry` | Try again after a handover failed its checks or a possible loop |
-| `/jeeves history` | Recent state changes and rotations |
+| `/jeeves history [--full]` | Recent state changes and rotations; `--full` adds each rotation's context, cost and handover file |
 | `/jeeves off` | End the task (files are kept) |
 | `/jeeves help` | Every command |
 

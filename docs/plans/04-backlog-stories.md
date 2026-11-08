@@ -623,6 +623,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **DoD:** + README "Checks" paragraph.
 
 ### ST-11.3 `/jeeves history --full` — S
+- **Status:** Solved (M8, 2026-11-08). Each handover ref is now written into its VALIDATING > ROTATING event so older handovers can be checked; v0.1 tasks show "hash not recorded" for all but the latest.
 - **Cites:** FR-11, ST-7.2.
 - **Scope:** `--full` adds, per rotation: the session's start and end context, cost when known, the end reason, and the handover file path with its first "Exact next actions" lines (already redacted at write). Plain text, readable at 50 columns. Out: printing whole handovers (the path is given).
 - **Depends on:** none.
