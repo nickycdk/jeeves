@@ -2,7 +2,7 @@
 
 Priority: P0 = MVP. Each epic cites PRD identifiers. Standard epic DoD (applies to all, plus epic-specific items): all child stories meet their DoD; epic AC demonstrated with the listed artifact; docs updated; no open Critical/High review findings; CI green.
 
-Dependency order: E0 → E1 → E2 → E3 → E4 → E5 → (E6, E7 in parallel) → E8 → E9 → (E10, E11) → E12.
+Dependency order: E0 → E1 → E2 → E3 → E4 → E5 → (E6, E7 in parallel) → E8 → E9 → (E10, E11) → E12 → E13 → E14 → E15 (v0.3, `docs/specs/auto-start.md`).
 
 ---
 
@@ -129,6 +129,35 @@ Dependency order: E0 → E1 → E2 → E3 → E4 → E5 → (E6, E7 in parallel)
 - **Cites:** NFR-02, NFR-06, AC-02, AC-07, AC-22, Q-4, Q-9.
 - **AC:** AC-33, AC-34 pass; every path in `handoff-m7.md` §5 "live-unverified" has an E result or a recorded reason; evidence pack `docs/done/evidence/v0.2.0/`.
 - **Artifact:** `docs/done/evidence/v0.2.0/`, draft release v0.2.0.
+
+## E13 — Auto-start (P1, v0.3)
+- **Status:** Open. Spec approved 2026-11-08 (D-40); AC-41's owner and date still open (spec Q7).
+- **Goal:** Installing Jeeves is the opt-in on fresh installs: an eligible session starts an auto task at its first typed prompt, with no command per task, while upgraders keep the v0.2 promise until they turn it on.
+- **Scope:** spec §5: eligibility decided once at `session.start` (interactive, full mode, git, window above 200K, fresh conversation, auto-start on) with the reason order and `(+N more)`; lazy start at the first `composer` prompt; first-run notice (`autoNoticeShown`); near-threshold rule, 3-turn grace, model-switch end; task `origin` auto/explicit (state schema bump, migration); `/jeeves later` with the auto-compaction cap; `/jeeves off` for the session, `/jeeves defaults auto`, `/jeeves auto` (`auto.json`), the `autoStart` row and their precedence; upgrade detection and notice; Current goal heading and the continuation order; user `/clear` ends an auto task; auto tasks recover by themselves under the same gates; cleanup of ended auto tasks without a rotation after 7 days; privacy and README text; downgrade safety. **Out:** 200K windows (Q8, decided by AC-41); Team accounts (turn mode); a setting for the cleanup age; any network use.
+- **User value:** long tasks hand over by themselves without remembering `/jeeves on`; one step turns it off at any level.
+- **Dependencies:** E10–E12 (v0.2.0). **Risks:** R-03, R-15, R-19, R-25, R-26, R-27.
+- **Cites:** FR-05, FR-11, ADR-003, ADR-007, ADR-009 A3, ADR-010, AC-03, D-41, D-42, D-43.
+- **AC:** AC-35 … AC-40, AC-42 … AC-46 pass (U + I); the I-layer suite passes with `autoStart` off and on; every existing AC keeps passing.
+- **Artifact:** I-layer tests in both modes; state-table rows in 02 §4; PRIVACY.md and README diffs.
+
+## E14 — Part of the day (P1, v0.3; may ship in v0.3.x)
+- **Status:** Open.
+- **Goal:** People who are not auto-watched hear about Jeeves when it would help, and a rotation is easy to trust and undo.
+- **Scope:** spec §6: the hint at threshold − 5 for reason 3b and 4–6 (once per session, stops after 3 unanswered); `/jeeves` alone with the reason and 2–3 suggested commands within 8 lines; the rotation line with `claude --resume <full id>`; `/jeeves handover`; the quiet status line in auto tasks. **Out:** a handover diff pane; any text that costs tokens.
+- **User value:** one command to remember; the old conversation is one command away.
+- **Dependencies:** E13 (reasons, origin). **Risks:** R-26.
+- **Cites:** spec §6, AC-47.
+- **AC:** AC-47 passes (U + I).
+- **Artifact:** I-layer snapshots of each message and of `/jeeves` alone at 40 columns.
+
+## E15 — v0.3 evidence and release (P1, v0.3)
+- **Status:** Open; ST-15.2 is blocked on spec Q7 (owner, date, a non-Team account) and the maintainer's go-ahead and budget.
+- **Goal:** Measure what auto-start costs and how it behaves live before any cost wording ships, decide Q8, ship v0.3.0.
+- **Scope:** the test-only window override; AC-41 live (1M fixture with and without Jeeves, auto mode, two rotations; 200K simulated fixture); Q8 decided from it; README cost wording only from the measured result; v0.3.0 release prep. **Out:** widening auto-start to 200K windows in v0.3.0 (v0.3.x, spec §13).
+- **Dependencies:** E13, E14. **Risks:** R-15, R-25 (the maintainer's account is a Team account), Q-12.
+- **Cites:** AC-41, spec §7, §11.1, Q7, Q8.
+- **AC:** AC-41 has a PASS/FAIL result with its cost, or a recorded reason it could not run; Q8 answered; release zip reproducible.
+- **Artifact:** `docs/done/evidence/v0.3.0/`, draft release v0.3.0.
 
 ---
 

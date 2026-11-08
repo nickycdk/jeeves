@@ -1,6 +1,6 @@
 # Spec: Auto-start (installing Jeeves is the opt-in)
 
-**Status:** Draft, revision 4 with editorial fixes from review 4 (reviews 1–4 applied, §12). **Design frozen:** further ideas go to §13, not to a revision 5. No plan or code yet. · **Date:** 2026-11-08 · **Target:** v0.3 (after v0.2.0 is public; §6 items may ship in v0.3.x) · **Changes:** ADR-009, AC-03, ADR-003, ADR-010, PRIVACY.md, README (§8) · **Relates to:** FR-05, FR-11, ADR-007, R-03, R-15, R-19, R-25.
+**Status:** **Approved** 2026-11-08 (D-40): revision 4 with editorial fixes from review 4 (reviews 1–4 applied, §12). **Design frozen:** further ideas go to §13, not to a revision 5. Plan: 03 E13–E15, 04 ST-13.1 … ST-15.3, 05 M9, 06 AC-35 … AC-47, 07 D-40 … D-43, 02 ADR-009 A3. No code yet. Q7 (07 Q-13) still needs an owner and a date. · **Date:** 2026-11-08 · **Target:** v0.3 (after v0.2.0 is public; §6 items may ship in v0.3.x) · **Changes:** ADR-009, AC-03, ADR-003, ADR-010, PRIVACY.md, README (§8) · **Relates to:** FR-05, FR-11, ADR-007, R-03, R-15, R-19, R-25.
 
 ## 1. Goal
 

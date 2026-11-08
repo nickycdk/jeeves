@@ -29,6 +29,8 @@ Built by `fixtures/build-repo.ts` into a temp dir per test (never committed stat
 | `no-git` | plain dir | non-git support |
 | `six-steps` | spec + empty `src/` with 6 function stubs, tests per function, `verify.sh` | AC-11, AC-12, AC-13 (E2E task) |
 | `moved` | repo whose path changes between runs | REPO_MISMATCH |
+| `long-task` | a task with about 800K tokens of work (several modules, tests per module, `verify.sh`), so a 1M session passes 40% twice | AC-41 (v0.3, ST-15.2) |
+| `autostart` | state folders for a fresh install, a v0.2 upgrader (store key, a project), a custom `stateDir`, auto tasks of known age and origin, v0.3 state for the downgrade check | AC-35, AC-38, AC-43, AC-44, AC-45 |
 | Handover corpus | ≥ 20 Markdown samples: valid, missing heading, two blocks, no block, CRLF, fenced, wrong IDs, secret inside, oversize, false "pass" claim | parser/validator |
 | Secret corpus | synthetic keys of each supported format + clean code | redaction |
 | State corpus | valid/corrupt/old-version/new-version `state.json`, stray tmp files, stale/live locks | recovery |
@@ -80,10 +82,25 @@ Built by `fixtures/build-repo.ts` into a temp dir per test (never committed stat
 | AC-32 | `stats` (ST-11.4) | U: aggregator over fixture sessions; I: snapshot; P: < 100 ms on 50 tasks | U, I, P | test report + timing |
 | AC-33 | VS Code terminal (ST-12.2) | §6 checklist in VS Code before/after one rotation | M | recording + checklist |
 | AC-34 | Claude Code floor 2.1.303 (ST-12.1) | C: test kit on 2.1.303 and current; E: one rotation on 2.1.303; I: probe boundary 2.1.302/2.1.303 | C, E, I | matrix + run log |
+| AC-35 | Auto-start on a fresh install (ST-13.4) | I: notice at `session.start`, then the same session's first `composer` prompt creates the auto task word for word; state-folder snapshot shows nothing written before it; one test per other origin kind; E: covered by AC-41's auto-mode run | U, I, E | test report |
+| AC-36 | Eligibility (ST-13.3) | U: eligibility and reason-order table; I: not eligible under `-p`/SDK, assisted, unsupported, outside git, 200K at start (no file), resumed; decided once (later switch to 1M does not watch); first reason plus `(+N more)` | I | test report |
+| AC-37 | Near-threshold, grace, model switch (ST-13.3, ST-13.4) | U: rules; I: near-threshold end with message, no rotation in turns 1–3, model switch to 200K ends the auto task with message | U, I | test report |
+| AC-38 | Opt-out levels and precedence (ST-13.2) | U: resolver table with sources; I: `/jeeves auto` writes only `auto.json`, override message, Claude settings snapshot unchanged, `/jeeves on` after `/jeeves off` gives an explicit task | U, I | test report |
+| AC-39 | `/jeeves later` (ST-13.5) | U: cap arithmetic (90%, auto-compaction − 5, compaction off); I: +10 and warning, cap message, auto and explicit, refused during a rotation | U, I | test report |
+| AC-40 | User `/clear` by origin (ST-13.7) | I: auto task ends with its message and the next prompt starts a new one; explicit task pauses with its message; status shows auto/explicit | I | snapshots |
+| AC-41 | Live cost, rotation rate and outcome (ST-15.2) | E: 1M with Jeeves (auto mode, two rotations, nothing typed but the task) and without; 200K simulated with the window override; tokens, cost with cache reads, rotations, outcome | E | `docs/done/evidence/v0.3.0/AC-41/RESULT.md` |
+| AC-42 | Current goal and continuation order (ST-13.6) | U: parser/validator corpus cases, continuation snapshot; I: v1 block valid for older tasks, rotation line shows the goal, a goal claiming a new task changes nothing | U, I | test report |
+| AC-43 | Upgrade path (ST-13.2) | I: store key or a project → `auto.json` off, upgrade notice once, never watched until `auto on` or the row, tasks/defaults/settings byte-identical; fresh → on; distinct store keys | I | test report |
+| AC-44 | Cleanup (ST-13.8) | U: selection rule; I: 7-day boundary on `updatedAt`, custom `stateDir`, auto-start off, explicit and rotated tasks kept | U, I | test report |
+| AC-45 | Downgrade (ST-13.1) | I: a v0.2 build of the module refuses v0.3 tasks with `SCHEMA_TOO_NEW`, ignores v0.3 `config.json` and `auto.json`; files byte-identical; C: same in the compat job | I, C | test report |
+| AC-46 | Auto-recovery for auto tasks (ST-13.7) | I: recovers in an interactive, full-mode, fresh session with a message; waits under `-p`, assisted, resumed; typed `/jeeves recover` anywhere; explicit tasks follow `autoRecover` | I | test report |
+| AC-47 | §6 polish (E14) | I: hint rules (reasons 3b and 4–6 only, once, stops after 3, no files); `/jeeves` alone ≤ 8 lines at 40 columns; rotation line with the full resume id; resumed old conversation cannot drive the task; `/jeeves handover`; quiet status line | U, I | snapshots |
 
 **v0.2 E-layer additions (ST-12.4):** phases c–h of `tests/pty/e_layers.py` cover compaction (typed `/compact`), `autoRecover`, REPO_MISMATCH on a moved repo with `--relink`, the `/clear` stall via `endedHere`, AC-07 (one Bash permission call as the only step after the threshold) and `/plugin configure`. Q-9 (a second blocking Stop hook) is I if the test kit loads two plugins, else E. Each result goes into `docs/done/evidence/v0.2.0/e-layers/RESULT.md` with its cost.
 
 **Status (2026-11-08, M8 solved):** the v0.2 AC table with links is `docs/done/evidence/v0.2.0/README.md`. AC-26, AC-27, AC-29, AC-30, AC-31 PASS (U, I); AC-28 PASS (U, I, E: 40% on live haiku 1M sessions); AC-32 PASS (U, I), P borderline under load (bound not loosened); AC-33 dropped (D-36); AC-34 not met, floor stays 2.1.319 (D-38). E layers (`tests/pty/e_layers_v2.py`): d, e, h PASS; c and g FAIL because a prepend-tier plugin on Team accounts skips Jeeves's hooks (R-25, D-39); f not exercised. AC-07 E stays open.
+
+**v0.3 (M9, D-40):** AC-03 now reads as amended by ADR-009 A3 (no rotation unless the user typed `/jeeves on` or the session was auto-watched; nothing recorded before the first typed prompt; never auto-watched for an upgrader who has not turned it on); its I test is updated in ST-13.9. The whole I-layer suite runs twice in CI, with `autoStart` off (v0.2 behaviour) and on. AC-41 needs a non-Team account (Q-12, Q-13).
 
 ## 4. Non-functional tests
 
