@@ -13,6 +13,7 @@ import { join } from '../core/paths.ts'
 import { foldTask, newTaskState, parseRevision, renderChange, revFile, type ChangeKind, type TaskView } from '../core/task.ts'
 import { DEFAULT_CONFIG, INERT, SCHEMA_VERSION, type ReasonCode, type State } from '../core/types.ts'
 import { runEffects, type EffectResult } from './effects.ts'
+import { shownThreshold, statusLine, transitionLine } from './ui.ts'
 import { gitFacts } from './git.ts'
 import type { CrashPoint, Runtime } from './runtime.ts'
 import { sha256Hex, StorageError } from './storage.ts'
@@ -72,9 +73,14 @@ async function transition(rt: Runtime, dir: string, prev: State, input: Input): 
     state = out.state
     const r = await runEffects(out.effects, { port: rt.port, storage: rt.storage, taskDir: dir, state })
     for (const f of r.failed) rt.port.log(`jeeves: effect ${f.effect.type} failed: ${f.error}`)
+    for (const e of out.effects) {
+      const line = e.type === 'LOG_EVENT' ? transitionLine(e.from, e.to, e.code, state) : null
+      if (line) rt.port.note(line)
+    }
     forHook.push(...r.forHook)
     queue.push(...r.followUps)
   }
+  if (state !== prev) rt.port.status(statusLine(state, shownThreshold(state, rt.thresholdOverride, rt.thresholdRelative)))
   return { state, forHook }
 }
 
@@ -90,8 +96,9 @@ async function blockOnDisk(rt: Runtime, dir: string, prev: State, to: State['sta
   try {
     await rt.storage.writeState(dir, out.state)
     await runEffects(out.effects, { port: rt.port, storage: rt.storage, taskDir: dir, state: out.state })
+    rt.port.status(statusLine(out.state, out.state.thresholdPercent))
   } catch {
-    rt.port.status(`blocked: cannot write task files (DISK)`)
+    rt.port.status('Jeeves: blocked, cannot write (DISK)')
   }
 }
 

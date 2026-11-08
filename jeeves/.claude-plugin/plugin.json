@@ -16,7 +16,7 @@
     "autoRecover": {
       "type": "boolean",
       "title": "Recover by itself",
-      "description": "At session start, continue a task that an earlier session left interrupted (as /relay recover would), without asking. Off by default.",
+      "description": "At session start, continue a task that an earlier session left interrupted (as /jeeves recover would), without asking. Off by default.",
       "default": false
     }
   }

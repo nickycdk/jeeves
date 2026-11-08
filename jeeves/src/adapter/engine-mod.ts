@@ -56,6 +56,7 @@ export function enginePort($: EngineInterface): EnginePort {
     status: text => $.ui.status(text),
     toast: text => $.ui.toast(text),
     log: text => $.ui.log(text, { to: 'debug' }),
+    note: text => $.ui.log(text),
     now: () => $.clock.now(),
     firstActivation: async () => {
       if ((await $.store.get('firstActivationShown')) === true) return false

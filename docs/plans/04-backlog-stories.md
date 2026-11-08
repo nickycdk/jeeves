@@ -474,6 +474,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 ## E7 — Terminal UX
 
 ### ST-7.1 Status and transition output — M
+- **Status:** Solved (M6). `statusLine`/`transitionLine` in `ui.ts`, wired in `task.ts` `transition`; `tests/mod/ui.test.ts`, `tests/unit/ui.spec.ts`. Plan change: no `userConfig.plainText`, because every Jeeves string is already plain ASCII with a word label (`ui.ts` rule, unit-tested), so the option would change nothing. Screenshots come from the M6 live run.
 - **Cites:** §4.3, FR-14, FR-17, NFR-02, NFR-08.
 - **Scope:** `$.ui.status("Relay 34%/50%")`-style entry (unknown → "Relay ?/50%"); one `$.ui.log` line per transition (`Handover requested`, `Validated`, `Starting fresh`, `Session 2 · 4%`, `Paused: <reason>`); toast on errors; ASCII-only mode via `userConfig.plainText`; never per tool call.
 - **Depends on:** ST-0.6, ST-1.9.

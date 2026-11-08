@@ -51,6 +51,8 @@ export interface EnginePort extends FsPort {
   status(text?: string): void
   toast(text: string): void
   log(text: string): void
+  /** One dim transcript line the user sees and the model does not (`$.ui.log`). */
+  note(text: string): void
   now(): Promise<number>
   /** True only the first time it is asked on this machine (a `$.store` flag), so a notice shows once. */
   firstActivation(): Promise<boolean>

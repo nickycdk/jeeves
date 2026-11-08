@@ -95,3 +95,25 @@ test('AC-25: a task that fell back to assisted shows mode assisted and the one t
   assert.match(firstActivationText('/s', true).join('\n'), /asks you to run \/clear, then \/jeeves continue/)
   assert.ok(!/by itself/.test(firstActivationText('/s', true).join('\n')))
 })
+
+test('ST-7.1: every state has a word label; status entries fit 40 columns, ASCII, user-unrelated', async () => {
+  const { STATE_WORD, statusLine, transitionLine } = await import('../../src/adapter/ui.ts')
+  const { STATUSES, REASON_CODES } = await import('../../src/core/types.ts')
+  for (const status of STATUSES) {
+    assert.ok(STATE_WORD[status], `no word for ${status}`)
+    for (const reason of [null, ...REASON_CODES]) {
+      const s = validState({ status, reason, lastContext: { window: 200_000, percent: 99.6, at: '2026-11-07T10:00:00.000Z' } })
+      const line = statusLine(s, 50)
+      if (status === 'DISABLED') { assert.equal(line, undefined); continue }
+      assert.ok(line!.length <= WIDTH && /^[\x20-\x7e]+$/.test(line!), `bad status "${line}"`)
+      assert.ok(line!.startsWith('Jeeves'))
+      for (const from of STATUSES) {
+        const t = transitionLine(from, status, reason, s)
+        if (from === status) assert.equal(t, null)
+        else assert.ok(t && /^Jeeves: [\x20-\x7e]+$/.test(t), `bad line ${from}->${status}: "${t}"`)
+      }
+    }
+  }
+  assert.equal(statusLine(validState({ status: 'MONITORING', lastContext: null }), 50), 'Jeeves ?/50%')
+  assert.equal(statusLine(validState({ status: 'MONITORING', mode: 'assisted' }), '7.2'), 'Jeeves ?/7.2% assisted')
+})

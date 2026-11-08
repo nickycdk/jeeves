@@ -42,7 +42,7 @@ test('DISK: when even the BLOCKED write fails, the last checkpoint stays as it w
   h.failWrite = p => p.includes('state.json.tmp')
   await $.session.measure({ context: { window: 1_000_000, percent: 30 }, rateLimits: [], changed: ['context'] })
   expect(h.files.get(`${dir}/state.json`)).toBe(before)
-  expect(h.status.at(-1)).toBe('blocked: cannot write task files (DISK)')
+  expect(h.status.at(-1)).toBe('Jeeves: blocked, cannot write (DISK)')
 })
 
 test('REPO_MISMATCH: recover on another branch than the handover\'s -> BLOCKED, no continuation; --relink continues once', async ($, on) => {

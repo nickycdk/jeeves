@@ -1,7 +1,7 @@
 // User-facing strings (FR-14, NFR-08): plain ASCII, text labels, <= 40 columns, <= 8 lines for status.
 import type { Probe } from '../core/probe.ts'
 import { recoverable } from '../core/machine.ts'
-import { INERT, type ReasonCode, type State } from '../core/types.ts'
+import { INERT, type ReasonCode, type State, type Status } from '../core/types.ts'
 
 export const WIDTH = 40
 
@@ -26,6 +26,46 @@ export type StatusView = {
 const relThreshold = (d: number | null | undefined, s: State) =>
   !d ? null : s.sessionStart?.pct == null ? '?' : `${Math.round((s.sessionStart.pct + d) * 100) / 100}`
 
+/** The threshold this run acts on: a test override when one is active, else the task's. */
+export const shownThreshold = (s: State, override?: number | null, relative?: number | null) => relThreshold(relative, s) ?? override ?? s.thresholdPercent
+
+/** One word label per state (ST-7.1 AC 2), for the status entry. */
+export const STATE_WORD: Record<Status, string> = {
+  DISABLED: 'off', MONITORING: 'on', ROTATION_REQUESTED: 'handover requested', QUIESCING: 'finishing the turn',
+  HANDOVER_GENERATING: 'writing handover', VALIDATING: 'checking handover', ROTATING: 'starting fresh',
+  RESTORING: 'restoring task', CONTINUING: 'continuing', PAUSED: 'paused', BLOCKED: 'blocked',
+  NEEDS_REVIEW: 'needs review', FAILED: 'failed', COMPLETED: 'done',
+}
+
+const pctText = (p: number | undefined) => (p === undefined ? '?' : `${Math.round(p)}%`)
+
+/** This plugin's status entry (ST-7.1, <= 40 columns): context and threshold while watching, else the state's word. */
+export function statusLine(s: State, threshold: number | string): string | undefined {
+  if (s.status === 'DISABLED') return undefined
+  const mode = s.mode === 'assisted' ? ' assisted' : ''
+  if (s.status === 'MONITORING') return fit(`Jeeves ${pctText(s.lastContext?.percent)}/${threshold}%${mode}`)
+  return fit(`Jeeves: ${STATE_WORD[s.status]}${s.reason && INERT.includes(s.status) ? ` (${s.reason})` : ''}`)
+}
+
+/** One transcript line per state change (ST-7.1); null for a change not worth a line. Never per tool call. */
+export function transitionLine(from: Status, to: Status, code: ReasonCode | null, s: State): string | null {
+  if (from === to) return null
+  const why = code ? ` (${code})` : ''
+  switch (to) {
+    case 'MONITORING': return from === 'DISABLED' ? 'Jeeves: on, watching context' : from === 'CONTINUING' ? `Jeeves: session ${s.sessionSequence} at ${pctText(s.lastContext?.percent)}, watching context` : 'Jeeves: watching context again'
+    case 'ROTATION_REQUESTED': return `Jeeves: handover requested${why}`
+    case 'QUIESCING': return 'Jeeves: letting the current turn finish'
+    case 'HANDOVER_GENERATING': return 'Jeeves: asking Claude for the handover'
+    case 'VALIDATING': return 'Jeeves: checking the handover'
+    case 'ROTATING': return 'Jeeves: handover validated, starting fresh'
+    case 'RESTORING': return 'Jeeves: restoring the task'
+    case 'CONTINUING': return 'Jeeves: the fresh conversation continues the task'
+    case 'DISABLED': return 'Jeeves: off (task files kept)'
+    case 'COMPLETED': return 'Jeeves: task completed'
+    default: return `Jeeves: ${STATE_WORD[to]}${why}${code ? `: ${REASON_TEXT[code]}` : ''}`
+  }
+}
+
 export function statusText(v: StatusView): string {
   // AC-25: a task that fell back to assisted shows it, whatever the probe said.
   const lines = [`Jeeves  mode: ${v.task?.state.mode === 'assisted' ? 'assisted' : v.probe.mode}`]
@@ -40,7 +80,7 @@ export function statusText(v: StatusView): string {
     lines.push(
       `Task: ${s.taskId}`,
       `State: ${s.status}${s.reason ? ` (${s.reason})` : ''}`,
-      `Context: ${pct === undefined ? 'unknown' : `${Math.round(pct * 10) / 10}%`}  Threshold: ${relThreshold(v.thresholdRelative, s) ?? v.thresholdOverride ?? s.thresholdPercent}%`,
+      `Context: ${pct === undefined ? 'unknown' : `${Math.round(pct * 10) / 10}%`}  Threshold: ${shownThreshold(s, v.thresholdOverride, v.thresholdRelative)}%`,
       ...(v.thresholdRelative ? [`TEST OVERRIDE +${v.thresholdRelative} (task setting ${s.thresholdPercent}%)`]
         : v.thresholdOverride ? [`TEST OVERRIDE (task setting ${s.thresholdPercent}%)`] : []),
       `Rotations: ${s.rotationCount}  Session: ${s.sessionSequence}`,

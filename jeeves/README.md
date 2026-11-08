@@ -12,6 +12,10 @@ A session-continuity plugin for Claude Code. When a managed task's context reach
 - **assisted**: used when this Claude Code cannot run `/clear` for a plugin (or refused it once). Jeeves never claims automatic rotation here. It saves the verified handover and asks you to run `/clear`, then `/jeeves continue`, which sends the task and handover into the fresh conversation.
 - **unsupported**: this Claude Code version is too old; Jeeves stays off and says which version it needs.
 
+## What you see
+
+While a task is on, Jeeves keeps one entry under the prompt: `Jeeves 34%/50%` (context used / threshold) while it watches, or the current step in words (`Jeeves: writing handover`, `Jeeves: paused (USER_PAUSE)`). Each step of a handover adds one dim line to the transcript; Claude does not see these lines.
+
 ## Troubleshooting
 
 **Claude Code crashed or was closed in the middle of a task.** At the next start Jeeves names the task once. Type `/jeeves recover`: Jeeves takes the task over in this conversation and sends the original task and its last validated handover as the next prompt. If the previous session stopped after that handover was written, the prompt says that work done after it may exist and asks Claude to check the repository first. Recovery runs once; a second `/jeeves recover` says there is nothing to do. Turn on the `autoRecover` setting (in `/config`) to recover by itself at start.
