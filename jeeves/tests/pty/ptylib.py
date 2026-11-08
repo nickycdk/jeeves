@@ -1,4 +1,4 @@
-# A real interactive `claude` in a pseudo-terminal (generalised from docs/plans/evidence/m1-relay-status/ptylib.py).
+# A real interactive `claude` in a pseudo-terminal (generalised from docs/done/evidence/m0-m7/m1-relay-status/ptylib.py).
 # Every keystroke goes through note(), so the driver can prove what it typed and when.
 import os, pty, time, select, re, struct, fcntl, termios, signal
 

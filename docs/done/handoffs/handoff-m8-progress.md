@@ -24,7 +24,7 @@ Checks at `6c49f3a`: 261/261 unit, 171 mod with **one borderline**: `tests/mod/s
 
 ## 2. Live run 1 for ST-12.4 (US$0.105 of the US$1 budget, D-36)
 
-Driver: `jeeves/tests/pty/e_layers_v2.py` (new, committed here). Raw evidence (gitignored, contains scratch paths): `docs/evidence/v0.2.0/e-layers/run1/` (`RESULT.md`, `result.json`, per phase `s1/`, `s2/` with `plain.txt`, `driver.log`, task copies; `h/` free phase; `compat-matrix.log`).
+Driver: `jeeves/tests/pty/e_layers_v2.py` (new, committed here). Raw evidence (gitignored, contains scratch paths): `docs/done/evidence/v0.2.0/e-layers/run1/` (`RESULT.md`, `result.json`, per phase `s1/`, `s2/` with `plain.txt`, `driver.log`, task copies; `h/` free phase; `compat-matrix.log`).
 
 | Phase | Result |
 |---|---|
@@ -45,9 +45,9 @@ Driver: `jeeves/tests/pty/e_layers_v2.py` (new, committed here). Raw evidence (g
    For g, also make the task's step after the threshold unavoidable, since Claude obeys the quiesce note and stops, so the dialog never opens (AC-07 needs the dialog *open while a request is pending*).
 2. **Fix the command description** shown in the `/jeeves` autocomplete: it still lists `on [goal] | off | pause | … | status [--dia…` without `retry`, `defaults`, `stats`, `history --full` (grep `threshold <n> | task` in `jeeves/src`).
 3. Regenerate `jeeves/docs/compatibility.md`: `npm run compat -- <scratch>/compat 2.1.302 2.1.303 2.1.310 2.1.316 2.1.319` from `jeeves/` (run 1 had a timing flake on 2.1.316).
-4. **ST-12.5 release prep:** version 0.2.0 in `jeeves/.claude-plugin/plugin.json`, `jeeves/package.json`, `jeeves/package-lock.json`; CHANGELOG `0.2.0` heading; `jeeves/docs/release-notes/v0.2.0.md`; `docs/evidence/v0.2.0/README.md` (AC-26 … AC-34, tracked summaries of the E runs without home paths); `release-zip.sh` twice → identical SHA; `claude plugin validate` on the unzipped artifact. Tag/publication stay the maintainer's (D-37: no public release).
+4. **ST-12.5 release prep:** version 0.2.0 in `jeeves/.claude-plugin/plugin.json`, `jeeves/package.json`, `jeeves/package-lock.json`; CHANGELOG `0.2.0` heading; `jeeves/docs/release-notes/v0.2.0.md`; `docs/done/evidence/v0.2.0/README.md` (AC-26 … AC-34, tracked summaries of the E runs without home paths); `release-zip.sh` twice → identical SHA; `claude plugin validate` on the unzipped artifact. Tag/publication stay the maintainer's (D-37: no public release).
 5. `/code-review` on the M8 range `b493501..HEAD` (the ponytail-review is done: 3 findings, all fixed).
-6. Write `docs/plans/handoff-m8.md`; mark ST-12.4/12.5 and M8 status in 04, 05, 00, 06, 03 only for what passed.
+6. Write `docs/done/handoffs/handoff-m8.md`; mark ST-12.4/12.5 and M8 status in 04, 05, 00, 06, 03 only for what passed.
 
 ## 4. Rules (from the maintainer, still in force)
 

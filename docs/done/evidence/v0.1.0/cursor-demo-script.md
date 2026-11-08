@@ -1,6 +1,6 @@
 # Cursor two-rotation demo: script for the maintainer (ST-9.2)
 
-What this produces: the M7 gate's "real Cursor two-rotation demo" and the ST-9.2 checks. You get a screen recording of at least 2 automatic rotations in Cursor's integrated terminal on your default model, with the 06 §6 checklist before and after a rotation, cut into a video of 3 minutes or less. Everything is saved under `docs/evidence/v0.1.0/AC-02/` (raw files) and `docs/evidence/v0.1.0/demo/` (the video).
+What this produces: the M7 gate's "real Cursor two-rotation demo" and the ST-9.2 checks. You get a screen recording of at least 2 automatic rotations in Cursor's integrated terminal on your default model, with the 06 §6 checklist before and after a rotation, cut into a video of 3 minutes or less. Everything is saved under `docs/done/evidence/v0.1.0/AC-02/` (raw files) and `docs/done/evidence/v0.1.0/demo/` (the video).
 
 Time: about 30–45 minutes. Cost: your default model, two to three conversations on a small fixture. Roughly US$1–4 on Opus or Sonnet; `/cost` before each rotation tells you the exact figure.
 
@@ -55,14 +55,14 @@ Stop the recording.
 ## 5. Save the evidence
 
 ```sh
-E=<repo>/docs/evidence/v0.1.0/AC-02 && mkdir -p $E
+E=<repo>/docs/done/evidence/v0.1.0/AC-02 && mkdir -p $E
 cp -R ~/jeeves-demo/state/projects/*/tasks/*/{events.jsonl,state.json,sessions,history} $E/
 claude --version > $E/versions.txt; sw_vers >> $E/versions.txt; echo "Cursor: <version from Cursor > About>" >> $E/versions.txt
 ```
 
-Then fill `$E/RESULT.md` from the template below. Cut the recording to 3 minutes or less (setup, one rotation in full, the second rotation sped up, two checklist items after it) and save it as `docs/evidence/v0.1.0/demo/jeeves-v0.1.0-demo.mp4`. Watch it once for secrets before you commit it. A large video can live in the GitHub release instead; then link it from RESULT.md.
+Then fill `$E/RESULT.md` from the template below. Cut the recording to 3 minutes or less (setup, one rotation in full, the second rotation sped up, two checklist items after it) and save it as `docs/done/evidence/v0.1.0/demo/jeeves-v0.1.0-demo.mp4`. Watch it once for secrets before you commit it. A large video can live in the GitHub release instead; then link it from RESULT.md.
 
-Copy your AC-01 fresh-user timing and recording (M6 gate) to `docs/evidence/v0.1.0/AC-01/RESULT.md` too.
+Copy your AC-01 fresh-user timing and recording (M6 gate) to `docs/done/evidence/v0.1.0/AC-01/RESULT.md` too.
 
 ### RESULT.md template
 

@@ -1,7 +1,7 @@
 #!/bin/zsh
 # S-01 helper. Run inside Cursor's integrated terminal:
-#   zsh docs/plans/evidence/s-01-cursor/run-s01.sh          # setup + launch claude
-#   zsh docs/plans/evidence/s-01-cursor/run-s01.sh collect  # after you exit claude: save redacted log + versions
+#   zsh docs/done/evidence/m0-m7/s-01-cursor/run-s01.sh          # setup + launch claude
+#   zsh docs/done/evidence/m0-m7/s-01-cursor/run-s01.sh collect  # after you exit claude: save redacted log + versions
 set -e
 E="${0:A:h}"
 STATE=/tmp/s01-cursor.last

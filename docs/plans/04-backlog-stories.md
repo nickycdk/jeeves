@@ -14,17 +14,17 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 ## E0 — Feasibility closeout
 
 ### ST-0.1 Cursor rotation manual spike (S-01) — S
-- **Status:** Solved (M0; evidence/s-01-cursor, partial Cursor checklist accepted in D-14).
+- **Status:** Solved (M0; docs/done/evidence/m0-m7/s-01-cursor, partial Cursor checklist accepted in D-14).
 - **Cites:** SPIKE-01, NFR-02, AC-02.
 - **Scope:** Prove the spike mod rotates inside Cursor's integrated terminal with normal interaction. Out: product code.
-- **Approach:** `claude --plugin-dir docs/plans/evidence/spike-01-mod-rotation/mod --model haiku` in a scratch git repo inside Cursor; follow 06 §6 checklist (type during turns, resize pane, Ctrl+C at idle and mid-turn, Esc, trigger a Bash permission prompt with default mode, paste Unicode/emoji).
+- **Approach:** `claude --plugin-dir docs/done/evidence/m0-m7/spike-01-mod-rotation/mod --model haiku` in a scratch git repo inside Cursor; follow 06 §6 checklist (type during turns, resize pane, Ctrl+C at idle and mid-turn, Esc, trigger a Bash permission prompt with default mode, paste Unicode/emoji).
 - **Depends on:** none.
 - **AC:** (1) rotation completes with new session ID in the log; (2) each checklist item behaves the same before and after rotation; (3) screen recording saved (secrets-free).
 - **Tests:** manual checklist; log diff.
-- **DoD:** + `evidence/s-01-cursor/RESULT.md` with versions (Cursor, Claude Code, macOS).
+- **DoD:** + `docs/done/evidence/m0-m7/s-01-cursor/RESULT.md` with versions (Cursor, Claude Code, macOS).
 
 ### ST-0.2 Work-in-flight spike (S-02) — S
-- **Status:** Solved (M0; evidence/s-02-work-in-flight).
+- **Status:** Solved (M0; docs/done/evidence/m0-m7/s-02-work-in-flight).
 - **Cites:** SPIKE-05, FR-04, AC-07.
 - **Scope:** Observe Stop/`$.agent.list()` with a background shell and a background subagent.
 - **Approach:** Extend spike mod: log `background_tasks`, `session_crons`, `$.agent.list()` at Stop; prompt starts `sleep 45 &` via Bash `run_in_background` and a background Agent.
@@ -34,7 +34,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **DoD:** + RESULT.md incl. exact field shapes.
 
 ### ST-0.3 Soft-quiesce spike (S-03) — S
-- **Status:** Solved (M0; evidence/s-03-soft-quiesce).
+- **Status:** Solved (M0; docs/done/evidence/m0-m7/s-03-soft-quiesce).
 - **Cites:** FR-04.
 - **Scope:** Measure whether a hidden `$.session.append` note mid-turn makes Claude stop soon.
 - **Approach:** Long multi-file fixture prompt; at first `tool.call` result after a fake threshold, append note; count further tool calls; 5 runs.
@@ -44,7 +44,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **DoD:** + RESULT.md with counts.
 
 ### ST-0.4 `/clear` carry-over spike (S-04) — S
-- **Status:** Solved (M0; evidence/s-04-clear-carryover).
+- **Status:** Solved (M0; docs/done/evidence/m0-m7/s-04-clear-carryover).
 - **Cites:** SPIKE-06, FR-08.
 - **Scope:** `--add-dir`, session-granted permission, plan mode, session cron across `/clear`.
 - **Approach:** Spike mod logs `permission_mode`; probe add-dir by asking Claude to read a file there; grant "yes, for this session" on a Bash command then repeat it after rotation; create a cron with `/loop`.
@@ -54,7 +54,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **DoD:** + RESULT.md.
 
 ### ST-0.5 Handover size and parse spike (S-05) — M
-- **Status:** Solved (M0; evidence/s-05-handover-size-parse).
+- **Status:** Solved (M0; docs/done/evidence/m0-m7/s-05-handover-size-parse).
 - **Cites:** FR-06, FR-07, AC-08.
 - **Scope:** Deliverability of 4K/12K/30K-char `additionalContext`; parse rate of draft template.
 - **Approach:** Inject marker text at end of each payload and ask the model to quote it; run draft instruction (ST-3.4) 10× on fixture repo with a throwaway parser.
@@ -64,7 +64,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **DoD:** + RESULT.md, chosen channel recorded in ADR-003.
 
 ### ST-0.6 Status coexistence and queued input spike (S-06) — S
-- **Status:** Solved (M0; evidence/s-06-status-queued-input).
+- **Status:** Solved (M0; docs/done/evidence/m0-m7/s-06-status-queued-input).
 - **Cites:** FR-17, §4.3, ADR-010.
 - **Scope:** `$.ui.status` next to a custom `statusLine`; typed prompt during queued rotation; modal dialog during rotation; per-plugin data dir discovery (`$.env.get` candidates).
 - **Approach:** spike mod variants with PTY driver.
@@ -372,7 +372,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **DoD:** standard.
 
 ### ST-4.8 Fixture task and two-rotation PTY E2E harness — L
-- **Status:** Solved (312d007; relative threshold 17d8379 … f54c910; live fixes bdb8655, af7a534; review fixes 29343ff, 55b0231). Gate runs 5 and 6 (`evidence/m4-e2e/gate-run5/`, `gate-run6/`): 5 and 4 live rotations, zero keystrokes after setup, one commit per step, COMPLETED.
+- **Status:** Solved (312d007; relative threshold 17d8379 … f54c910; live fixes bdb8655, af7a534; review fixes 29343ff, 55b0231). Gate runs 5 and 6 (`docs/done/evidence/m0-m7/m4-e2e/gate-run5/`, `gate-run6/`): 5 and 4 live rotations, zero keystrokes after setup, one commit per step, COMPLETED.
 - **Cites:** AC-10, AC-11, AC-12; §14.3.
 - **Scope:** `fixtures/build-repo.ts` (creates git repos: clean, dirty, detached, worktrees, failing tests); fixture task "implement 6 small functions with tests in order, one per step" sized to force rotations; `tests/pty/driver.ts` (generalised spike driver) with env flag `JEEVES_TEST_THRESHOLD_OVERRIDE` honoured only when `JEEVES_TEST=1` so rotations happen at low % cheaply; assertions on event log + git state.
 - **Depends on:** ST-4.5, ST-5.2 (for clean end) — harness can start earlier with rotation-only assertions.
@@ -452,7 +452,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **DoD:** standard.
 
 ### ST-6.6 Concurrency: processes, worktrees, repos — M
-- **Status:** Solved (M5; `tests/mod/concurrency.test.ts` path audit, `tests/pty/concurrency.py` live: `evidence/m5-concurrency/RESULT.md`, 17/17, 4 processes, US$0.00). Per the maintainer (2026-11-07), `/relay on` while another live session owns the project's task starts a separate task (D-18 follow-up). The fresh SessionStart and held prompts take a clearing rotation only from a session this process ended (closes the M4 shortcut). Audit rule: a session writes only in its own task folder; it reads another task's `state.json` and `lock.d/owner.json` only (discovery).
+- **Status:** Solved (M5; `tests/mod/concurrency.test.ts` path audit, `tests/pty/concurrency.py` live: `docs/done/evidence/m0-m7/m5-concurrency/RESULT.md`, 17/17, 4 processes, US$0.00). Per the maintainer (2026-11-07), `/relay on` while another live session owns the project's task starts a separate task (D-18 follow-up). The fresh SessionStart and held prompts take a clearing rotation only from a session this process ended (closes the M4 shortcut). Audit rule: a session writes only in its own task folder; it reads another task's `state.json` and `lock.d/owner.json` only (discovery).
 - **Cites:** FR-13, AC-18, §10 multi-worktree.
 - **Scope:** tests and fixes for: two `claude` processes same project (second gets LOCK_HELD, may create its own task), two worktrees, two repos simultaneously.
 - **Depends on:** ST-1.4, ST-1.6, ST-2.1.
@@ -461,7 +461,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **DoD:** standard.
 
 ### ST-6.7 Crash matrix harness — L
-- **Status:** Solved (M5; `tests/mod/crash.test.ts`, `npm run crash:report` -> `evidence/m5-crash/crash-matrix.md`, 6/6). The test-only flag `JEEVES_TEST_CRASH=<point>` (with `JEEVES_TEST=1`) makes the plugin log `jeeves: crash point <point>` and never return, which is a dead process from the plugin's view; the mod test restarts as a new session, the live demo's driver kills the real process on the marker. "No duplicated edit" is asserted as: one continuation, no handover file written twice, continuation built from the saved handover.
+- **Status:** Solved (M5; `tests/mod/crash.test.ts`, `npm run crash:report` -> `docs/done/evidence/m0-m7/m5-crash/crash-matrix.md`, 6/6). The test-only flag `JEEVES_TEST_CRASH=<point>` (with `JEEVES_TEST=1`) makes the plugin log `jeeves: crash point <point>` and never return, which is a dead process from the plugin's view; the mod test restarts as a new session, the live demo's driver kills the real process on the marker. "No duplicated edit" is asserted as: one continuation, no handover file written twice, continuation built from the saved handover.
 - **Cites:** AC-16, NFR-04.
 - **Scope:** fault-injection env flag (test-only) that kills the process at named points: after THRESHOLD, mid-handover, after persist before swap, after swap before `/clear`, after `/clear` before inject, after inject before submit; then restart + `/relay recover`; assert exactly one continuation and no duplicated edit.
 - **Depends on:** ST-6.1, ST-4.8.
@@ -505,7 +505,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 ## E8 — Distribution and docs
 
 ### ST-8.1 Marketplace, install/uninstall, purge — M
-- **Status:** Solved (M6) for the scripted clean user; the manual run on a fresh macOS user account (AC-01 M layer, timed, recorded) is the maintainer's. Root `.claude-plugin/marketplace.json` (`source: ./jeeves`: the plugin sits in `jeeves/`, not at the root as 08 §1 assumed); README install/update/uninstall; `/jeeves purge` (`src/adapter/purge.ts`, `tests/mod/purge.test.ts`): scope, folder list, code, confirm within 2 min, refuses running or live-locked tasks, deletes only under `<root>/projects`. `tests/pty/clean_install.py` (fresh `HOME`, no login, no model call): 11/11, installed in 2 s, `/jeeves status` at 15 s, uninstall diff = only the `enabledPlugins` entry, state folder kept (`evidence/m6-install/RESULT.md`). The recording is `plain.txt`/`raw.txt` of that run. Confirmation is a code, not a dialog, because a `command.run` answer cannot wait for input.
+- **Status:** Solved (M6) for the scripted clean user; the manual run on a fresh macOS user account (AC-01 M layer, timed, recorded) is the maintainer's. Root `.claude-plugin/marketplace.json` (`source: ./jeeves`: the plugin sits in `jeeves/`, not at the root as 08 §1 assumed); README install/update/uninstall; `/jeeves purge` (`src/adapter/purge.ts`, `tests/mod/purge.test.ts`): scope, folder list, code, confirm within 2 min, refuses running or live-locked tasks, deletes only under `<root>/projects`. `tests/pty/clean_install.py` (fresh `HOME`, no login, no model call): 11/11, installed in 2 s, `/jeeves status` at 15 s, uninstall diff = only the `enabledPlugins` entry, state folder kept (`docs/done/evidence/m0-m7/m6-install/RESULT.md`). The recording is `plain.txt`/`raw.txt` of that run. Confirmation is a code, not a dialog, because a `command.run` answer cannot wait for input.
 - **Cites:** FR-15, AC-01, AC-20; §10 cleanup.
 - **Scope:** `.claude-plugin/marketplace.json`; README install line; verify `claude plugin uninstall` leaves `~/.claude/settings.json` without Jeeves entries beyond what Claude itself manages; `/relay purge [--task id|--project|--all]` with typed confirmation; uninstall never touches the state dir (documented manual delete path).
 - **Depends on:** ST-7.3.
@@ -554,23 +554,23 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **DoD:** + threat-model.md.
 
 ### ST-9.2 Real Cursor demo and AC evidence pack — M
-- **Status:** Solved (M7, 2026-11-08, scope amended by D-34). `docs/evidence/v0.1.0/README.md` (AC-01…AC-25 with results and links), E-layer runs (`e-layers/RESULT.md`, US$0.21: AC-03, AC-09 pass; AC-10 probe inconclusive; AC-07 E not exercised), `cursor-demo-script.md`. The Cursor two-rotation demo, the video and the AC-01/AC-02 recordings were dropped by the maintainer (D-34); AC-02 rests on the M6 one-rotation Cursor checklist. **Solved** with that amendment.
+- **Status:** Solved (M7, 2026-11-08, scope amended by D-34). `docs/done/evidence/v0.1.0/README.md` (AC-01…AC-25 with results and links), E-layer runs (`e-layers/RESULT.md`, US$0.21: AC-03, AC-09 pass; AC-10 probe inconclusive; AC-07 E not exercised), `cursor-demo-script.md`. The Cursor two-rotation demo, the video and the AC-01/AC-02 recordings were dropped by the maintainer (D-34); AC-02 rests on the M6 one-rotation Cursor checklist. **Solved** with that amendment.
 - **Cites:** AC-01…AC-25, PRD §20.
 - **Scope:** run the fixture task in Cursor on the default model with threshold 50% using a context-heavy task (or documented test override at e.g. 15% with the reason) → ≥ 2 rotations; fill the AC table with links to evidence.
 - **Depends on:** all P0 stories.
 - **AC:** every AC pass/fail/not-supported with evidence; demo video ≤ 3 min. Must include, in Cursor, before and after rotation: typing during a running turn, a Bash permission prompt (Yes and No), and a Unicode paste/reply (carried over from S-01, D-14).
 - **Tests:** this is the test.
-- **DoD:** + `docs/evidence/v0.1.0/`.
+- **DoD:** + `docs/done/evidence/v0.1.0/`.
 
 ### ST-9.3 Naming check and release pipeline — M
-- **Status:** Prepared (M7, 2026-11-08); publishing is the maintainer's. Naming check: `docs/evidence/v0.1.0/naming-check.md` (usable for a free OSS beta; Medium trademark note on JEEVES.AI and a pending ASK JEEVES filing, confirm in TSDR). Release pipeline: `jeeves/scripts/release-zip.sh` (uncompressed `git archive`: same SHA-256 from two clean clones and the working tree, verified locally; the unzipped artifact passes `claude plugin validate`), `.github/workflows/release.yml` (tag → CI via `workflow_call` → zip + SHA-256 → provenance attestation → **draft** release), Actions pinned by SHA in all workflows; version 0.1.0 in `plugin.json`/`package.json`; release notes `jeeves/docs/release-notes/v0.1.0.md`. Not done: the dry run on a fork (no remote; maintainer), the tag, the publication, maintainer sign-off.
+- **Status:** Prepared (M7, 2026-11-08); publishing is the maintainer's. Naming check: `docs/done/evidence/v0.1.0/naming-check.md` (usable for a free OSS beta; Medium trademark note on JEEVES.AI and a pending ASK JEEVES filing, confirm in TSDR). Release pipeline: `jeeves/scripts/release-zip.sh` (uncompressed `git archive`: same SHA-256 from two clean clones and the working tree, verified locally; the unzipped artifact passes `claude plugin validate`), `.github/workflows/release.yml` (tag → CI via `workflow_call` → zip + SHA-256 → provenance attestation → **draft** release), Actions pinned by SHA in all workflows; version 0.1.0 in `plugin.json`/`package.json`; release notes `jeeves/docs/release-notes/v0.1.0.md`. Not done: the dry run on a fork (no remote; maintainer), the tag, the publication, maintainer sign-off.
 - **Cites:** FR-15, R-10, PRD §17 branding.
 - **Scope:** check name/domain/GitHub/npm availability and trademark conflicts; release workflow (tag → CI → GitHub release with zip + checksums + provenance attestation); CHANGELOG; version bump in plugin.json.
 - **Depends on:** ST-9.1, ST-9.2.
 - **AC:** reproducible artifact (same hash from clean checkout); release notes state exact capabilities and supported versions.
 - **Tests:** dry-run release on a fork.
 - **DoD:** + maintainer sign-off.
-- **Status:** Solved, signed off by the maintainer (M8, 2026-11-08: "OK to the sign off"). Version 0.2.0 in the three fields, CHANGELOG, `jeeves/docs/release-notes/v0.2.0.md`, `docs/evidence/v0.2.0/README.md`. Zip identical from two clean clones of `c5ff1b1` (SHA-256 `a721d510…ceee`); validate passes on the unzipped artifact. Notes list Team accounts as unsupported and no longer claim VS Code. No tag, no release (D-37).
+- **Status:** Solved, signed off by the maintainer (M8, 2026-11-08: "OK to the sign off"). Version 0.2.0 in the three fields, CHANGELOG, `jeeves/docs/release-notes/v0.2.0.md`, `docs/done/evidence/v0.2.0/README.md`. Zip identical from two clean clones of `c5ff1b1` (SHA-256 `a721d510…ceee`); validate passes on the unzipped artifact. Notes list Team accounts as unsupported and no longer claim VS Code. No tag, no release (D-37).
 
 ---
 
@@ -650,7 +650,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **Depends on:** none. **Live run:** ~US$0.05–0.10 (budget asked first).
 - **AC:** (1) test kit passes on 2.1.303 and 2.1.319; (2) one live rotation on 2.1.303 continues the task; (3) 2.1.302 and lower get the unsupported-version message.
 - **Tests:** C (compat job), E (one rotation), I (probe boundary).
-- **DoD:** + `docs/evidence/v0.2.0/AC-22/`.
+- **DoD:** + `docs/done/evidence/v0.2.0/AC-22/`.
 
 ### ST-12.2 VS Code terminal checklist — S
 - **Status:** Dropped (D-36): no manual recordings.
@@ -659,7 +659,7 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **Depends on:** none. **Cost (maintainer):** ~US$0.20 on haiku, or US$1–3 on the default model.
 - **AC:** 7/7 items before and after a rotation in VS Code, versions recorded.
 - **Tests:** M (checklist).
-- **DoD:** + `docs/evidence/v0.2.0/AC-33/RESULT.md`; `docs/compatibility.md` terminal table.
+- **DoD:** + `docs/done/evidence/v0.2.0/AC-33/RESULT.md`; `docs/compatibility.md` terminal table.
 
 ### ST-12.3 Q-9: a second blocking Stop hook — S
 - **Status:** Solved (M8, 2026-11-08). I layer: the test kit models the second hook as the engine stand-in beneath Jeeves (a settings Stop hook or a lower plugin). A plugin above Jeeves is not testable in the kit; recorded in 07 Q-9. The stats P test now takes the best of 3 runs (load).
@@ -676,12 +676,12 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **Depends on:** ST-10.x, ST-11.x built (runs once on the v0.2 candidate). **Live run:** ~US$0.30–0.60 for 6 phases (budget asked first).
 - **AC:** each phase PASS, FAIL (with a fix or a filed follow-up) or NOT EXERCISED with the reason; nothing left "unverified" without a line in the evidence.
 - **Tests:** E (this is the test).
-- **DoD:** + `docs/evidence/v0.2.0/e-layers/RESULT.md` with cost per phase.
-- **Status:** Solved (M8, 2026-11-08): AC met, not all phases pass. d, e (relink), h PASS; c and g FAIL with an external cause: on Team accounts Claude Code 2.1.319 seats `cc-plugin-sec-default` in the prepend tier and it skips Jeeves's Stop, SessionStart, compact and compose hooks (R-25, Q-11, D-39). Follow-up built: Jeeves detects the skip and turns itself off (verified live). e's startup-notice check failed in the driver only; f NOT EXERCISED (I layer). AC-07 E stays open. Tracked summary with costs: `docs/evidence/v0.2.0/README.md` (raw `e-layers/run*/` gitignored). Live spend US$0.1111 of US$1.
+- **DoD:** + `docs/done/evidence/v0.2.0/e-layers/RESULT.md` with cost per phase.
+- **Status:** Solved (M8, 2026-11-08): AC met, not all phases pass. d, e (relink), h PASS; c and g FAIL with an external cause: on Team accounts Claude Code 2.1.319 seats `cc-plugin-sec-default` in the prepend tier and it skips Jeeves's Stop, SessionStart, compact and compose hooks (R-25, Q-11, D-39). Follow-up built: Jeeves detects the skip and turns itself off (verified live). e's startup-notice check failed in the driver only; f NOT EXERCISED (I layer). AC-07 E stays open. Tracked summary with costs: `docs/done/evidence/v0.2.0/README.md` (raw `e-layers/run*/` gitignored). Live spend US$0.1111 of US$1.
 
 ### ST-12.5 v0.2.0 release prep — S
 - **Cites:** FR-15, 08 §6.
-- **Scope:** version 0.2.0 in the three version fields, CHANGELOG, `jeeves/docs/release-notes/v0.2.0.md`, `docs/evidence/v0.2.0/README.md` (AC-26 … AC-34 plus re-runs of the existing suite), reproducible zip checked. Tag and publication stay the maintainer's.
+- **Scope:** version 0.2.0 in the three version fields, CHANGELOG, `jeeves/docs/release-notes/v0.2.0.md`, `docs/done/evidence/v0.2.0/README.md` (AC-26 … AC-34 plus re-runs of the existing suite), reproducible zip checked. Tag and publication stay the maintainer's.
 - **Depends on:** ST-10.1 … ST-12.4.
 - **AC:** release zip SHA-256 identical from two clean clones; notes claim only what the evidence shows.
 - **Tests:** `release-zip.sh` twice; `claude plugin validate` on the unzipped artifact.

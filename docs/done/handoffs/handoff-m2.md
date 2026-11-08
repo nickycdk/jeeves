@@ -20,7 +20,7 @@ bac704b ST-2.4 threshold + test override     c9cffcd Plans: mark M0-M2 solved
 42b42c8 ST-2.5 pause/resume
 ```
 
-Live demo: `evidence/m2-demo/RESULT.md` (2 haiku runs, $0.07 each): verbatim capture, context = status line figure, warning, one request, TEST OVERRIDE, heartbeat, lock released on exit.
+Live demo: `docs/done/evidence/m0-m7/m2-demo/RESULT.md` (2 haiku runs, $0.07 each): verbatim capture, context = status line figure, warning, one request, TEST OVERRIDE, heartbeat, lock released on exit.
 
 Decisions: D-17 (M2 backlog readings) and D-18 (lock released on exit; LOCK_HELD for a second task in one worktree) **accepted by the maintainer**. D-19 records the engine rule below.
 
@@ -60,7 +60,7 @@ Already in place for M3:
 - The reducer handles `TOOL_RESULT` (one soft-quiesce note), `STOP` (safe/unsafe, quiesce count/timeout → PAUSED(UNSAFE_BOUNDARY), handover ok/retry/NEEDS_REVIEW), `HANDOVER_PERSISTED`, with table + property tests.
 - `effects.ts` returns hook-bound effects (`BLOCK_STOP`, `CAPTURE_FACTS`, `PERSIST_HANDOVER`, `APPEND_NOTE`) as `forHook`; `apply()` hands them back to the calling hook. M3 turns them into the Stop hook's answer.
 - `storage.writeImmutable` (write-once + SHA-256 read-back), `writeState` (atomic `mv` swap), `gitFacts`, `core/redact.ts` (event redaction, extend in ST-3.7).
-- S-05 spike code to start from: `evidence/s-05-handover-size-parse/mod-parse/hooks/` (`instruction`, `parse`); its parse rate was 10/10.
+- S-05 spike code to start from: `docs/done/evidence/m0-m7/s-05-handover-size-parse/mod-parse/hooks/` (`instruction`, `parse`); its parse rate was 10/10.
 - ST-3.1's ledger in state (ring of 200) is a `State` schema change: still v1 and unreleased, so extend v1 and its fixtures (as M2 did with `pauseRequested`).
 
 Watch: Stop blocks per rotation ≤ 4 (engine cap 8); read rotation state before `await next(e)`; Stop hook failure must fail open for the user and closed for rotation; ledger must never alter or block a tool call.

@@ -1,10 +1,10 @@
-// ST-6.7: runs the crash matrix (mod tests) and the storage SIGKILL test, and writes docs/plans/evidence/m5-crash/crash-matrix.md.
+// ST-6.7: runs the crash matrix (mod tests) and the storage SIGKILL test, and writes docs/done/evidence/m0-m7/m5-crash/crash-matrix.md.
 import { execFileSync, spawnSync } from 'node:child_process'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 const root = resolve(import.meta.dirname, '..')
-const out = resolve(root, '../docs/plans/evidence/m5-crash')
+const out = resolve(root, '../docs/done/evidence/m0-m7/m5-crash')
 const mod = spawnSync('claude', ['plugin', 'test', '.'], { cwd: root, encoding: 'utf8' })
 const lines = `${mod.stdout}\n${mod.stderr}`.split('\n').filter(l => /\((pass|fail)\) AC-16 crash point/.test(l))
 const env = { ...process.env }

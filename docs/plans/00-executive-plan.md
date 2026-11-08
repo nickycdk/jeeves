@@ -2,7 +2,7 @@
 
 Jeeves was called SessionRelay until 2026-11-07 (D-22); the PRD file and older evidence keep the old name.
 
-**Date:** 2026-11-07 · **Source:** `docs/specs/sessionrelay-product-engineering-spec.md` (PRD v1.0) · **Verified against:** Claude Code 2.1.319 (macOS, Darwin 23.6) · **Status:** Approved (D-15). M0 … M6 solved (M4 gate: two live runs with 5 and 4 unattended rotations, `evidence/m4-e2e/RESULT.md`; M5 gate: crash matrix 6/6 and the kill-mid-rotation demo, `evidence/m5-demo/RESULT.md`, 2026-11-08). M6 gate: passed 2026-11-08 (AC-01 on a fresh macOS user and the AC-02 Cursor checklist passed, maintainer-reported, `evidence/m6-gate/RESULT.md`). M7 (public beta) built 2026-11-08, gate open for the maintainer's Cursor demo, release and sign-off (`handoff-m7.md`). Progress per milestone: `05-delivery-milestones.md` § Status.
+**Date:** 2026-11-07 · **Source:** `docs/specs/sessionrelay-product-engineering-spec.md` (PRD v1.0) · **Verified against:** Claude Code 2.1.319 (macOS, Darwin 23.6) · **Status:** Approved (D-15). M0 … M6 solved (M4 gate: two live runs with 5 and 4 unattended rotations, `docs/done/evidence/m0-m7/m4-e2e/RESULT.md`; M5 gate: crash matrix 6/6 and the kill-mid-rotation demo, `docs/done/evidence/m0-m7/m5-demo/RESULT.md`, 2026-11-08). M6 gate: passed 2026-11-08 (AC-01 on a fresh macOS user and the AC-02 Cursor checklist passed, maintainer-reported, `docs/done/evidence/m0-m7/m6-gate/RESULT.md`). M7 (public beta) built 2026-11-08, gate open for the maintainer's Cursor demo, release and sign-off (`handoff-m7.md`). Progress per milestone: `05-delivery-milestones.md` § Status.
 
 ## 1. Go / no-go recommendation
 
@@ -22,7 +22,7 @@ The PRD's critical unknown (SPIKE-01) was whether a mod inside a running interac
 | Settings preserved | — | Model, permission mode (`acceptEdits`), cwd, MCP tools all unchanged after `/clear` |
 | Compaction control | `session.compact` → `{ skip }` | `/compact` answered "Not compacted · …" |
 
-Evidence: `docs/plans/evidence/spike-01-mod-rotation/` (spike mod, PTY driver, event log). Details in `01-technical-feasibility.md`.
+Evidence: `docs/done/evidence/m0-m7/spike-01-mod-rotation/` (spike mod, PTY driver, event log). Details in `01-technical-feasibility.md`.
 
 Because the process is never restarted or wrapped, the user's terminal, keyboard, Ctrl+C, permission prompts, MCP and auth are untouched **by construction**. No supervisor, no PTY wrapper, no second install. That removes the PRD's two Critical risks (R-01, R-02) rather than mitigating them.
 

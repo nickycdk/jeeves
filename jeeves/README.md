@@ -118,7 +118,7 @@ The common cases, with what to type, are in [docs/troubleshooting.md](docs/troub
 
 **What if Claude Code updates and breaks something?** Jeeves checks the version and its capabilities at every start. If `/clear` stops working for plugins it falls back to assisted mode and says so; it never pretends to rotate.
 
-**Will the fresh conversation redo work?** The continuation prompt lists what is done, which files changed, which checks ran with what result and what not to repeat. In the M4 gate runs a six-step task completed across 5 rotations with no step done twice ([evidence](../docs/plans/evidence/m4-e2e/RESULT.md)).
+**Will the fresh conversation redo work?** The continuation prompt lists what is done, which files changed, which checks ran with what result and what not to repeat. In the M4 gate runs a six-step task completed across 5 rotations with no step done twice ([evidence](../docs/done/evidence/m0-m7/m4-e2e/RESULT.md)).
 
 **Two terminals in the same project?** Each session gets its own task; one session cannot change another's (`LOCK_HELD`).
 

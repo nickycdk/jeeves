@@ -2,7 +2,7 @@
 
 All facts below are tagged:
 
-- **[V-LIVE]** observed in a live spike on Claude Code 2.1.319 (evidence: `evidence/spike-01-mod-rotation/`, and for S-02…S-06 `evidence/s-0N-*/RESULT.md`).
+- **[V-LIVE]** observed in a live spike on Claude Code 2.1.319 (evidence: `docs/done/evidence/m0-m7/spike-01-mod-rotation/`, and for S-02…S-06 `docs/done/evidence/m0-m7/s-0N-*/RESULT.md`).
 - **[V-TYPES]** stated in the engine-written mod API declarations for 2.1.319 (`claude-code.d.ts`, written by the binary itself, ~23K lines; the header says *"EARLY ACCESS: this surface may change between releases without notice"*).
 - **[V-DOCS]** stated in official docs (code.claude.com/docs), checked 2026-11-07.
 - **[ASSUMPTION]** believed but not verified; each has a spike or test that retires it.
@@ -114,7 +114,7 @@ All facts below are tagged:
 
 ## 4. Remaining spikes (M0; each ≤ 1 day)
 
-Each spike reuses the spike mod and PTY driver in `evidence/spike-01-mod-rotation/` and must store a log + note under `docs/plans/evidence/<spike>/`.
+Each spike reuses the spike mod and PTY driver in `docs/done/evidence/m0-m7/spike-01-mod-rotation/` and must store a log + note under `docs/done/evidence/m0-m7/<spike>/`.
 
 | ID | Goal | Method | Pass criterion | Fallback if it fails |
 |---|---|---|---|---|
@@ -131,7 +131,7 @@ S-02…S-06 can run in one day with one driver session each, using `--model haik
 
 | ID | Result | Key evidence | Fallback adopted |
 |---|---|---|---|
-| S-01 | **PARTIAL, accepted by maintainer (D-14)** | Two rotations in Cursor's terminal, new sid each, continuation ran unprompted, mode kept. Checks 1/4/5 (typing mid-turn, permission prompt, Unicode reply) not evidenced in the log: covered by PTY evidence; must be shown in Cursor in ST-9.2 (`evidence/s-01-cursor/RESULT.md`) | None; gap moved to ST-9.2 |
+| S-01 | **PARTIAL, accepted by maintainer (D-14)** | Two rotations in Cursor's terminal, new sid each, continuation ran unprompted, mode kept. Checks 1/4/5 (typing mid-turn, permission prompt, Unicode reply) not evidenced in the log: covered by PTY evidence; must be shown in Cursor in ST-9.2 (`docs/done/evidence/m0-m7/s-01-cursor/RESULT.md`) | None; gap moved to ST-9.2 |
 | S-02 | **PASS** (1 run) | Stop listed a running `subagent` and `shell`; mod deferred twice; rotated only at an empty Stop; no `sleep` process left | None |
 | S-03 | **PASS** (5/5, 1 run) | 0 further tool calls after the hidden note in every trial | None |
 | S-04 | **PASS** (2 runs) | add-dir, modes, crons kept; no session-only Bash grant exists | None; ADR-004 amended (crons no longer block) |
@@ -146,7 +146,7 @@ Total spend for S-02…S-06: 7 model-calling PTY runs on Haiku, well under US$1.
 |---|---|---|---|
 | A-01 | `$.command.run('clear')` keeps working on later 2.1.x builds | Compatibility suite T-COMPAT on each supported version; startup capability probe | Open (re-confirmed on 2.1.319 in every S-0x run and in 9/9 M4 gate rotations; live its promise resolves when the `/clear` is queued, not when it has run: D-26) |
 | A-02 | `context.percent` reflects only the main conversation | T-INT-03 | Open (S-02 saw the reading unchanged at 6% while a subagent ran, but the subagent was too short to count) |
-| A-03 | Model follows the Stop-block handover instruction and emits the sentinel block | S-05, T-E2E-01 | **Retired for format [V-LIVE S-05]**: 10/10 first try on Haiku. Quality on long tasks/other models stays with T-E2E-01. **M4 gate (Haiku, `six-steps`):** format 9/9, but only 2/9 passed validation first try (placeholder paths like `src/stepK.js` in `[verified]` bullets); all 9 valid within the 2 retries (`evidence/m4-e2e/RESULT.md`) |
+| A-03 | Model follows the Stop-block handover instruction and emits the sentinel block | S-05, T-E2E-01 | **Retired for format [V-LIVE S-05]**: 10/10 first try on Haiku. Quality on long tasks/other models stays with T-E2E-01. **M4 gate (Haiku, `six-steps`):** format 9/9, but only 2/9 passed validation first try (placeholder paths like `src/stepK.js` in `[verified]` bullets); all 9 valid within the 2 retries (`docs/done/evidence/m0-m7/m4-e2e/RESULT.md`) |
 | A-04 | `mv` and `mkdir` via `$.process.run` run without permission prompts like `git` did | M1 story ST-1.4 integration test | **Retired [V-LIVE S-06]**; ST-1.4 keeps the integration test |
 | A-05 | `$.store`/files under the chosen state root are writable from the mod sandbox | ST-1.3 | Partly: `$.fs.write` to a scratch dir worked, nested dirs created [V-LIVE S-06]; OS state root itself untested → ST-1.3. **ST-1.3 (2026-11-07):** storage code verified on a real disk (P layer: 50 concurrent appends, write-once, hash check, `chmod 700`); a live write to `~/Library/Application Support/Jeeves` is still pending (it is outside the repo, so it needs the maintainer's OK). Live runs use the test-only `JEEVES_STATE_DIR` (with `JEEVES_TEST=1`) |
 | A-06 | Haiku-based spike results hold for Opus/Sonnet (mechanisms are model-independent; only handover quality differs) | E2E on default model in M7 | Open |

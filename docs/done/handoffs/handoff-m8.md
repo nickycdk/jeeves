@@ -15,7 +15,7 @@ M8 is solved: the maintainer signed off ST-12.5 (its DoD) on 2026-11-08. Tag and
 | ST-12.4 | Solved, AC met: d, e, h PASS; **c and g FAIL, external cause (R-25)**; f not exercised |
 | ST-12.5 | Solved, signed off |
 
-Acceptance table with evidence: `docs/evidence/v0.2.0/README.md`.
+Acceptance table with evidence: `docs/done/evidence/v0.2.0/README.md`.
 
 ## 2. The main finding: Team accounts skip Jeeves's hooks (R-25, Q-11, D-39)
 
@@ -62,7 +62,7 @@ Compatibility (`jeeves/docs/compatibility.md`): 2.1.302, 2.1.303, 2.1.310 and 2.
 
 ## 6. Live spend (D-36 budget US$1)
 
-Run 1 US$0.1049, free probe US$0, run 2 (detection) US$0.0062: **US$0.1111 used, about US$0.889 left.** Raw run folders (`docs/evidence/v0.2.0/e-layers/run1/`, `run2-detect/`, including `probe-free-debug-excerpt.log`) are gitignored and hold scratch paths.
+Run 1 US$0.1049, free probe US$0, run 2 (detection) US$0.0062: **US$0.1111 used, about US$0.889 left.** Raw run folders (`docs/done/evidence/v0.2.0/e-layers/run1/`, `run2-detect/`, including `probe-free-debug-excerpt.log`) are gitignored and hold scratch paths.
 
 ## 7. Next (maintainer)
 
