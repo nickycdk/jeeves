@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "rotationId": "r_20261108_nlpdqq",
+  "capturedAt": "2026-11-08T07:05:16.676Z",
+  "git": {
+    "kind": "git",
+    "worktree": "/private/tmp/claude-501/-Users-user-Desktop-Projects-jeeves/3f5511e0-9729-41fb-b956-d174eb079288/scratchpad/m6run2/repo",
+    "branch": "main",
+    "detached": false,
+    "head": "d858cbaae5340d50124421e1b03ad97150d7e12f",
+    "status": [],
+    "changedSinceStart": [
+      "src/step1.js",
+      "src/step2.js"
+    ]
+  },
+  "crons": []
+}

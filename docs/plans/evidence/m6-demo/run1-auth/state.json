@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "taskId": "t_20261108_35leiw",
+  "projectId": "0789c67e14a396bf",
+  "status": "PAUSED",
+  "reason": "AUTH",
+  "mode": "full",
+  "taskRevision": 2,
+  "sessionSequence": 1,
+  "activeSessionId": "357ef8ce-4b45-4a95-a846-b6c7f0248c09",
+  "rotation": null,
+  "lastValidatedHandover": null,
+  "rotationCount": 0,
+  "consecutiveFailures": 0,
+  "thresholdPercent": 50,
+  "lastContext": {
+    "window": 1000000,
+    "at": "2026-11-08T06:25:20.704Z"
+  },
+  "armedFired": false,
+  "warnedSessionId": null,
+  "heldPrompts": [],
+  "pauseRequested": false,
+  "taskStartHead": "2c6df4362cefd1584b77f015385dc06d1a0ed678",
+  "lastErrorCode": "AUTH",
+  "ledger": [],
+  "updatedAt": "2026-11-08T06:25:20.704Z",
+  "sessionStart": {
+    "at": "2026-11-08T06:25:10.628Z",
+    "pct": null
+  },
+  "pendingChanges": []
+}

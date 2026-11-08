@@ -1,0 +1,66 @@
+{
+ "override": "+0.8",
+ "chars": "6000",
+ "claude_version": "2.1.319 (Claude Code)",
+ "trust": true,
+ "on": true,
+ "check_queued": true,
+ "check_saved": true,
+ "keystrokes_after_setup": [],
+ "dialog": null,
+ "final_session_cost": null,
+ "final": {
+  "status": "PAUSED",
+  "reason": "AUTH",
+  "rotationCount": 0,
+  "sessionSequence": 1,
+  "taskRevision": 2,
+  "mode": "full",
+  "lastErrorCode": "AUTH"
+ },
+ "checks": {
+  "1 rotation(s) continued (RESTORING -> CONTINUING -> MONITORING)": false,
+  "distinct session ids (2)": false,
+  "handover saved and verified before /clear": false,
+  "zero keystrokes after setup": true,
+  "no permission dialog": true,
+  "no step committed twice": true,
+  "status entry seen (Jeeves N%/T%)": true,
+  "transition lines seen": false,
+  "loaded as the installed plugin (jeeves@jeeves, no --plugin-dir)": true
+ },
+ "step_commits": {
+  "1": 0,
+  "2": 0,
+  "3": 0,
+  "4": 0,
+  "5": 0,
+  "6": 0
+ },
+ "step_files_touched": {
+  "1": 0,
+  "2": 0,
+  "3": 0,
+  "4": 0,
+  "5": 0,
+  "6": 0
+ },
+ "git_log": [
+  "six-steps fixture"
+ ],
+ "sessions": [],
+ "events": [
+  "DISABLED>MONITORING  None% ",
+  "MONITORING>MONITORING  None% queued check until the first prompt",
+  "MONITORING>MONITORING  None% task revision 1",
+  "MONITORING>MONITORING  None% task revision 2",
+  "MONITORING>PAUSED AUTH None% authentication_failed"
+ ],
+ "setup_seconds": 20.6,
+ "run_seconds": 5.0,
+ "cost_usd": {
+  "sessions_before_final": 0,
+  "final_session": null,
+  "total": 0
+ }
+}

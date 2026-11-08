@@ -1,0 +1,5 @@
+{"v":1,"at":"2026-11-08T06:25:10.628Z","taskId":"t_20261108_35leiw","rotationId":null,"from":"DISABLED","to":"MONITORING","code":null,"pct":null,"sessionId":"357ef8ce-4b45-4a95-a846-b6c7f0248c09","detail":""}
+{"v":1,"at":"2026-11-08T06:25:12.783Z","taskId":"t_20261108_35leiw","rotationId":null,"from":"MONITORING","to":"MONITORING","code":null,"pct":null,"sessionId":"357ef8ce-4b45-4a95-a846-b6c7f0248c09","detail":"queued check until the first prompt"}
+{"v":1,"at":"2026-11-08T06:25:20.563Z","taskId":"t_20261108_35leiw","rotationId":null,"from":"MONITORING","to":"MONITORING","code":null,"pct":null,"sessionId":"357ef8ce-4b45-4a95-a846-b6c7f0248c09","detail":"task revision 1"}
+{"v":1,"at":"2026-11-08T06:25:20.579Z","taskId":"t_20261108_35leiw","rotationId":null,"from":"MONITORING","to":"MONITORING","code":null,"pct":null,"sessionId":"357ef8ce-4b45-4a95-a846-b6c7f0248c09","detail":"task revision 2"}
+{"v":1,"at":"2026-11-08T06:25:20.679Z","taskId":"t_20261108_35leiw","rotationId":null,"from":"MONITORING","to":"PAUSED","code":"AUTH","pct":null,"sessionId":"357ef8ce-4b45-4a95-a846-b6c7f0248c09","detail":"authentication_failed"}

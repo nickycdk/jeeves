@@ -1,0 +1,86 @@
+{
+ "override": "+0.8",
+ "chars": "6000",
+ "claude_version": "2.1.319 (Claude Code)",
+ "trust": true,
+ "on": true,
+ "check_queued": true,
+ "check_saved": true,
+ "keystrokes_after_setup": [],
+ "dialog": null,
+ "final_session_cost": 0.0121,
+ "final": {
+  "status": "HANDOVER_GENERATING",
+  "reason": "THRESHOLD",
+  "rotationCount": 1,
+  "sessionSequence": 2,
+  "taskRevision": 2,
+  "mode": "full",
+  "lastErrorCode": null
+ },
+ "checks": {
+  "1 rotation(s) continued (RESTORING -> CONTINUING -> MONITORING)": false,
+  "distinct session ids (2)": true,
+  "handover saved and verified before /clear": true,
+  "zero keystrokes after setup": true,
+  "no permission dialog": true,
+  "no step committed twice": true,
+  "status entry seen (Jeeves N%/T%)": true,
+  "transition lines seen": true
+ },
+ "step_commits": {
+  "1": 1,
+  "2": 1,
+  "3": 0,
+  "4": 0,
+  "5": 0,
+  "6": 0
+ },
+ "step_files_touched": {
+  "1": 1,
+  "2": 1,
+  "3": 0,
+  "4": 0,
+  "5": 0,
+  "6": 0
+ },
+ "git_log": [
+  "six-steps fixture",
+  "step 1: double",
+  "step 2: isPalindrome"
+ ],
+ "sessions": [
+  {
+   "schemaVersion": 1,
+   "sessionId": "aaadfa96-d700-4b7d-ac8f-c46b6e37f02e",
+   "startedAt": "2026-11-08T07:04:13.679Z",
+   "endedAt": "2026-11-08T07:04:58.551Z",
+   "endReason": "clear",
+   "startPct": 5.83,
+   "endPct": 6.91,
+   "costUsd": 0.014215040000000002
+  }
+ ],
+ "events": [
+  "DISABLED>MONITORING  None% ",
+  "MONITORING>MONITORING  None% queued check until the first prompt",
+  "MONITORING>MONITORING  None% task revision 1",
+  "MONITORING>MONITORING  None% task revision 2",
+  "MONITORING>ROTATION_REQUESTED THRESHOLD 6.66% context 6.66%",
+  "ROTATION_REQUESTED>HANDOVER_GENERATING THRESHOLD 6.66% ",
+  "HANDOVER_GENERATING>VALIDATING THRESHOLD 6.66% ",
+  "VALIDATING>ROTATING THRESHOLD 6.66% ",
+  "ROTATING>RESTORING THRESHOLD 6.91% ",
+  "RESTORING>CONTINUING THRESHOLD 6.91% ",
+  "CONTINUING>MONITORING  6.49% rearmed at 6.49%",
+  "MONITORING>ROTATION_REQUESTED THRESHOLD 7.41% context 7.41%",
+  "ROTATION_REQUESTED>HANDOVER_GENERATING THRESHOLD 7.41% "
+ ],
+ "setup_seconds": 20.6,
+ "run_seconds": 45.1,
+ "cost_usd": {
+  "sessions_before_final": 0.0142,
+  "final_session": 0.0121,
+  "total": 0.0263
+ }
+}

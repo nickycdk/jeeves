@@ -24,6 +24,10 @@ def main():
     ap.add_argument('--chars', default='6000')
     ap.add_argument('--minutes', type=float, default=30)
     ap.add_argument('--out', default=None)
+    # M6 demo: the plugin as installed from the marketplace into this Claude config folder (no --plugin-dir).
+    ap.add_argument('--installed', default=None, metavar='CLAUDE_CONFIG_DIR')
+    # Stop once this many rotations have continued (the task need not finish).
+    ap.add_argument('--rotations', type=int, default=0)
     a = ap.parse_args()
     sp = os.path.abspath(a.scratch)
     out = os.path.abspath(a.out or f"{sp}/evidence")
@@ -35,11 +39,11 @@ def main():
                            f"import('{PLUGIN}/tests/fixtures/build-repo.ts').then(m => process.stdout.write(m.SIX_STEPS_TASK))"],
                           check=True, capture_output=True, text=True).stdout
 
-    env = {'JEEVES_TEST': '1', 'JEEVES_STATE_DIR': state_dir, 'JEEVES_TEST_THRESHOLD_OVERRIDE': a.override}
+    env = {'JEEVES_TEST': '1', 'JEEVES_STATE_DIR': state_dir, 'JEEVES_TEST_THRESHOLD_OVERRIDE': a.override, **({'CLAUDE_CONFIG_DIR': os.path.abspath(a.installed)} if a.installed else {})}
     # acceptEdits + Bash allowed: a permission dialog would need a keystroke, which the run must not need.
     # The debug file stays in the scratch folder; only Jeeves's own lines go into the evidence.
     debug = f"{sp}/claude-debug.log"
-    c = Claude(out, PLUGIN, repo, ['--permission-mode', 'acceptEdits', '--allowedTools', 'Bash', '--debug-file', debug], env)
+    c = Claude(out, None if a.installed else PLUGIN, repo, ['--permission-mode', 'acceptEdits', '--allowedTools', 'Bash', '--debug-file', debug], env)
 
     def task_dir():
         d = glob.glob(f"{state_dir}/projects/*/tasks/*")
@@ -73,8 +77,14 @@ def main():
         s = state()
         lc = s.get('lastContext') or {}
         now = (s.get('status'), s.get('reason'), s.get('rotationCount'), s.get('activeSessionId'), lc.get('percent'), lc.get('tokens'))
-        if now != last: c.note('state', json.dumps(now)); last = now
+        if now != last:
+            c.note('state', json.dumps(now)); last = now
+            # The screen at each change: the status entry and the transcript lines (ST-7.1 evidence).
+            os.makedirs(f"{out}/screens", exist_ok=True)
+            open(f"{out}/screens/{len(os.listdir(f'{out}/screens')):02d}-{s.get('status')}.txt", 'w').write(c.tail(3000))
         if s.get('status') in TERMINAL: break
+        if a.rotations and (s.get('rotationCount') or 0) >= a.rotations and s.get('status') == 'MONITORING':
+            c.note('stop', f'{a.rotations} rotation(s) continued'); r['stopped_at'] = dict(s); break
         if re.search(r'Doyouwanttoproceed|Doyouwanttomake|Allowonce', c.squeezed(1500)) and not dialog:
             dialog = c.tail(600); c.note('DIALOG', 'a permission dialog is open; the driver does not answer it')
     run_end = c.now()
@@ -116,6 +126,20 @@ def main():
         'final ./verify.sh exits 0': verify == 0,
         'AC-13 COMPLETED': s.get('status') == 'COMPLETED',
     }
+    if a.rotations:
+        # A partial run: the rotation checks only (the task is not expected to finish).
+        n = a.rotations
+        checks = {
+            f'{n} rotation(s) continued (RESTORING -> CONTINUING -> MONITORING)': sum(1 for e in events if e['to'] == 'RESTORING') >= n and (r.get('stopped_at') or {}).get('status') == 'MONITORING',
+            f'distinct session ids ({n + 1})': len(ids) >= n + 1 and len(set(ids)) == len(ids),
+            'handover saved and verified before /clear': all(os.path.exists(f"{d}/history/handover-{k:03d}.md") for k in range(1, n + 1)) if d else False,
+            'zero keystrokes after setup': r['keystrokes_after_setup'] == [],
+            'no permission dialog': dialog is None,
+            'no step committed twice': all(v <= 1 for v in step_commits.values()),
+            'status entry seen (Jeeves N%/T%)': bool(re.search(r'Jeeves(\d+|\?)%?/[\d.?]+%', re.sub(r'\s', '', c.plain()))),
+            'transition lines seen': 'Jeeves:handovervalidated,startingfresh' in re.sub(r'\s', '', c.plain()),
+            **({'loaded as the installed plugin (jeeves@jeeves, no --plugin-dir)': os.path.exists(debug) and 'jeeves@jeeves' in open(debug, errors='replace').read()} if a.installed else {}),
+        }
     r.update(checks=checks, step_commits=step_commits, step_files_touched=touched, git_log=log, sessions=sessions,
              events=[f"{e['from']}>{e['to']} {e['code'] or ''} {e['pct']}% {e.get('detail', '')[:80]}" for e in events],
              setup_seconds=round(setup_end, 1), run_seconds=round(run_end - setup_end, 1),
