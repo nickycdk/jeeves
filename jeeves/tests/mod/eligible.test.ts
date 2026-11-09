@@ -2,8 +2,8 @@
 // two endings of an auto task (model switch, R-25 re-check). No auto task starts before ST-13.4, so the auto task here
 // is an explicit one whose state says `origin: auto`.
 import type { SessionMeasureInput } from 'claude-code'
-import { expect, test } from 'claude-code/testing'
-import { bottom, engineClear, fakeGit, PROMPT, relay, stateOf, stop, submit, taskDirs, turnEnd, turnStart, type Kit } from './kit.ts'
+import { expect } from 'claude-code/testing'
+import { bottom, engineTest as test, engineClear, fakeGit, PROMPT, relay, stateOf, stop, submit, taskDirs, turnEnd, turnStart, type Kit } from './kit.ts'
 import { memHost, type MemHost } from './memfs.ts'
 
 const SWITCHED = "Jeeves: not watching any more (this model's window is 200K); /jeeves on to watch anyway"

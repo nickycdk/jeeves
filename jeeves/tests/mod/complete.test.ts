@@ -3,11 +3,11 @@
 // -> COMPLETED with a summary, the lock released and no rotation after. /jeeves done is the user's own decision.
 import type { SessionMeasureInput, ToolCallResult } from 'claude-code'
 import { expect } from 'claude-code/testing'
-import { bottom, PROMPT, relay, start, stateOf, submit, taskDirs, until, type Kit, test } from './kit.ts'
+import { bottom, PROMPT, relay, start, stateOf, stop, submit, taskDirs, TURN, until, type Kit, test } from './kit.ts'
 import { memHost } from './memfs.ts'
 
 const exits: Record<string, number> = {}
-const stopWith = ($: Kit, message: string, active = false) => $.classic.Stop({ stop_hook_active: active, last_assistant_message: message, background_tasks: [], session_crons: [] })
+const stopWith = ($: Kit, message: string, active = false) => stop($, message, { stop_hook_active: active })
 const complete = (taskId: string, blockers = '- none') => `Finished.\n<<<JEEVES-COMPLETE v1 task=${taskId}\n## Summary\n- all six steps\n## Checks run\n- \`npm test\`\n## Blockers\n${blockers}\nJEEVES-COMPLETE>>>`
 const compose = ($: Kit) => $.prompt.compose({ model: 'm', promptModel: 'm', surfaces: ['terminal'], tools: [], outputStyle: null, traits: [] })
 
@@ -76,15 +76,18 @@ test('AC-13: an edit after the passing check invalidates it; still missing after
 
 test('no verification commands -> NEEDS_REVIEW at once, and the system prompt says /jeeves done confirms', async ($, on) => {
   const { h, dir, taskId } = await task($, on, null)
-  const sections = (await compose($)).sections
-  expect(sections.at(-1)?.id).toBe('jeeves:task')
-  expect(sections.at(-1)?.text).toContain('the user confirms completion with /jeeves done')
+  // Turn mode has no prompt.compose; the same text goes in as a hidden row (turn-complete.test.ts).
+  if (!TURN) {
+    const sections = (await compose($)).sections
+    expect(sections.at(-1)?.id).toBe('jeeves:task')
+    expect(sections.at(-1)?.text).toContain('the user confirms completion with /jeeves done')
+  }
   expect(await stopWith($, complete(taskId))).toEqual({})
   expect([stateOf(h, dir).status, stateOf(h, dir).reason]).toEqual(['NEEDS_REVIEW', 'DOD_UNMET'])
   expect(h.toasts.at(-1)).toBe('Claude says the task is done. It has no verification commands, so confirm with /jeeves done.')
 })
 
-test('the system prompt carries the completion block with the exact checks while a task is active, and nothing otherwise', async ($, on) => {
+test('the system prompt carries the completion block with the exact checks while a task is active, and nothing otherwise', { stopOnly: 'no prompt.compose; the hidden row is in turn-complete.test.ts' }, async ($, on) => {
   const h = memHost(on)
   bottom(on)
   await start($)

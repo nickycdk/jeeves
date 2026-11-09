@@ -45,3 +45,5 @@ jobs:
       - run: rm -r tests/perf && claude plugin test .
       # Spec §9: the suite again with the /config row autoStart on (tests/mod/mode.ts holds off).
       - run: sh scripts/test-mod-on.sh
+      # ST-16.7: the suite again as on a Team account (turn mode; tests/mod/mode.ts holds BOUNDARY 'stop'). Turn x on adds no path.
+      - run: sh scripts/test-mod-turn.sh

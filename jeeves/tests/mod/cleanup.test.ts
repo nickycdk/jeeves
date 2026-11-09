@@ -1,7 +1,7 @@
 // ST-13.8 / AC-44 (spec §5.9): at session start, ended auto tasks without a rotation are deleted 7 days after their
 // last update, in every project under the resolved state folder, whatever auto-start says. Explicit and rotated tasks stay.
-import { expect, test } from 'claude-code/testing'
-import { bottom, fakeGit, PROMPT, relay, start, stateOf, submit, taskDirs, type Kit } from './kit.ts'
+import { expect } from 'claude-code/testing'
+import { bottom, engineTest as test, fakeGit, PROMPT, relay, start, stateOf, submit, taskDirs, type Kit } from './kit.ts'
 import { memHost, type MemHost } from './memfs.ts'
 
 const DAY = 24 * 60 * 60_000

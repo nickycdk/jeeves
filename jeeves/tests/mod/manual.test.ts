@@ -3,7 +3,7 @@
 import type { SessionMeasureInput, ToolCallResult } from 'claude-code'
 import { expect } from 'claude-code/testing'
 import { NUDGE_PROMPT } from '../../src/core/handover/template.ts'
-import { bottom, engineClear, handover, PROMPT, relay, ROOT, start, stateOf, stop, submit, taskDirs, turnEnd, until, type Kit, test } from './kit.ts'
+import { bottom, engineClear, handover, PROMPT, relay, ROOT, start, stateOf, stop, submit, taskDirs, turnEnd, TURN, until, type Kit, test } from './kit.ts'
 import { memHost } from './memfs.ts'
 
 const measure = ($: Kit, percent: number) =>
@@ -31,15 +31,15 @@ test('AC-15: the manual trace equals the threshold trace except THRESHOLD -> MAN
     await trigger()
     await until(h, () => prompts.slice(p0).some(p => p.text === NUDGE_PROMPT))
     const s = stateOf(h, dir)
-    const ask = await $.classic.Stop({ stop_hook_active: false, last_assistant_message: 'ok', background_tasks: [], session_crons: [] })
+    const ask = await stop($, 'ok', { stop_hook_active: false })
     const saved = await stop($, handover(s.taskId, s.rotation.rotationId))
     await turnEnd($)
-    await until(h, () => prompts.slice(p0).some(p => p.text.startsWith('Jeeves: you are session')))
+    await until(h, () => prompts.slice(p0).some(p => p.text.includes('Jeeves: you are session')))
     await measure($, 4)
     const events = h.files.get(`${dir}/events.jsonl`)!.trim().split('\n').slice(ev0).map(l => JSON.parse(l))
     return {
       events: events.map(e => `${e.from}>${e.to}:${e.code}`),
-      prompts: prompts.slice(p0).map(p => (p.text === NUDGE_PROMPT ? 'nudge' : p.text.startsWith('Jeeves: you are session') ? 'continuation' : p.text)),
+      prompts: prompts.slice(p0).map(p => (p.text === NUDGE_PROMPT ? 'nudge' : p.text.includes('Jeeves: you are session') ? 'continuation' : p.text.includes('<<<JEEVES-HANDOVER') ? 'request' : p.text)),
       blocks: [ask.block ? 'handover-request' : 'none', saved.block ? 'retry' : 'none'],
       clears: clears.slice(c0),
       final: stateOf(h, dir).status,
@@ -51,7 +51,8 @@ test('AC-15: the manual trace equals the threshold trace except THRESHOLD -> MAN
   expect(auto.events.some(e => e.endsWith(':THRESHOLD'))).toBe(true)
   expect(auto.events.length).toBeGreaterThan(5)
   expect(manual).toEqual({ ...auto, events: auto.events.map(e => e.replace(/:THRESHOLD$/, ':MANUAL')) })
-  expect(auto.prompts).toEqual(['nudge', 'continuation'])
+  // Turn mode submits the request as a prompt where Stop mode blocks with it.
+  expect(auto.prompts).toEqual(TURN ? ['nudge', 'request', 'continuation'] : ['nudge', 'continuation'])
   expect(auto.clears).toEqual(['clear'])
   expect([stateOf(h, dir).rotationCount, stateOf(h, dir).activeSessionId, auto.final]).toEqual([2, 'sess-3', 'MONITORING'])
 })
@@ -69,7 +70,7 @@ test('AC 2: /jeeves rotate never restarts before a validated handover; refused o
   await relay($, 'rotate')
   expect(await relay($, 'rotate')).toBe('No handover now: the task is ROTATION_REQUESTED. /jeeves status shows why.')
   // An invalid handover three times: nothing is cleared, ever.
-  await $.classic.Stop({ stop_hook_active: false, last_assistant_message: 'ok', background_tasks: [], session_crons: [] })
+  await stop($, 'ok', { stop_hook_active: false })
   for (let i = 0; i < 3; i++) await stop($, 'no block here')
   await turnEnd($)
   await h.clock.settle()

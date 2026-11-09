@@ -33,7 +33,7 @@ test('NFR-10: prompt text only in task-rev-* and heldPrompts after an auto task 
   ctl.onClear = async () => { await engineClear($, h, 'sess-2') }
   await turnEnd($)
   await until(h, () => stateOf(h, dir).status === 'CONTINUING')
-  await until(h, () => prompts.some(p => p.text.startsWith('Jeeves: you are session 2')))
+  await until(h, () => prompts.some(p => p.text.includes('Jeeves: you are session 2')))
   await $.session.measure({ context: { window: 1_000_000, percent: 4 }, rateLimits: [], changed: ['context'] } satisfies SessionMeasureInput)
   expect(stateOf(h, dir).status).toBe('MONITORING')
   await submit($, LATER)

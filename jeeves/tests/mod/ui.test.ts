@@ -2,7 +2,7 @@
 // threshold while watching, a word label otherwise, at most 40 columns.
 import type { SessionMeasureInput } from 'claude-code'
 import { expect } from 'claude-code/testing'
-import { bottom, engineClear, fakeGit, generating, handover, PROMPT, relay, start, stateOf, stop, submit, taskDirs, turnEnd, until, type Kit, test } from './kit.ts'
+import { bottom, engineClear, fakeGit, generating, handover, PROMPT, relay, start, stateOf, stop, submit, taskDirs, turnEnd, TURN, until, type Kit, test } from './kit.ts'
 import { memHost } from './memfs.ts'
 
 const measure = ($: Kit, percent: number) =>
@@ -137,7 +137,7 @@ test('ST-14.2: /jeeves alone after a failed handover offers retry, and not once 
   for (let i = 0; i < 3; i++) await stop($, 'no handover here')
   await turnEnd($)
   expect(shaped(await relay($, ''))).toBe([
-    'Jeeves  mode: full',
+    TURN ? 'Jeeves  mode: full (turn)' : 'Jeeves  mode: full',
     'Task: TASK (explicit)',
     'State: NEEDS_REVIEW (HANDOVER_INVALID)',
     'Context: unknown  Threshold: 50% (~100K)',
@@ -147,7 +147,7 @@ test('ST-14.2: /jeeves alone after a failed handover offers retry, and not once 
     'Try: /jeeves retry | off | help',
   ].join('\n').replace('TASK', g.taskId))
   await relay($, 'retry')
-  await $.classic.Stop({ stop_hook_active: false, last_assistant_message: 'ok', background_tasks: [], session_crons: [] })
+  await stop($, 'ok', { stop_hook_active: false })
   for (let i = 0; i < 3; i++) await stop($, 'no handover here')
   const used = await relay($, '')
   expect(used).toContain('Retries used up. /jeeves off ends it')

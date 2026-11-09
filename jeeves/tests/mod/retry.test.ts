@@ -24,7 +24,7 @@ test('AC 1, 5: retry asks again (nudged when idle) and a valid handover then rot
   expect([s.status, s.reason]).toEqual(['ROTATION_REQUESTED', 'MANUAL'])
   expect(s.rotation.rotationId).not.toBe(rotationId)
   await until(h, () => prompts.some(p => p.text === NUDGE_PROMPT))
-  const ask = await $.classic.Stop({ stop_hook_active: false, last_assistant_message: 'ok', background_tasks: [], session_crons: [] })
+  const ask = await stop($, 'ok', { stop_hook_active: false })
   expect(ask.block).toContain('JEEVES-HANDOVER')
   expect(await stop($, handover(taskId, s.rotation.rotationId))).toEqual({})
   expect(stateOf(h, dir).status).toBe('ROTATING')
@@ -34,7 +34,7 @@ test('AC 1, 5: retry asks again (nudged when idle) and a valid handover then rot
 test('AC 3: a second exhausted retry is refused and status names the limit', async ($, on) => {
   const { h, dir } = await invalid($, on)
   await relay($, 'retry')
-  await $.classic.Stop({ stop_hook_active: false, last_assistant_message: 'ok', background_tasks: [], session_crons: [] })
+  await stop($, 'ok', { stop_hook_active: false })
   for (let i = 0; i < 3; i++) await stop($, BAD)
   expect([stateOf(h, dir).status, stateOf(h, dir).consecutiveFailures]).toEqual(['NEEDS_REVIEW', 2])
   const before = h.files.get(`${dir}/state.json`)

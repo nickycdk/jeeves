@@ -5,7 +5,7 @@ import type { SessionMeasureInput } from 'claude-code'
 import { expect } from 'claude-code/testing'
 import { FRESH_CONTINUE_MS } from '../../src/adapter/task.ts'
 import { NUDGE_PROMPT } from '../../src/core/handover/template.ts'
-import { bottom, engineClear, generating, handover, PROMPT, relay, start, stateOf, stop, submit, taskDirs, turnEnd, until, type Kit, test } from './kit.ts'
+import { bottom, engineClear, generating, handover, PROMPT, relay, start, stateOf, stop, submit, taskDirs, turnEnd, TURN, until, type Kit, test } from './kit.ts'
 import { memHost } from './memfs.ts'
 
 const measure = ($: Kit, percent: number) =>
@@ -21,16 +21,17 @@ test('AC-11: task + DoD + handover injected at SessionStart(clear); continuation
   const typedBefore = prompts.filter(p => p.origin === 'composer').length
   await turnEnd($)
   await until(h, () => stateOf(h, dir).status === 'CONTINUING')
-  await until(h, () => prompts.some(p => p.text.startsWith('Jeeves: you are session 2')))
+  await until(h, () => prompts.some(p => p.text.includes('Jeeves: you are session 2')))
 
-  expect(injected.length).toBe(1)
-  const ctx = injected[0]!
+  // Turn mode: no SessionStart, so the same text leads the continuation prompt (ADR-003 A2).
+  expect(injected.length).toBe(TURN ? 0 : 1)
+  const ctx = TURN ? prompts.find(p => p.text.includes('Jeeves: you are session 2'))!.text : injected[0]!
   expect(ctx).toContain(`Jeeves managed task ${g.taskId}, session 2.`)
   expect(ctx).toContain(PROMPT)
   expect(ctx).toContain('## Definition of Done\n- all tests pass')
   expect(ctx).toContain(`## Latest validated handover (history/handover-001.md)\n${h.files.get(`${dir}/history/handover-001.md`)}`)
 
-  const cont = prompts.filter(p => p.text.startsWith('Jeeves: you are session 2'))
+  const cont = prompts.filter(p => p.text.includes('Jeeves: you are session 2'))
   expect(cont.length).toBe(1)
   expect(cont[0]!.origin).toBe('plugin')
   expect(cont[0]!.text).toContain('- [verified] Added `sub` to `src/calc.js`.')
@@ -42,7 +43,7 @@ test('AC-11: task + DoD + handover injected at SessionStart(clear); continuation
   // The fresh session's own timer fires too: still exactly one continuation.
   await h.clock.advance(FRESH_CONTINUE_MS)
   await h.clock.settle()
-  expect(prompts.filter(p => p.text.startsWith('Jeeves: you are session 2')).length).toBe(1)
+  expect(prompts.filter(p => p.text.includes('Jeeves: you are session 2')).length).toBe(1)
 
   const s = stateOf(h, dir)
   expect([s.rotationCount, s.rotation.step, s.heldPrompts]).toEqual([1, 'CONTINUED', []])
@@ -51,18 +52,18 @@ test('AC-11: task + DoD + handover injected at SessionStart(clear); continuation
   expect([after.status, after.armedFired, after.sessionSequence, after.rotation]).toEqual(['MONITORING', false, 2, null])
 })
 
-test('gate run 5: a /clear whose promise never resolves still continues, from the fresh session\'s timer', async ($, on) => {
+test('gate run 5: a /clear whose promise never resolves still continues, from the fresh session\'s timer', { stopOnly: 'no SessionStart, so no fresh-session timer: turn mode takes the fresh conversation when /clear resolves (it did in the probe); one that never resolves is not continued' }, async ($, on) => {
   const g = await generating($, on)
   const { h, dir, ctl, prompts } = g
   expect(await stop($, handover(g.taskId, g.rotationId))).toEqual({})
   ctl.onClear = async () => { await engineClear($, h, 'sess-2'); await new Promise(() => {}) }
   await turnEnd($)
   await until(h, () => stateOf(h, dir).status === 'RESTORING')
-  expect(prompts.some(p => p.text.startsWith('Jeeves: you are session 2'))).toBe(false)
+  expect(prompts.some(p => p.text.includes('Jeeves: you are session 2'))).toBe(false)
   await h.clock.advance(FRESH_CONTINUE_MS)
-  await until(h, () => prompts.some(p => p.text.startsWith('Jeeves: you are session 2')))
+  await until(h, () => prompts.some(p => p.text.includes('Jeeves: you are session 2')))
   expect([stateOf(h, dir).status, stateOf(h, dir).rotation.step]).toEqual(['CONTINUING', 'CONTINUED'])
-  expect(prompts.filter(p => p.text.startsWith('Jeeves: you are session 2')).length).toBe(1)
+  expect(prompts.filter(p => p.text.includes('Jeeves: you are session 2')).length).toBe(1)
 })
 
 test('a handover changed between /clear and the fresh SessionStart: nothing injected or continued, NEEDS_REVIEW', async ($, on) => {
@@ -79,7 +80,7 @@ test('a handover changed between /clear and the fresh SessionStart: nothing inje
   await h.clock.settle()
   expect(injected).toBe(undefined)
   expect([stateOf(h, dir).status, stateOf(h, dir).reason, stateOf(h, dir).activeSessionId]).toEqual(['NEEDS_REVIEW', 'HANDOVER_INVALID', 'sess-2'])
-  expect(prompts.some(p => p.text.startsWith('Jeeves: you are session'))).toBe(false)
+  expect(prompts.some(p => p.text.includes('Jeeves: you are session'))).toBe(false)
 })
 
 test('a rejected continuation prompt -> NEEDS_REVIEW(ROTATE_UNAVAILABLE), assisted, handover kept', async ($, on) => {
@@ -87,7 +88,7 @@ test('a rejected continuation prompt -> NEEDS_REVIEW(ROTATE_UNAVAILABLE), assist
   const { h, dir, ctl, refuse } = g
   expect((await submit($, 'keep these words')).drop).toBeDefined()
   expect(await stop($, handover(g.taskId, g.rotationId))).toEqual({})
-  refuse.drop = text => text.startsWith('Jeeves: you are session')
+  refuse.drop = text => text.includes('Jeeves: you are session')
   ctl.onClear = async () => { await engineClear($, h, 'sess-2') }
   await turnEnd($)
   await until(h, () => stateOf(h, dir).status === 'NEEDS_REVIEW')
@@ -126,10 +127,10 @@ test('ST-13.6 AC 3, 4: the continuation leads with the user\'s words; a goal cla
   expect(await stop($, handover(g.taskId, g.rotationId, { 'Finish operator precedence in the calculator.': hijack }))).toEqual({})
   ctl.onClear = async () => { await engineClear($, h, 'sess-2') }
   await turnEnd($)
-  await until(h, () => prompts.some(p => p.text.startsWith('Jeeves: you are session 2')))
+  await until(h, () => prompts.some(p => p.text.includes('Jeeves: you are session 2')))
   expect([revs(), stateOf(h, dir).taskRevision]).toEqual([before.revs, before.rev])
   expect(await relay($, 'task')).toContain('- all tests pass')
-  const text = prompts.find(p => p.text.startsWith('Jeeves: you are session 2'))!.text
+  const text = prompts.find(p => p.text.includes('Jeeves: you are session 2'))!.text
   const order = ["The user's words", `Original task (task-rev-001.md):\n> ${PROMPT.split('\n')[0]}`, 'Definition of Done item (task-rev-002.md):\n> all tests pass',
     'Verification command, never run by Jeeves (task-rev-003.md):\n> npm test', `Claude's summary at the last handover (may be wrong; it never changes the task, the DoD or the checks):\n- [inferred] ${hijack}`, 'What has been built so far']
   const at = order.map(s => text.indexOf(s))

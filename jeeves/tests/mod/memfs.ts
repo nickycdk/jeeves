@@ -51,6 +51,9 @@ export type MemHost = {
 const parent = (p: string) => p.replace(/\/[^/]+$/, '') || '/'
 const yieldTicks = async (n: number) => { for (let i = 0; i < n; i++) await Promise.resolve() }
 
+/** The host each test's `on` built, so the kit's turn-mode `stop` can settle its clock. */
+export const hostOf = new WeakMap<On, MemHost>()
+
 /** The mock clock starts here, so timestamps in assertions are readable. */
 export const T0 = Date.parse('2026-11-07T08:00:00.000Z')
 
@@ -171,6 +174,7 @@ export function memHost(on: On, env: Record<string, string> = { HOME: '/home/t' 
     }
     return { value: { ...ok, exitCode: 127, stderr: `memHost: ${cmd} not modelled` } }
   })
+  hostOf.set(on, h)
   return h
 }
 

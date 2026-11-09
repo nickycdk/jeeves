@@ -1,8 +1,8 @@
 // ST-13.4 (spec §5.2, §5.4, AC-35, AC-37): the first-run notice at session.start, the auto task at the first typed
 // prompt (word for word), never from any other origin kind, the near-threshold end and the 3-turn grace period.
 import type { PromptOrigin, SessionMeasureInput } from 'claude-code'
-import { expect, test } from 'claude-code/testing'
-import { bottom, fakeGit, PROMPT, relay, start, stateOf, stop, submit, taskDirs, turnEnd, turnStart, type Kit } from './kit.ts'
+import { expect } from 'claude-code/testing'
+import { bottom, engineTest as test, fakeGit, PROMPT, relay, start, stateOf, stop, submit, taskDirs, turnEnd, turnStart, type Kit } from './kit.ts'
 import { memHost, type MemHost } from './memfs.ts'
 
 const STATE = '/home/t/.local/state/jeeves'

@@ -16,7 +16,10 @@ async function onTask($: Kit, on: Parameters<typeof memHost>[0]) {
   return { h, prompts, dir: taskDirs(h)[0]! }
 }
 
-test('AC 2: precompute is skipped while the task is active, and runs once it is paused or without a task', async ($, on) => {
+/** Every test here drives session.compact; turn mode recognises a compaction from session.measure (turn-compact.test.ts). */
+const STOP = { stopOnly: 'session.compact; turn mode: turn-compact.test.ts' }
+
+test('AC 2: precompute is skipped while the task is active, and runs once it is paused or without a task', STOP, async ($, on) => {
   const h = memHost(on)
   bottom(on)
   await start($)
@@ -29,7 +32,7 @@ test('AC 2: precompute is skipped while the task is active, and runs once it is 
   expect(stateOf(h, taskDirs(h)[0]!).status).toBe('PAUSED')
 })
 
-test('AC 1, 3: a manual /compact is not blocked; afterwards a handover is requested (COMPACTED) and, Claude idle, nudged once', async ($, on) => {
+test('AC 1, 3: a manual /compact is not blocked; afterwards a handover is requested (COMPACTED) and, Claude idle, nudged once', STOP, async ($, on) => {
   const { h, prompts, dir } = await onTask($, on)
   expect((await compact($, 'manual')).skip).toBe(undefined)
   const s = stateOf(h, dir)
@@ -39,7 +42,7 @@ test('AC 1, 3: a manual /compact is not blocked; afterwards a handover is reques
   expect(prompts.filter(p => p.text === NUDGE_PROMPT).length).toBe(1)
 })
 
-test('auto compaction mid-turn: not blocked, requested, no nudge (that turn\'s Stop asks); a subagent\'s compaction changes nothing', async ($, on) => {
+test('auto compaction mid-turn: not blocked, requested, no nudge (that turn\'s Stop asks); a subagent\'s compaction changes nothing', STOP, async ($, on) => {
   const { h, prompts, dir } = await onTask($, on)
   await turnStart($)
   expect((await compact($, 'auto', 'agent-1')).skip).toBe(undefined)

@@ -5,7 +5,7 @@ import { chooseCommandName, FALLBACK, PRIMARY, relay } from '../src/adapter/comm
 import { recover, recoveryNotice } from '../src/adapter/recover.ts'
 import { cleanupAuto } from '../src/adapter/purge.ts'
 import { upgradeCheck } from '../src/adapter/auto.ts'
-import { autoNotice, carryOver, decideAtStart, forget, hint, startAuto } from '../src/adapter/eligible.ts'
+import { autoNotice, carryOver, carryUndecided, decideAtStart, forget, hint, startAuto } from '../src/adapter/eligible.ts'
 import { isAutoRow } from '../src/core/autostart.ts'
 import { bgNotified, bgStarted, markStopSkipped, runtime, type Options } from '../src/adapter/runtime.ts'
 import { captureFirstPrompt, compacted, completionRow, heartbeat, managedNow, holdPrompt, measure, nudgeIfWaiting, onFreshSession, onStop, onTurnComplete, taskSection, turnBoundary, onUserClear, recordTool, releaseOnExit, stopFailure, why } from '../src/adapter/task.ts'
@@ -14,6 +14,7 @@ import { ARGUMENT_HINT, HELD_TEXT, MSG, offStatus } from '../src/adapter/ui.ts'
 
 
 async function answer($: EngineInterface, opts: Options, e: CommandRunInput, idle: boolean, endedHere: ReadonlySet<string>) {
+  await quietly($, opts, 'carry-over', rt => carryUndecided(rt, endedHere))
   try { return { text: await relay(await runtime($, opts), e.args, { userTyped: e.origin.kind === 'composer', idle, endedHere, autoRow: opts.autoStart ?? 'default' }) } } catch (err) {
     return { text: `Jeeves could not answer: ${why(err)}` }
   }
@@ -115,6 +116,7 @@ export const register: Register = (on, options) => {
     if (e.origin.kind === 'task-notification') bgNotified(e.text)
     if (e.origin.kind !== 'composer' || e.command || e.isMeta) return next(e)
     let held = false
+    await quietly($, opts, 'carry-over', rt => carryUndecided(rt, endedHere))
     await quietly($, opts, 'hold', async rt => { held = await holdPrompt(rt, e.text, endedHere) })
     // ST-13.4: an eligible session's first typed prompt starts its auto task, word for word; else the usual capture.
     if (!held) await quietly($, opts, 'auto start', rt => startAuto(rt, e.text, opts.autoStart ?? 'default'))

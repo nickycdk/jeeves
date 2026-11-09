@@ -63,11 +63,11 @@ test('AC 3: a passing completion -> COMPLETED', async ($, on) => {
   expect(stateOf(g.h, g.dir).status).toBe('COMPLETED')
 })
 
-test('Stop mode: no completion row (prompt.compose carries the rules there)', async ($, on) => {
+test('Stop mode: no completion row (prompt.compose carries the rules there)', { stopOnly: 'asserts Stop mode itself' }, async ($, on) => {
   const h = memHost(on)
   bottom(on)
   const rows: string[] = []
-  on('session.append', (_, e, next) => { rows.push(JSON.stringify(e.message)); return next(e) })
+  on('session.append', (_, e, next) => { rows.push(e.message.content.map(b => String((b as { text?: string }).text ?? '')).join('')); return next(e) })
   await start($)
   await relay($, 'on')
   await submit($, PROMPT)
@@ -77,5 +77,5 @@ test('Stop mode: no completion row (prompt.compose carries the rules there)', as
     await $.classic.Stop({ stop_hook_active: false, last_assistant_message: 'ok', background_tasks: [], session_crons: [] })
     await turnEnd($, 'answer', `s${i}`)
   }
-  expect(rows.filter(r => r.includes(RULES)).length).toBe(0)
+  expect(rules(rows)).toBe(0)
 })

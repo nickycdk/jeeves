@@ -16,7 +16,7 @@ Everything sits in the state folder (`/jeeves status` shows where; never inside 
 
 - your original task prompt, word for word (`task-rev-001.md`): the prompt after `/jeeves on`, or the first prompt you typed in a session Jeeves watches by itself; and each `/jeeves dod` and `/jeeves check` you type later, and a goal you give with `/jeeves on <goal>` in a task Jeeves started by itself;
 - `state.json`: the task's state, whether it started by `/jeeves on` or by itself, the last context reading, and the evidence ledger: the last 200 commands Claude ran (redacted, at most 300 characters each, with exit status) and the paths of files it edited;
-- handovers Claude writes at each rotation (`history/handover-NNN.md`) and a facts snapshot per rotation (branch, HEAD, `git status` entries, scheduled crons);
+- handovers Claude writes at each rotation (`history/handover-NNN.md`) and a facts snapshot per rotation (branch, HEAD, `git status` entries, scheduled crons; no crons in turn mode, where Jeeves cannot see them);
 - a message you type while a handover is under way, word for word, in `state.json` until the fresh conversation receives it, then removed;
 - `events.jsonl`: one short, redacted line per state change (a held message is named by its length there, never quoted);
 - per project, if you set them with `/jeeves defaults`: a default threshold, the default check commands you typed, as text, and auto-start on or off (`projects/<project>/config.json`). Jeeves never runs the commands;

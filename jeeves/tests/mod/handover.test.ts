@@ -1,13 +1,14 @@
 // ST-3.8 / AC-08, AC-09, AC-17: the handover Stop sequence through the hooks: validate, persist write-once with a
 // verified hash before anything can clear, retries with specific errors, then NEEDS_REVIEW with nothing touched.
 import { expect } from 'claude-code/testing'
-import { generating, handover, sha256, stateOf, stop, test } from './kit.ts'
+import { generating, handover, sha256, stateOf, stop, test, TURN } from './kit.ts'
 
 test('AC-08: a valid handover is written once, hash-verified, copied to handover.md, and only then ROTATING; nothing is cleared yet', async ($, on) => {
   const { h, dir, clears, taskId, rotationId } = await generating($, on)
   expect(await stop($, handover(taskId, rotationId))).toEqual({})
   const s = stateOf(h, dir)
-  expect([s.status, s.rotation.step]).toEqual(['ROTATING', 'HANDOVER_PERSISTED'])
+  // Turn mode: the answer and the turn's end are one event, so /clear is already scheduled (it runs after the hook).
+  expect([s.status, s.rotation.step]).toEqual(['ROTATING', TURN ? 'CLEAR_SCHEDULED' : 'HANDOVER_PERSISTED'])
   const file = h.files.get(`${dir}/history/handover-001.md`)!
   expect(s.lastValidatedHandover).toBe(`history/handover-001.md#sha256:${await sha256(file)}`)
   expect(h.files.get(`${dir}/handover.md`)).toBe(file)
@@ -78,7 +79,7 @@ test('crash between the handover write and the state swap: file verified on disk
   expect(clears).toEqual([])
 })
 
-test('review fix 2: a background task started while the handover was written blocks it; nothing is saved until it ends', async ($, on) => {
+test('review fix 2: a background task started while the handover was written blocks it; nothing is saved until it ends', { stopOnly: "classic.Stop's background_tasks; turn mode's background record is in turn-boundary.test.ts" }, async ($, on) => {
   const { h, dir, taskId, rotationId } = await generating($, on)
   const busy = await $.classic.Stop({ stop_hook_active: true, last_assistant_message: handover(taskId, rotationId), background_tasks: [{ id: 'b1', type: 'shell', status: 'running', description: 'npm test' }], session_crons: [] })
   expect(busy.block).toContain('1 background task(s) and 0 running agent(s) are still in flight')

@@ -14,7 +14,7 @@ Jeeves does that for you, inside your normal terminal session. At a threshold yo
 
 - Claude Code 2.1.319 or later (`claude --version`).
 - macOS. Linux should work but is untested.
-- Not a Claude account in a Team organization, for now: on Claude Code 2.1.319 a built-in plugin there runs before every installed plugin and skips the hooks Jeeves hands over with. Jeeves notices after the first answer and turns itself off (`/jeeves status`: `mode: unsupported`); see [Troubleshooting](docs/troubleshooting.md).
+- Claude accounts in a Team organization work in **turn mode**: on Claude Code 2.1.319 a built-in plugin there runs before every installed plugin and skips the hooks Jeeves normally hands over with (Stop, SessionStart, compaction, system prompt). Jeeves notices after the first answer and uses the end of each answered turn instead (`/jeeves status`: `mode: full (turn)`). What turn mode does not give: the handover's facts have no scheduled crons (`not available in turn mode`); compaction ahead of time cannot be skipped, and a compaction is recognised only from the next context reading (a fall of more than 10,000 tokens), then handed over at the next turn end; the completion rules reach Claude as a hidden row in the conversation (at the task's first turn, after each continuation and compaction, and every 10 turns) instead of in the system prompt. See [Troubleshooting](docs/troubleshooting.md).
 - Claude Code must let plugins run `/clear`. On 2.1.319 this works and is part of the typed plugin API, but it is not documented as a supported use and could change. If it stops working, Jeeves falls back to assisted mode (you type `/clear`, then `/jeeves continue`) and says so.
 - Nothing else: no API key, no server, no other software. Jeeves makes no network calls.
 
@@ -83,7 +83,8 @@ An auto task works like any other, with these differences:
 
 - **full**: Jeeves runs `/clear` itself after a verified handover and continues the task in the fresh conversation. No keystroke is needed.
 - **assisted**: used when this Claude Code cannot run `/clear` for a plugin (or refused it once). Jeeves never claims automatic rotation here. It saves the verified handover and asks you to run `/clear`, then `/jeeves continue`, which sends the task and handover into the fresh conversation.
-- **unsupported**: this Claude Code version is too old, or another plugin skips the hooks Jeeves needs (a Team account, see Requirements); Jeeves stays off and says why.
+- **full (turn)**: full, on an account where another plugin skips Jeeves's Stop hook (a Team account, see Requirements): the turn's end is the handover point, and the handover is asked for and the task continued with prompts Jeeves sends.
+- **unsupported**: this Claude Code version is too old, or in turn mode Claude Code refused a prompt Jeeves sent; Jeeves stays off and says why.
 
 ## What you see
 

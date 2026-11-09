@@ -50,6 +50,15 @@ export async function carryOver(rt: Runtime, to: string, endedHere: ReadonlySet<
 }
 
 /**
+ * Turn mode: no SessionStart follows a /clear (probe, ST-16.4), so a fresh conversation with no decision of its own takes
+ * the carry-over when it is first used (a typed prompt, a /jeeves command). A no-op once a decision is kept.
+ */
+export async function carryUndecided(rt: Runtime, endedHere: ReadonlySet<string>): Promise<void> {
+  const me = await rt.port.sessionId()
+  if ((await kept(rt, me)) === null) await carryOver(rt, me, endedHere)
+}
+
+/**
  * Any session end but /clear: forget it, so `claude --resume` of this id in a new process decides again (and finds turns).
  * shortcut: a crashed process leaves its three small keys, and resuming that same id keeps its decision; upgrade if that matters.
  */

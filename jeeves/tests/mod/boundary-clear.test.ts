@@ -23,7 +23,7 @@ test('Jeeves /clear -> source recorded, sessions/001.json written, fresh session
   expect([s.rotation.rotationId, s.rotation.sourceSessionId, s.rotation.targetSessionId]).toEqual([rotationId, 'sess-test', 'sess-2'])
   expect(s.activeSessionId).toBe('sess-2')
   expect(s.sessionStart.pct).toBe(null)
-  await until(h, () => prompts.some(p => p.text.startsWith('Jeeves: you are session 2')))
+  await until(h, () => prompts.some(p => p.text.includes('Jeeves: you are session 2')))
   const events = h.files.get(`${dir}/events.jsonl`)!.trim().split('\n').map(l => JSON.parse(l))
   expect(events.slice(-2).map(e => [e.from, e.to, e.sessionId])).toEqual([['ROTATING', 'RESTORING', 'sess-2'], ['RESTORING', 'CONTINUING', 'sess-2']])
   expect(owner(h, dir)).toBe('sess-2')
@@ -38,10 +38,10 @@ test('AC 3: sessions/NNN.json is write-once: an existing file is never overwritt
   await turnEnd($)
   await until(h, () => stateOf(h, dir).status === 'CONTINUING')
   expect(h.files.get(`${dir}/sessions/001.json`)).toBe('earlier\n')
-  await until(h, () => prompts.some(p => p.text.startsWith('Jeeves: you are session 2')))
+  await until(h, () => prompts.some(p => p.text.includes('Jeeves: you are session 2')))
 })
 
-test('AC 2: a /clear the user types after the handover was saved (nothing scheduled) pauses: USER_CLEAR, no rotation', async ($, on) => {
+test('AC 2: a /clear the user types after the handover was saved (nothing scheduled) pauses: USER_CLEAR, no rotation', { stopOnly: 'the handover is saved and /clear scheduled at the same turn end, so no user /clear fits between' }, async ($, on) => {
   const { h, dir, clears } = await rotating($, on)
   await engineClear($, h, 'sess-2')
   const s = stateOf(h, dir)

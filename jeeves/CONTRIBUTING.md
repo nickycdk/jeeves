@@ -12,6 +12,7 @@ npm ci
 npm test                 # unit tests: no Claude Code needed
 npm run test:mod         # the hooks in Claude Code's test kit (auto-start row off)
 npm run test:mod:on      # the same suite with auto-start on
+npm run test:mod:turn    # the same suite as on a Team account (turn mode)
 ```
 
 ## Scripts
@@ -20,7 +21,8 @@ npm run test:mod:on      # the same suite with auto-start on
 |---|---|---|
 | `npm test` | Unit tests (`tests/unit/*.spec.ts`, `node:test`): core, storage, redaction, git audit | Node |
 | `npm run test:mod` | `claude plugin test .`: every `tests/mod/*.test.ts` and `tests/perf/*.test.ts` (timing, not run in CI) against the real hooks with an in-memory host; no model calls | Claude Code |
-| `npm run test:mod:on` | The same suite in a temporary copy with `tests/mod/mode.ts` set to `on`: every test that does not set the `/config` row `autoStart` itself runs under `on` (spec §9). Import `test` from `./kit.ts`, not from `claude-code/testing`, so a new test runs in both modes; the auto-start tests that seed the install themselves (`auto`, `autostart`, `eligible`, `cleanup`) use the kit's own | Claude Code |
+| `npm run test:mod:on` | The same suite in a temporary copy with `tests/mod/mode.ts` set to `on`: every test that does not set the `/config` row `autoStart` itself runs under `on` (spec §9). Import `test` from `./kit.ts`, not from `claude-code/testing`, so a new test runs in both modes; the auto-start tests that seed the install themselves (`auto`, `autostart`, `eligible`, `cleanup`) use the kit's `engineTest` | Claude Code |
+| `npm run test:mod:turn` | The same suite in a temporary copy with `tests/mod/mode.ts`'s `BOUNDARY` set to `turn`: the kit seats a prepend-tier plugin that passes `classic.Stop`, `classic.SessionStart`, `session.compact` and `prompt.compose` on past Jeeves, as a Team account's built-in plugin does. The kit's `stop($, msg)` then ends the turn with `msg` as its answer and returns what Jeeves submitted as `block`; `engineClear` sends no SessionStart. A test that checks what only Stop mode has passes `{ stopOnly: '<reason>' }` and is listed as skipped there | Claude Code |
 | `npm run lint` | `tsc` on `src/core` plus `scripts/lint.mjs`: core purity (no `$`, no I/O), no git-mutating argv, no runtime dependencies | Node |
 | `npm run typecheck` | `tsc --strict` on hooks, adapter and mod tests against the engine's types (see below); `-- --core-only` without them | Node (+ engine types) |
 | `npm run validate` | `claude plugin validate . --strict` | Claude Code |

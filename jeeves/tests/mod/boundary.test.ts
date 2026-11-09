@@ -10,6 +10,8 @@ const SHELL = { id: 'b1', type: 'shell', status: 'running', description: 'sleep 
 const CRON = { id: 'c1', schedule: '0 9 * * *', recurring: true, prompt: 'check the build' }
 const stop = ($: Kit, over: { background_tasks?: typeof SHELL[]; session_crons?: typeof CRON[]; agent_id?: string } = {}) =>
   $.classic.Stop({ stop_hook_active: false, last_assistant_message: 'done', background_tasks: [], session_crons: [], ...over })
+/** Every test here drives classic.Stop's own fields; turn mode's boundary, quiesce, pause and interrupt are in turn-boundary.test.ts. */
+const STOP = { stopOnly: "classic.Stop's background_tasks, session_crons and agent_id; turn mode: turn-boundary.test.ts" }
 const aborted = ($: Kit) => $.turn.complete({ answer: '', durationMs: 5, isAborted: true, turnId: 't1', reason: 'aborted' })
 
 async function requested($: Kit, on: Parameters<typeof memHost>[0]) {
@@ -24,7 +26,7 @@ async function requested($: Kit, on: Parameters<typeof memHost>[0]) {
   return { h, dir }
 }
 
-test('safe Stop: handover requested once, with task and rotation ids; facts snapshot keeps the crons (ADR-004 A1)', async ($, on) => {
+test('safe Stop: handover requested once, with task and rotation ids; facts snapshot keeps the crons (ADR-004 A1)', STOP, async ($, on) => {
   const { h, dir } = await requested($, on)
   const r = await stop($, { session_crons: [CRON] })
   const s = stateOf(h, dir)
@@ -35,7 +37,7 @@ test('safe Stop: handover requested once, with task and rotation ids; facts snap
   expect(facts.git.kind).toBe('none')
 })
 
-test('AC-07: a running background shell or subagent means no handover request; the next safe Stop asks', async ($, on) => {
+test('AC-07: a running background shell or subagent means no handover request; the next safe Stop asks', STOP, async ($, on) => {
   const { h, dir } = await requested($, on)
   expect((await stop($, { background_tasks: [SHELL] })).block).toBeUndefined()
   expect([stateOf(h, dir).status, stateOf(h, dir).rotation.quiesceCount]).toEqual(['QUIESCING', 1])
@@ -46,14 +48,14 @@ test('AC-07: a running background shell or subagent means no handover request; t
   expect((await stop($)).block).toContain('JEEVES-HANDOVER')
 })
 
-test('after quiesceMaxTurns unsafe Stops the task pauses with UNSAFE_BOUNDARY and says why', async ($, on) => {
+test('after quiesceMaxTurns unsafe Stops the task pauses with UNSAFE_BOUNDARY and says why', STOP, async ($, on) => {
   const { h, dir } = await requested($, on)
   for (let i = 0; i < 4; i++) expect((await stop($, { background_tasks: [SHELL] })).block).toBeUndefined()
   expect([stateOf(h, dir).status, stateOf(h, dir).reason]).toEqual(['PAUSED', 'UNSAFE_BOUNDARY'])
   expect(h.toasts.at(-1)).toBe('Paused: no safe point to hand over (1 background task(s)). Finish the work, then /jeeves resume.')
 })
 
-test('an interrupted turn asks for nothing; an interrupt during the handover pauses (USER_INTERRUPT)', async ($, on) => {
+test('an interrupted turn asks for nothing; an interrupt during the handover pauses (USER_INTERRUPT)', STOP, async ($, on) => {
   const { h, dir } = await requested($, on)
   await aborted($)
   expect(stateOf(h, dir).status).toBe('ROTATION_REQUESTED')
@@ -63,7 +65,7 @@ test('an interrupted turn asks for nothing; an interrupt during the handover pau
   expect([stateOf(h, dir).status, stateOf(h, dir).reason]).toEqual(['PAUSED', 'USER_INTERRUPT'])
 })
 
-test('a failing Stop hook lets Claude stop and advances nothing (open for the user, closed for the rotation)', async ($, on) => {
+test('a failing Stop hook lets Claude stop and advances nothing (open for the user, closed for the rotation)', STOP, async ($, on) => {
   const { h, dir } = await requested($, on)
   h.failWrite = p => p.includes('state.json')
   expect(await stop($)).toEqual({})
@@ -71,7 +73,7 @@ test('a failing Stop hook lets Claude stop and advances nothing (open for the us
   expect(stateOf(h, dir).status).toBe('ROTATION_REQUESTED')
 })
 
-test('a subagent Stop, a Stop outside a rotation, and a Stop without a task change nothing', async ($, on) => {
+test('a subagent Stop, a Stop outside a rotation, and a Stop without a task change nothing', STOP, async ($, on) => {
   const { h, dir } = await requested($, on)
   expect(await stop($, { agent_id: 'a1' })).toEqual({})
   expect(stateOf(h, dir).status).toBe('ROTATION_REQUESTED')

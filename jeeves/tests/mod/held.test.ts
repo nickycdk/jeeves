@@ -32,9 +32,9 @@ test('AC 1-2, 4-5: held during the handover, box emptied, delivered once and ver
     await $.classic.SessionStart({ source: 'clear', session_id: 'sess-2' })
   }
   await turnEnd($)
-  await until(h, () => prompts.some(p => p.text.startsWith('Jeeves: you are session 2')))
+  await until(h, () => prompts.some(p => p.text.includes('Jeeves: you are session 2')))
   await h.clock.settle()
-  const cont = prompts.filter(p => p.text.startsWith('Jeeves: you are session 2'))
+  const cont = prompts.filter(p => p.text.includes('Jeeves: you are session 2'))
   expect(cont.length).toBe(1)
   expect(cont[0]!.text).toContain('Message 1:\n> also update the README\n>   keep this indent; key AKIAIOSFODNN7EXAMPLE\nMessage 2:\n> second message')
   expect(stateOf(h, dir).heldPrompts).toEqual([])

@@ -1,7 +1,7 @@
 // ST-13.2 (spec §5.5, §5.6, AC-38, AC-43): the upgrade check once per install, /jeeves auto, /jeeves defaults auto,
 // /jeeves off for the session, and the /config row's precedence.
-import { expect, test } from 'claude-code/testing'
-import { bottom, PROMPT, relay, start, submit, type Kit } from './kit.ts'
+import { expect } from 'claude-code/testing'
+import { bottom, engineTest as test, PROMPT, relay, start, submit, type Kit } from './kit.ts'
 import { memHost, type MemHost } from './memfs.ts'
 
 const STATE = '/home/t/.local/state/jeeves'

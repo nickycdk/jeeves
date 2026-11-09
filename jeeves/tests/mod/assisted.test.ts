@@ -2,7 +2,7 @@
 // ROTATE_UNAVAILABLE); status says assisted and what to do; /jeeves continue works only in a fresh conversation and
 // continues there with the task and handover inside the prompt.
 import { expect } from 'claude-code/testing'
-import { engineClear, generating, handover, relay, stateOf, stop, turnEnd, until, test } from './kit.ts'
+import { engineClear, generating, handover, relay, stateOf, stop, turnEnd, TURN, until, test } from './kit.ts'
 
 test('AC-25: /clear refused -> assisted, status says so; continue refused with turns; after /clear it continues here', async ($, on) => {
   const g = await generating($, on)
@@ -15,7 +15,7 @@ test('AC-25: /clear refused -> assisted, status says so; continue refused with t
   expect(h.toasts.at(-1)).toBe('Automatic /clear is unavailable. The handover is saved. Run /clear, then type /jeeves continue.')
 
   const status = await relay($, 'status')
-  expect(status.split('\n')[0]).toBe('Jeeves  mode: assisted')
+  expect(status.split('\n')[0]).toBe(TURN ? 'Jeeves  mode: assisted (turn)' : 'Jeeves  mode: assisted')
   expect(status).toContain('State: NEEDS_REVIEW (ROTATE_UNAVAILABLE)')
   expect(status).toContain('Run /clear, then /jeeves continue.')
   expect(status).not.toMatch(/automatic|by itself/i)

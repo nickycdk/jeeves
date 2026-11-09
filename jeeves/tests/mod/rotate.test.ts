@@ -3,7 +3,7 @@
 import type { SessionMeasureInput } from 'claude-code'
 import { expect } from 'claude-code/testing'
 import { NUDGE_PROMPT } from '../../src/core/handover/template.ts'
-import { bottom, engineClear, generating, handover, PROMPT, relay, start, stateOf, stop, submit, taskDirs, turnEnd, turnStart, until, type Kit, test } from './kit.ts'
+import { bottom, engineClear, generating, handover, PROMPT, relay, start, stateOf, stop, submit, taskDirs, turnEnd, turnStart, TURN, until, type Kit, test } from './kit.ts'
 import { memHost } from './memfs.ts'
 
 const measure = ($: Kit, percent: number) =>
@@ -20,8 +20,11 @@ async function rotating($: Kit, on: Parameters<typeof memHost>[0]) {
 test('AC 1: duplicated turn.complete -> exactly one /clear, scheduled after the hook returned', async ($, on) => {
   const { h, dir, clears } = await rotating($, on)
   await turnEnd($)
-  expect(clears).toEqual([])
-  expect(stateOf(h, dir).rotation.step).toBe('CLEAR_SCHEDULED')
+  // Turn mode: scheduled at the turn end the handover answer was (handover.test.ts AC-08 checks it there).
+  if (!TURN) {
+    expect(clears).toEqual([])
+    expect(stateOf(h, dir).rotation.step).toBe('CLEAR_SCHEDULED')
+  }
   await turnEnd($)
   await turnEnd($, 'answer', 't2')
   await until(h, () => clears.length > 0)
@@ -39,7 +42,7 @@ test('AC 1: a worker respawn (session.start again) does not run /clear a second 
   expect(clears).toEqual(['clear'])
 })
 
-test('AC 2: a handover changed on disk after validation -> no /clear, NEEDS_REVIEW, said plainly', async ($, on) => {
+test('AC 2: a handover changed on disk after validation -> no /clear, NEEDS_REVIEW, said plainly', { stopOnly: 'validation and the turn end are one event, so no change fits between; a change before the fresh conversation reads it is continue.test.ts\'s changed-handover test' }, async ($, on) => {
   const { h, dir, clears } = await rotating($, on)
   h.files.set(`${dir}/history/handover-001.md`, 'edited by someone\n')
   await turnEnd($)
@@ -75,7 +78,7 @@ test('D-23: a request that lands after the turn ended gets one nudge prompt; the
   await submit($, PROMPT)
   const dir = taskDirs(h)[0]!
   await turnStart($)
-  await $.classic.Stop({ stop_hook_active: false, last_assistant_message: 'done', background_tasks: [], session_crons: [] })
+  await stop($, 'done', { stop_hook_active: false })
   await turnEnd($)
   await measure($, 52)
   await until(h, () => prompts.some(p => p.text === NUDGE_PROMPT))
@@ -84,12 +87,12 @@ test('D-23: a request that lands after the turn ended gets one nudge prompt; the
   await h.clock.settle()
   expect(prompts.filter(p => p.text === NUDGE_PROMPT).length).toBe(1)
   // The nudge's own turn ends in a Stop: that Stop is the safe boundary.
-  const ask = await $.classic.Stop({ stop_hook_active: false, last_assistant_message: 'ok', background_tasks: [], session_crons: [] })
+  const ask = await stop($, 'ok', { stop_hook_active: false })
   expect(ask.block).toContain('JEEVES-HANDOVER')
   expect(stateOf(h, dir).status).toBe('HANDOVER_GENERATING')
 })
 
-test('D-23: a request during an open turn is not nudged (that turn\'s Stop asks); one left after the turn ends is', async ($, on) => {
+test('D-23: a request during an open turn is not nudged (that turn\'s Stop asks); one left after the turn ends is', { stopOnly: 'a reading between the Stop and the turn end; in turn mode they are one event (turn-boundary.test.ts AC 4: a mid-turn reading)' }, async ($, on) => {
   const h = memHost(on)
   const prompts = bottom(on)
   await start($)

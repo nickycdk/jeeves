@@ -97,7 +97,7 @@ test('ADR-002 A3: a rotation requested before the skip is seen is taken over at 
   expect(stateOf(h, dir).status).toBe('HANDOVER_GENERATING')
 })
 
-test('stop mode: turn.complete is no boundary; a waiting rotation is judged only at classic.Stop', async ($, on) => {
+test('stop mode: turn.complete is no boundary; a waiting rotation is judged only at classic.Stop', { stopOnly: 'asserts Stop mode itself' }, async ($, on) => {
   const h = memHost(on)
   bottom(on)
   await start($)

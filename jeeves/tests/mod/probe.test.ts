@@ -54,7 +54,7 @@ test('ST-16.1: a main turn that answers without reaching the Stop hook: turn mod
   expect(await relay($, 'on')).toContain('Jeeves on: task')
 })
 
-test('ST-16.1: a turn whose Stop reaches Jeeves, an aborted turn, or a subagent turn: stop mode', async ($, on) => {
+test('ST-16.1: a turn whose Stop reaches Jeeves, an aborted turn, or a subagent turn: stop mode', { stopOnly: 'asserts Stop mode itself' }, async ($, on) => {
   const h = memHost(on)
   await start($)
   await turnStart($); await stop($, 'done'); await turnEnd($)

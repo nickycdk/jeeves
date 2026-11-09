@@ -10,7 +10,7 @@ const OTHER = 'Other plugin: run the linter before stopping.'
 const safeStop = ($: Kit) =>
   $.classic.Stop({ stop_hook_active: false, last_assistant_message: 'step done', background_tasks: [], session_crons: [] })
 
-test('Q-9: the other hook blocks once; Jeeves waits that stop out, then asks; one rotation, one handover file', async ($, on) => {
+test('Q-9: the other hook blocks once; Jeeves waits that stop out, then asks; one rotation, one handover file', { stopOnly: "another hook's block on classic.Stop; no Stop reaches Jeeves in turn mode" }, async ($, on) => {
   const h = memHost(on)
   let otherBlocks = 1
   h.stopBlock = () => (otherBlocks-- > 0 ? OTHER : undefined)
@@ -38,7 +38,7 @@ test('Q-9: the other hook blocks once; Jeeves waits that stop out, then asks; on
   expect([...h.files.keys()].filter(f => /\/history\/handover-\d+\.md$/.test(f)).length).toBe(1)
 })
 
-test('Q-9: the other hook blocking the handover answer is not counted as an invalid handover', async ($, on) => {
+test('Q-9: the other hook blocking the handover answer is not counted as an invalid handover', { stopOnly: "another hook's block on classic.Stop; no Stop reaches Jeeves in turn mode" }, async ($, on) => {
   const h = memHost(on)
   let block = false
   h.stopBlock = () => (block ? OTHER : undefined)

@@ -9,7 +9,9 @@ import { memHost, type MemHost } from './memfs.ts'
 const env = (point: CrashPoint) => ({ HOME: '/home/t', JEEVES_TEST: '1', JEEVES_TEST_CRASH: point })
 const continuations = (prompts: { text: string }[]) => prompts.filter(p => p.text.includes('Jeeves: you are session'))
 const measure = ($: Kit, percent: number) => $.session.measure({ context: { window: 1_000_000, percent }, rateLimits: [], changed: ['context'] })
-const unsafeStop = ($: Kit) => $.classic.Stop({ stop_hook_active: false, last_assistant_message: 'step done', background_tasks: [], session_crons: [] })
+/** A call into the dead process: it never returns, and is aborted when the test ends (expected, so not an unhandled rejection). */
+const abandon = (p: Promise<unknown>) => { p.catch(() => {}) }
+const unsafeStop = ($: Kit) => stop($, 'step done', { stop_hook_active: false })
 
 /** Drive the rotation until the process dies at `point`; the dead process's pending hooks never return. */
 async function dieAt($: Kit, on: Parameters<typeof memHost>[0], point: CrashPoint) {
@@ -22,8 +24,8 @@ async function dieAt($: Kit, on: Parameters<typeof memHost>[0], point: CrashPoin
     await submit($, PROMPT)
     const dir = taskDirs(h)[0]!
     await turnStart($)
-    if (point === 'threshold') void measure($, 52)
-    else { await measure($, 52); void unsafeStop($) }
+    if (point === 'threshold') abandon(measure($, 52))
+    else { await measure($, 52); abandon(unsafeStop($)) }
     await until(h, () => stateOf(h, dir).status === (point === 'threshold' ? 'ROTATION_REQUESTED' : 'HANDOVER_GENERATING'))
     await until(h, () => h.logs.includes(`jeeves: crash point ${point}`))
     return { h, dir, prompts, handovers: 0 }
@@ -31,10 +33,10 @@ async function dieAt($: Kit, on: Parameters<typeof memHost>[0], point: CrashPoin
   const g = await generating($, on, { env: env(point) })
   const { h, dir, ctl } = g
   ctl.onClear = async () => { await engineClear($, h, 'sess-fresh') }
-  if (point === 'after-persist' || point === 'before-clear') void stop($, handover(g.taskId, g.rotationId))
+  if (point === 'after-persist' || point === 'before-clear') abandon(stop($, handover(g.taskId, g.rotationId)))
   else {
     await stop($, handover(g.taskId, g.rotationId))
-    void turnEnd($)
+    abandon(turnEnd($))
   }
   await until(h, () => h.logs.includes(`jeeves: crash point ${point}`))
   await h.clock.settle()
