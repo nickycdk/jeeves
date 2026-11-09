@@ -1,6 +1,7 @@
 // Managed-task wiring (02 §3): find the task, then read state -> reduce -> write state -> run effects.
 // Task state lives only in files; every cycle re-reads state.json inside the runtime's serial queue.
 import { completionInstruction, parseComplete } from '../core/completion.ts'
+import { isCompaction, tokensOf, type Last } from '../core/compaction.ts'
 import { changedFiles, continuationPrompt, freshContext } from '../core/continuation.ts'
 import { capturedFacts, toolRecord, type ToolOutcome } from '../core/evidence.ts'
 import { parseHandover } from '../core/handover/parse.ts'
@@ -322,9 +323,19 @@ export async function measure(rt: Runtime, raw: { percent?: number; tokens?: num
   const sessionId = await rt.port.sessionId()
   const percent = exactPercent(c)
   const r = await applyOwn(rt, { type: 'MEASURE', window: c.window, sessionId, ...(percent !== undefined ? { percent } : {}), ...(c.tokens !== undefined ? { tokens: c.tokens } : {}) })
+  // ADR-006 A1: turn mode sees no session.compact; a sharp fall within one conversation stands for it (the real
+  // reading, not the test window's). Stop mode keeps session.compact alone.
+  const tokens = tokensOf(raw), last = lastReading
+  lastReading = tokens === null ? lastReading : { sessionId, tokens }
+  if (rt.probe.boundary === 'turn' && isCompaction(last, sessionId, tokens)) {
+    rt.port.log(`jeeves: context fell ${last!.tokens} -> ${tokens} tokens: compaction`)
+    return (await applyOwn(rt, { type: 'COMPACTED', trigger: 'recognised' })) ?? r
+  }
   if (r?.state.status === 'ROTATION_REQUESTED') await crashPoint(rt, 'threshold')
   return r
 }
+// The last session.measure reading this process saw; a reload starts over (a compaction in that gap is not seen).
+let lastReading: Last = null
 
 /** The session ends for good (exit, logout, resume elsewhere): give up its lock so the next session can resume at once. Task state is kept. */
 export async function releaseOnExit(rt: Runtime, sessionId: string): Promise<void> {
