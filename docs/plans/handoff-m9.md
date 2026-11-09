@@ -1,28 +1,33 @@
-# Handover: M9 (v0.3 auto-start), after ST-13.5
+# Handover: M9 (v0.3 auto-start), after ST-13.8
 
-**Date:** 2026-11-09 · **Claude Code:** 2.1.319 · **Branch:** `main`, **18 commits ahead of `origin` (this handover included), not pushed**. Paths are relative to the repo root. The previous handover (after ST-13.2) is `docs/done/handoffs/handoff-m9-after-ST-13.2.md`.
+**Date:** 2026-11-09 · **Claude Code:** 2.1.319 · **Branch:** `main`, **22 commits ahead of `origin` (this handover included), not pushed**. Paths are relative to the repo root. The previous handover (after ST-13.5) is `docs/done/handoffs/handoff-m9-after-ST-13.5.md`.
 
 ## 1. Where things stand
 
 - **The auto-start spec is approved** (`docs/specs/auto-start.md`, D-40). Design frozen: new ideas go to its §13.
-- **The v0.3 plan** lives in the numbered plans (02–07) and is gathered in `docs/plans/09-v0.3-auto-start-plan.md`. **09 is generated:** after changing 02–07, run `python3 -I docs/plans/tools/gen-09.py` from the repo root; never edit 09 by hand. The numbered plans win when they differ. 09 §4 opens with a **progress table** built from each story's Status line in 04 (`- **Status:** Solved (date)` = done): write the Status line, regenerate, and the table follows.
-- **Built:** ST-13.1 (`a818e6a`), ST-13.2 (`3304ed1`), ST-13.3 (`5971d39`), ST-13.4 (`0e3ac35`), review fixes for 13.3/13.4 (`f990b28`), ST-13.5 (`e1fc64c`). Each story's **Status** line in 04 says what was decided and what was not done.
-- **Checks at HEAD:** 284 unit, 239 mod tests pass; typecheck, lint, `claude plugin validate --strict` pass. Live spend: none. One run of the mod suite saw the perf test `stats over 50 tasks < 100 ms` at 156 ms under load; it passed on every re-run.
-- **ponytail-review** ran on ST-13.3/13.4 (2026-11-09). Its must-fix (single store keys overwritten by a second session running at once) and the rest are fixed in `f990b28`. The M9 gate still needs ponytail-review and code-review over the whole M9 range at the end.
+- **The v0.3 plan** lives in the numbered plans (02–07) and is gathered in `docs/plans/09-v0.3-auto-start-plan.md`. **09 is generated:** after changing 02–07, run `python3 -I docs/plans/tools/gen-09.py` from the repo root; never edit 09 by hand. Its header text (and which amendments it gathers) lives in `docs/plans/tools/gen-09.py`: update "ST-13.1 … ST-13.N solved; next …" there after each story. 09 §4 opens with a **progress table** built from each story's Status line in 04.
+- **Built:** ST-13.1 (`a818e6a`), ST-13.2 (`3304ed1`), ST-13.3 (`5971d39`), ST-13.4 (`0e3ac35`), review fixes 13.3/13.4 (`f990b28`), ST-13.5 (`e1fc64c`), **ST-13.6 (`dcc17e5`), ST-13.7 (`d45b438`), ST-13.8 (`5d3206e`)**. Each story's **Status** line in 04 says what was decided and what was not done.
+- **Checks at HEAD:** 294 unit, 257 mod tests pass; typecheck, lint, `claude plugin validate --strict` pass. Live spend: none.
+- **Amendments written this session:** ADR-003 A1 (Current goal) and ADR-010 A2 (user `/clear` in auto tasks, auto-recovery) in 02, both gathered into 09 §2; four new 02 §4 rows; R-27 marked mitigated in code.
+- **Not reviewed yet:** ST-13.6 … 13.8 had no ponytail-review or code-review. The M9 gate needs both over the whole M9 range at the end.
 
 ## 2. Next, in order
 
-1. **ST-13.6 Current goal heading and the continuation order (M)**, 04 and 09 §4. DoD includes the ADR-003 amendment text in 02, the handover instruction template and the handover corpus (`jeeves/tests/fixtures/handover/`). Parser/validator: `src/core/handover/{parse,validate,template,render}.ts`; continuation: `src/core/continuation.ts` (snapshot `tests/fixtures/continuation.txt`). "Pre-upgrade task accepts a v1 block": decide how a task is known as pre-upgrade (e.g. its `origin`/schema history or a state field) and write it in the Status line.
-2. **ST-13.7** (user `/clear` in auto tasks, `(auto)`/`(explicit)` in status, auto-recovery), then ST-13.8, ST-13.9, ST-15.1; E14 alongside (ST-14.1 … 14.5); then ST-15.2 (live, approved under D-46 once its preconditions hold) and ST-15.3.
+1. **ST-13.9 Privacy text and the two-mode suite (S)**, 04 and spec §5.10. Open design point first: "the I-layer suite runs twice in CI, `autoStart` off and on". Mod tests run in the engine kit (`claude plugin test .`), set options per test (`{ options: { autoStart: 'on' } }`) and probably cannot read `process.env`; find out (plugin-authoring skill, `reference.md` "what a test holds") how a whole run can be switched, e.g. a kit-level default in `tests/mod/memfs.ts`/`kit.ts`, or a seeded `auto.json`/store value. Most tests are not eligible anyway (no `fakeGit`, 200K window); tests asserting "no task files without `/jeeves on`" (AC-03) need the A3 wording. Then PRIVACY.md (`jeeves/PRIVACY.md`), both READMEs (rows for `auto`, `defaults auto`, the `Auto-start` setting, cleanup, the user `/clear` rule), `.github/workflows/ci.yml` (second `claude plugin test` run), CHANGELOG (none exists yet: create `jeeves/CHANGELOG.md`), release-notes draft (must name the downgrade facts from §5.11 and that only typed `defaults clear` and `purge` reach v0.3 files), NFR-10 grep test (AC 3).
+2. **ST-15.1**, then **E14** (ST-14.1 … 14.5; ST-14.3/14.4 build on ST-13.6's `goalLine` and `rotation.goal`), then ST-15.2 (live, approved under D-46 once its preconditions hold) and ST-15.3.
 3. **Still the maintainer's:** v0.2.0 public release steps; setting up the D-44 account and separate macOS user for AC-41; final sign-off.
 
 ## 3. How auto-start works now (code map)
 
-- `src/core/autostart.ts`: precedence resolver (ST-13.2); `NOT_WATCHED` reasons in §5.1 order, `startReasons`, `autoReason`, `reasonLine` (`Auto off: <reason> (+N more)`), `largeWindow` (> 200K).
-- `src/core/machine.ts`: in `MEASURE`, the model-switch end (auto task, MONITORING/CONTINUING, known window ≤ 200K), the near-threshold end (first known reading of a new auto task within `NEAR_MARGIN` 10, or 0.5 under the test threshold), the grace period (`graceTurns`, counted in `TURN_COMPLETE`, `GRACE_TURNS` 3, before the first rotation only), `LATER` with `laterCap`/`capText`.
-- `src/adapter/eligible.ts`: decision at `session.start` (`decideAtStart`), `/clear` carry-over, `forget` on exit, `eligibility()` (kept facts + live auto-start setting + "this session" when a task of this session ended), the R-25 ending (`stopSkipped`), the first-run notice (`autoNotice`), the lazy start (`startAuto`, one at a time per process).
-- `hooks/register.ts`: `session.start` → upgrade check, eligibility, notice; `prompt.submit` → hold, auto start, capture; `turn.complete` → R-25 ending; `classic.SessionStart(clear)` → carry-over; `session.end` (not clear) → forget.
-- Status (`/jeeves status`) shows the auto line only when this session owns no task; `--diagnose` lists every reason.
+- `src/core/autostart.ts`: precedence resolver; `NOT_WATCHED` reasons; `reasonLine`; `largeWindow`.
+- `src/core/machine.ts`: near-threshold end, grace period, `LATER`; **ST-13.7:** `SESSION_END(clear)` not scheduled by Jeeves → DISABLED(USER_CLEAR) for auto, PAUSED(USER_CLEAR) for explicit (`USER_CLEAR_AUTO`/`_EXPLICIT`); input `EXPLICIT`; `HANDOVER_PERSISTED` carries `goal` into `rotation.goal`.
+- `src/core/handover/`: `template.ts` (`GOAL`, seven headings, instruction ≤ 2,500 chars, 2,477 at worst), `parse.ts` (`requireGoal`, codes `GOAL_BULLETS`, `GOAL_TOO_LONG`), `validate.ts` (`Facts.preUpgrade`), `render.ts` (`goalLine`, 80 chars).
+- `src/core/continuation.ts`: user's words first (`usersWords`, rev 1 cut at 1,500), then `summary` (Current goal, labelled), then as before. Takes `view: TaskView`.
+- `src/core/task.ts`: revision kinds `dod`, `check`, **`goal`** (`/jeeves on <goal>` in an auto task).
+- `src/core/cleanup.ts` + `src/adapter/purge.ts` `cleanupAuto`: ST-13.8 cleanup, at `session.start`.
+- `src/adapter/eligible.ts`: decision at `session.start`, `/clear` carry-over, first-run notice, lazy start.
+- `src/adapter/recover.ts`: `recoveryNotice` returns `auto` (auto task mid-rotation); `hooks/register.ts` recovers it when interactive, full mode, `turns()` 0.
+- `hooks/register.ts` `session.start` order: upgrade check, eligibility, notice, **cleanup**, recovery scan.
 
 ## 4. Facts worth keeping
 
@@ -34,11 +39,13 @@
 - **Messages:** the auto-task endings and the first-run notice are in the catalogue snapshot (`tests/fixtures/messages.txt`; `UPDATE_SNAPSHOTS=1` rewrites it). An auto-task ending also leaves the usual `Jeeves: off (task files kept)` transcript line.
 - **Haiku 5.5 prices** (read 2026-11-08): up to 100K-token prompts input 0.10, cache read 0.01, output 0.50 US$/MTok; over 100K every price ×5.
 - README: `/jeeves later` rows are in (it works for explicit tasks too); rows for `auto`, `defaults auto` and the `Auto-start` setting still wait for ST-13.9.
+- **ST-13.6 facts:** a task is pre-upgrade when the state v1 → v2 migration set `preUpgrade: true`; the sentinel stays `v1`. Handover corpus: hand-written fixtures carry Current goal, the ten `s05-trial-*` stay real v1 output. Instruction snapshot `tests/fixtures/handover-instruction.txt` has no `UPDATE_SNAPSHOTS` switch: regenerate with a one-line node script (see git log of `dcc17e5`).
+- **Test kit additions:** `tests/mod/kit.ts` `handover()` includes Current goal; recovery tests set `origin: 'auto'` by rewriting `state.json`; `h.turns`, `h.failProcess` (assisted), `isInteractive: false` (`-p`) are the gate levers; cleanup tests back-date `updatedAt` rather than advance the clock.
 
 ## 5. Open items for the maintainer (none blocks E13 or E14)
 
-- Q-13, Q-14 decided (D-44, D-45); AC-41 go-ahead and US$40 budget approved (D-46), valid once E13 and ST-15.1 pass, the D-44 account and macOS user exist, and the dry run's redone estimate stays within US$40; otherwise stop and ask.
-- A decision made in ST-13.4 to confirm or reverse: the first-run notice also shows for an upgrader who typed `/jeeves auto on` (spec §5.4 names fresh installs only).
+- AC-41 go-ahead and US$40 budget approved (D-46), valid once E13 and ST-15.1 pass, the D-44 account and macOS user exist, and the dry run's redone estimate stays within US$40; otherwise stop and ask.
+- Decisions to confirm or reverse: (ST-13.4) the first-run notice also shows for an upgrader who typed `/jeeves auto on`; (ST-13.7) `/jeeves on` without a goal in an auto task stays "Already on" and does not make it explicit; a PAUSED auto task is also ended by a user `/clear`; (ST-13.8) PAUSED/NEEDS_REVIEW/FAILED/BLOCKED auto tasks are never cleaned.
 
 ## 6. Rules (from the maintainer, still in force)
 
