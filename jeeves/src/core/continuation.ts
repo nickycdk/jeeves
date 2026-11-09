@@ -16,6 +16,7 @@ export function freshContext(p: { taskId: string; session: number; view: TaskVie
     `## Original task (${revFile(1)}, the user's own words, never changed)`,
     p.view.original,
     '',
+    ...p.view.changes.filter(c => c.kind === 'goal').flatMap(c => [`## Goal set later (${revFile(c.n)}, the user's own words)`, c.text, '']),
     '## Definition of Done',
     ...bullets(p.view.dod, '(none set)'),
     '## Verification commands (run them with your own Bash tool; Jeeves never runs them)',
@@ -68,7 +69,7 @@ export const heldPrompt = (prompts: readonly string[]) =>
 
 const ORIGINAL_SHOWN = 1500
 const quote = (s: string) => s.replace(/\r\n?/g, '\n').split('\n').map(l => `> ${l}`)
-const CHANGE: Record<ChangeKind, string> = { dod: 'Definition of Done item', check: 'Verification command, never run by Jeeves' }
+const CHANGE: Record<ChangeKind, string> = { dod: 'Definition of Done item', check: 'Verification command, never run by Jeeves', goal: 'Goal the user set with /jeeves on' }
 
 /** ST-13.6 (spec §5.3): the user's words first, quoted; they alone define the task, the DoD and the checks. */
 function usersWords(v: TaskView): string[] {

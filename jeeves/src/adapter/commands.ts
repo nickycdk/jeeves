@@ -106,6 +106,13 @@ export async function relay(rt: Runtime, args: string, caller: Caller): Promise<
 
 async function on(rt: Runtime, tasks: Task[], me: string, rest: string): Promise<string> {
   const own = ownTask(tasks, me)
+  // ST-13.7 (spec §5.7): a goal typed during an auto task makes it explicit; the goal is the user's next revision.
+  if (own?.state.origin === 'auto' && rest.trim()) {
+    const n = await addRevision(rt, own.dir, 'goal', rest.replace(/^\s+/, ''))
+    if (typeof n !== 'number') return MSG.waitingForPrompt
+    await apply(rt, own.dir, { type: 'EXPLICIT' })
+    return MSG.madeExplicit(own.state.taskId, n)
+  }
   if (own) return MSG.alreadyOn(own.state)
   // ST-6.6 (02 §7): a task no session runs is offered back first; a running session's task stays its own, and this
   // session starts a separate one.

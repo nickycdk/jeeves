@@ -13,6 +13,8 @@ export type Input =
   | { type: 'REVISED'; revision: number; pending?: boolean }
   /** `/jeeves dod|check` before the original prompt is captured (taskRevision 0): kept until rev 1 exists. */
   | { type: 'QUEUE_CHANGE'; kind: 'dod' | 'check'; text: string }
+  /** ST-13.7: `/jeeves on <goal>` in an auto task; the goal revision is written first. */
+  | { type: 'EXPLICIT' }
   /** `/jeeves threshold <n>`, n a whole number 20..90 (FR-03). */
   | { type: 'SET_THRESHOLD'; percent: number }
   /** `fromTool`: read at a main-loop tool result, so after a model call (D-25 counts only those as a session's start). */
@@ -108,6 +110,9 @@ export const TEST_LOOP_MARGIN = 0.5
 /** Spec §5.2: an auto task never rotates in its first 3 main turns. */
 export const GRACE_TURNS = 3
 /** Spec §5.2: a new auto task whose first reading is this close to the threshold ends at once. */
+/** A user's /clear (spec §5.7). */
+export const USER_CLEAR_AUTO = 'Jeeves: task ended (new conversation); the next prompt starts a new one'
+export const USER_CLEAR_EXPLICIT = 'Jeeves: paused (you cleared the conversation); /jeeves resume continues the task'
 export const NEAR_MARGIN = 10
 /** `/jeeves later` (spec §5.5): each one moves the threshold up this much. */
 export const LATER_STEP = 10
@@ -309,6 +314,11 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
       return done()
     }
 
+    case 'EXPLICIT':
+      if (state.origin === 'explicit') return ignore('already explicit')
+      next = { ...next, origin: 'explicit', updatedAt: at }
+      return done()
+
     case 'OFF':
       if (state.status === 'DISABLED') return ignore('already off')
       go('DISABLED', null, { rotation: null, activeSessionId: input.sessionId })
@@ -484,8 +494,9 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
       }
       // A /clear Jeeves did not schedule (ROTATING before CLEAR_SCHEDULED) is the user's: pause, never a rotation (ST-4.2 AC 2).
       if (!ACTIVE(state.status) && state.status !== 'PAUSED') return ignore('no active task')
-      go('PAUSED', 'USER_CLEAR', { rotation: null, armedFired: false }, 'conversation cleared by the user')
-      effects.push({ type: 'TOAST', key: `-:user-clear:${input.sessionId}`, text: 'You cleared the conversation, so Jeeves paused this task. /jeeves status shows it.' })
+      // ST-13.7 (spec §5.7, ADR-010 A2): an auto task ends (files kept) and the next typed prompt starts a new one.
+      go(state.origin === 'auto' ? 'DISABLED' : 'PAUSED', 'USER_CLEAR', { rotation: null, armedFired: false }, 'conversation cleared by the user')
+      effects.push({ type: 'TOAST', key: `-:user-clear:${input.sessionId}`, text: state.origin === 'auto' ? USER_CLEAR_AUTO : USER_CLEAR_EXPLICIT })
       return done()
 
     case 'SESSION_START_CLEAR': {

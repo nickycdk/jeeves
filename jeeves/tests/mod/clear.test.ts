@@ -1,7 +1,7 @@
 // Review fix 1: a user's /clear pauses the task (USER_CLEAR) instead of leaving it to a session id that no longer exists.
 import type { SessionMeasureInput } from 'claude-code'
 import { expect, test } from 'claude-code/testing'
-import { bottom, engineClear, generating, PROMPT, relay, start, stateOf, stop, submit, taskDirs, turnEnd, turnStart, until, type Kit } from './kit.ts'
+import { bottom, engineClear, fakeGit, generating, handover, PROMPT, relay, start, stateOf, stop, submit, taskDirs, turnEnd, turnStart, until, type Kit } from './kit.ts'
 import { memHost } from './memfs.ts'
 
 const measure = ($: Kit, percent: number) =>
@@ -19,7 +19,7 @@ test('after /clear: task PAUSED(USER_CLEAR), lock given up, said plainly; off wo
   h.sessionId = 'sess-after-clear'
   expect([stateOf(h, dir!).status, stateOf(h, dir!).reason]).toEqual(['PAUSED', 'USER_CLEAR'])
   expect(h.files.has(`${dir}/lock.d/owner.json`)).toBe(false)
-  expect(h.toasts).toContain('You cleared the conversation, so Jeeves paused this task. /jeeves status shows it.')
+  expect(h.toasts).toContain('Jeeves: paused (you cleared the conversation); /jeeves resume continues the task')
 
   const status = await relay($, 'status')
   expect(status).toContain('State: PAUSED (USER_CLEAR)')
@@ -71,3 +71,59 @@ for (const at of ['ROTATION_REQUESTED', 'HANDOVER_GENERATING'] as const) {
     expect(prompts.filter(p => p.text.includes('Jeeves: you are session')).length).toBe(1)
   })
 }
+
+// ---- ST-13.7 (spec §5.7, ADR-010 A2): a user /clear in an auto task, and auto -> explicit ----
+const ended = 'Jeeves: task ended (new conversation); the next prompt starts a new one'
+async function autoSession($: Kit, on: Parameters<typeof memHost>[0]) {
+  const h = memHost(on)
+  fakeGit(h)
+  h.usage = { window: 1_000_000 }
+  const prompts = bottom(on)
+  await start($)
+  await submit($, PROMPT)
+  const dir = taskDirs(h)[0]!
+  expect(stateOf(h, dir).origin).toBe('auto')
+  return { h, dir, prompts }
+}
+
+test('ST-13.7 AC 1, 2: a user /clear ends an auto task (files kept, lock given up); the next typed prompt starts a new auto task', async ($, on) => {
+  const { h, dir } = await autoSession($, on)
+  expect(await relay($, 'status')).toContain(`Task: ${stateOf(h, dir).taskId} (auto)`)
+  await engineClear($, h, 'sess-2')
+  const s = stateOf(h, dir)
+  expect([s.status, s.reason]).toEqual(['DISABLED', 'USER_CLEAR'])
+  expect(h.toasts).toContain(ended)
+  expect(h.notes).toContain('Jeeves: off (task files kept)')
+  expect(h.files.has(`${dir}/lock.d/owner.json`)).toBe(false)
+  expect(h.files.get(`${dir}/task-rev-001.md`)).toBe(PROMPT)
+  await submit($, 'Now the CSV export.')
+  const next = taskDirs(h).find(d => d !== dir)!
+  expect(h.files.get(`${next}/task-rev-001.md`)).toBe('Now the CSV export.')
+  expect([stateOf(h, next).origin, stateOf(h, next).status, stateOf(h, next).activeSessionId]).toEqual(['auto', 'MONITORING', 'sess-2'])
+})
+
+test('ST-13.7 AC 3: /jeeves on <goal> in an auto task makes it explicit with a goal revision; a /clear then pauses it', async ($, on) => {
+  const { h, dir } = await autoSession($, on)
+  const answer = await relay($, 'on finish the CSV parser')
+  expect(answer).toBe(`Task ${stateOf(h, dir).taskId} is now explicit: your goal is task revision 2, and a /clear pauses it instead of ending it.`)
+  expect([stateOf(h, dir).origin, stateOf(h, dir).taskRevision, stateOf(h, dir).status]).toEqual(['explicit', 2, 'MONITORING'])
+  expect(h.files.get(`${dir}/task-rev-002.md`)).toMatch(/^Jeeves task revision 2\nKind: goal\nMeaning: Goal\nAdded by: \/jeeves on, typed by the user\n.*\n\nfinish the CSV parser$/)
+  expect(await relay($, 'task')).toContain('task-rev-002.md  goal: finish the CSV parser')
+  expect(await relay($, 'status')).toContain('(explicit)')
+  expect(taskDirs(h)).toEqual([dir])
+  await engineClear($, h, 'sess-2')
+  expect([stateOf(h, dir).status, stateOf(h, dir).reason]).toEqual(['PAUSED', 'USER_CLEAR'])
+  expect(h.toasts).toContain('Jeeves: paused (you cleared the conversation); /jeeves resume continues the task')
+})
+
+test('ST-13.7 AC 6: Jeeves\'s own /clear in an auto task rotates as before; the task is not ended', async ($, on) => {
+  const g = await generating($, on)
+  const { h, dir, ctl } = g
+  h.files.set(`${dir}/state.json`, JSON.stringify({ ...stateOf(h, dir), origin: 'auto' }, null, 2) + '\n')
+  expect(await stop($, handover(g.taskId, g.rotationId))).toEqual({})
+  ctl.onClear = async () => { await engineClear($, h, 'sess-2') }
+  await turnEnd($)
+  await until(h, () => stateOf(h, dir).status === 'CONTINUING')
+  expect([stateOf(h, dir).origin, stateOf(h, dir).activeSessionId]).toEqual(['auto', 'sess-2'])
+  expect(h.toasts).not.toContain(ended)
+})

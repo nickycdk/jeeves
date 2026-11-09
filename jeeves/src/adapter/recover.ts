@@ -51,14 +51,18 @@ async function candidates(rt: Runtime): Promise<Candidate[]> {
 }
 
 /** At session start: one line about a task that waits for /jeeves recover, or null. Never changes anything. */
-export async function recoveryNotice(rt: Runtime): Promise<{ text: string; recover: boolean } | null> {
+/** HANDOVER_GENERATING … RESTORING (spec §5.8): the rotations an auto task cleans up by itself. */
+const MID_ROTATION: readonly State['status'][] = ['HANDOVER_GENERATING', 'VALIDATING', 'ROTATING', 'RESTORING']
+
+/** `auto`: an auto task interrupted mid-rotation, which recovers without `autoRecover` in a session that passes the gates (ST-13.7). */
+export async function recoveryNotice(rt: Runtime): Promise<{ text: string; recover: boolean; auto: boolean } | null> {
   const me = await rt.port.sessionId()
   for (const c of await candidates(rt)) {
     const a = classify(c.found, me, () => false)
-    if (a.kind === 'recover') return { text: MSG.interrupted(c.taskId, c.state!.status), recover: true }
-    if (a.kind === 'rebuild') return { text: MSG.corrupt(c.taskId), recover: false }
+    if (a.kind === 'recover') return { text: MSG.interrupted(c.taskId, c.state!.status), recover: true, auto: c.state!.origin === 'auto' && MID_ROTATION.includes(c.state!.status) }
+    if (a.kind === 'rebuild') return { text: MSG.corrupt(c.taskId), recover: false, auto: false }
     // A crash leaves a live-looking lock for up to STALE_MS; another running session looks the same.
-    if (a.kind === 'lock-held') return { text: MSG.heldElsewhere(c.taskId, c.state!.status), recover: false }
+    if (a.kind === 'lock-held') return { text: MSG.heldElsewhere(c.taskId, c.state!.status), recover: false, auto: false }
   }
   return null
 }

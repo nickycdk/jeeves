@@ -65,10 +65,13 @@ export const register: Register = (on, options) => {
     // ST-13.4 (spec §5.4): before any recording, so the same session is watched from its first typed prompt.
     await quietly($, opts, 'auto notice', rt => autoNotice(rt, opts.autoStart ?? 'default'))
     // ST-6.1: a task an earlier session left (crash, exit mid-rotation) is named once; autoRecover continues it.
+    // ST-13.7 (spec §5.8): an auto task cut off mid-rotation continues by itself, but only in an interactive, full-mode,
+    // fresh conversation; under -p, assisted or resumed it waits.
     await quietly($, opts, 'recovery scan', async rt => {
       const n = await recoveryNotice(rt)
       if (!n) return
-      if (opts.autoRecover && n.recover) rt.port.toast(await recover(rt, await rt.port.sessionId(), endedHere))
+      const autoOk = n.auto && e.isInteractive && rt.probe.mode === 'full' && (await rt.port.turns()) === 0
+      if (n.recover && (opts.autoRecover || autoOk)) rt.port.toast(await recover(rt, await rt.port.sessionId(), endedHere))
       else rt.port.toast(n.text)
     })
     beat?.cancel()

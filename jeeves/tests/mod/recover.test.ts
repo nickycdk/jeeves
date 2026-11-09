@@ -166,3 +166,50 @@ test('code review 9: an unknown argument to /jeeves recover is refused with the 
   expect(await relay($, 'recover --relnk')).toBe('Usage: /jeeves recover, or /jeeves recover --relink to continue after a branch switch or a moved folder.')
   expect(stateOf(g.h, g.dir).status).toBe('HANDOVER_GENERATING')
 })
+
+// ---- ST-13.7 (spec §5.8, D-43): an auto task cut off mid-rotation recovers by itself, only in a session that passes the gates ----
+async function autoLeftRotating($: Kit, on: Parameters<typeof generating>[1]) {
+  const g = await generating($, on)
+  const { h, dir } = g
+  h.files.set(`${dir}/state.json`, JSON.stringify({ ...stateOf(h, dir), origin: 'auto' }, null, 2) + '\n')
+  expect(await stop($, handover(g.taskId, g.rotationId))).toEqual({})
+  await $.session.end({ reason: 'prompt_input_exit', sessionId: 'sess-test', resume: { id: 'sess-test' } })
+  return g
+}
+
+test('ST-13.7 AC 4: an interrupted auto task continues by itself in a fresh interactive full-mode session, without autoRecover', async ($, on) => {
+  const g = await autoLeftRotating($, on)
+  await restart($, g.h)
+  expect(g.h.toasts.at(-1)).toBe(`Recovering task ${g.taskId} here: Jeeves sends the task and its last validated handover as the next prompt.`)
+  await until(g.h, () => continuations(g.prompts).length > 0)
+  await g.h.clock.settle()
+  expect(continuations(g.prompts).length).toBe(1)
+  expect([stateOf(g.h, g.dir).status, stateOf(g.h, g.dir).origin]).toEqual(['CONTINUING', 'auto'])
+})
+
+for (const [name, setup] of [
+  ['under -p', async ($: Kit, h: MemHost) => { h.sessionId = 'sess-2'; await $.session.start({ cwd: '/work/proj', surface: 'terminal', isInteractive: false }) }],
+  ['in a resumed conversation', async ($: Kit, h: MemHost) => { h.turns = 4; await restart($, h) }],
+  ['in assisted mode', async ($: Kit, h: MemHost) => { h.failProcess = true; await restart($, h) }],
+] as const) {
+  test(`ST-13.7 AC 4: an interrupted auto task waits ${name}; /jeeves recover still works`, async ($, on) => {
+    const g = await autoLeftRotating($, on)
+    await setup($, g.h)
+    await g.h.clock.settle()
+    expect(continuations(g.prompts).length).toBe(0)
+    expect(stateOf(g.h, g.dir).status).toBe('ROTATING')
+    if (name === 'in assisted mode') return
+    expect(g.h.toasts.at(-1)).toBe(`Task ${g.taskId} was left ROTATING by an earlier session. /jeeves recover continues it here.`)
+    expect(await relay($, 'recover')).toContain(`Recovering task ${g.taskId} here`)
+  })
+}
+
+test('ST-13.7 AC 5: an explicit task left mid-rotation follows autoRecover (off: the notice only)', async ($, on) => {
+  const g = await generating($, on)
+  expect(await stop($, handover(g.taskId, g.rotationId))).toEqual({})
+  await $.session.end({ reason: 'prompt_input_exit', sessionId: 'sess-test', resume: { id: 'sess-test' } })
+  await restart($, g.h)
+  await g.h.clock.settle()
+  expect(g.h.toasts.at(-1)).toBe(`Task ${g.taskId} was left ROTATING by an earlier session. /jeeves recover continues it here.`)
+  expect(continuations(g.prompts).length).toBe(0)
+})

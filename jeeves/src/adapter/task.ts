@@ -283,6 +283,8 @@ export function addRevision(rt: Runtime, dir: string, kind: ChangeKind, text: st
     if (!r?.ok) return null
     let s = await adoptLeftovers(rt, dir, r.value)
     if (s.taskRevision < 1) {
+      // A goal revision comes only from a running auto task, which always has rev 1.
+      if (kind === 'goal') return null
       const q = await transition(rt, dir, s, { type: 'QUEUE_CHANGE', kind, text })
       return (q.state.pendingChanges?.length ?? 0) > (s.pendingChanges?.length ?? 0) ? 'pending' : null
     }
@@ -327,15 +329,15 @@ export async function releaseOnExit(rt: Runtime, sessionId: string): Promise<voi
 
 /**
  * session.end(clear). Jeeves's own /clear (ROTATING, CLEAR_SCHEDULED) records the source session and writes its
- * `sessions/NNN.json`; the lock stays for the fresh session to take. A user's /clear pauses the task (USER_CLEAR,
- * ADR-010) and gives up the old id's lock, so the new conversation can see it and end it.
+ * `sessions/NNN.json`; the lock stays for the fresh session to take. A user's /clear pauses an explicit task and ends an
+ * auto one (USER_CLEAR, ADR-010 A2) and gives up the old id's lock, so the new conversation can see it, end it or start its own.
  */
 export async function onUserClear(rt: Runtime, oldSessionId: string): Promise<void> {
   const own = ownTask((await projectTasks(rt)).tasks, oldSessionId)
   if (!own) return
   const cost = await rt.port.costUsd()
   const r = await apply(rt, own.dir, { type: 'SESSION_END', reason: 'clear', sessionId: oldSessionId, ...(cost !== null ? { costUsd: cost } : {}) })
-  if (r?.state.status === 'PAUSED' && r.state.reason === 'USER_CLEAR') await rt.storage.releaseLock(own.dir, oldSessionId)
+  if ((r?.state.status === 'PAUSED' || r?.state.status === 'DISABLED') && r.state.reason === 'USER_CLEAR') await rt.storage.releaseLock(own.dir, oldSessionId)
 }
 
 /**

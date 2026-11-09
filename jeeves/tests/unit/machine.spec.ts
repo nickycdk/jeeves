@@ -378,6 +378,17 @@ test('row 27: any + session.end(clear) while not ROTATING -> PAUSED(USER_CLEAR)'
   assert.ok(run(st('MONITORING'), { type: 'SESSION_END', reason: 'exit', sessionId: 's' }).ignored)
 })
 
+test('ST-13.7: a user /clear ends an auto task (DISABLED(USER_CLEAR), its own message); EXPLICIT turns an auto task explicit once', () => {
+  for (const s of ['MONITORING', 'ROTATION_REQUESTED', 'HANDOVER_GENERATING', 'PAUSED'] as const) {
+    const o = run(st(s, { origin: 'auto' }), { type: 'SESSION_END', reason: 'clear', sessionId: 'sess-a' })
+    assert.deepEqual([o.state.status, o.state.reason, o.state.rotation, o.state.origin], ['DISABLED', 'USER_CLEAR', null, 'auto'], s)
+    assert.ok(o.effects.some(e => e.type === 'TOAST' && e.text === 'Jeeves: task ended (new conversation); the next prompt starts a new one'))
+  }
+  const e = run(st('MONITORING', { origin: 'auto' }), { type: 'EXPLICIT' })
+  assert.deepEqual([e.state.origin, e.state.status], ['explicit', 'MONITORING'])
+  assert.ok(run(e.state, { type: 'EXPLICIT' }).ignored)
+})
+
 test('the event line of a transition that ends a rotation still names that rotation', () => {
   const o = run(st('QUIESCING', { rotation: rot({ step: 'QUIESCING', quiesceCount: 3 }) }), stop(1))
   const log = o.effects.find(e => e.type === 'LOG_EVENT')

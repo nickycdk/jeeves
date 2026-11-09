@@ -44,3 +44,12 @@ test('revisions: N changes give N+1 files; each parses back exactly, and the fol
   assert.equal(parseRevision(2, 'hello'), null)
   assert.equal(parseRevision(3, files[1]!), null)
 })
+
+test('ST-13.7: a goal revision says it came from /jeeves on and parses back as a goal', async () => {
+  const { renderChange, parseRevision, foldTask, taskText } = await import('../../src/core/task.ts')
+  const f = renderChange(2, 'goal', 'finish the CSV parser', AT)
+  assert.match(f, /^Jeeves task revision 2\nKind: goal\nMeaning: Goal\nAdded by: \/jeeves on, typed by the user\n/)
+  const v = foldTask([parseRevision(1, 'x')!, parseRevision(2, f)!])
+  assert.deepEqual([v.dod, v.checks, v.changes.map(c => c.kind)], [[], [], ['goal']])
+  assert.ok(taskText('t1', v).includes('task-rev-002.md  goal: finish the CSV parser'))
+})

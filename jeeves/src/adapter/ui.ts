@@ -97,7 +97,7 @@ export function statusText(v: StatusView): string {
     const pct = s.lastContext?.percent
     if (s.taskRevision === 0) lines.push('Waiting for your first prompt')
     lines.push(
-      `Task: ${s.taskId}`,
+      `Task: ${s.taskId} (${s.origin})`,
       `State: ${s.status}${s.reason ? ` (${s.reason})` : ''}`,
       `Context: ${pct === undefined ? 'unknown' : `${Math.round(pct * 10) / 10}%`}  Threshold: ${shownThreshold(s, v.thresholdOverride, v.thresholdRelative)}%${tokensAt(s.lastContext?.window, s.thresholdPercent)}`,
       ...(v.thresholdRelative ? [`TEST OVERRIDE +${v.thresholdRelative} (task setting ${s.thresholdPercent}%)`]
@@ -168,6 +168,7 @@ export const MSG = {
   noProject: (stateRootError: string | null) => stateRootError
     ? `Jeeves has no state folder (${stateRootError}). Set stateDir in /config.`
     : 'Jeeves could not tell which project this is (git did not answer). Try again.',
+  madeExplicit: (taskId: string, n: number) => `Task ${taskId} is now explicit: your goal is task revision ${n}, and a /clear pauses it instead of ending it.`,
   alreadyOn: (s: State) => `Already on: task ${s.taskId} (${s.status}). /jeeves status shows it.`,
   lockHeld: (taskId: string) => `Another running session owns task ${taskId} here (LOCK_HELD). /jeeves status shows it read-only.`,
   separateTask: (taskId: string) => `Another running session owns task ${taskId} here (LOCK_HELD); it stays that session's. Starting a separate task for this session.`,

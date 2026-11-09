@@ -4,7 +4,7 @@ import assert from 'node:assert/strict'
 import { readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { MSG } from '../../src/adapter/ui.ts'
-import { diskText, nearText, stopFailureCode, stopFailureText, windowEndText } from '../../src/core/machine.ts'
+import { diskText, nearText, stopFailureCode, stopFailureText, USER_CLEAR_AUTO, USER_CLEAR_EXPLICIT, windowEndText } from '../../src/core/machine.ts'
 import { probe } from '../../src/core/probe.ts'
 
 const SNAPSHOT = join(import.meta.dirname, '../fixtures/messages.txt')
@@ -25,6 +25,9 @@ function allMessages(): string {
     `Auto task, model switch to 200K: ${windowEndText(200_000)}`,
     `Auto task, Stop hook skipped: ${MSG.autoUnsupported}`,
     `First eligible session: ${MSG.autoNotice(40, 1_000_000)}`,
+    `Auto task, user /clear: ${USER_CLEAR_AUTO}`,
+    `Explicit task, user /clear: ${USER_CLEAR_EXPLICIT}`,
+    `Auto task made explicit: ${MSG.madeExplicit('t_1', 2)}`,
   ].join('\n') + '\n'
 }
 

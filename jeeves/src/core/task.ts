@@ -18,16 +18,18 @@ export function newTaskState(t: { taskId: string; projectId: string; thresholdPe
 }
 
 /** What a later revision adds. Each revision file is one change, written once; the current task is all of them folded. */
-export type ChangeKind = 'dod' | 'check'
+/** `goal` (ST-13.7): `/jeeves on <goal>` typed during an auto task, which makes it explicit. */
+export type ChangeKind = 'dod' | 'check' | 'goal'
 export type Revision = { n: number; kind: 'original' | ChangeKind; text: string }
 export type TaskView = { original: string; dod: string[]; checks: string[]; changes: Revision[] }
 
-const LABEL: Record<ChangeKind, string> = { dod: 'Definition of Done item', check: 'Verification command (stored as text, never run by Jeeves)' }
+const LABEL: Record<ChangeKind, string> = { dod: 'Definition of Done item', check: 'Verification command (stored as text, never run by Jeeves)', goal: 'Goal' }
+const COMMAND: Record<ChangeKind, string> = { dod: '/jeeves dod', check: '/jeeves check', goal: '/jeeves on' }
 const HEADER = 'Jeeves task revision'
 
 /** Revision n >= 2: a short header, a blank line, then the user's text exactly as typed. */
 export function renderChange(n: number, kind: ChangeKind, text: string, at: string): string {
-  return `${HEADER} ${n}\nKind: ${kind}\nMeaning: ${LABEL[kind]}\nAdded by: /jeeves ${kind}, typed by the user\nAt: ${at}\n\n${text}`
+  return `${HEADER} ${n}\nKind: ${kind}\nMeaning: ${LABEL[kind]}\nAdded by: ${COMMAND[kind]}, typed by the user\nAt: ${at}\n\n${text}`
 }
 
 /** Rev 1 is the original prompt as is; later ones are parsed back from `renderChange`. Null when a file is not one of ours. */
@@ -35,7 +37,7 @@ export function parseRevision(n: number, file: string): Revision | null {
   if (n === 1) return { n, kind: 'original', text: file }
   const split = file.indexOf('\n\n')
   if (split < 0 || !file.startsWith(`${HEADER} ${n}\n`)) return null
-  const kind = /^Kind: (dod|check)$/m.exec(file.slice(0, split))?.[1] as ChangeKind | undefined
+  const kind = /^Kind: (dod|check|goal)$/m.exec(file.slice(0, split))?.[1] as ChangeKind | undefined
   return kind ? { n, kind, text: file.slice(split + 2) } : null
 }
 
@@ -61,7 +63,7 @@ export function taskText(taskId: string, v: TaskView): string {
     original,
     '',
     v.changes.length ? 'Changes since, each typed by you:' : 'No changes since.',
-    ...v.changes.map(c => `${revFile(c.n)}  ${c.kind === 'dod' ? 'DoD' : 'check'}: ${c.text}`),
+    ...v.changes.map(c => `${revFile(c.n)}  ${c.kind === 'dod' ? 'DoD' : c.kind}: ${c.text}`),
     '',
     'Current Definition of Done:',
     ...list(v.dod, '(none: /jeeves dod <text> adds one)'),
