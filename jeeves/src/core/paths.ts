@@ -13,7 +13,6 @@ export function normalize(p: string): string {
 
 export const join = (...parts: string[]) => normalize(parts.join('/'))
 
-export const dirname = (p: string) => normalize(p.replace(/\/[^/]*\/?$/, '') || '/')
 
 /** True when `child` is `parent` or below it (both absolute, compared after normalising). */
 export function isInside(child: string, parent: string): boolean {

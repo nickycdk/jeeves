@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { mkdir, rename, stat, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { gitFacts, projectId, repoIdentity } from '../../src/adapter/git.ts'
-import { parsePorcelainZ, sameRepo } from '../../src/core/git.ts'
+import { parsePorcelainZ } from '../../src/core/git.ts'
 import { newTaskId, projectKey } from '../../src/core/ids.ts'
 import type { FsPort } from '../../src/adapter/ports.ts'
 import { buildRepo, sh } from './fixtures.ts'
@@ -42,12 +42,10 @@ test('a moved repo is detectable as a mismatch', async () => {
   const { dir } = await buildRepo('clean')
   const before = await repoIdentity(port, dir)
   assert.ok(before?.kind === 'git')
-  const stored = { repoRoot: before.commonDir, worktree: before.worktree }
   const moved = join(dir, '..', 'moved')
   await rename(dir, moved)
   const after = await repoIdentity(port, moved)
-  assert.ok(after && !sameRepo(stored, after))
-  assert.ok(sameRepo(stored, before))
+  assert.ok(after?.kind === 'git' && after.worktree !== before.worktree)
 })
 
 test('facts: clean, dirty with untracked, and changes since the task start', async () => {

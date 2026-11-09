@@ -60,35 +60,29 @@ export const liveTasks = (tasks: Task[]) => tasks.filter(t => !ENDED.has(t.state
 
 export type Applied = { state: State; forHook: EffectResult['forHook'] }
 
-/** One transition from `prev`, inside the serial queue: write state, then run effects; feeds back follow-up inputs. */
+/** One transition from `prev`, inside the serial queue: write state, then run effects. */
 async function transition(rt: Runtime, dir: string, prev: State, input: Input): Promise<Applied> {
-  let state = prev
-  const forHook: Applied['forHook'] = []
-  for (const queue = [input]; queue.length;) {
-    const now = await rt.port.now()
-    const out = reduce(state, queue.shift()!, { now, config: DEFAULT_CONFIG, newRotationId: newRotationId(now, random6()), ...(rt.thresholdOverride ? { thresholdOverride: rt.thresholdOverride } : {}), ...(rt.thresholdRelative ? { thresholdRelative: rt.thresholdRelative } : {}) })
-    if (out.ignored) rt.port.log(`jeeves: ${out.ignored}`)
-    if (out.state === state) continue
-    try {
-      await rt.storage.writeState(dir, out.state)
-    } catch (err) {
-      await blockOnDisk(rt, dir, state, out.state.status, err)
-      throw err
-    }
-    // ADR-004 A2: leaving PAUSED(UNSAFE_BOUNDARY) forgets turn mode's background record, so a lost notification blocks once.
-    if (state.status === 'PAUSED' && state.reason === 'UNSAFE_BOUNDARY' && out.state.status !== 'PAUSED') bgReset()
-    state = out.state
-    const r = await runEffects(out.effects, { port: rt.port, storage: rt.storage, taskDir: dir, state })
-    for (const f of r.failed) rt.port.log(`jeeves: effect ${f.effect.type} failed: ${f.error}`)
-    for (const e of out.effects) {
-      const line = e.type === 'LOG_EVENT' ? transitionLine(e.from, e.to, e.code, state) : null
-      if (line) rt.port.note(line)
-    }
-    forHook.push(...r.forHook)
-    queue.push(...r.followUps)
+  const now = await rt.port.now()
+  const out = reduce(prev, input, { now, config: DEFAULT_CONFIG, newRotationId: newRotationId(now, random6()), ...(rt.thresholdOverride ? { thresholdOverride: rt.thresholdOverride } : {}), ...(rt.thresholdRelative ? { thresholdRelative: rt.thresholdRelative } : {}) })
+  if (out.ignored) rt.port.log(`jeeves: ${out.ignored}`)
+  if (out.state === prev) return { state: prev, forHook: [] }
+  try {
+    await rt.storage.writeState(dir, out.state)
+  } catch (err) {
+    await blockOnDisk(rt, dir, prev, out.state.status, err)
+    throw err
   }
-  if (state !== prev) rt.port.status(statusLine(state, shownThreshold(state, rt.thresholdOverride, rt.thresholdRelative)))
-  return { state, forHook }
+  // ADR-004 A2: leaving PAUSED(UNSAFE_BOUNDARY) forgets turn mode's background record, so a lost notification blocks once.
+  if (prev.status === 'PAUSED' && prev.reason === 'UNSAFE_BOUNDARY' && out.state.status !== 'PAUSED') bgReset()
+  const state = out.state
+  const r = await runEffects(out.effects, { port: rt.port, storage: rt.storage, taskDir: dir, state })
+  for (const f of r.failed) rt.port.log(`jeeves: effect ${f.effect.type} failed: ${f.error}`)
+  for (const e of out.effects) {
+    const line = e.type === 'LOG_EVENT' ? transitionLine(e.from, e.to, e.code, state) : null
+    if (line) rt.port.note(line)
+  }
+  rt.port.status(statusLine(state, shownThreshold(state, rt.thresholdOverride, rt.thresholdRelative)))
+  return { state, forHook: r.forHook }
 }
 
 /**
