@@ -16,6 +16,7 @@ import { runEffects, type EffectResult } from './effects.ts'
 import { shownThreshold, statusLine, transitionLine } from './ui.ts'
 import { gitFacts } from './git.ts'
 import { bgCount, bgReset, type CrashPoint, type Runtime } from './runtime.ts'
+import { carryOver } from './eligible.ts'
 import { sha256Hex, StorageError } from './storage.ts'
 
 export type Task = { state: State; dir: string }
@@ -626,7 +627,31 @@ async function runClear(rt: Runtime, dir: string): Promise<void> {
     rt.port.log(`jeeves: /clear rejected: ${why(err)}`)
     return
   }
+  if (rt.probe.boundary === 'turn') return freshInTurnMode(rt, dir)
   await continueFresh(rt, dir)
+}
+
+/**
+ * ADR-003 A2, 02 §4 ROTATING (turn mode): no SessionStart follows a plugin /clear (probe, spec §4 item 4), so the
+ * resolved /clear takes the fresh conversation itself: its id from `$.session.id()`, which must differ from the old one
+ * (else the rotation fails as a refused /clear does), then the lock and the continuation prompt carrying task and
+ * handover, as on the restore path (no `additionalContext`).
+ */
+async function freshInTurnMode(rt: Runtime, dir: string): Promise<void> {
+  const before = await rt.storage.readState(dir)
+  if (!before?.ok) return
+  const old = before.value.activeSessionId, id = await rt.port.sessionId()
+  if (id === old) {
+    rt.port.log('jeeves: /clear resolved but the session id did not change')
+    await apply(rt, dir, { type: 'CLEAR_FAILED' })
+    return
+  }
+  // The fresh conversation is the same session for auto-start (spec §5.7), as at a fresh SessionStart.
+  if (old) await carryOver(rt, id, new Set([old])).catch(err => rt.port.log(`jeeves: carry-over failed: ${why(err)}`))
+  await crashPoint(rt, 'before-inject')
+  const h = await latestHandover(rt, dir, before.value)
+  const r = await apply(rt, dir, { type: 'SESSION_START_CLEAR', sessionId: id, handoverOk: h.ok && h.text !== null })
+  if (r?.forHook.some(f => f.type === 'INJECT_CONTEXT')) await continueFresh(rt, dir, true)
 }
 
 /** How long after the fresh SessionStart that session continues on its own; live this is the path that continues. */
@@ -636,7 +661,7 @@ export const FRESH_CONTINUE_MS = 1000
  * RESTORING -> CONTINUING and the continuation, with no keystroke (ST-4.3). Called by the resolved /clear and by
  * the fresh session's timer; the serial queue and the reducer let only the first one submit.
  */
-async function continueFresh(rt: Runtime, dir: string): Promise<void> {
+async function continueFresh(rt: Runtime, dir: string, withContext = false): Promise<void> {
   await crashPoint(rt, 'before-submit')
   const r = await apply(rt, dir, { type: 'CONTEXT_READY' })
   const submit = r?.forHook.find(f => f.type === 'SUBMIT_CONTINUATION')
@@ -644,7 +669,11 @@ async function continueFresh(rt: Runtime, dir: string): Promise<void> {
   // shortcut: a /clear that never brings its SessionStart leaves the task ROTATING; recovery is ST-6.1.
   if (!r || submit?.type !== 'SUBMIT_CONTINUATION') return
   try {
-    await rt.port.submitPrompt(await continuationFor(rt, dir, r.state, await latestHandover(rt, dir, r.state), submit.heldPrompts))
+    const h = await latestHandover(rt, dir, r.state)
+    // `withContext` (turn mode): nothing was injected at a SessionStart, so the prompt carries the context too.
+    const { view } = await readTask(rt, dir, r.state)
+    const context = withContext ? await contextFor(rt, dir, r.state, h, view) : undefined
+    await rt.port.submitPrompt(await continuationFor(rt, dir, r.state, h, submit.heldPrompts, context, false, view))
   } catch (err) {
     await apply(rt, dir, { type: 'SUBMIT_FAILED', heldPrompts: submit.heldPrompts })
     rt.port.log(`jeeves: continuation rejected: ${why(err)}`)

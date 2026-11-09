@@ -1,41 +1,7 @@
 // ST-16.3 / ADR-003 A2: in turn mode the handover is asked for by a submitted prompt, read from the next answered
 // turn.complete's `answer`, and retried the same way.
-import type { SessionMeasureInput, ToolCallResult } from 'claude-code'
 import { expect } from 'claude-code/testing'
-import { bottom, handover, PROMPT, relay, ROOT, sha256, start, stateOf, submit, taskDirs, test, turnStart, until, type Kit } from './kit.ts'
-import { memHost } from './memfs.ts'
-
-let turns = 0
-const end = ($: Kit, answer: string, reason: 'answer' | 'aborted' = 'answer', turnId = `t${turns}`) =>
-  $.turn.complete({ answer, durationMs: 1, isAborted: reason === 'aborted', turnId, reason })
-/** One main turn that answers `answer`; no classic.Stop reaches Jeeves (the skip). */
-const turn = async ($: Kit, answer = 'ok', reason: 'answer' | 'aborted' = 'answer') => { const id = `t${++turns}`; await turnStart($, id); await end($, answer, reason, id) }
-
-/** A turn-mode process whose task's boundary turn just ended: the request is submitted, state HANDOVER_GENERATING. */
-async function requested($: Kit, on: Parameters<typeof memHost>[0]) {
-  const h = memHost(on)
-  const prompts = bottom(on)
-  const clears: string[] = []
-  on('command.run', async (_, e) => { clears.push(e.command); return { text: '' } })
-  on('tool.call', (_, e) => ((e as { command?: string }).command === 'npm test'
-    ? { isError: true, result: 'Exit code 1', text: 'Exit code 1' } : { result: {}, text: '' }) as ToolCallResult)
-  for (const f of ['src/calc.js', 'src/parse.js', 'src/tokenize.js']) h.files.set(`${ROOT}/${f}`, '// code\n')
-  await start($)
-  await turn($)
-  expect(await relay($, 'status')).toContain('mode: full (turn)')
-  await relay($, 'on')
-  await submit($, PROMPT)
-  const dir = taskDirs(h)[0]!
-  await $.tool.call({ tool: 'Bash', command: 'npm test' })
-  await until(h, () => stateOf(h, dir).ledger.length === 1)
-  await turnStart($, 'boundary')
-  await $.session.measure({ context: { window: 1_000_000, percent: 52 }, rateLimits: [], changed: ['context'] } satisfies SessionMeasureInput)
-  await end($, 'step done', 'answer', 'boundary')
-  const s = stateOf(h, dir)
-  expect(s.status).toBe('HANDOVER_GENERATING')
-  await until(h, () => prompts.some(p => p.text.includes('JEEVES-HANDOVER')))
-  return { h, dir, prompts, clears, taskId: s.taskId as string, rotationId: s.rotation.rotationId as string }
-}
+import { handover, sha256, stateOf, submit, test, turnGenerating as requested, until, wholeTurn as turn } from './kit.ts'
 
 test('the request goes out as a prompt; a valid answer is saved as in Stop mode, with crons not available; then /clear', async ($, on) => {
   const { h, dir, prompts, clears, taskId, rotationId } = await requested($, on)

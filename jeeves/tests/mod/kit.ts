@@ -137,3 +137,54 @@ export async function generating($: Kit, on: Parameters<typeof memHost>[0], opts
   return { h, dir, clears, prompts, ctl, refuse, branch, taskId: s.taskId as string, rotationId: s.rotation.rotationId as string }
 }
 
+
+// ---- Turn mode (ST-16.3, ST-16.4): no classic.Stop and no classic.SessionStart reach Jeeves ----
+
+let turnNo = 0
+/** One main turn that answers `answer`; no classic.Stop reaches Jeeves (the skip). */
+export async function wholeTurn($: Kit, answer = 'ok', reason: 'answer' | 'aborted' = 'answer') {
+  const turnId = `w${++turnNo}`
+  await turnStart($, turnId)
+  await $.turn.complete({ answer, durationMs: 1, isAborted: reason === 'aborted', turnId, reason })
+}
+
+/**
+ * A turn-mode process whose task's boundary turn just ended: the request was submitted, state HANDOVER_GENERATING.
+ * A plugin /clear does what the probe saw live: session.end(clear), then the new id, and no SessionStart;
+ * `ask` false: stop before the boundary turn (`request()` runs it). `ctl.sameId` keeps the old id, `ctl.ids` names the fresh sessions in order.
+ */
+export async function turnGenerating($: Kit, on: Parameters<typeof memHost>[0], opts: { env?: Record<string, string>; ask?: boolean } = {}) {
+  const h = memHost(on, opts.env)
+  const prompts = bottom(on)
+  const clears: string[] = []
+  const ctl = { sameId: false, ids: ['sess-2', 'sess-3', 'sess-4'] }
+  on('command.run', async ($e, e) => {
+    clears.push(e.command)
+    const from = h.sessionId
+    await $.session.end({ reason: 'clear', sessionId: from, resume: { id: from } })
+    if (!ctl.sameId) h.sessionId = ctl.ids.shift()!
+    return { text: '' }
+  })
+  on('tool.call', (_, e) => ((e as { command?: string }).command === 'npm test'
+    ? { isError: true, result: 'Exit code 1', text: 'Exit code 1' } : { result: {}, text: '' }) as ToolCallResult)
+  for (const f of ['src/calc.js', 'src/parse.js', 'src/tokenize.js']) h.files.set(`${ROOT}/${f}`, '// code\n')
+  await start($)
+  await wholeTurn($)
+  expect(await relay($, 'status')).toContain('mode: full (turn)')
+  await relay($, 'on')
+  await submit($, PROMPT)
+  const dir = taskDirs(h)[0]!
+  await $.tool.call({ tool: 'Bash', command: 'npm test' })
+  await until(h, () => stateOf(h, dir).ledger.length === 1)
+  const g = { h, dir, prompts, clears, ctl, taskId: stateOf(h, dir).taskId as string, rotationId: '', request: async () => {
+    await turnStart($, 'boundary')
+    await $.session.measure({ context: { window: 1_000_000, percent: 52 }, rateLimits: [], changed: ['context'] } satisfies SessionMeasureInput)
+    await $.turn.complete({ answer: 'step done', durationMs: 1, isAborted: false, turnId: 'boundary', reason: 'answer' })
+    expect(stateOf(h, dir).status).toBe('HANDOVER_GENERATING')
+    const asked = prompts.filter(p => p.text.includes('JEEVES-HANDOVER')).length
+    await until(h, () => prompts.filter(p => p.text.includes('JEEVES-HANDOVER')).length > asked)
+    g.rotationId = stateOf(h, dir).rotation.rotationId
+  } }
+  if (opts.ask !== false) await g.request()
+  return g
+}
