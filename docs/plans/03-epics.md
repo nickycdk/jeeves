@@ -169,6 +169,15 @@ Dependency order: E0 → E1 → E2 → E3 → E4 → E5 → (E6, E7 in parallel)
 - **AC:** AC-48 … AC-53 pass (U + I in both modes), AC-54 on the Team account (E); every existing AC keeps passing with the turn-mode suite on and off; on an account without the skip the turn-mode path never runs.
 - **Artifact:** `npm run test:mod:turn` report; `docs/done/evidence/v0.3.0/turn-mode/RESULT.md`; README/PRIVACY diffs.
 
+## E17 — 200K auto-start (P1, v0.3.x)
+- **Status:** Open. Plan `docs/plans/10-v0.3.x-plan.md`, approved by the maintainer 2026-11-09 (P-1 … P-4 accepted as proposed, D-53; ADR-009 A4).
+- **Goal:** auto-start on 200K windows (D-52), checked by one live auto-started 200K session; a `long-task` fixture that one script cannot solve; release v0.3.1.
+- **Scope:** ST-17.1 eligibility at 200K or more, model switch, texts; ST-17.2 distinct-module fixture and the driver's void check; ST-17.3 one live session (US$2 cap, go-ahead first); ST-17.4 release prep.
+- **Out:** a Stop-mode live run (needs a non-Team account); a new cost measurement; a cleanup-age setting; the ADR-007 A1 row limit (D-51).
+- **Dependencies:** E13, E16, ST-15.2's evidence. **Risks:** R-25 (live check again on the Team account), more sessions eligible under the mod host's 200K default.
+- **AC:** AC-36 and AC-37 as amended by ADR-009 A4; AC-55 (fixture); every existing AC still passes.
+- **Artifact:** `docs/done/evidence/v0.3.1/200k-auto/RESULT.md`; v0.3.1 zip.
+
 ---
 
 ## P1 / P2 backlog (not scheduled)

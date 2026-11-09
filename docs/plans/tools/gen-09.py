@@ -3,9 +3,9 @@
 import sys
 r=lambda p: open('docs/plans/'+p).read()
 e03=r('03-epics.md'); s04=r('04-backlog-stories.md'); m05=r('05-delivery-milestones.md'); a06=r('06-test-and-acceptance-plan.md'); d07=r('07-risks-and-open-questions.md'); a02=r('02-architecture-and-adrs.md')
-epics=e03[e03.index('## E13'):e03.index('---\n\n## P1 / P2 backlog')].rstrip().replace('\n## E1','\n### E1')
+epics=e03[e03.index('## E13'):e03.index('## E17')].rstrip().replace('\n## E1','\n### E1')
 epics='#'+epics if epics.startswith('## ') else epics
-stories=s04[s04.index('## E13 — Auto-start (v0.3)'):s04.index('---\n\n**Count:** 56')].rstrip()
+stories=s04[s04.index('## E13 — Auto-start (v0.3)'):s04.index('## E17')].rstrip()
 stories=stories.replace('## E1','### E1').replace('\n### ST-','\n#### ST-')
 count=[l for l in s04.split('\n') if l.startswith('**M9 (v0.3) count:**')][0].replace('**M9 (v0.3) count:**','**Count:**')+'\n\n'+[l for l in s04.split('\n') if l.startswith('**E16 (turn mode')][0]
 L=lambda t,pfx:[l for l in t.split('\n') if any(l.startswith(x) for x in pfx)]
@@ -23,9 +23,9 @@ a003=L(a02,['- **Amendment A1 (2026-11-09, ST-13.6'])[0].replace('- **Amendment 
 # Progress, read from each story's Status line in 04, so it never goes stale: "Solved (date)" is done, anything else is not.
 import re
 rows=[]
-for m in re.finditer(r'^### (ST-1[3456]\.\d+) (.+?) — ([SML])\n((?:- .*\n?)*)', stories.replace('\n#### ST-','\n### ST-'), re.M):
-    st=re.search(r'^- \*\*Status:\*\* (Solved \([\d-]+\))', m.group(4), re.M)
-    rows.append(f"| {m.group(1)} | {m.group(2)} | {m.group(3)} | {'**done**, ' + st.group(1) if st else 'not started'} |")
+for m in re.finditer(r'^### (ST-1[3456]\.\d+) (.+?) — ([SML])\n((?:(?:- |  ).*\n?)*)', stories.replace('\n#### ST-','\n### ST-'), re.M):
+    st=re.search(r'^- \*\*Status:\*\* Solved\b\D*?(\d{4}-\d\d-\d\d)', m.group(4), re.M)
+    rows.append(f"| {m.group(1)} | {m.group(2)} | {m.group(3)} | {f'**done**, Solved ({st.group(1)})' if st else 'not started'} |")
 done=sum('**done**' in r for r in rows)
 progress=f'''**Progress** ({done} of {len(rows)} stories done; built from the Status lines in 04, so regenerate after each story):
 
@@ -34,7 +34,7 @@ progress=f'''**Progress** ({done} of {len(rows)} stories done; built from the St
 '''+'\n'.join(rows)
 out=f'''# 09 — v0.3 plan: auto-start and turn mode
 
-**Date:** 2026-11-09 · **Spec:** `docs/specs/auto-start.md` (revision 4, approved, D-40) · **Milestone:** M9 · **Turn mode:** `docs/specs/team-accounts-turn-mode.md` (accepted, D-48; ADR amendments revision 2 accepted 2026-11-09) · **Status:** in progress: ST-13.1 … ST-13.9, ST-15.1, ST-14.1 … ST-14.5, ST-16.1 … ST-16.8 solved (E16 complete), ST-15.2 partial (waits for a decision on the grace period), E16 probe session done (spec §4 item 4) (see the progress table in §4; current handover `docs/plans/handoff-m9.md`); next ST-16.8 (live, on the maintainer's go-ahead and budget), then ST-15.2 (live, once its preconditions hold) and ST-15.3; Q-13 and Q-14 decided (D-44, D-45). Review 1 of the plan applied (gate wording for a reduced E14, ST-15.2 preconditions, dry run, stop rules and fixture sizing, the estimate checked against M4, Q-14, story fixes) and review 2 (once-per-install upgrade check, same macOS user for every AC-41 run, `/cost` polled in both 1M runs, gate items split).
+**Date:** 2026-11-09 · **Spec:** `docs/specs/auto-start.md` (revision 4, approved, D-40) · **Milestone:** M9 · **Turn mode:** `docs/specs/team-accounts-turn-mode.md` (accepted, D-48; ADR amendments revision 2 accepted 2026-11-09) · **Status:** all v0.3 stories solved except ST-15.4 (review of the E16 range before the v0.3.0 tag, D-53); ST-15.3 signed off 2026-11-09; the v0.3.x follow-up (200K auto-start, E17) is planned in `docs/plans/10-v0.3.x-plan.md` and 03–07, not here (current handover `docs/plans/handoff-m9.md`). Review 1 of the plan applied (gate wording for a reduced E14, ST-15.2 preconditions, dry run, stop rules and fixture sizing, the estimate checked against M4, Q-14, story fixes) and review 2 (once-per-install upgrade check, same macOS user for every AC-41 run, `/cost` polled in both 1M runs, gate items split).
 
 This file gathers the whole v0.3 plan in one place. The same text lives in the numbered plans (02 ADR-009 A3, ADR-003 A1, ADR-010 A2 and the turn-mode amendments ADR-002 A3, ADR-003 A2, ADR-004 A2, ADR-006 A1, ADR-007 A1, 03 E13–E16, 04 ST-13.1 … ST-16.8, 05 M9, 06 AC-35 … AC-54, 07 D-40 … D-46, D-48, R-25 … R-27, Q-13, Q-14); when they differ, the numbered plans win and this file is updated. Story DoD and epic DoD are the standard ones in 03 and 04.
 

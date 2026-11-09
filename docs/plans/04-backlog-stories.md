@@ -850,6 +850,14 @@ If v0.3 must be smaller, ST-14.1 and ST-14.2 ship first (spec §11).
 - **Tests:** `release-zip.sh` twice; `claude plugin validate`.
 - **DoD:** + maintainer sign-off.
 
+### ST-15.4 Review of the E16 range — S
+- **Status:** Not started.
+- **Cites:** M9 gate (05), plan 10 §0.
+- **Scope:** ponytail-review and code-review (high) over `0156488..HEAD`, source and tests (E16 and D-50 were never reviewed). One commit per accepted fix; findings that conflict with an ADR or a recorded decision go to the maintainer.
+- **Depends on:** ST-15.3.
+- **AC:** every accepted finding fixed or recorded with its reason; if anything under `jeeves/` changes, the full suite passes again and the zip is rebuilt from two clean clones with its new SHA in the evidence pack; ST-15.3 signed off again.
+- **Tests:** unit, the mod suite in its three runs, typecheck, lint, validate. **Live:** none.
+
 ## E16 — Turn mode for Team accounts (v0.3, before ST-15.3)
 
 Spec `docs/specs/team-accounts-turn-mode.md` §5 (a)–(h); (a), the ADR amendments, is done (revision 2 accepted, D-48). Every story keeps Stop mode byte-identical where Stop arrives: its tests run the existing suite as well as its own. **Live checks:** each story names what it must verify; the ones that need a live session can be answered together in one throwaway probe-mod session (scratchpad only, as in `8d99bf9`; haiku, estimated US$0.10–0.30) before ST-16.2, on the maintainer's go-ahead and budget. A check that cannot be answered is recorded as unverified in the story, with the fallback the ADR names.
@@ -927,6 +935,41 @@ Spec `docs/specs/team-accounts-turn-mode.md` §5 (a)–(h); (a), the ADR amendme
 - **DoD:** + `docs/done/evidence/v0.3.0/turn-mode/RESULT.md`.
 - **Status:** Solved (2026-11-09). Live on the maintainer's Team account through the fresh-install command (`~/jeeves-fresh` as `CLAUDE_CONFIG_DIR`, scratch `JEEVES_STATE_DIR` per run), haiku, about **US$0.31** API-equivalent over all attempts (budget US$3); `/cost` and the session records show dollars on this account. **(1)** `six-steps`, two rotations with nothing typed: PASS (`driver.py --config-dir`; a first attempt failed only on the driver's stale transition-line string, fixed). **(2)** AC-07: PASS (`e_layers_v2.py` phase g). **(3)** typed `/compact`: PASS in its turn-mode form, new phase k (fill the context, `/compact`, type one prompt; the reading's fall gives COMPACTED and one rotation); v0.2's phase c (nothing typed after `/compact`) cannot rotate in turn mode, as documented. **Probe items:** ST-16.7's user `/clear` carry-over PASS live (new phase u); several text blocks in one final message and a plugin `/clear` that never resolves: not seen. **Defect found and fixed:** a row appended at `turn.start` reached no request of its own turn (from the transcripts' recorded requests), so in a run with nothing typed Claude worked without the completion rules; `turn.start` now marks the row due (`rowDue`, `hooks/register.ts`) and the turn's first main tool result appends it, else the turn-end reading (`session.measure` comes only at a turn's end on this build; a first version used it and sent the row too late, seen in the AC-41 200K run); live: the row then reached the turn's following requests. **Open (for the maintainer):** (a) the turn's **last** request carried neither the rules nor the threshold note: the engine drops rows appended mid-turn before the turn ends, so the rules may be missing where a completion claim is written; another channel would amend ADR-007 A1, not changed; (b) the first main turn of a `claude` process gets no row (turn mode is known only when that turn ends without a Stop). Q-12 answered: AC-07 E and the compaction phase run on the Team account in turn mode. New: `tests/pty/transcripts.py` (API-equivalent cost and the row check from the transcripts). Evidence and details: `docs/done/evidence/v0.3.0/turn-mode/RESULT.md`. Release notes' ST-16.8 placeholder filled.
 
+## E17 — 200K auto-start (v0.3.x)
+
+Plan: `docs/plans/10-v0.3.x-plan.md` (approved 2026-11-09, D-53).
+
+### ST-17.1 Auto-start on 200K windows — M
+- **Status:** Not started.
+- **Cites:** ADR-009 A4, D-52, D-53, spec §5.1 item 4, §6.1, §13.
+- **Scope:** eligibility at a window of 200K or more (`largeWindow` in `src/core/autostart.ts`); the reason `200K window at start` becomes `window below 200K at start`, kept in `NOT_WATCHED` and the hint list; a model switch ends an auto task only on a window below 200K (`src/core/machine.ts`); the threshold stays 50% on 200K, so the grace margin is 60%; the story reads the engine's auto-compaction point on a 200K window from the test kit and checks that 60% is below it (if not, stop and ask); `/jeeves later`'s cap unchanged. Texts: spec §5.1 item 4, §6.1, §13; READMEs; PRIVACY.md; notices and hint wording if they name 1M; troubleshooting.md; CHANGELOG.
+- **Depends on:** D-53.
+- **AC:** AC-36 and AC-37 as amended (200K eligible, below 200K not; a switch from 1M to 200K keeps the task, below 200K ends it); every existing AC still passes; the number of mod-suite changes under `autoStart on` is reported.
+- **Tests:** U: `autostart.spec.ts` at 199,999, 200,000 and 1M. I: `eligible.test.ts`, `autostart.test.ts`, hint tests; the mod suite in its three runs.
+
+### ST-17.2 `long-task` that one script cannot solve — S
+- **Status:** Not started.
+- **Cites:** AC-41 (void 1M run: Haiku scripted the six-function cycle), AC-55.
+- **Scope:** a new fixture where each module has its own function, name, prose rule in SPEC.md and case table, with no repeating cycle; `tests/pty/ac41.py` marks a run void by itself when one commit holds more than one module, or a module is committed before its test file was read, and says so early. The old `long-task` is kept for reproducing v0.3.0's evidence.
+- **Depends on:** none.
+- **AC:** AC-55.
+- **Tests:** `build-repo.ts` builds it and its verify fails on the stubs; a unit check that no two modules share a function name or rule text; the void check against a recorded transcript fixture. **Live:** none.
+
+### ST-17.3 Live check: one auto-started 200K session — M
+- **Status:** Not started.
+- **Cites:** spec §13, D-45, D-49, D-53 (US$2 cap).
+- **Scope:** fresh-install state as in D-49 (separate config folder, scratch state folder), a real 200K window with no `JEEVES_TEST_WINDOW_OVERRIDE`; the task is the first prompt, no `/jeeves on`; the new fixture's first ~18 modules; nothing typed after the task.
+- **Depends on:** ST-17.1, ST-17.2, the maintainer's go-ahead.
+- **AC:** first-run notice, then an auto task holding the prompt word for word; at least one rotation outside the grace period or past threshold + 10; D-45's four parts met again; NFR-10 grep clean; spend within US$2.
+- **Tests:** E. **DoD:** + `docs/done/evidence/v0.3.1/200k-auto/RESULT.md`.
+
+### ST-17.4 v0.3.1 release prep — S
+- **Status:** Not started.
+- **Cites:** FR-15, 08 §6.
+- **Scope:** as ST-15.3: version 0.3.1; CHANGELOG and release notes that say 200K is auto-watched and what ST-17.3 measured, nothing more; compatibility.md; evidence pack; `jeeves/docs/architecture.md` brought up to date (auto-start, turn mode); a zip identical from two clean clones.
+- **Depends on:** ST-17.3.
+- **AC:** zip SHA-256 identical from two clean clones; notes claim only what the evidence shows. **DoD:** + maintainer sign-off. The tag and publication are the maintainer's.
+
 ---
 
 **Count:** 56 stories (E0 7, E1 9, E2 5, E3 8, E4 8, E5 2, E6 7, E7 3, E8 4, E9 3): 5 L, 30 M, 21 S. At the size midpoints (S 0.5 d, M 1.5 d, L 3.5 d) that is ≈ 73 engineer-days for one developer.
@@ -936,3 +979,5 @@ Spec `docs/specs/team-accounts-turn-mode.md` §5 (a)–(h); (a), the ADR amendme
 **M9 (v0.3) count:** 17 stories (E13 9, E14 5, E15 3): 7 M, 10 S ≈ 15.5 engineer-days (E13 10.5, E14 2.5, E15 2.5). This is above the spec's rough 5 + 2 days (§11): the story midpoints include tests in both modes, the downgrade check and the live run.
 
 **E16 (turn mode, D-48) count:** 8 stories: 6 M, 2 S ≈ 10 engineer-days (the spec's rough 6–8 days plus the three-run suite and the live runs). M9 with E16: 25 stories ≈ 25.5 engineer-days.
+
+**E17 (v0.3.x, D-53) count:** 4 stories: 2 M, 2 S ≈ 4 engineer-days, plus ST-15.4 (S) in M9.
