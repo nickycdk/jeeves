@@ -1,7 +1,7 @@
 // ST-2.4: threshold trigger through the hooks, concurrency, /jeeves threshold, and the test override.
 import type { SessionMeasureInput } from 'claude-code'
 import { expect } from 'claude-code/testing'
-import { bottom, PROMPT, relay, start, stateOf, submit, taskDirs, type Kit, test } from './kit.ts'
+import { bottom, fakeGit, PROMPT, relay, start, stateOf, submit, taskDirs, type Kit, test } from './kit.ts'
 import { memHost } from './memfs.ts'
 
 const measure = ($: Kit, percent: number) =>
@@ -114,3 +114,44 @@ for (const [window, want] of [[200_000, 50], [0, 50]] as const) {
     expect(stateOf(h, taskDirs(h)[0]!).thresholdPercent).toBe(want)
   })
 }
+
+// ST-15.1 (AC-41's simulated 200K run): a 1M session behaves as a 200K one, only under JEEVES_TEST=1.
+async function eligible1M($: Kit, on: Parameters<typeof memHost>[0], env: Record<string, string>) {
+  const h = memHost(on, env)
+  fakeGit(h)
+  h.usage = { window: 1_000_000 }
+  const got = bottom(on)
+  await start($)
+  return { h, got }
+}
+const SIM = { HOME: '/home/t', JEEVES_TEST: '1', JEEVES_TEST_WINDOW_OVERRIDE: '200000' }
+
+test('window override 200000 on a 1M session: not auto-watched (200K at start), 50% rule, ~100K threshold, readings re-based, TEST OVERRIDE (AC 1)', { options: { autoStart: 'on' } }, async ($, on) => {
+  const { h } = await eligible1M($, on, SIM)
+  const before = await relay($, 'status')
+  expect(before).toContain('Auto off: 200K window at start')
+  expect(before).toContain('TEST OVERRIDE window 200K')
+  await submit($, 'a typed prompt')
+  expect(taskDirs(h)).toEqual([])
+  await relay($, 'on')
+  await submit($, PROMPT)
+  const dir = taskDirs(h)[0]!
+  expect([stateOf(h, dir).origin, stateOf(h, dir).thresholdPercent]).toEqual(['explicit', 50])
+  await measure($, 9) // 90K tokens of a real 1M window: 45% of 200K, the warning
+  expect(h.toasts.at(-1)).toBe('Context at 45%. Jeeves will hand over at 50%.')
+  expect(stateOf(h, dir).lastContext).toMatchObject({ percent: 45, window: 200_000, tokens: 90_000 })
+  expect(await relay($, 'status')).toContain('Threshold: 50% (~100K)')
+  await measure($, 10)
+  expect(stateOf(h, dir).status).toBe('ROTATION_REQUESTED')
+  expect(await relay($, 'status --diagnose')).toContain('window 200000')
+})
+
+test('the window override is ignored without JEEVES_TEST=1: the 1M session is auto-watched at 40% (AC 2)', { options: { autoStart: 'on' } }, async ($, on) => {
+  const { h } = await eligible1M($, on, { HOME: '/home/t', JEEVES_TEST_WINDOW_OVERRIDE: '200000' })
+  expect(await relay($, 'status')).not.toContain('TEST OVERRIDE')
+  await submit($, PROMPT)
+  const dir = taskDirs(h)[0]!
+  expect([stateOf(h, dir).origin, stateOf(h, dir).thresholdPercent]).toEqual(['auto', 40])
+  await measure($, 10)
+  expect(stateOf(h, dir).lastContext).toMatchObject({ percent: 10, window: 1_000_000 })
+})

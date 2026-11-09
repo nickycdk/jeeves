@@ -6,6 +6,7 @@ import type { EnginePort } from './ports.ts'
 import type { AutoRow } from '../core/autostart.ts'
 import type { RepoIdentity } from '../core/git.ts'
 import { projectDir, projectId, repoIdentity } from './git.ts'
+import { simulateWindow } from '../core/task.ts'
 import { runProbe } from './probe.ts'
 import { createQueue, createStorage, resolveStateRoot, StorageError, type StateRootSource, type Storage } from './storage.ts'
 
@@ -29,6 +30,8 @@ export type Runtime = {
   thresholdOverride: number | null
   /** Test-only relative threshold (D-25): `JEEVES_TEST_THRESHOLD_OVERRIDE=+d`, d in (0, 50]: rotate at this session's first reading + d. */
   thresholdRelative: number | null
+  /** Test-only window (ST-15.1, AC-41): `JEEVES_TEST_WINDOW_OVERRIDE=<tokens>` with JEEVES_TEST=1; every reading is re-based on it. */
+  windowOverride: number | null
   /** Test-only fault injection (ST-6.7): `JEEVES_TEST_CRASH=<point>` with JEEVES_TEST=1 stops this process dead there. */
   crashAt: CrashPoint | null
 }
@@ -74,11 +77,14 @@ async function build($: EngineInterface, options: Options): Promise<Runtime> {
   const relative = raw?.startsWith('+') ? Number(raw.slice(1)) : NaN
   const override = raw && !raw.startsWith('+') ? Number(raw) : NaN
   const crash = (await port.env('JEEVES_TEST')) === '1' ? (await port.env('JEEVES_TEST_CRASH'))?.trim() : undefined
+  const w = (await port.env('JEEVES_TEST')) === '1' ? Number((await port.env('JEEVES_TEST_WINDOW_OVERRIDE'))?.trim() || NaN) : NaN
+  const windowOverride = Number.isInteger(w) && w >= 1000 ? w : null
   return {
-    port, storage, probe, stateRoot, stateRootError, stateRootSource, identity: id, projectId: pid,
+    port: windowOverride ? { ...port, usage: () => port.usage().then(u => simulateWindow(u, windowOverride)) } : port, storage, probe, stateRoot, stateRootError, stateRootSource, identity: id, projectId: pid,
     projectDir: stateRoot && pid ? projectDir(stateRoot, pid) : null, serial: createQueue(),
     thresholdOverride: Number.isFinite(override) && override >= 1 && override <= 99 ? override : null,
     thresholdRelative: Number.isFinite(relative) && relative > 0 && relative <= 50 ? relative : null,
+    windowOverride,
     crashAt: (CRASH_POINTS as readonly string[]).includes(crash ?? '') ? crash as CrashPoint : null,
   }
 }

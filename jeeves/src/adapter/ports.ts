@@ -4,7 +4,7 @@ export type ProcResult = { exitCode: number; stdout: string; stderr: string }
 export type RunOptions = { cwd?: string; timeoutMs?: number; env?: Record<string, string> }
 
 /** The only environment variables Jeeves reads (the engine wants literal names). */
-export type EnvName = 'HOME' | 'XDG_STATE_HOME' | 'CLAUDE_PLUGIN_DATA' | 'JEEVES_TEST' | 'JEEVES_STATE_DIR' | 'JEEVES_TEST_THRESHOLD_OVERRIDE' | 'JEEVES_TEST_CRASH'
+export type EnvName = 'HOME' | 'XDG_STATE_HOME' | 'CLAUDE_PLUGIN_DATA' | 'JEEVES_TEST' | 'JEEVES_STATE_DIR' | 'JEEVES_TEST_THRESHOLD_OVERRIDE' | 'JEEVES_TEST_WINDOW_OVERRIDE' | 'JEEVES_TEST_CRASH'
 
 export interface FsPort {
   /** Whole file as UTF-8 text; rejects when it does not exist. */

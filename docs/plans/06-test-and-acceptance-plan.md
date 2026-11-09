@@ -13,7 +13,7 @@ Rule from PRD §13: every AC has an automated test or reproducible manual eviden
 | **Manual Cursor (M)** | M0, M6, M7 | scripted checklist §6, screen recording | terminal fidelity in Cursor | ~30 min |
 | **Compatibility (C)** | per supported Claude Code version, release | `claude plugin validate/test` + one PTY rotation smoke | API drift (A-01) | per version |
 
-The test-only threshold override (`JEEVES_TEST=1` + `JEEVES_TEST_THRESHOLD_OVERRIDE`) exists so E2E rotations happen at a few percent, keeping cost low. It is ignored unless both variables are set, and `/relay status` shows "TEST OVERRIDE" when active. At least one release run (ST-9.2) uses the real 50% default.
+The test-only threshold override (`JEEVES_TEST=1` + `JEEVES_TEST_THRESHOLD_OVERRIDE`) exists so E2E rotations happen at a few percent, keeping cost low. It is ignored unless both variables are set, and `/relay status` shows "TEST OVERRIDE" when active. At least one release run (ST-9.2) uses the real 50% default. The test-only window override (`JEEVES_TEST=1` + `JEEVES_TEST_WINDOW_OVERRIDE=<tokens>`, ST-15.1) makes a session behave as one with that window: eligibility, the threshold default and every reading are based on it (a 1M session under 200000 rotates at about 100K tokens); also ignored unless both are set, and status shows `TEST OVERRIDE window 200K`. Never a user setting.
 
 ## 2. Fixtures
 

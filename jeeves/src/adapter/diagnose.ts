@@ -32,7 +32,7 @@ export async function diagnose(rt: Runtime, me: string, t: Task | null, errors: 
     rt.stateRoot ? `State folder: ${rt.stateRoot} (${rt.stateRootSource}), writable: ${writable}` : `State folder: none (${rt.stateRootError ?? 'unset'})`,
     `Git: ${git}; this folder: ${rt.identity ? (rt.identity.kind === 'git' ? `repository, project ${rt.projectId}` : `no repository, project ${rt.projectId}`) : 'git did not answer'}`,
     await autoDiagnose(rt, row),
-    ...(rt.thresholdOverride || rt.thresholdRelative || rt.crashAt ? [`Test settings: ${[rt.thresholdOverride && `threshold ${rt.thresholdOverride}%`, rt.thresholdRelative && `threshold +${rt.thresholdRelative}`, rt.crashAt && `crash at ${rt.crashAt}`].filter(Boolean).join(', ')}`] : []),
+    ...(rt.thresholdOverride || rt.thresholdRelative || rt.windowOverride || rt.crashAt ? [`Test settings: ${[rt.thresholdOverride && `threshold ${rt.thresholdOverride}%`, rt.thresholdRelative && `threshold +${rt.thresholdRelative}`, rt.windowOverride && `window ${rt.windowOverride}`, rt.crashAt && `crash at ${rt.crashAt}`].filter(Boolean).join(', ')}`] : []),
   ]
   if (!t) lines.push(`Task: none${errors.length ? ` (${errors.length} unreadable: ${errors[0]})` : ''}`)
   else {

@@ -10,7 +10,7 @@ import { mentionedPaths, validateHandover } from '../core/handover/validate.ts'
 import { COMPLETION_STATES, HELD_STATES, isSafe, reduce, type Input } from '../core/machine.ts'
 import { newRotationId, newTaskId } from '../core/ids.ts'
 import { join } from '../core/paths.ts'
-import { foldTask, newTaskState, windowThreshold, parseRevision, renderChange, revFile, type ChangeKind, type TaskView } from '../core/task.ts'
+import { foldTask, newTaskState, simulateWindow, windowThreshold, parseRevision, renderChange, revFile, type ChangeKind, type TaskView } from '../core/task.ts'
 import { DEFAULT_CONFIG, INERT, SCHEMA_VERSION, type ReasonCode, type State, type TaskOrigin } from '../core/types.ts'
 import { runEffects, type EffectResult } from './effects.ts'
 import { shownThreshold, statusLine, transitionLine } from './ui.ts'
@@ -310,10 +310,11 @@ export async function readTask(rt: Runtime, dir: string, state: State): Promise<
 
 /** The engine's percent is a whole number (10K tokens on a 1M window); with tokens known, the exact figure. */
 const exactPercent = (c: { percent?: number; tokens?: number; window: number }) =>
-  c.percent !== undefined && c.tokens !== undefined && c.window > 0 ? Math.round((c.tokens / c.window) * 10_000) / 100 : c.percent
+  c.percent !== undefined && c.tokens !== undefined && c.window > 0 ? Math.min(100, Math.round((c.tokens / c.window) * 10_000) / 100) : c.percent
 
 /** `session.measure` with a context change: the main conversation's `usage().context` (FR-02). Missing percent stays unknown. */
-export async function measure(rt: Runtime, c: { percent?: number; tokens?: number; window: number }): Promise<Applied | null> {
+export async function measure(rt: Runtime, raw: { percent?: number; tokens?: number; window: number }): Promise<Applied | null> {
+  const c = rt.windowOverride ? simulateWindow(raw, rt.windowOverride) : raw
   if (rt.probe.mode === 'unsupported') return null // nothing automatic: a request could never be answered
   const sessionId = await rt.port.sessionId()
   const percent = exactPercent(c)

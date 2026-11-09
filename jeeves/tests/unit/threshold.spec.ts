@@ -77,3 +77,12 @@ test('ST-10.1: window default is 50% up to 200K or unknown, 40% above 200K', asy
   const { windowThreshold } = await import('../../src/core/task.ts')
   assert.deepEqual([undefined, 0, 128_000, 200_000, 200_001, 1_000_000].map(w => windowThreshold(w)), [50, 50, 50, 50, 40, 40])
 })
+
+test('ST-15.1: a reading re-based on a test-only window: from tokens, else the percent scaled; capped at 100', async () => {
+  const { simulateWindow, windowThreshold } = await import('../../src/core/task.ts')
+  assert.deepEqual(simulateWindow({ window: 1_000_000, percent: 10, tokens: 100_000 }, 200_000), { window: 200_000, percent: 50, tokens: 100_000 })
+  assert.deepEqual(simulateWindow({ window: 1_000_000, percent: 9 }, 200_000), { window: 200_000, percent: 45 })
+  assert.deepEqual(simulateWindow({ window: 1_000_000, percent: 30, tokens: 300_000 }, 200_000).percent, 100)
+  assert.deepEqual(simulateWindow({ window: 1_000_000 }, 200_000), { window: 200_000 })
+  assert.equal(windowThreshold(simulateWindow({ window: 1_000_000 }, 200_000).window), 50)
+})

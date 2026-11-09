@@ -20,6 +20,8 @@ export type StatusView = {
   thresholdOverride?: number | null
   /** The test-only relative threshold when active (D-25). */
   thresholdRelative?: number | null
+  /** The test-only window when active (ST-15.1). */
+  windowOverride?: number | null
   /** This project's config.json exists but is invalid (ST-11.1). */
   defaultsError?: string | null
   /** ST-13.3: whether this session is auto-watched, and if not the first reason; set when it has no task of its own. */
@@ -90,6 +92,7 @@ export function statusText(v: StatusView): string {
   else if (v.probe.mode === 'unsupported') lines.push(`Needs ${(v.probe.missing[0] ?? 'newer').replace('Claude Code ', '')}, this is ${v.probe.version ?? '?'}`)
   else if (v.probe.mode === 'assisted') lines.push(`Missing: ${v.probe.missing.join(', ')}`)
   if (v.auto) lines.push(v.auto)
+  if (v.windowOverride) lines.push(`TEST OVERRIDE window ${Math.round(v.windowOverride / 1000)}K`)
   if (v.taskError) lines.push(`Task state unreadable:`, v.taskError)
   else if (!v.task) lines.push('No managed task. Start with /jeeves on')
   else {

@@ -53,7 +53,7 @@ export async function relay(rt: Runtime, args: string, caller: Caller): Promise<
     if (rest.trim() === '--diagnose') return diagnose(rt, me, picked, errors, autoRow)
     // In the owning session show the live reading (never a stale one); another session's task shows its last stored reading.
     const task = picked?.state.activeSessionId === me ? { ...picked, state: { ...picked.state, lastContext: { ...(await rt.port.usage()), at: new Date(await rt.port.now()).toISOString() } } } : picked
-    return statusText({ auto: task?.state.activeSessionId === me ? null : await autoLine(rt, autoRow), probe: rt.probe, stateRoot: rt.stateRoot, stateRootError: rt.stateRootError, task, taskError: task ? null : errors[0] ?? null, thresholdOverride: rt.thresholdOverride, thresholdRelative: rt.thresholdRelative, defaultsError: (await readDefaults(rt)).error })
+    return statusText({ auto: task?.state.activeSessionId === me ? null : await autoLine(rt, autoRow), probe: rt.probe, stateRoot: rt.stateRoot, stateRootError: rt.stateRootError, task, taskError: task ? null : errors[0] ?? null, thresholdOverride: rt.thresholdOverride, thresholdRelative: rt.thresholdRelative, windowOverride: rt.windowOverride, defaultsError: (await readDefaults(rt)).error })
   }
   if (sub === 'help') return HELP
   if (sub === 'history') {
