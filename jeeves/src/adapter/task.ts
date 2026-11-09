@@ -433,7 +433,9 @@ export async function onStop(rt: Runtime, info: StopInfo): Promise<string | null
  * request, a retry) is submitted as a new prompt instead; the reducer has already moved to HANDOVER_GENERATING, so a
  * prompt the user queued is held (ADR-010) and never runs ahead of it.
  */
-export async function turnBoundary(rt: Runtime, answer: string): Promise<void> {
+export async function turnBoundary(rt: Runtime, answer: string, foreign = false): Promise<void> {
+  // ADR-003 A2 note: while the handover is awaited, only a turn Jeeves's request opened is read as the handover.
+  if (foreign && ownTask((await projectTasks(rt)).tasks, await rt.port.sessionId())?.state.status === 'HANDOVER_GENERATING') return
   // ADR-007 A1: a completion block is read here too; its missing checks go out as one prompt, as a Stop would block.
   const ask = await onStop(rt, { backgroundTasks: bgCount(), crons: null, message: answer })
   if (ask !== null) rt.port.submitPromptSoon(ask, err => rt.port.log(`jeeves: prompt not sent: ${why(err)}`))

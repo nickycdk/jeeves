@@ -89,3 +89,18 @@ test('ST-15.4: a turn whose Stop did reach Jeeves after turn mode was chosen is 
   await h.clock.settle()
   expect(stateOf(h, dir).rotation.retries).toBe(1)
 })
+
+test('ST-15.4 (ADR-003 A2 note): a /loop or notification turn ahead of the request is not read as the handover; the request turn is', async ($, on) => {
+  const { h, dir, prompts, clears, taskId, rotationId } = await requested($, on)
+  for (const origin of [{ kind: 'scheduled-trigger' }, { kind: 'task-notification' }] as const) {
+    await submit($, 'loop prompt', origin as never)
+    await turn($, 'loop output, no handover')
+    await h.clock.settle()
+  }
+  expect(stateOf(h, dir).rotation.retries ?? 0).toBe(0)
+  expect(prompts.filter(p => p.text.includes('no "<<<JEEVES-HANDOVER v1" line found'))).toEqual([])
+  await submit($, 'Jeeves: write the handover', { kind: 'plugin', name: 'jeeves' } as never)
+  await turn($, handover(taskId, rotationId))
+  expect(h.files.get(`${dir}/history/handover-001.md`)).toContain(handover(taskId, rotationId))
+  await until(h, () => clears.length > 0)
+})

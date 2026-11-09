@@ -1,7 +1,7 @@
 // Wires engine events to the adapter; no logic here (02 §3).
-import type { CommandRunInput, EngineInterface, Register, Timer, ToolCallInput, ToolCallResult } from 'claude-code'
+import type { CommandRunInput, EngineInterface, PromptOrigin, Register, Timer, ToolCallInput, ToolCallResult } from 'claude-code'
 import type { ToolOutcome } from '../src/core/evidence.ts'
-import { chooseCommandName, FALLBACK, PRIMARY, relay } from '../src/adapter/commands.ts'
+import { chooseCommandName, FALLBACK, PLUGIN, PRIMARY, relay } from '../src/adapter/commands.ts'
 import { recover, recoveryNotice } from '../src/adapter/recover.ts'
 import { cleanupAuto } from '../src/adapter/purge.ts'
 import { upgradeCheck } from '../src/adapter/auto.ts'
@@ -54,6 +54,11 @@ export const register: Register = (on, options) => {
     rowDue = false
     if (!(await completionRow(rt))) rowDue = true
   }
+  // ADR-003 A2 (ST-15.4): what opened this main turn, so a /loop or notification turn ahead of Jeeves's request is not read as the handover.
+  // A turn another source opened (a /loop, a notification, another plugin or session) is foreign; unknown (a reload mid-turn) and typed ones are not.
+  const foreignTurn = (o: PromptOrigin | null) => o !== null && o.kind !== 'composer' && !(o.kind === 'plugin' && o.name === PLUGIN)
+  let nextOpener: PromptOrigin | null = null
+  let opener: PromptOrigin | null = null
   // R-25: whether this main turn's classic.Stop reached Jeeves.
   let stopSeen = true
   let warnedSkip = false
@@ -122,6 +127,7 @@ export const register: Register = (on, options) => {
   // ST-2.1: the person's first prompt after `/jeeves on` (no goal) is the task, byte for byte. Slash commands are not.
   // ST-4.4: during a handover a typed prompt is held for the fresh conversation; slash commands still run.
   on('prompt.submit', async ($, e, next) => {
+    nextOpener = e.origin
     // ADR-004 A2: a background task's notification ends it in turn mode's record (kept in every mode, it costs nothing).
     if (e.origin.kind === 'task-notification') bgNotified(e.text)
     if (e.origin.kind !== 'composer' || e.command || e.isMeta) return next(e)
@@ -149,6 +155,8 @@ export const register: Register = (on, options) => {
   on('turn.start', async ($, e, next) => {
     if (e.agentId === undefined) {
       turnOpen = true
+      opener = nextOpener
+      nextOpener = null
       stopSeen = false
       rowDue = true
     }
@@ -172,7 +180,7 @@ export const register: Register = (on, options) => {
       if (stopSeen === false && !e.isAborted && e.reason !== 'aborted') await quietly($, opts, 'turn boundary', async rt => {
         if (rt.probe.boundary !== 'turn' || rt.probe.mode === 'unsupported') return
         if (e.reason === 'error') await stopFailure(rt, 'unknown')
-        else await turnBoundary(rt, e.reason === 'answer' ? e.answer : '')
+        else await turnBoundary(rt, e.reason === 'answer' ? e.answer : '', foreignTurn(opener))
       })
       await quietly($, opts, 'turn end', rt => onTurnComplete(rt, e.isAborted ? 'aborted' : e.reason))
     }
