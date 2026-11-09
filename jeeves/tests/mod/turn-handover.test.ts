@@ -1,7 +1,7 @@
 // ST-16.3 / ADR-003 A2: in turn mode the handover is asked for by a submitted prompt, read from the next answered
 // turn.complete's `answer`, and retried the same way.
 import { expect } from 'claude-code/testing'
-import { handover, sha256, stateOf, submit, test, turnGenerating as requested, until, wholeTurn as turn } from './kit.ts'
+import { handover, sha256, stateOf, submit, test, turnEnd, turnGenerating as requested, turnStart, until, wholeTurn as turn } from './kit.ts'
 
 test('the request goes out as a prompt; a valid answer is saved as in Stop mode, with crons not available; then /clear', async ($, on) => {
   const { h, dir, prompts, clears, taskId, rotationId } = await requested($, on)
@@ -78,4 +78,14 @@ test('ST-15.4: an API error ending the handover turn pauses with API_ERROR, as c
   expect(clears).toEqual([])
   const r = await submit($, 'go on')
   expect(r.drop).toBeUndefined()
+})
+
+test('ST-15.4: a turn whose Stop did reach Jeeves after turn mode was chosen is judged once, by the Stop', async ($, on) => {
+  const { h, dir, taskId, rotationId } = await requested($, on)
+  const bad = handover(taskId, rotationId, { '## Exact next actions\n1. [inferred] Fix precedence in `src/parse.js`.\n': '' })
+  await turnStart($, 'late-stop')
+  await $.classic.Stop({ stop_hook_active: false, last_assistant_message: bad, background_tasks: [], session_crons: [] })
+  await turnEnd($, 'answer', 'late-stop', bad)
+  await h.clock.settle()
+  expect(stateOf(h, dir).rotation.retries).toBe(1)
 })

@@ -167,9 +167,9 @@ export const register: Register = (on, options) => {
         })
       }
       // ADR-004 A2: in turn mode this is the boundary; a rotation requested before the skip was seen is taken over here.
-      // A refusal is judged as an empty message (a
+      // A Stop that did reach Jeeves this turn was the boundary already. A refusal is judged as an empty message (a
       // retry, as a Stop would); an API error pauses, as classic.StopFailure does, which turn mode may not get (ST-15.4).
-      if (!e.isAborted && e.reason !== 'aborted') await quietly($, opts, 'turn boundary', async rt => {
+      if (stopSeen === false && !e.isAborted && e.reason !== 'aborted') await quietly($, opts, 'turn boundary', async rt => {
         if (rt.probe.boundary !== 'turn' || rt.probe.mode === 'unsupported') return
         if (e.reason === 'error') await stopFailure(rt, 'unknown')
         else await turnBoundary(rt, e.reason === 'answer' ? e.answer : '')
