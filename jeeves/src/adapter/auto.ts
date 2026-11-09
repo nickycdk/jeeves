@@ -57,7 +57,7 @@ export const setSessionOff = async (rt: Runtime) => rt.port.storeSet(sessionOffK
 export async function autoStartNow(rt: Runtime, row: AutoRow) {
   const [off, defaults, file, install] = await Promise.all([rt.port.sessionId().then(id => rt.port.storeGet(sessionOffKey(id))), readDefaults(rt), readAuto(rt), rt.port.storeGet(UPGRADE_KEY)])
   const r = resolveAutoStart({
-    sessionOff: off === true, project: defaults.value?.autoStart, row, file: file.value?.default, install: isInstallKind(install) ? install : null,
+    sessionOff: off === true, project: defaults.value?.autoStart, row, file: file.value?.default, fileUpgraded: file.value?.reason === 'upgraded from 0.2', install: isInstallKind(install) ? install : null,
   })
   return { ...r, fileError: file.error }
 }

@@ -58,7 +58,9 @@ for (const [why, seed] of [['firstActivationShown', (h: MemHost) => void h], ['a
     expect(JSON.parse(h.files.get(AUTO)!)).toEqual({ schemaVersion: 1, default: 'off', reason: 'upgraded from 0.2' })
     for (const [f, text] of before) expect(h.files.get(f)).toBe(text)
     expect([...h.files.keys()].filter(f => !before.has(f))).toEqual([AUTO])
-    expect(await relay($, 'auto')).toBe('Auto-start: off (auto.json).')
+    expect(await relay($, 'auto')).toBe('Auto-start: off (upgraded from 0.2).')
+    // Review fix 2: reason 3b, so the session gets the hint (spec §6.1), not the explicit "everywhere".
+    expect(await relay($, 'status')).toMatch(/^Auto off: upgraded from 0\.2/m)
     await newSession($, h, 'sess-2')
     expect(h.toasts.filter(t => t === UPGRADE).length).toBe(1)
     expect(await relay($, 'auto on')).toContain('Auto-start everywhere: on.')
@@ -88,7 +90,7 @@ test('a plugin store wiped while the state folder keeps its projects (a reinstal
   const h = memHost(on)
   v02Project(h)
   await start($)
-  expect(await relay($, 'auto')).toBe('Auto-start: off (auto.json).')
+  expect(await relay($, 'auto')).toBe('Auto-start: off (upgraded from 0.2).')
   expect(JSON.parse(h.files.get(AUTO)!).default).toBe('off')
 })
 

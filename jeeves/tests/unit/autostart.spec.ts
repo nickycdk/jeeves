@@ -19,6 +19,8 @@ test('precedence: session, project, /config row (on/off), auto.json, then the in
   const r = (o: Partial<AutoInputs>) => resolveAutoStart({ ...base, ...o })
   assert.deepEqual(r({}), { on: true, source: 'fresh install' })
   assert.deepEqual(r({ install: 'upgrader' }), { on: false, source: 'upgraded from 0.2' })
+  assert.deepEqual(r({ file: 'off', fileUpgraded: true, install: 'upgrader' }), { on: false, source: 'upgraded from 0.2' }, 'the upgrade check wrote auto.json')
+  assert.deepEqual(r({ file: 'off', install: 'upgrader' }), { on: false, source: 'auto.json' }, '/jeeves auto off wrote it')
   assert.deepEqual(r({ install: null }), { on: false, source: 'upgraded from 0.2' }) // check not run yet: the safe direction
   assert.deepEqual(r({ install: 'upgrader', file: 'on' }), { on: true, source: 'auto.json' })
   assert.deepEqual(r({ file: 'off' }), { on: false, source: 'auto.json' })

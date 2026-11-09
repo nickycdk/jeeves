@@ -24,6 +24,8 @@ export type AutoInputs = {
   project?: OnOff | undefined
   row: AutoRow
   file?: OnOff | undefined
+  /** `auto.json` was written by the upgrade check (its `reason`), not by `/jeeves auto`: still the upgrade default (3b). */
+  fileUpgraded?: boolean
   /** null: the upgrade check has not run (no state folder yet), read as an upgrader: off, the safe direction. */
   install: InstallKind | null
 }
@@ -33,7 +35,7 @@ export function resolveAutoStart(v: AutoInputs): { on: boolean; source: AutoSour
   if (v.sessionOff) return { on: false, source: 'this session' }
   if (v.project) return { on: v.project === 'on', source: 'this project' }
   if (v.row !== 'default') return { on: v.row === 'on', source: '/config' }
-  if (v.file) return { on: v.file === 'on', source: 'auto.json' }
+  if (v.file) return { on: v.file === 'on', source: v.fileUpgraded ? 'upgraded from 0.2' : 'auto.json' }
   return v.install === 'fresh' ? { on: true, source: 'fresh install' } : { on: false, source: 'upgraded from 0.2' }
 }
 
