@@ -102,5 +102,12 @@ test('outside git: paths are still checked, branch claims are not', () => {
 
 test('asPath: file names yes; commands, code, URLs, dotted identifiers no', () => {
   for (const yes of ['calc.js', 'src/a.ts', 'src/a.ts:12', './x/y.md', 'docs/', 'package.json', 'a.test.ts,']) assert.ok(asPath(yes), yes)
-  for (const no of ['npm test', 'a + b', 'console.log', 'obj.map', 'https://x.io/a.js', 'v1.2.3', 'f(x).js', '--flag', '~/.zshrc', 'sub', 'e.g', '/\\s+/', 'src\\a.js']) assert.equal(asPath(no), null, no)
+  for (const no of ['npm test', 'a + b', 'console.log', 'obj.map', 'https://x.io/a.js', 'v1.2.3', 'f(x).js', '--flag', '~/.zshrc', 'sub', 'e.g', '/\\s+/', 'src\\a.js', '/api/users', '@types/node', 'date-fns/locale', 'origin/main', 'application/json']) assert.equal(asPath(no), null, no)
+})
+
+test('a search that found nothing is no failed check of the file it searched; a failed run of the file still is', () => {
+  const h = read('valid.md').replace(/^- \[verified\] .*$/m, '- [verified] `src/calc.js` compiles ok.')
+  assert.ok(h.includes('compiles ok'))
+  assert.deepEqual(codes(validateHandover(h, facts({ ledger: [cmd('grep -n TODO src/calc.js', false)] }))), [])
+  assert.deepEqual(codes(validateHandover(h, facts({ ledger: [cmd('node src/calc.js', false)] }))), ['FALSE_PASS'])
 })

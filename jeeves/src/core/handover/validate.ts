@@ -46,7 +46,9 @@ export function asPath(token: string): string | null {
   const t = token.trim().replace(/[.,;]+$/, '').replace(/:\d+(:\d+)?$/, '')
   // A backslash is code (a regex like `/\s+/`, live run 8), never a POSIX path.
   if (!t || /[\s()[\]{}<>=$*?"'|;,&!\\]/.test(t) || t.includes('://') || t.startsWith('-') || t.startsWith('~')) return null
-  if (t.includes('/')) return /[A-Za-z0-9]/.test(t) ? t : null
+  // With a slash: a folder (`docs/`) or a name with an extension. `/api/users`, `@types/node`, `origin/main` and
+  // `application/json` name no file, and flagging them as missing cost handovers their retries.
+  if (t.includes('/')) return t.endsWith('/') ? (/[A-Za-z0-9]/.test(t) ? t : null) : /[\w-]\.[A-Za-z][A-Za-z0-9]*$/.test(t) ? t : null
   return /^[\w@.-]*[\w-]\.[A-Za-z][A-Za-z0-9]*$/.test(t) && FILE_EXT.test(t) ? t : null
 }
 
@@ -72,6 +74,7 @@ const BRANCH_CLAIMS = [/\b(?:on|current|working)\s+branch\s*(?:is\s+|:\s*|=\s*)?
 const HEAD_CLAIM = /\bHEAD\s*(?:is|at|=|:)?\s*`?([0-9a-f]{7,40})\b/gi
 const PASS = /\b(pass(es|ed|ing)?|green|succeed(s|ed)?|successful(ly)?|ok|works)\b/i
 const NOT_PASS = /\b(fail(s|ed|ing|ure)?|not\s+pass|doesn't\s+pass|does\s+not\s+pass|broken|red|errors?|untested|not\s+run)\b/i
+const LOOKUP = /^(grep|egrep|fgrep|rg|diff|test|ls|cat|find)\s/
 const flat = (s: string) => s.replace(/\s+/g, ' ').trim().toLowerCase()
 
 /** Parse, then check against the facts. Errors are written for Claude: each names what to fix. */
@@ -122,7 +125,8 @@ export function validateHandover(message: string, f: Facts): Validation {
     const tokens = [...text.matchAll(BACKTICKED)].map(m => flat(m[1]!)).filter(t => t.length >= 3)
     const latest = [...cmds].reverse().find(c => {
       const cmd = flat(c.command)
-      return (cmd.length >= 3 && lower.includes(cmd)) || tokens.some(t => cmd.includes(t))
+      // A search that found nothing exits 1 too: `grep TODO src/a.ts` is no failed check of `src/a.ts`.
+      return (cmd.length >= 3 && lower.includes(cmd)) || (!LOOKUP.test(cmd) && tokens.some(t => cmd.includes(t)))
     })
     if (latest && !latest.ok) err('FALSE_PASS', `a bullet says \`${latest.command}\` passed, but its last run ${latest.exit === null ? 'did not finish' : `exited ${latest.exit}`}; say it failed`)
   }
