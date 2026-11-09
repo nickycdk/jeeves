@@ -2,19 +2,21 @@
 // the decision lives in the plugin store under the session id, so a reload (turns > 0 by then) keeps it.
 import { autoReason, isNotWatched, ordered, startReasons, type AutoRow, type NotWatched } from '../core/autostart.ts'
 import { windowThreshold } from '../core/task.ts'
-import { autoStartNow } from './auto.ts'
+import { autoStartNow, sessionOffKey } from './auto.ts'
 import { readDefaults } from './defaults.ts'
 import type { Runtime } from './runtime.ts'
 import { addRevision, applyOwn, ownTask, projectTasks, startTask } from './task.ts'
 import { MSG } from './ui.ts'
 
-const KEY = 'eligibility'
-type Kept = { sessionId: string; reasons: NotWatched[] }
+/** Keyed by session id: the plugin store is shared by every session on the machine, so two at once keep their own. */
+const keyOf = (sessionId: string) => `eligibility:${sessionId}`
 
-const kept = async (rt: Runtime): Promise<Kept | null> => {
-  const v = (await rt.port.storeGet(KEY)) as Partial<Kept> | null | undefined
-  return v && typeof v.sessionId === 'string' && Array.isArray(v.reasons) ? { sessionId: v.sessionId, reasons: v.reasons.filter(isNotWatched) } : null
+/** The reasons decided at this session's start; null when none was kept (no session.start, or its write failed). */
+const kept = async (rt: Runtime, sessionId: string): Promise<NotWatched[] | null> => {
+  const v = (await rt.port.storeGet(keyOf(sessionId))) as { reasons?: unknown } | null | undefined
+  return v && Array.isArray(v.reasons) ? v.reasons.filter(isNotWatched) : null
 }
+const keep = (rt: Runtime, sessionId: string, reasons: NotWatched[]) => rt.port.storeSet(keyOf(sessionId), { reasons })
 
 /** What session.start reads now. A usage reading that fails counts as no large window (the safe direction). */
 async function readNow(rt: Runtime, interactive: boolean): Promise<NotWatched[]> {
@@ -25,40 +27,54 @@ async function readNow(rt: Runtime, interactive: boolean): Promise<NotWatched[]>
 /** session.start: decide once per session; a reload of the same session keeps what was decided. */
 export async function decideAtStart(rt: Runtime, interactive: boolean): Promise<void> {
   const me = await rt.port.sessionId()
-  if ((await kept(rt))?.sessionId === me) return
-  await rt.port.storeSet(KEY, { sessionId: me, reasons: await readNow(rt, interactive) } satisfies Kept)
-}
-
-/** Jeeves's or the user's /clear: the fresh conversation is the same session for auto-start (spec §5.7), so it keeps the decision. */
-export async function carryOver(rt: Runtime, to: string, endedHere: ReadonlySet<string>): Promise<void> {
-  const k = await kept(rt)
-  if (k && endedHere.has(k.sessionId)) await rt.port.storeSet(KEY, { ...k, sessionId: to })
+  if ((await kept(rt, me)) === null) await keep(rt, me, await readNow(rt, interactive))
 }
 
 /**
- * Any other session end: forget it, so `claude --resume` of this id in a new process decides again (and finds turns).
- * shortcut: a crashed process leaves its decision, so resuming that same id keeps it; upgrade if resumed sessions matter more.
+ * Jeeves's or the user's /clear: the fresh conversation is the same session for auto-start (spec §5.7), so it takes the
+ * decision and a `/jeeves off` of the session it replaces (the one this process ended last).
  */
-export async function forget(rt: Runtime, sessionId: string): Promise<void> {
-  if ((await kept(rt))?.sessionId === sessionId) await rt.port.storeSet(KEY, null)
+export async function carryOver(rt: Runtime, to: string, endedHere: ReadonlySet<string>): Promise<void> {
+  const from = [...endedHere].at(-1)
+  if (!from || from === to) return
+  const reasons = await kept(rt, from)
+  if (reasons !== null) await keep(rt, to, reasons)
+  if ((await rt.port.storeGet(sessionOffKey(from))) === true) await rt.port.storeSet(sessionOffKey(to), true)
+  await forget(rt, from)
 }
 
-/** Every reason this session is not auto-watched (§5.1 order; empty: eligible), with auto-start's own setting read live. */
+/**
+ * Any session end but /clear: forget it, so `claude --resume` of this id in a new process decides again (and finds turns).
+ * shortcut: a crashed process leaves its two small keys, and resuming that same id keeps its decision; upgrade if that matters.
+ */
+export async function forget(rt: Runtime, sessionId: string): Promise<void> {
+  await rt.port.storeSet(keyOf(sessionId), null)
+  await rt.port.storeSet(sessionOffKey(sessionId), null)
+}
+
+/**
+ * Every reason this session is not auto-watched (§5.1 order; empty: eligible), with auto-start's own setting read live.
+ * A task of this session that ended (near-threshold, model switch, done) also counts as off for this session: none
+ * starts again here, and `/jeeves on` is the way back. `owns`: this session runs a task now.
+ */
 export async function eligibility(rt: Runtime, row: AutoRow) {
-  const k = await kept(rt)
+  const me = await rt.port.sessionId()
+  const k = await kept(rt, me)
   // No decision kept for this session (its store write failed): read the facts now; turns > 0 then reads as resumed.
-  const decided = k?.sessionId === (await rt.port.sessionId())
-  const fixed = decided ? k!.reasons : await readNow(rt, true)
+  const fixed = k ?? await readNow(rt, true)
+  const tasks = (await projectTasks(rt)).tasks
+  const owns = ownTask(tasks, me) !== null
+  const ended = !owns && tasks.some(t => t.state.activeSessionId === me)
   const auto = await autoStartNow(rt, row)
   const off = autoReason(auto)
-  return { reasons: ordered([...fixed, ...(off ? [off] : [])]), auto, decided }
+  return { reasons: ordered([...fixed, ...(off ? [off] : []), ...(ended ? ['this session' as const] : [])]), auto, decided: k !== null, owns }
 }
 
 /** The R-25 re-check found the Stop hook skipped: the session is unsupported now, and an auto task ends (files kept). */
 export async function stopSkipped(rt: Runtime): Promise<boolean> {
-  const k = await kept(rt)
   const me = await rt.port.sessionId()
-  if (k?.sessionId === me) await rt.port.storeSet(KEY, { sessionId: me, reasons: ordered([...k.reasons.filter(r => r !== 'assisted mode'), 'unsupported']) } satisfies Kept)
+  const k = await kept(rt, me)
+  if (k !== null) await keep(rt, me, ordered([...k.filter(r => r !== 'assisted mode'), 'unsupported']))
   const own = ownTask((await projectTasks(rt)).tasks, me)
   if (own?.state.origin !== 'auto') return false
   await applyOwn(rt, { type: 'OFF', sessionId: me })
@@ -92,11 +108,11 @@ let starting: Promise<boolean> | null = null
 export function startAuto(rt: Runtime, text: string, row: AutoRow): Promise<boolean> {
   if (starting) return starting.then(() => false)
   starting = (async () => {
-    if (!rt.projectDir) return false
-    const me = await rt.port.sessionId()
-    if ((await projectTasks(rt)).tasks.some(t => t.state.activeSessionId === me)) return false
+    // The decision kept at session.start first: one store read, so a session that can never auto-start reads no task.
+    if (!rt.projectDir || (await kept(rt, await rt.port.sessionId()))?.length !== 0) return false
     const e = await eligibility(rt, row)
-    if (!e.decided || e.reasons.length) return false
+    if (!e.decided || e.owns || e.reasons.length) return false
+    const me = await rt.port.sessionId()
     const defaults = await readDefaults(rt)
     const r = await startTask(rt, me, text, defaults.value?.thresholdPercent, 'auto')
     if (r.state.status !== 'MONITORING') return false

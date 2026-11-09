@@ -29,7 +29,8 @@ export async function writeAuto(rt: Runtime, v: AutoFile): Promise<void> {
 }
 
 const UPGRADE_KEY = 'upgradeCheck'
-const SESSION_OFF_KEY = 'autoOffSession'
+/** `/jeeves off` for one session, keyed by its id: the store is shared by every session on the machine. */
+export const sessionOffKey = (sessionId: string) => `autoOff:${sessionId}`
 
 /**
  * The upgrade check, once per install (ST-13.2, spec §5.6): only while the store has no `upgradeCheck`. An upgrader gets
@@ -50,13 +51,13 @@ export async function upgradeCheck(rt: Runtime): Promise<{ kind: InstallKind; no
 }
 
 /** `/jeeves off`: auto-start stays off for the rest of this session (kept in the store, so a reload keeps it too). */
-export const setSessionOff = async (rt: Runtime) => rt.port.storeSet(SESSION_OFF_KEY, await rt.port.sessionId())
+export const setSessionOff = async (rt: Runtime) => rt.port.storeSet(sessionOffKey(await rt.port.sessionId()), true)
 
 /** Whether auto-start applies in this session, and which level decided it (spec §5.5). */
 export async function autoStartNow(rt: Runtime, row: AutoRow) {
-  const [off, defaults, file, install] = await Promise.all([rt.port.storeGet(SESSION_OFF_KEY), readDefaults(rt), readAuto(rt), rt.port.storeGet(UPGRADE_KEY)])
+  const [off, defaults, file, install] = await Promise.all([rt.port.sessionId().then(id => rt.port.storeGet(sessionOffKey(id))), readDefaults(rt), readAuto(rt), rt.port.storeGet(UPGRADE_KEY)])
   const r = resolveAutoStart({
-    sessionOff: off === (await rt.port.sessionId()), project: defaults.value?.autoStart, row, file: file.value?.default, install: isInstallKind(install) ? install : null,
+    sessionOff: off === true, project: defaults.value?.autoStart, row, file: file.value?.default, install: isInstallKind(install) ? install : null,
   })
   return { ...r, fileError: file.error }
 }

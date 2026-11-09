@@ -168,7 +168,7 @@ test('R-25 re-check after the first answer: an auto task ends with its message; 
   await turnStart($); await turnEnd($)
   expect(stateOf(h, dir).status).toBe('DISABLED')
   expect(h.toasts).toContain(UNSUPPORTED)
-  expect(await autoLine($)).toBe('Auto off: unsupported')
+  expect(await autoLine($)).toBe('Auto off: unsupported (+1 more)') // + this session: its auto task ended
 })
 
 test('R-25 re-check: an explicit task is not ended by it (its Stop-skip message as before)', async ($, on) => {
@@ -180,4 +180,45 @@ test('R-25 re-check: an explicit task is not ended by it (its Stop-skip message 
   await turnStart($, 't2'); await turnEnd($, 'answer', 't2')
   expect(stateOf(h, dir).status).toBe('MONITORING')
   expect(h.toasts).not.toContain(UNSUPPORTED)
+})
+
+test('two sessions at once (one plugin store): each keeps its own decision and its own /jeeves off', async ($, on) => {
+  const h = eligibleHost(on)
+  bottom(on)
+  h.sessionId = 'sess-a'
+  await start($)
+  h.sessionId = 'sess-b'
+  h.usage = { window: 200_000 }
+  await start($)
+  await relay($, 'off')
+  h.sessionId = 'sess-a'
+  expect(await autoLine($)).toBe('Auto-start: on (fresh install)')
+  await relay($, 'off')
+  h.sessionId = 'sess-b'
+  await relay($, 'auto on')
+  expect(await autoLine($)).toBe('Auto off: this session (+1 more)')
+  h.sessionId = 'sess-a'
+  expect(await autoLine($)).toBe('Auto off: this session')
+})
+
+test('a /clear carries /jeeves off to the fresh conversation; an exit forgets it', async ($, on) => {
+  const h = eligibleHost(on)
+  bottom(on)
+  await start($)
+  await relay($, 'off')
+  await engineClear($, h, 'sess-2')
+  expect(await autoLine($)).toBe('Auto off: this session')
+  await $.session.end({ reason: 'prompt_input_exit', sessionId: 'sess-2', resume: { id: 'sess-2' } })
+  await start($)
+  expect(await autoLine($)).toBe('Auto-start: on (fresh install)')
+})
+
+test('after an auto task of this session ended (model switch), status says off for this session, not on', async ($, on) => {
+  const h = eligibleHost(on)
+  bottom(on)
+  await start($)
+  await autoTask($, h)
+  await measure($, 200_000, 30)
+  expect(h.toasts).toContain(SWITCHED)
+  expect(await autoLine($)).toBe('Auto off: this session')
 })

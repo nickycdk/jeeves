@@ -16,7 +16,7 @@ const HINT: Record<string, string> = {
 }
 
 /** `t`: the task status would show; `errors`: unreadable task folders. */
-export async function diagnose(rt: Runtime, me: string, t: Task | null, errors: readonly string[], row: AutoRow = 'default'): Promise<string> {
+export async function diagnose(rt: Runtime, me: string, t: Task | null, errors: readonly string[], row: AutoRow): Promise<string> {
   const run = (argv: string[]) => rt.port.run(argv, { timeoutMs: 5000 }).catch(() => ({ exitCode: -1, stdout: '', stderr: '' }))
   const v = await rt.port.version().catch(() => null)
   const os = (await run(['uname', '-sr'])).stdout.trim() || 'unknown'
