@@ -12,7 +12,7 @@ import { defaultsCommand, readDefaults } from './defaults.ts'
 import { autoCommand, setSessionOff } from './auto.ts'
 import { reasonLine, type AutoRow } from '../core/autostart.ts'
 import { diagnose } from './diagnose.ts'
-import { eligibility } from './eligible.ts'
+import { eligibility, hintAnswered } from './eligible.ts'
 import { fullHistory, statsText } from './history.ts'
 import { purge } from './purge.ts'
 import { firstActivationText, HELP, historyText, MSG, statusText } from './ui.ts'
@@ -76,6 +76,8 @@ export async function relay(rt: Runtime, args: string, caller: Caller): Promise<
     return [taskText(own.state.taskId, view), ...errors.map(e => `Warning: ${e}`)].join('\n')
   }
   if (sub === 'defaults') return defaultsCommand(rt, rest, caller.userTyped)
+  // ST-14.1: acting on the hint (or on auto-start) resets its count.
+  if (caller.userTyped && (sub === 'on' || (sub === 'auto' && rest.trim().toLowerCase() === 'on'))) await hintAnswered(rt)
   if (sub === 'auto') return autoCommand(rt, rest, caller.userTyped, caller.autoRow ?? 'default')
   if (!CHANGES.has(sub)) return `Unknown command "${sub.slice(0, 20)}".\n${HELP}`
   if (!caller.userTyped) return MSG.userOnly

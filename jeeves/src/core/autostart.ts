@@ -69,6 +69,15 @@ export function autoReason(a: { on: boolean; source: AutoSource }): NotWatched |
   return a.source === 'this session' || a.source === 'this project' || a.source === 'upgraded from 0.2' ? a.source : 'everywhere'
 }
 
+/**
+ * ST-14.1 (spec §6.1): a session not watched only for these reasons (3b, 4-6) may get the hint. Any other one keeps it
+ * silent: an explicit off at any level, -p or SDK, unsupported, assisted.
+ */
+const HINTABLE: readonly NotWatched[] = ['upgraded from 0.2', 'resumed conversation', 'not a git repository', '200K window at start']
+export const hintable = (reasons: readonly NotWatched[]) => reasons.length > 0 && reasons.every(r => HINTABLE.includes(r))
+/** After this many hints in a row with no `/jeeves on` or `/jeeves auto on`, no more. */
+export const HINT_LIMIT = 3
+
 /** Every reason, once each, in the §5.1 order. Empty: the session is eligible. */
 export const ordered = (reasons: readonly NotWatched[]): NotWatched[] => NOT_WATCHED.filter(r => reasons.includes(r))
 

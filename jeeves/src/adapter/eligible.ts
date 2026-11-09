@@ -1,7 +1,7 @@
 // ST-13.3 (spec §5.1, D-42): whether this session may be auto-watched, decided once at session.start. No task file:
 // the decision lives in the plugin store under the session id, so a reload (turns > 0 by then) keeps it.
-import { autoReason, isNotWatched, ordered, startReasons, type AutoRow, type NotWatched } from '../core/autostart.ts'
-import { windowThreshold } from '../core/task.ts'
+import { autoReason, HINT_LIMIT, hintable, isNotWatched, ordered, startReasons, type AutoRow, type NotWatched } from '../core/autostart.ts'
+import { simulateWindow, windowThreshold } from '../core/task.ts'
 import { autoStartNow, sessionOffKey } from './auto.ts'
 import { readDefaults } from './defaults.ts'
 import type { Runtime } from './runtime.ts'
@@ -10,6 +10,10 @@ import { MSG } from './ui.ts'
 
 /** Keyed by session id: the plugin store is shared by every session on the machine, so two at once keep their own. */
 const keyOf = (sessionId: string) => `eligibility:${sessionId}`
+/** ST-14.1: the hint was shown in this session (carried over a /clear like the decision). */
+const hintedKey = (sessionId: string) => `hinted:${sessionId}`
+/** ST-14.1: hints shown in a row with no `/jeeves on` or `/jeeves auto on` after them; machine-wide. */
+const HINT_COUNT = 'hintsUnanswered'
 
 /** The reasons decided at this session's start; null when none was kept (no session.start, or its write failed). */
 const kept = async (rt: Runtime, sessionId: string): Promise<NotWatched[] | null> => {
@@ -40,16 +44,18 @@ export async function carryOver(rt: Runtime, to: string, endedHere: ReadonlySet<
   const reasons = await kept(rt, from)
   if (reasons !== null) await keep(rt, to, reasons)
   if ((await rt.port.storeGet(sessionOffKey(from))) === true) await rt.port.storeSet(sessionOffKey(to), true)
+  if ((await rt.port.storeGet(hintedKey(from))) === true) await rt.port.storeSet(hintedKey(to), true)
   await forget(rt, from)
 }
 
 /**
  * Any session end but /clear: forget it, so `claude --resume` of this id in a new process decides again (and finds turns).
- * shortcut: a crashed process leaves its two small keys, and resuming that same id keeps its decision; upgrade if that matters.
+ * shortcut: a crashed process leaves its three small keys, and resuming that same id keeps its decision; upgrade if that matters.
  */
 export async function forget(rt: Runtime, sessionId: string): Promise<void> {
   await rt.port.storeSet(keyOf(sessionId), null)
   await rt.port.storeSet(sessionOffKey(sessionId), null)
+  await rt.port.storeSet(hintedKey(sessionId), null)
 }
 
 /**
@@ -82,6 +88,31 @@ export async function stopSkipped(rt: Runtime): Promise<boolean> {
 }
 
 const NOTICE_KEY = 'autoNoticeShown'
+
+/**
+ * ST-14.1 (spec §6.1): a reading in a session with no task of its own, at the point a watched one would be warned
+ * (threshold - 5), gets one hint: once per session, only for reasons 3b and 4-6, silent after HINT_LIMIT unanswered.
+ * Plugin store only, no task file. The counter is set before the toast, so a failed write never repeats it.
+ */
+export async function hint(rt: Runtime, row: AutoRow, raw: { percent?: number; tokens?: number; window: number }): Promise<void> {
+  const c = rt.windowOverride ? simulateWindow(raw, rt.windowOverride) : raw // as measure() reads it
+  if (c.percent === undefined) return
+  const me = await rt.port.sessionId()
+  if ((await rt.port.storeGet(hintedKey(me))) === true) return
+  const n = await rt.port.storeGet(HINT_COUNT)
+  const shown = typeof n === 'number' ? n : 0
+  if (shown >= HINT_LIMIT) return
+  const threshold = (await readDefaults(rt)).value?.thresholdPercent ?? windowThreshold(c.window)
+  if (c.percent < threshold - 5) return
+  const e = await eligibility(rt, row)
+  if (e.owns || !hintable(e.reasons)) return
+  await rt.port.storeSet(hintedKey(me), true)
+  await rt.port.storeSet(HINT_COUNT, shown + 1)
+  rt.port.toast(MSG.hint(Math.round(c.percent)))
+}
+
+/** The user acted on the hint, or on auto-start: `/jeeves on` or `/jeeves auto on`, typed. */
+export const hintAnswered = (rt: Runtime) => rt.port.storeSet(HINT_COUNT, 0)
 
 /**
  * ST-13.4 (spec §5.4): the first eligible session hears, at session.start, that it is watched and at which threshold.

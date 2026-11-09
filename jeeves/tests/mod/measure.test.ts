@@ -53,13 +53,14 @@ test('AC-04: a rate-limit-only measure changes nothing, even with a high context
   expect(stateOf(h, dir).lastContext.percent).toBe(20)
 })
 
-test('AC-03 (ADR-009 A3): not auto-watched (no git) and no /jeeves on: measures from 0 to 95% leave no files and no effects', async ($, on) => {
+test('AC-03 (ADR-009 A3): not auto-watched (no git) and no /jeeves on: measures from 0 to 95% leave no files and no effects (with auto-start on, only the ST-14.1 hint)', async ($, on) => {
   const h = memHost(on)
   bottom(on)
   await start($)
   const argvBefore = h.argv.length
   for (let p = 0; p <= 95; p += 5) await measure($, p)
   expect(taskDirs(h)).toEqual([])
-  expect(h.toasts).toEqual([])
+  expect(h.toasts.filter(t => !t.startsWith('Jeeves: this session is at '))).toEqual([])
+  expect(h.toasts.length).toBeLessThanOrEqual(1)
   expect(h.argv.slice(argvBefore)).toEqual([])
 })

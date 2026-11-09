@@ -130,3 +130,11 @@ test('grace: a new auto task never rotates in its first 3 main turns; the first 
   // After the first rotation an auto task rotates as any other.
   assert.equal(run(fresh({ rotationCount: 1, lastContext: { window: 1_000_000, at: AT, percent: 20 } }), at(45)).status, 'ROTATION_REQUESTED')
 })
+
+test('ST-14.1: the hint only for reasons 3b and 4-6; any explicit off, -p, unsupported or assisted keeps it silent', async () => {
+  const { hintable } = await import('../../src/core/autostart.ts')
+  assert.equal(hintable([]), false)
+  for (const r of ['upgraded from 0.2', 'resumed conversation', 'not a git repository', '200K window at start'] as const) assert.equal(hintable([r]), true, r)
+  assert.equal(hintable(['resumed conversation', 'not a git repository', '200K window at start']), true)
+  for (const r of ['-p or SDK', 'unsupported', 'assisted mode', 'this session', 'this project', 'everywhere'] as const) assert.equal(hintable([r, 'not a git repository']), false, r)
+})

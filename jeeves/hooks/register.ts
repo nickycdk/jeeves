@@ -5,7 +5,7 @@ import { chooseCommandName, FALLBACK, PRIMARY, relay } from '../src/adapter/comm
 import { recover, recoveryNotice } from '../src/adapter/recover.ts'
 import { cleanupAuto } from '../src/adapter/purge.ts'
 import { upgradeCheck } from '../src/adapter/auto.ts'
-import { autoNotice, carryOver, decideAtStart, forget, startAuto, stopSkipped } from '../src/adapter/eligible.ts'
+import { autoNotice, carryOver, decideAtStart, forget, hint, startAuto, stopSkipped } from '../src/adapter/eligible.ts'
 import { isAutoRow } from '../src/core/autostart.ts'
 import { markStopSkipped, runtime, type Options } from '../src/adapter/runtime.ts'
 import { captureFirstPrompt, compacted, heartbeat, managedNow, holdPrompt, measure, nudgeIfWaiting, onFreshSession, onStop, onTurnComplete, taskSection, onUserClear, recordTool, releaseOnExit, stopFailure, why } from '../src/adapter/task.ts'
@@ -90,7 +90,8 @@ export const register: Register = (on, options) => {
   // ST-2.3: only a context change counts; rate-limit or cost changes never move the reading (AC-04).
   on('session.measure', async ($, e, next) => {
     if (e.changed.includes('context')) await quietly($, opts, 'measure', async rt => {
-      await measure(rt, e.context)
+      // ST-14.1: no task of this session's own took the reading, so it may be one for the hint.
+      if (!(await measure(rt, e.context))) await hint(rt, opts.autoStart ?? 'default', e.context)
       // Q-10: a reading that crosses the threshold after the turn ended finds Claude idle (D-23).
       if (!turnOpen) await nudgeIfWaiting(rt)
     })

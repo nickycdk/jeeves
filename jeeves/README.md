@@ -65,6 +65,8 @@ An auto task works like any other, with these differences:
 
 **Turning it off:** `/jeeves off` for the rest of this session, `/jeeves defaults auto off` for this project, `/jeeves auto off` everywhere (kept in the state folder, never in your Claude settings), or `/config` → Jeeves → Auto-start → `off`. The session wins over the project, the project over `/config`, `/config` (when set to `on` or `off`) over `/jeeves auto`. `/jeeves auto` shows the setting and which of these decided it. `/jeeves on` always works.
 
+**A hint instead of silence:** a session Jeeves does not watch only because it was not turned on after an upgrade, is a resumed conversation, is outside git or started on a 200K window gets one line when its context reaches the point a watched one would be warned (45% on 200K, 35% on 1M): `Jeeves: this session is at 45%. /jeeves on would hand it over to a fresh conversation before it fills up. /jeeves auto off hides this.` Once per session; never under `-p` or after you turned auto-start off anywhere; after 3 hints in a row with no `/jeeves on` or `/jeeves auto on`, no more. No tokens, no files.
+
 **Upgrading from 0.2:** nothing changes. Jeeves says once that it can now watch long sessions by itself, and keeps auto-start off until you type `/jeeves auto on`.
 
 ## What it does by itself, and what it does not

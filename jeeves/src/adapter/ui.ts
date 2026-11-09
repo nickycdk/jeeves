@@ -216,6 +216,7 @@ export const MSG = {
   // ST-13.3 (spec §5.1): the R-25 re-check ends an auto task.
   autoUnsupported: "Jeeves: not watching any more (this account isn't supported); /jeeves status for details",
   upgradeNotice: 'Jeeves can now watch long sessions by itself. Type /jeeves auto on to turn it on. Nothing changes until you do.',
+  hint: (percent: number) => `Jeeves: this session is at ${percent}%. /jeeves on would hand it over to a fresh conversation before it fills up. /jeeves auto off hides this.`,
   autoOffSession: 'No managed task. Auto-start is off for the rest of this session; /jeeves on still starts a task.',
   defaultsUnreadable: (err: string) => `Project defaults unreadable (config.json: ${short(err).slice(0, 80)}); they are ignored. /jeeves defaults clear resets them.`,
   defaultsCleared: 'Project defaults cleared. Running tasks are not changed.',

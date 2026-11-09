@@ -28,6 +28,7 @@ function allMessages(): string {
     `Auto task, user /clear: ${USER_CLEAR_AUTO}`,
     `Explicit task, user /clear: ${USER_CLEAR_EXPLICIT}`,
     `Auto task made explicit: ${MSG.madeExplicit('t_1', 2)}`,
+    `Hint, not watched (ST-14.1): ${MSG.hint(45)}`,
   ].join('\n') + '\n'
 }
 
