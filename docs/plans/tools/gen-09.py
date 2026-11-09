@@ -17,9 +17,21 @@ dec='\n'.join(L(d07,['| D-40','| D-41','| D-42','| D-43','| D-44','| D-45','| D-
 risks='\n'.join(L(d07,['| R-26','| R-27']))
 qs='\n'.join(L(d07,['| Q-13','| Q-14']))
 a3=L(a02,['- **Amendment A3'])[0]
+# Progress, read from each story's Status line in 04, so it never goes stale: "Solved (date)" is done, anything else is not.
+import re
+rows=[]
+for m in re.finditer(r'^### (ST-1[345]\.\d+) (.+?) — ([SML])\n((?:- .*\n?)*)', stories.replace('\n#### ST-','\n### ST-'), re.M):
+    st=re.search(r'^- \*\*Status:\*\* (Solved \([\d-]+\))', m.group(4), re.M)
+    rows.append(f"| {m.group(1)} | {m.group(2)} | {m.group(3)} | {'**done**, ' + st.group(1) if st else 'not started'} |")
+done=sum('**done**' in r for r in rows)
+progress=f'''**Progress** ({done} of {len(rows)} stories done; built from the Status lines in 04, so regenerate after each story):
+
+| Story | Name | Size | State |
+|---|---|---|---|
+'''+'\n'.join(rows)
 out=f'''# 09 — v0.3 plan: auto-start
 
-**Date:** 2026-11-08 · **Spec:** `docs/specs/auto-start.md` (revision 4, approved, D-40) · **Milestone:** M9 · **Status:** in progress: ST-13.1 and ST-13.2 solved; Q-13 and Q-14 decided (D-44, D-45). Review 1 of the plan applied (gate wording for a reduced E14, ST-15.2 preconditions, dry run, stop rules and fixture sizing, the estimate checked against M4, Q-14, story fixes) and review 2 (once-per-install upgrade check, same macOS user for every AC-41 run, `/cost` polled in both 1M runs, gate items split).
+**Date:** 2026-11-09 · **Spec:** `docs/specs/auto-start.md` (revision 4, approved, D-40) · **Milestone:** M9 · **Status:** in progress: ST-13.1 … ST-13.5 solved (see the progress table in §4; current handover `docs/plans/handoff-m9.md`); next ST-13.6; Q-13 and Q-14 decided (D-44, D-45). Review 1 of the plan applied (gate wording for a reduced E14, ST-15.2 preconditions, dry run, stop rules and fixture sizing, the estimate checked against M4, Q-14, story fixes) and review 2 (once-per-install upgrade check, same macOS user for every AC-41 run, `/cost` polled in both 1M runs, gate items split).
 
 This file gathers the whole v0.3 plan in one place. The same text lives in the numbered plans (02 ADR-009 A3, 03 E13–E15, 04 ST-13.1 … ST-15.3, 05 M9, 06 AC-35 … AC-47, 07 D-40 … D-43, R-26, R-27, Q-13, Q-14); when they differ, the numbered plans win and this file is updated. Story DoD and epic DoD are the standard ones in 03 and 04.
 
@@ -43,6 +55,8 @@ Install Jeeves once, start `claude`, work: on a fresh install, a session that qu
 ## 4. Stories
 
 Implement top to bottom. Sizes: **S** ≤ 0.5 day, **M** 1–2 days, **L** 3–4 days.
+
+{progress}
 
 {stories}
 

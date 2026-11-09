@@ -1,11 +1,11 @@
 # Handover: M9 (v0.3 auto-start), after ST-13.5
 
-**Date:** 2026-11-09 · **Claude Code:** 2.1.319 · **Branch:** `main`, **17 commits ahead of `origin` (this handover included), not pushed**. Paths are relative to the repo root. The previous handover (after ST-13.2) is `docs/done/handoffs/handoff-m9-after-ST-13.2.md`.
+**Date:** 2026-11-09 · **Claude Code:** 2.1.319 · **Branch:** `main`, **18 commits ahead of `origin` (this handover included), not pushed**. Paths are relative to the repo root. The previous handover (after ST-13.2) is `docs/done/handoffs/handoff-m9-after-ST-13.2.md`.
 
 ## 1. Where things stand
 
 - **The auto-start spec is approved** (`docs/specs/auto-start.md`, D-40). Design frozen: new ideas go to its §13.
-- **The v0.3 plan** lives in the numbered plans (02–07) and is gathered in `docs/plans/09-v0.3-auto-start-plan.md`. **09 is generated:** after changing 02–07, run `python3 -I docs/plans/tools/gen-09.py` from the repo root; never edit 09 by hand. The numbered plans win when they differ.
+- **The v0.3 plan** lives in the numbered plans (02–07) and is gathered in `docs/plans/09-v0.3-auto-start-plan.md`. **09 is generated:** after changing 02–07, run `python3 -I docs/plans/tools/gen-09.py` from the repo root; never edit 09 by hand. The numbered plans win when they differ. 09 §4 opens with a **progress table** built from each story's Status line in 04 (`- **Status:** Solved (date)` = done): write the Status line, regenerate, and the table follows.
 - **Built:** ST-13.1 (`a818e6a`), ST-13.2 (`3304ed1`), ST-13.3 (`5971d39`), ST-13.4 (`0e3ac35`), review fixes for 13.3/13.4 (`f990b28`), ST-13.5 (`e1fc64c`). Each story's **Status** line in 04 says what was decided and what was not done.
 - **Checks at HEAD:** 284 unit, 239 mod tests pass; typecheck, lint, `claude plugin validate --strict` pass. Live spend: none. One run of the mod suite saw the perf test `stats over 50 tasks < 100 ms` at 156 ms under load; it passed on every re-run.
 - **ponytail-review** ran on ST-13.3/13.4 (2026-11-09). Its must-fix (single store keys overwritten by a second session running at once) and the rest are fixed in `f990b28`. The M9 gate still needs ponytail-review and code-review over the whole M9 range at the end.
