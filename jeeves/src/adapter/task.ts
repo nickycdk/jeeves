@@ -14,7 +14,7 @@ import { join } from '../core/paths.ts'
 import { foldTask, newTaskState, simulateWindow, windowThreshold, parseRevision, renderChange, revFile, type ChangeKind, type TaskView } from '../core/task.ts'
 import { DEFAULT_CONFIG, INERT, SCHEMA_VERSION, type ReasonCode, type State, type TaskOrigin } from '../core/types.ts'
 import { runEffects, type EffectResult } from './effects.ts'
-import { shownThreshold, statusLine, transitionLine } from './ui.ts'
+import { MSG, shownThreshold, statusLine, transitionLine } from './ui.ts'
 import { gitFacts } from './git.ts'
 import { bgCount, bgReset, type CrashPoint, type Runtime } from './runtime.ts'
 import { carryOver } from './eligible.ts'
@@ -344,12 +344,17 @@ let lastReading: Last = null
  * ADR-002 A3 note (ST-15.4 finding 4): a refused submit leaves this process unable to rotate, so its task does not wait
  * on it: an auto task ends (as v0.2's skip path did), an explicit one gives up its lock for `/jeeves recover` elsewhere.
  */
-export async function leaveOnRefusal(rt: Runtime): Promise<void> {
+export async function leaveOnRefusal(rt: Runtime, err: unknown): Promise<void> {
   const me = await rt.port.sessionId()
   const own = ownTask((await projectTasks(rt)).tasks, me)
   if (!own || INERT.includes(own.state.status)) return
-  if (own.state.origin === 'auto') await applyOwn(rt, { type: 'OFF', sessionId: me })
-  else await rt.storage.releaseLock(own.dir, me)
+  if (own.state.origin !== 'auto') {
+    await rt.storage.releaseLock(own.dir, me)
+    return
+  }
+  // The ended task never delivers what the user typed meanwhile, and a submit is what was refused: show it instead.
+  const r = await applyOwn(rt, { type: 'OFF', sessionId: me })
+  if (r?.state.heldPrompts.length) rt.port.toast(MSG.heldNotSent(err, r.state.heldPrompts))
 }
 
 /** The session ends for good (exit, logout, resume elsewhere): give up its lock so the next session can resume at once. Task state is kept. */

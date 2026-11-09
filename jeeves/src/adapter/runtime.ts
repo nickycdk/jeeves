@@ -113,7 +113,7 @@ async function build($: EngineInterface, options: Options): Promise<Runtime> {
     base.status(offStatus(rt.probe))
     base.toast(rt.probe.message ?? '')
     base.log(`jeeves: submit refused in turn mode: ${err instanceof Error ? err.message : String(err)}`)
-    void leaveOnRefusal(rt).catch(e => base.log(`jeeves: task not released after the refusal: ${e instanceof Error ? e.message : String(e)}`))
+    void leaveOnRefusal(rt, err).catch(e => base.log(`jeeves: task not released after the refusal: ${e instanceof Error ? e.message : String(e)}`))
   }
   rt.port = {
     ...base,

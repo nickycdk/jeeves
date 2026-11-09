@@ -112,7 +112,7 @@ test('ST-15.4 (ADR-003 A2 note): a /loop or notification turn ahead of the reque
 for (const origin of ['explicit', 'auto'] as const) {
   test(`ST-15.4 (ADR-002 A3 note): a refused retry prompt makes the process unsupported and ${origin === 'auto' ? 'ends the auto task' : 'releases the explicit task\'s lock'}`, async ($, on) => {
     const { h, dir, refuse } = await requested($, on)
-    if (origin === 'auto') h.files.set(`${dir}/state.json`, JSON.stringify({ ...stateOf(h, dir), origin }, null, 2) + '\n')
+    if (origin === 'auto') h.files.set(`${dir}/state.json`, JSON.stringify({ ...stateOf(h, dir), origin, heldPrompts: ['my typed words'] }, null, 2) + '\n')
     const locked = () => h.dirs.has(`${dir}/lock.d`)
     expect(locked()).toBe(true)
     refuse.drop = t => t.includes('JEEVES-HANDOVER')
@@ -121,5 +121,7 @@ for (const origin of ['explicit', 'auto'] as const) {
     await until(h, () => !locked())
     expect(locked()).toBe(false)
     expect(stateOf(h, dir).status).toBe(origin === 'auto' ? 'DISABLED' : 'HANDOVER_GENERATING')
+    // Review fix (M10): an auto task that ends here hands the held words back; a submit is what was refused.
+    if (origin === 'auto') expect(h.toasts.some(t => t.includes('"my typed words"'))).toBe(true)
   })
 }
