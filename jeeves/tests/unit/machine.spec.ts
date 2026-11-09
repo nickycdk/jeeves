@@ -386,6 +386,7 @@ test('ST-13.7: a user /clear ends an auto task (DISABLED(USER_CLEAR), its own me
   }
   const e = run(st('MONITORING', { origin: 'auto' }), { type: 'EXPLICIT' })
   assert.deepEqual([e.state.origin, e.state.status], ['explicit', 'MONITORING'])
+  assert.ok(e.effects.some(f => f.type === 'LOG_EVENT' && f.detail.includes('auto -> explicit')), 'the change is in the event log')
   assert.ok(run(e.state, { type: 'EXPLICIT' }).ignored)
 })
 

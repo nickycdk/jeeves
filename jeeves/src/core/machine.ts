@@ -316,8 +316,7 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
 
     case 'EXPLICIT':
       if (state.origin === 'explicit') return ignore('already explicit')
-      next = { ...next, origin: 'explicit', updatedAt: at }
-      return done()
+      return edit({ origin: 'explicit' }, 'explicit', 'origin: auto -> explicit (/jeeves on with a goal)')
 
     case 'OFF':
       if (state.status === 'DISABLED') return ignore('already off')
