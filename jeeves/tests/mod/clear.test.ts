@@ -139,3 +139,18 @@ test('review fix 3: after a /clear paused an explicit task in an eligible sessio
   expect(await relay($, 'resume')).toContain(stateOf(h, dir).taskId)
   expect(stateOf(h, dir).activeSessionId).toBe('sess-2')
 })
+
+test('audit 1: the auto-off after a /clear paused a task holds for that session only; a later session auto-starts and the paused task waits', { options: { autoStart: 'on' } }, async ($, on) => {
+  const { h, dir } = await autoSession($, on)
+  await relay($, 'on finish the CSV parser')
+  await engineClear($, h, 'sess-2')
+  expect(await relay($, 'status')).toMatch(/^Auto off: this session/m)
+  // The user quits; a new `claude` in the same project is a fresh session in a new process.
+  await $.session.end({ reason: 'prompt_input_exit', sessionId: 'sess-2', resume: { id: 'sess-2' } })
+  h.sessionId = 'sess-3'
+  await start($)
+  await submit($, 'Now the CSV export.')
+  const next = taskDirs(h).find(d => d !== dir)!
+  expect([stateOf(h, next).origin, stateOf(h, next).activeSessionId]).toEqual(['auto', 'sess-3'])
+  expect([stateOf(h, dir).status, stateOf(h, dir).reason]).toEqual(['PAUSED', 'USER_CLEAR'])
+})

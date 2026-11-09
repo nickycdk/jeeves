@@ -18,6 +18,7 @@ import { MSG, shownThreshold, statusLine, transitionLine } from './ui.ts'
 import { gitFacts } from './git.ts'
 import { bgCount, bgReset, type CrashPoint, type Runtime } from './runtime.ts'
 import { carryOver } from './eligible.ts'
+import { sessionOffKey } from './auto.ts'
 import { sha256Hex, StorageError } from './storage.ts'
 
 export type Task = { state: State; dir: string }
@@ -370,6 +371,8 @@ export async function onUserClear(rt: Runtime, oldSessionId: string): Promise<vo
   const cost = await rt.port.costUsd()
   const r = await apply(rt, own.dir, { type: 'SESSION_END', reason: 'clear', sessionId: oldSessionId, ...(cost !== null ? { costUsd: cost } : {}) })
   if ((r?.state.status === 'PAUSED' || r?.state.status === 'DISABLED') && r.state.reason === 'USER_CLEAR') await rt.storage.releaseLock(own.dir, oldSessionId)
+  // A paused task waits for /jeeves resume: auto-start stays off for this session (carried over the /clear), not the project.
+  if (r?.state.status === 'PAUSED' && r.state.reason === 'USER_CLEAR') await rt.port.storeSet(sessionOffKey(oldSessionId), true)
 }
 
 /**

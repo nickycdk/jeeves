@@ -71,8 +71,8 @@ export async function forget(rt: Runtime, sessionId: string): Promise<void> {
 /**
  * Every reason this session is not auto-watched (§5.1 order; empty: eligible), with auto-start's own setting read live.
  * A task of this session that ended (near-threshold, model switch, done) also counts as off for this session: none
- * starts again here, and `/jeeves on` is the way back. So does a task paused by a user's /clear (`/jeeves on` offers
- * it back, `/jeeves resume` continues it). `owns`: this session runs a task now.
+ * starts again here, and `/jeeves on` is the way back. A task paused by a user's /clear sets this session's off key
+ * (onUserClear), so it holds for the session that cleared, not for later ones. `owns`: this session runs a task now.
  */
 export async function eligibility(rt: Runtime, row: AutoRow) {
   const me = await rt.port.sessionId()
@@ -81,8 +81,7 @@ export async function eligibility(rt: Runtime, row: AutoRow) {
   const fixed = k ?? await readNow(rt, true)
   const tasks = (await projectTasks(rt)).tasks
   const owns = ownTask(tasks, me) !== null
-  // A task paused by the user's /clear waits for /jeeves resume (spec §5.7): no auto task may take this session from it.
-  const ended = !owns && tasks.some(t => t.state.activeSessionId === me || (t.state.status === 'PAUSED' && t.state.reason === 'USER_CLEAR'))
+  const ended = !owns && tasks.some(t => t.state.activeSessionId === me)
   const auto = await autoStartNow(rt, row)
   const off = autoReason(auto)
   return { reasons: ordered([...fixed, ...(off ? [off] : []), ...(ended ? ['this session' as const] : [])]), auto, decided: k !== null, owns }
