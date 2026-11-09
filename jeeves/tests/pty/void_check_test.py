@@ -47,4 +47,6 @@ assert 'module 1 committed' in void_reason(repo([(1200, [1]), (1201, [2])]), scr
 assert 'module 2 committed' in void_reason(repo([(1200, [1]), (1250, [2])]), transcript([(1100, {'file_path': 'tests/m01.test.js'}), (1300, {'file_path': 'tests/m02.test.js'})]))
 # Working from `./verify.sh 2`'s output counts as reading module 2's tests (review); `verify.sh $n` in a loop does not.
 assert void_reason(repo([(1200, [1]), (1400, [2])]), transcript([(1100, {'command': './verify.sh 1'}), (1300, {'command': 'cd /r && ./verify.sh 02'})])) is None
+# A redirect is not a module number (M10 code-review 4): `./verify.sh 2>&1` reads every module, not module 2.
+assert 'module 2 committed' in void_reason(repo([(1200, [1]), (1250, [2])]), transcript([(1100, {'command': './verify.sh 1'}), (1150, {'command': './verify.sh 2>&1 | tail -5'})]))
 print('void_check_test: ok')

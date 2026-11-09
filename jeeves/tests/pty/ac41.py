@@ -78,7 +78,7 @@ def void_reason(repo, paths):
                 if not isinstance(b, dict) or b.get('type') != 'tool_use': continue
                 # Read: its test file named, or `./verify.sh n` (which prints every case); a loop's `verify.sh $n` is neither.
                 s = json.dumps(b.get('input'))
-                for n in re.findall(r'tests/m(\d\d)\.test\.js', s) + re.findall(r'verify\.sh\s+0*(\d+)', s):
+                for n in re.findall(r'tests/m(\d\d)\.test\.js', s) + re.findall(r'verify\.sh\s+0*(\d+)(?![\d>])', s):
                     at = transcripts.epoch(d.get('timestamp', ''))
                     read[int(n)] = min(read.get(int(n), at), at)
     log = subprocess.run(['git', 'log', '--reverse', '--format=@%h %ct', '--name-only'], cwd=repo, capture_output=True, text=True).stdout
