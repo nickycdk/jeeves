@@ -9,6 +9,8 @@ import type { RepoIdentity } from '../core/git.ts'
 import { projectDir, projectId, repoIdentity } from './git.ts'
 import { simulateWindow } from '../core/task.ts'
 import { runProbe } from './probe.ts'
+// A cycle (task.ts uses bgCount): only called after both modules are loaded.
+import { leaveOnRefusal } from './task.ts'
 import { offStatus } from './ui.ts'
 import { createQueue, createStorage, resolveStateRoot, StorageError, type StateRootSource, type Storage } from './storage.ts'
 
@@ -111,6 +113,7 @@ async function build($: EngineInterface, options: Options): Promise<Runtime> {
     base.status(offStatus(rt.probe))
     base.toast(rt.probe.message ?? '')
     base.log(`jeeves: submit refused in turn mode: ${err instanceof Error ? err.message : String(err)}`)
+    void leaveOnRefusal(rt).catch(e => base.log(`jeeves: task not released after the refusal: ${e instanceof Error ? e.message : String(e)}`))
   }
   rt.port = {
     ...base,

@@ -104,3 +104,18 @@ test('ST-15.4 (ADR-003 A2 note): a /loop or notification turn ahead of the reque
   expect(h.files.get(`${dir}/history/handover-001.md`)).toContain(handover(taskId, rotationId))
   await until(h, () => clears.length > 0)
 })
+
+for (const origin of ['explicit', 'auto'] as const) {
+  test(`ST-15.4 (ADR-002 A3 note): a refused retry prompt makes the process unsupported and ${origin === 'auto' ? 'ends the auto task' : 'releases the explicit task\'s lock'}`, async ($, on) => {
+    const { h, dir, refuse } = await requested($, on)
+    if (origin === 'auto') h.files.set(`${dir}/state.json`, JSON.stringify({ ...stateOf(h, dir), origin }, null, 2) + '\n')
+    const locked = () => h.dirs.has(`${dir}/lock.d`)
+    expect(locked()).toBe(true)
+    refuse.drop = t => t.includes('JEEVES-HANDOVER')
+    await turn($, 'no handover here')
+    await until(h, () => h.status.at(-1) === 'off: prompt refused')
+    await until(h, () => !locked())
+    expect(locked()).toBe(false)
+    expect(stateOf(h, dir).status).toBe(origin === 'auto' ? 'DISABLED' : 'HANDOVER_GENERATING')
+  })
+}

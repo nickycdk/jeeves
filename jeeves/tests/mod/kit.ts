@@ -227,7 +227,8 @@ export async function wholeTurn($: Kit, answer = 'ok', reason: Parameters<typeof
  */
 export async function turnGenerating($: Kit, on: Parameters<typeof memHost>[0], opts: { env?: Record<string, string>; ask?: boolean } = {}) {
   const h = memHost(on, opts.env)
-  const prompts = bottom(on)
+  const refuse: { drop?: (text: string) => boolean } = {}
+  const prompts = bottom(on, refuse)
   const clears: string[] = []
   /** Hidden rows Jeeves appended (`$.session.append`), in order. */
   const rows: string[] = []
@@ -251,7 +252,7 @@ export async function turnGenerating($: Kit, on: Parameters<typeof memHost>[0], 
   const dir = taskDirs(h)[0]!
   await $.tool.call({ tool: 'Bash', command: 'npm test' })
   await until(h, () => stateOf(h, dir).ledger.length === 1)
-  const g = { h, dir, prompts, clears, rows, ctl, taskId: stateOf(h, dir).taskId as string, rotationId: '', request: async () => {
+  const g = { h, dir, prompts, clears, rows, ctl, refuse, taskId: stateOf(h, dir).taskId as string, rotationId: '', request: async () => {
     await turnStart($, 'boundary')
     await $.session.measure({ context: { window: 1_000_000, percent: 52 }, rateLimits: [], changed: ['context'] } satisfies SessionMeasureInput)
     await turnEnd($, 'answer', 'boundary', 'step done')
