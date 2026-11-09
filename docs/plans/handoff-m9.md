@@ -1,46 +1,51 @@
-# Handover: M9 (v0.3): ST-15.2 done, ST-15.3 done up to the maintainer's sign-off
+# Handover: M9 (v0.3): ST-15.3 signed off, M9 gate items open, v0.3.x plan proposed
 
-**Date:** 2026-11-09 · **Claude Code:** 2.1.319 · **Branch:** `main`. `origin/main` is at `37f9cc3`; everything after it is local only (not pushed). Paths are relative to the repo root. Previous handovers: `docs/done/handoffs/handoff-m9-after-ST-15.2-partial.md` (its §3 facts still hold), `docs/done/handoffs/handoff-m9-after-gate-review-fixes.md` (§3 code map, §4 facts, §6 rules still hold).
+**Date:** 2026-11-09 · **Claude Code:** 2.1.319 · **Branch:** `main`. `origin/main` is at `37f9cc3`; everything after it is local only (not pushed). Paths are relative to the repo root. Previous handovers: `docs/done/handoffs/handoff-m9-after-ST-15.3-prep.md` (its §3 facts still hold), `docs/done/handoffs/handoff-m9-after-gate-review-fixes.md` (§3 code map, §4 facts, §5 decisions to confirm, §6 rules still hold).
 
 ## 1. What happened this session
 
-- **Maintainer decisions** (07 D-50, D-51; `ea21d3b`):
-  - **D-50, grace period:** an auto task's grace period now ends at threshold + 10 (`NEAR_MARGIN`; 0.5 under the test threshold), in `jeeves/src/core/machine.ts` at the threshold request. The auto-start spec §5.2 and AC-37 are amended, and README, CHANGELOG and release notes are updated. Tests: `autostart.spec.ts`, plus a new I test in `tests/mod/autostart.test.ts`.
-  - **D-51, completion rules row:** ADR-007 A1's mid-turn row limit is accepted, not changed. It is recorded under ADR-007 in 02 and in the README.
-- **ST-15.2 done** (`bc97c26`), about US$10.40 API-equivalent over six runs. Evidence: `docs/done/evidence/v0.3.0/AC-41/RESULT.md`.
-  - **1M re-run with Jeeves:** PASS. Two rotations with nothing typed, at 50.07% (inside the grace margin) and 40.73%; no retries; each module committed once; NFR-10 clean. US$3.42, against US$3.95 without Jeeves, which is about 13% less, not the spec's "roughly half".
-  - **Void attempt:** before that, one attempt was void because Claude scripted the fixture's six repeating functions at 60K context.
-  - **Q8:** 200K is proposed for v0.3.x (D-52).
-- **ST-15.3 done up to sign-off** (`5f463e7`, `b2df43b`):
-  - Version is 0.3.0 in `plugin.json`, `package.json` and `package-lock.json`. CHANGELOG, release notes and both READMEs are updated.
-  - `jeeves/docs/compatibility.md` is regenerated. `scripts/compat.mjs` had had a syntax error since ST-16.7; it is fixed.
-  - The evidence pack is `docs/done/evidence/v0.3.0/README.md`.
-  - The zip is identical from two clean clones of `5f463e7`, SHA-256 `8780f4f4f4ec35860093ed4441f2cccfbb7ff0a938f228710faa135ed965f102`.
-- **Checks at `5f463e7`:**
-  - Pass: typecheck, lint, 302 unit, both validates.
-  - Mod suite, 311 in each of the three runs: every functional test passes.
-  - `tests/perf/stats.test.ts` failed in some runs at load average 17–35 (100.4–257 ms), as in v0.2.0.
+- **ST-15.3 signed off** by the maintainer (2026-11-09), with no changes to the release texts. The zip at `5f463e7` stands, SHA-256 `8780f4f4…f102`. Recorded in 03, 04 and 05 and in the evidence pack (`e70e2df`).
+- **The M9 gate is not fully met** (`b86bc44`, 05 M9 row):
+  - The gate's ponytail-review and code-review covered the source only up to `0156488`. E16 (ST-16.1 … ST-16.8) and D-50 were never reviewed: about 207 lines added and 39 removed in 11 files under `jeeves/src`.
+  - v0.2.0 is not public (D-37 not lifted), which the gate lists.
+- **v0.3.x plan proposed** (`595e880`, `docs/plans/10-v0.3.x-plan.md`). It is not approved and not yet copied into 02–07.
+  - ST-15.4: review the E16 range before the v0.3.0 tag.
+  - E17: ST-17.1 200K auto-start (ADR-009 A4 needed), ST-17.2 a fixture that cannot be scripted plus a void check in the driver, ST-17.3 one live auto-started 200K session (US$2 cap proposed), ST-17.4 v0.3.1 prep.
+  - Decisions P-1 … P-4 in its §2.
+- The 09 progress table now shows 25 of 25 stories done.
 
 ## 2. Next, in order
 
 1. **Maintainer:**
-   - Sign off ST-15.3 (read `docs/done/evidence/v0.3.0/README.md` and `jeeves/docs/release-notes/v0.3.0.md`).
-   - Then tag and publish: theirs, not the agent's.
-   - The CHANGELOG date is set when tagging.
-   - A tag on a later commit gives a different zip SHA, so rebuild with `jeeves/scripts/release-zip.sh <tag>`.
-2. **Push** when asked (`git grep -n "$(whoami)" HEAD` prints nothing at `b2df43b`).
-3. **v0.3.x candidates:**
-   - Auto-start on 200K windows (D-52), with one auto-started 200K live session.
-   - A `long-task` fixture where each module has its own function (it can be scripted today).
-   - The ADR-007 A1 limit, if it matters in use.
-   - Unsure: the `/jeeves later` + grace edge (threshold + 10 past auto-compaction) goes to a COMPACTED rotation.
+   - Decide whether to run ST-15.4 before tagging (recommended). If a fix lands, the zip is rebuilt and the SHA and sign-off change.
+   - Decide P-1 … P-4 in `10-v0.3.x-plan.md` §2 (ADR-009 A4: an ADR change, so the agent must not start ST-17.1 without it).
+   - Tag and publish v0.3.0 (theirs).
+2. **Agent, once allowed:**
+   - ST-15.4 (no live run). Load the plugin-authoring skill before touching hooks or the test kit.
+   - Then copy the approved plan into 02–07, and run ST-17.1 and ST-17.2.
+   - ST-17.3 only on go-ahead and budget.
+3. **Push** when asked (`git grep -n "$(whoami)" HEAD` prints nothing at `53edb8e`).
 
 ## 3. Facts worth keeping
 
-- Haiku may solve `long-task` by script (once in five 1M runs): check the transcript's first tool calls early in any AC-41-style run.
-- `~/jeeves-fresh/plugins/store/` now holds a store written by the last run; earlier stores were moved into the scratch folders (test keys only).
-- `scripts/compat.mjs <work dir> <versions…>` installs versions from npm into the work dir; no model calls.
+- 200K eligibility lives in `jeeves/src/core/autostart.ts` (`AUTO_MIN_WINDOW`, `largeWindow`, `NOT_WATCHED`, `HINTABLE`), the model-switch end in `src/core/machine.ts:265`, and the threshold in `src/core/task.ts` `windowThreshold`.
+- The `long-task` fixture is in `jeeves/tests/fixtures/build-repo.ts` (`STEPS[i % STEPS.length]` is the six-function cycle that let Haiku script it).
+- Gaps carried (plan 10 §6):
+  - no Stop-mode live run for v0.3;
+  - one cost pair only;
+  - the `later` + grace edge is unconfirmed;
+  - `architecture.md` describes neither auto-start nor turn mode;
+  - the "decisions to confirm" list is unanswered.
 
 ## 4. Rules (unchanged)
 
-This repo only; one local commit per finished story or fix; push only when asked; never make the repo public, publish, post, change Claude settings or install plugins; zero runtime dependencies; no live runs without go-ahead and budget; never edit `jeeves/` while a live `--plugin-dir` run is going; ADR conflict → stop and ask; report honestly; before every push `git grep -n "$(whoami)" HEAD` prints nothing; load the plugin-authoring skill before touching hooks or the test kit; handover at about 35% context.
+- This repo only.
+- One local commit per finished story or fix; push only when asked.
+- Never make the repo public, publish, post, tag, change Claude settings or install plugins.
+- Zero runtime dependencies.
+- No live runs without go-ahead and budget.
+- Never edit `jeeves/` while a live `--plugin-dir` run is going.
+- ADR conflict: stop and ask.
+- Report honestly.
+- Before every push, `git grep -n "$(whoami)" HEAD` prints nothing.
+- Handover at about 35% context.
