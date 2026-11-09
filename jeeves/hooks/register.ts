@@ -7,7 +7,7 @@ import { cleanupAuto } from '../src/adapter/purge.ts'
 import { upgradeCheck } from '../src/adapter/auto.ts'
 import { autoNotice, carryOver, carryUndecided, decideAtStart, forget, hint, startAuto } from '../src/adapter/eligible.ts'
 import { isAutoRow } from '../src/core/autostart.ts'
-import { bgNotified, bgStarted, markStopSkipped, runtime, type Options } from '../src/adapter/runtime.ts'
+import { bgNotified, bgStarted, markStopSkipped, runtime, type Options, type Runtime } from '../src/adapter/runtime.ts'
 import { captureFirstPrompt, compacted, completionRow, heartbeat, managedNow, holdPrompt, measure, nudgeIfWaiting, onFreshSession, onStop, onTurnComplete, taskSection, turnBoundary, onUserClear, recordTool, releaseOnExit, stopFailure, why } from '../src/adapter/task.ts'
 import { HEARTBEAT_MS } from '../src/core/lock.ts'
 import { ARGUMENT_HINT, HELD_TEXT, MSG, offStatus } from '../src/adapter/ui.ts'
@@ -45,8 +45,15 @@ export const register: Register = (on, options) => {
   let beat: Timer | null = null
   // Whether a main-loop turn is open: engine state, not task state. Starts idle (a reload mid-turn at worst queues one nudge).
   let turnOpen = false
-  // ADR-007 A1: a main turn started in turn mode whose completion row is not decided yet (sent at its first reading).
+  // ADR-007 A1: a main turn whose completion row is not decided yet. Sent at the turn's first tool result (live, a row
+  // appended there reaches the next request; one appended at turn.start reached no request of its turn, ST-16.8), else
+  // at the turn-end reading. Cleared before the await so parallel tool calls send one.
   let rowDue = false
+  const sendRow = async (rt: Runtime) => {
+    if (!rowDue || rt.probe.boundary !== 'turn' || rt.probe.mode === 'unsupported') return
+    rowDue = false
+    if (!(await completionRow(rt))) rowDue = true
+  }
   // R-25: whether this main turn's classic.Stop reached Jeeves.
   let stopSeen = true
   let warnedSkip = false
@@ -94,7 +101,7 @@ export const register: Register = (on, options) => {
   // ST-2.3: only a context change counts; rate-limit or cost changes never move the reading (AC-04).
   on('session.measure', async ($, e, next) => {
     if (e.changed.includes('context')) await quietly($, opts, 'measure', async rt => {
-      if (rowDue && rt.probe.boundary === 'turn' && rt.probe.mode !== 'unsupported' && await completionRow(rt)) rowDue = false
+      await sendRow(rt)
       // ST-14.1: no task of this session's own took the reading, so it may be one for the hint.
       if (!(await measure(rt, e.context))) await hint(rt, opts.autoStart ?? 'default', e.context)
       // Q-10: a reading that crosses the threshold after the turn ended finds Claude idle (D-23).
@@ -136,15 +143,13 @@ export const register: Register = (on, options) => {
     const r = await next(e)
     const bg = (r.result as { backgroundTaskId?: unknown } | undefined)?.backgroundTaskId
     if (e.agentId === undefined && typeof bg === 'string') bgStarted(bg)
-    void quietly($, opts, 'ledger', rt => recordTool(rt, outcome(e, r)))
+    void quietly($, opts, 'ledger', async rt => { await recordTool(rt, outcome(e, r)); if (e.agentId === undefined) await sendRow(rt) })
     return r
   }).catch(($, e, next) => next(e))
   on('turn.start', async ($, e, next) => {
     if (e.agentId === undefined) {
       turnOpen = true
       stopSeen = false
-      // ADR-007 A1: turn mode's completion rules go in at this turn's first reading (ST-16.8: a row appended at
-      // turn.start does not reach any request of its own turn, live).
       rowDue = true
     }
     return next(e)

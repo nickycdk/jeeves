@@ -1,0 +1,195 @@
+    default withDynamic workflow size in /config.────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────❯ ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  ⚠ jeeves: Jeeves 4%/?%⏵⏵ accept edits on (shift+tab to cycle) · esc to interrupt⏺<scratch>/run1c/repototal 32… +20 lines (ctrl+o to expand)✳Dilly-dallying… (1m 38s · ↓583 tokens)  ⎿  Tip: Use /btw to ask a quick side question without interrupting Claude's current work────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────❯ ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  ⚠ jeeves: Jeeves 4%/?%  ⏵⏵ accept edits on (shift+tab to cycle) · esc to interrupt5.03%
+
+✶
+
+
+
+
+
+
+
+✻Dilly-dallying…
+
+
+
+
+
+
+
+✽Dilly-dallying…
+
+
+
+
+
+
+
+Dilly-dallying…
+
+
+
+
+
+
+
+Dilly-dallying…9
+
+
+
+
+
+
+
+Dilly-dallying…
+
+
+
+
+
+
+
+✻
+
+
+
+
+
+
+
+✶
+
+
+
+
+
+
+
+✳
+
+
+
+
+
+
+
+✢608
+
+
+
+
+
+
+
+·20
+
+
+
+
+
+
+
+⏺Bash(cd "<scratch>/run      1c/repo" && git status --sh…)  ⎿  Waiting…· Dilly-dallying… (1m 39s · ↓620 tokens)  ⎿  Tip: Use /btw to ask a quick side question without interrupting Claude's current work────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+⚠jeeves:Jeeves4%/5.03%
+⏵⏵accepteditson (shift+tabtocycle)·esctointerrupt
+ RunnDilly-dallying…
+
+
+
+
+
+
+
+jeeves: Context at 4%. Jeeves will hand over at 5.03%.
+Dilly-dallying…51
+
+
+
+
+
+
+
+⏺880623b six-stepsfixture#Sixsteps    … +42 lines (ctrl+o to expand)·Dilly-dallying… (1m 39s · ↓651 tokens)  ⎿  Tip: Use /btw to ask a quick side question without interrupting Claude's current work❯ ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+⚠jeeves:Jeeves4%/5.03%
+⏵⏵accepteditson (shift+tabtocycle)·esctointerruptjeeves:Contextat4%.Jeeveswillhandoverat5.03%.
+Dilly-dallying…4076
+
+
+
+
+
+
+
+Dilly-dallying…701
+
+
+
+
+
+
+
+✢Dilly-dallying…26
+
+
+
+
+
+
+
+✳Dilly-dallying…63
+
+
+
+
+
+
+
+✶82
+
+
+
+
+
+
+
+9
+
+
+
+
+
+
+
+✻Dilly-dallying…800
+
+
+
+
+
+
+
+Dilly-dallying…
+
+
+
+
+
+
+
+✽4
+
+
+
+
+
+
+
+6
+
+
+
+
+
+
+

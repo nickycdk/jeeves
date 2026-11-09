@@ -12,24 +12,28 @@ const complete = (taskId: string) => `Finished.\n<<<JEEVES-COMPLETE v1 task=${ta
 const tokens = ($: Kit, n: number) =>
   $.session.measure({ context: { window: 1_000_000, tokens: n, percent: n / 10_000 }, rateLimits: [], changed: ['context'] } satisfies SessionMeasureInput)
 
-// ST-16.8: the row goes in at a turn's first reading (live, a row appended at turn.start reached no request of its turn).
+// ST-16.8: a turn with no tool call sends the row at its turn-end reading (live, a row appended at turn.start reached
+// no request of its turn).
 let n = 0
 const workTurn = async ($: Kit) => { const id = `r${++n}`; await turnStart($, id); await tokens($, 60_000); await turnEnd($, 'answer', id) }
 
 test('AC 1: a row at the task\'s first turn, again after 10 turns, at once after a recognised compaction, after a continuation; no more', async ($, on) => {
   const g = await turnGenerating($, on, { ask: false })
   const { h, dir, rows } = g
-  expect(rules(rows)).toBe(0)
-  await turnStart($, 'r0')
-  expect(rules(rows)).toBe(0)
-  await tokens($, 60_000)
+  // Sent at the task's first tool result (live, the next request carries it).
   expect(rules(rows)).toBe(1)
-  await turnEnd($, 'answer', 'r0')
   expect(rows.at(-1)).toContain(`(${g.taskId})`)
   for (let i = 1; i < ROW_EVERY; i++) await workTurn($)
   expect(rules(rows)).toBe(1)
-  await workTurn($)
+  // The 10th turn: its first tool result sends it again; a second tool call in the same turn adds none.
+  await turnStart($, 'r10')
+  await $.tool.call({ tool: 'Bash', command: 'ls' })
+  await until(h, () => rules(rows) === 2)
+  await $.tool.call({ tool: 'Bash', command: 'ls' })
+  await tokens($, 60_000)
+  await h.clock.settle()
   expect(rules(rows)).toBe(2)
+  await turnEnd($, 'answer', 'r10')
   // A recognised compaction (mid-turn): a row at once, then the rotation; the fresh conversation's first turn gets one.
   await turnStart($, 'c1'); await tokens($, 70_222); await turnEnd($, 'answer', 'c1')
   expect(rules(rows)).toBe(2)

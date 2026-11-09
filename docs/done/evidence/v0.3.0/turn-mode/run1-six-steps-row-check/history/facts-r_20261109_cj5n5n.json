@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "rotationId": "r_20261109_cj5n5n",
+  "capturedAt": "2026-11-09T15:21:34.685Z",
+  "git": {
+    "kind": "git",
+    "worktree": "<scratch>/run1c/repo",
+    "branch": "main",
+    "detached": false,
+    "head": "0c026fabd6c09aeb314bb3faf4985f812e1e1584",
+    "status": [
+      {
+        "xy": " M",
+        "path": "src/step5.js"
+      },
+      {
+        "xy": " M",
+        "path": "src/step6.js"
+      }
+    ],
+    "changedSinceStart": [
+      "src/step1.js",
+      "src/step2.js",
+      "src/step3.js",
+      "src/step4.js",
+      "src/step5.js",
+      "src/step6.js"
+    ]
+  },
+  "crons": null
+}
