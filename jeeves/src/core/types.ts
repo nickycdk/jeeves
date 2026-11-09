@@ -139,6 +139,8 @@ export type State = {
   heldPrompts: string[]
   /** `/jeeves dod|check` typed before the first prompt: written as revisions 2.. right after rev 1 is captured. */
   pendingChanges?: { kind: 'dod' | 'check'; text: string }[]
+  /** Auto tasks (ST-13.4, spec §5.2): main turns ended so far, counted to GRACE_TURNS; no rotation before that. */
+  graceTurns?: number
   /** A completion block already got its one "run the missing checks" Stop block in this session (ST-5.2). */
   completionAsked?: boolean
   /** `/jeeves pause` during a handover: pause once the fresh conversation has its task (ST-2.5). */

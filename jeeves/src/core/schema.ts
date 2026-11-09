@@ -93,7 +93,7 @@ const stateShape = obj<State>({
   rotation: nullable(rotation),
   lastValidatedHandover: nullable(handoverRef), rotationCount: int(0), consecutiveFailures: int(0),
   thresholdPercent: int(20, 90), lastContext: nullable(contextReading), armedFired: bool,
-  warnedSessionId: nullable(str()), heldPrompts: arr(str({ max: 100_000 }), 50), completionAsked: { optional: bool },
+  warnedSessionId: nullable(str()), heldPrompts: arr(str({ max: 100_000 }), 50), completionAsked: { optional: bool }, graceTurns: { optional: int(0, 3) },
   pendingChanges: { optional: arr(obj<NonNullable<State['pendingChanges']>[number]>({ kind: oneOf(['dod', 'check']), text: str({ nonEmpty: true, max: 100_000 }) }), 20) }, pauseRequested: bool, taskStartHead: nullable(commitHash),
   lastErrorCode: reason, ledger: arr(ledgerEntry, LEDGER_MAX), updatedAt: iso,
 })

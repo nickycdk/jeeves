@@ -4,7 +4,7 @@ import assert from 'node:assert/strict'
 import { readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { MSG } from '../../src/adapter/ui.ts'
-import { diskText, stopFailureCode, stopFailureText } from '../../src/core/machine.ts'
+import { diskText, nearText, stopFailureCode, stopFailureText, windowEndText } from '../../src/core/machine.ts'
 import { probe } from '../../src/core/probe.ts'
 
 const SNAPSHOT = join(import.meta.dirname, '../fixtures/messages.txt')
@@ -21,6 +21,10 @@ function allMessages(): string {
     `Wrong path: ${MSG.moved('t_1', '/work/old')}`,
     `Lock held: ${MSG.recoverHeld('t_1', 42)}`,
     `Unreadable state: ${MSG.corrupt('t_1')}`,
+    `Auto task, first reading near the threshold: ${nearText(34)}`,
+    `Auto task, model switch to 200K: ${windowEndText(200_000)}`,
+    `Auto task, Stop hook skipped: ${MSG.autoUnsupported}`,
+    `First eligible session: ${MSG.autoNotice(40, 1_000_000)}`,
   ].join('\n') + '\n'
 }
 

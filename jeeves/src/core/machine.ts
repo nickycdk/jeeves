@@ -103,6 +103,12 @@ export type Output = { state: State; effects: Effect[]; ignored?: string }
 const ACTIVE = (s: Status) => !INERT.includes(s)
 export const LOOP_MARGIN = 10
 export const TEST_LOOP_MARGIN = 0.5
+/** Spec §5.2: an auto task never rotates in its first 3 main turns. */
+export const GRACE_TURNS = 3
+/** Spec §5.2: a new auto task whose first reading is this close to the threshold ends at once. */
+export const NEAR_MARGIN = 10
+/** The near-threshold message (spec §5.2). */
+export const nearText = (p: number) => `Jeeves: not watching this session, context already at ${Math.round(p)}%; /jeeves on to watch anyway`
 export const THRESHOLD_MIN = 20
 export const THRESHOLD_MAX = 90
 export const isThreshold = (n: number) => Number.isInteger(n) && n >= THRESHOLD_MIN && n <= THRESHOLD_MAX
@@ -160,6 +166,9 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
   const rearmBelow = rel !== undefined ? state.rotation?.guardPct ?? Infinity
     : T - (ctx.thresholdOverride === undefined ? LOOP_MARGIN : TEST_LOOP_MARGIN)
   const shown = (n: number) => Math.round(n * 100) / 100
+  // ST-13.4: a new auto task (before its first rotation) is in its grace period for its first main turns.
+  const isNewAuto = state.origin === 'auto' && state.rotationCount === 0
+  const inGrace = isNewAuto && (state.graceTurns ?? 0) < GRACE_TURNS
   const rid = state.rotation?.rotationId ?? '-'
   const effects: Effect[] = []
   let next: State = state
@@ -241,7 +250,14 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
     }
     if (state.status === 'MONITORING') {
       if (p === undefined) return done()
-      if (p >= T && !state.armedFired) return request('THRESHOLD')
+      // ST-13.4 near-threshold rule: the first known reading of a new auto task (a large CLAUDE.md, a pasted log).
+      const margin = ctx.thresholdOverride === undefined ? NEAR_MARGIN : TEST_LOOP_MARGIN
+      if (isNewAuto && state.lastContext?.percent === undefined && rel === undefined && p >= T - margin) {
+        go('DISABLED', null, { rotation: null }, `first reading ${p}%`)
+        effects.push({ type: 'RELEASE_LOCK', key: key('release') }, { type: 'TOAST', key: `-:near:${input.sessionId}`, text: nearText(p) })
+        return done()
+      }
+      if (p >= T && !state.armedFired && !inGrace) return request('THRESHOLD')
       if (p >= T - ctx.config.warnBeforePercent && p < T && state.warnedSessionId !== input.sessionId) {
         next = { ...next, warnedSessionId: input.sessionId }
         effects.push({ type: 'TOAST', key: `-:warn:${input.sessionId}`, text: `Context at ${Math.round(p)}%. Jeeves will hand over at ${shown(T)}%.` })
@@ -410,6 +426,11 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
         if (state.mode !== 'full') return unavailable('assisted mode: Jeeves does not clear by itself')
         setRotation({ step: 'CLEAR_SCHEDULED' })
         effects.push({ type: 'RUN_CLEAR', key: key('CLEAR_SCHEDULED') })
+        return done()
+      }
+      // ST-13.4: the grace period counts main turns (any ending) while the new auto task watches.
+      if (inGrace && state.status === 'MONITORING') {
+        next = { ...next, graceTurns: (state.graceTurns ?? 0) + 1, updatedAt: at }
         return done()
       }
       return ignore('nothing scheduled')

@@ -4,7 +4,7 @@ import type { ToolOutcome } from '../src/core/evidence.ts'
 import { chooseCommandName, FALLBACK, PRIMARY, relay } from '../src/adapter/commands.ts'
 import { recover, recoveryNotice } from '../src/adapter/recover.ts'
 import { upgradeCheck } from '../src/adapter/auto.ts'
-import { carryOver, decideAtStart, forget, stopSkipped } from '../src/adapter/eligible.ts'
+import { autoNotice, carryOver, decideAtStart, forget, startAuto, stopSkipped } from '../src/adapter/eligible.ts'
 import { isAutoRow } from '../src/core/autostart.ts'
 import { markStopSkipped, runtime, type Options } from '../src/adapter/runtime.ts'
 import { captureFirstPrompt, compacted, heartbeat, managedNow, holdPrompt, measure, nudgeIfWaiting, onFreshSession, onStop, onTurnComplete, taskSection, onUserClear, recordTool, releaseOnExit, stopFailure, why } from '../src/adapter/task.ts'
@@ -62,6 +62,8 @@ export const register: Register = (on, options) => {
     await quietly($, opts, 'upgrade check', async rt => { if ((await upgradeCheck(rt))?.notice) rt.port.toast(MSG.upgradeNotice) })
     // ST-13.3 (spec §5.1): whether this session may be auto-watched, decided once (a reload keeps it).
     await quietly($, opts, 'eligibility', rt => decideAtStart(rt, e.isInteractive))
+    // ST-13.4 (spec §5.4): before any recording, so the same session is watched from its first typed prompt.
+    await quietly($, opts, 'auto notice', rt => autoNotice(rt, opts.autoStart ?? 'default'))
     // ST-6.1: a task an earlier session left (crash, exit mid-rotation) is named once; autoRecover continues it.
     await quietly($, opts, 'recovery scan', async rt => {
       const n = await recoveryNotice(rt)
@@ -103,10 +105,10 @@ export const register: Register = (on, options) => {
   on('prompt.submit', async ($, e, next) => {
     if (e.origin.kind !== 'composer' || e.command || e.isMeta) return next(e)
     let held = false
-    await quietly($, opts, 'capture', async rt => {
-      held = await holdPrompt(rt, e.text, endedHere)
-      if (!held) await captureFirstPrompt(rt, e.text)
-    })
+    await quietly($, opts, 'hold', async rt => { held = await holdPrompt(rt, e.text, endedHere) })
+    // ST-13.4: an eligible session's first typed prompt starts its auto task, word for word; else the usual capture.
+    if (!held) await quietly($, opts, 'auto start', rt => startAuto(rt, e.text, opts.autoStart ?? 'default'))
+    if (!held) await quietly($, opts, 'capture', rt => captureFirstPrompt(rt, e.text))
     if (!held) return next(e)
     $.ui.toast(HELD_TEXT)
     // ADR-010 A1: the engine leaves dropped text in the box; empty it once this hook has returned, or it may be sent twice.

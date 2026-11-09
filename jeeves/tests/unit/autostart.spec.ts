@@ -2,7 +2,8 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { autoReason, classifyInstall, NOT_WATCHED, ordered, reasonLine, resolveAutoStart, startReasons, type AutoInputs, type StartFacts } from '../../src/core/autostart.ts'
-import { reduce, windowEndText } from '../../src/core/machine.ts'
+import { GRACE_TURNS, nearText, reduce, windowEndText, type Ctx, type Input } from '../../src/core/machine.ts'
+import { check } from '../../src/core/schema.ts'
 import { DEFAULT_CONFIG, type Status } from '../../src/core/types.ts'
 import { AT, validState } from './helpers.ts'
 
@@ -80,4 +81,52 @@ test('model switch (AC-37): a reading with a window of 200K or less ends an auto
   assert.equal(reduce(validState({ origin: 'auto' }), m(1_000_000), ctx).state.status, 'MONITORING')
   assert.equal(reduce(validState({ origin: 'auto' }), m(0), ctx).state.status, 'MONITORING')
   assert.equal(reduce(validState({ origin: 'auto', status: 'PAUSED', reason: 'USER_PAUSE' }), m(200_000), ctx).state.status, 'PAUSED')
+})
+
+// ---- ST-13.4 (spec §5.2, AC-37): near-threshold rule and grace period ----
+const C: Ctx = { now: Date.parse(AT) + 1000, config: DEFAULT_CONFIG, newRotationId: 'r_new' }
+const at = (percent: number): Input => ({ type: 'MEASURE', window: 1_000_000, percent, sessionId: 'sess-a' })
+const turn: Input = { type: 'TURN_COMPLETE', reason: 'answer' }
+const run = (s: ReturnType<typeof validState>, ...inputs: Input[]) => inputs.reduce((st, i) => {
+  const o = reduce(st, i, C)
+  assert.ok(check('state', o.state).ok, JSON.stringify(check('state', o.state)))
+  return o.state
+}, s)
+const fresh = (over = {}) => validState({ origin: 'auto', thresholdPercent: 40, ...over })
+
+test('near-threshold: the first known reading of a new auto task within 10 points ends it, with its message', () => {
+  const o = reduce(fresh(), at(34), C)
+  assert.equal(o.state.status, 'DISABLED')
+  assert.deepEqual(o.effects.map(e => e.type), ['LOG_EVENT', 'RELEASE_LOCK', 'TOAST'])
+  assert.equal(o.effects.flatMap(e => (e.type === 'TOAST' ? [e.text] : []))[0], 'Jeeves: not watching this session, context already at 34%; /jeeves on to watch anyway')
+  assert.equal(nearText(33.6), 'Jeeves: not watching this session, context already at 34%; /jeeves on to watch anyway')
+  assert.equal(run(fresh(), at(29.9)).status, 'MONITORING')
+  assert.equal(run(fresh(), at(55)).status, 'DISABLED') // past the threshold counts too: no rotation on the first reading
+  // Only the first known reading, only a new auto task: a later reading, an explicit task or a rotated one go on.
+  assert.equal(run(fresh(), at(20), at(35)).status, 'MONITORING')
+  assert.equal(run(fresh({ lastContext: { window: 1_000_000, at: AT } }), at(35)).status, 'DISABLED') // unknown first, then known
+  assert.equal(run(validState({ thresholdPercent: 40 }), at(35)).status, 'MONITORING')
+  assert.equal(run(fresh({ rotationCount: 1 }), at(35)).status, 'MONITORING')
+  // Under the test threshold the margin is the test loop margin (a fresh live session already starts near 6%).
+  assert.equal(reduce(fresh(), at(6), { ...C, thresholdOverride: 8 }).state.status, 'MONITORING')
+  assert.equal(reduce(fresh(), at(7.6), { ...C, thresholdOverride: 8 }).state.status, 'DISABLED')
+})
+
+test('grace: a new auto task never rotates in its first 3 main turns; the first reading at or past the threshold after them does', () => {
+  let s = run(fresh(), at(20))
+  for (let i = 1; i <= GRACE_TURNS; i++) {
+    s = run(s, at(45))
+    assert.equal(s.status, 'MONITORING', `turn ${i}`)
+    s = run(s, turn)
+    assert.equal(s.graceTurns, i)
+  }
+  s = run(s, turn) // past the grace period the count stops
+  assert.equal(s.graceTurns, GRACE_TURNS)
+  assert.equal(run(s, at(45)).status, 'ROTATION_REQUESTED')
+  // Explicit tasks have no grace period, and count nothing.
+  const ex = run(validState({ thresholdPercent: 40 }), at(20), turn)
+  assert.equal(ex.graceTurns, undefined)
+  assert.equal(run(ex, at(45)).status, 'ROTATION_REQUESTED')
+  // After the first rotation an auto task rotates as any other.
+  assert.equal(run(fresh({ rotationCount: 1, lastContext: { window: 1_000_000, at: AT, percent: 20 } }), at(45)).status, 'ROTATION_REQUESTED')
 })

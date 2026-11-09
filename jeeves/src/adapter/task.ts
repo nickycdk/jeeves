@@ -11,7 +11,7 @@ import { COMPLETION_STATES, HELD_STATES, isSafe, reduce, type Input } from '../c
 import { newRotationId, newTaskId } from '../core/ids.ts'
 import { join } from '../core/paths.ts'
 import { foldTask, newTaskState, windowThreshold, parseRevision, renderChange, revFile, type ChangeKind, type TaskView } from '../core/task.ts'
-import { DEFAULT_CONFIG, INERT, SCHEMA_VERSION, type ReasonCode, type State } from '../core/types.ts'
+import { DEFAULT_CONFIG, INERT, SCHEMA_VERSION, type ReasonCode, type State, type TaskOrigin } from '../core/types.ts'
 import { runEffects, type EffectResult } from './effects.ts'
 import { shownThreshold, statusLine, transitionLine } from './ui.ts'
 import { gitFacts } from './git.ts'
@@ -177,7 +177,7 @@ export async function heldByOther(rt: Runtime, dir: string, sessionId: string): 
 
 /** Create a task owned by this session: lock, rev 1 when the goal is given, state MONITORING. */
 /** `threshold`: the project default (ST-11.1); else the window default (ST-10.1). */
-export async function startTask(rt: Runtime, sessionId: string, goal: string | null, threshold?: number): Promise<Applied & { dir: string }> {
+export async function startTask(rt: Runtime, sessionId: string, goal: string | null, threshold?: number, origin: TaskOrigin = 'explicit'): Promise<Applied & { dir: string }> {
   const now = await rt.port.now(), at = new Date(now).toISOString()
   const taskId = newTaskId(now, random6())
   const dir = join(rt.projectDir!, 'tasks', taskId)
@@ -185,7 +185,7 @@ export async function startTask(rt: Runtime, sessionId: string, goal: string | n
   const lock = await rt.storage.acquireLock(dir, sessionId, at, now)
   await writeProjectRecord(rt, at)
   const window = threshold === undefined ? (await rt.port.usage().catch(() => null))?.window : undefined
-  let state = newTaskState({ taskId, projectId: rt.projectId!, thresholdPercent: threshold ?? windowThreshold(window), taskStartHead: facts.kind === 'git' ? facts.head : null, at })
+  let state = newTaskState({ taskId, projectId: rt.projectId!, thresholdPercent: threshold ?? windowThreshold(window), taskStartHead: facts.kind === 'git' ? facts.head : null, at, origin })
   if (goal !== null && lock.ok) {
     await rt.storage.writeImmutable(join(dir, revFile(1)), goal)
     state = { ...state, taskRevision: 1 }

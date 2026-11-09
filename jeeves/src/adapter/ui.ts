@@ -200,6 +200,11 @@ export const MSG = {
   autoSaved: (v: 'on' | 'off') => `Auto-start everywhere: ${v}. /jeeves defaults auto on|off sets one project, /jeeves off this session.`,
   autoOverridden: (row: 'on' | 'off') => `Saved, but /config → Auto-start is set to ${row}, which takes precedence.`,
   autoUnreadable: (why: string) => `Warning: auto.json is unreadable and ignored (${why.slice(0, 80)}). /jeeves auto on|off writes a new one.`,
+  // ST-13.4 (spec §5.4): the first eligible session's notice, with the threshold that applies.
+  autoNotice: (threshold: number, window: number | undefined) => [
+    `Jeeves watches long sessions here. At ${threshold}% context${window ? ` (~${Math.round((window * threshold) / 100_000)}K tokens)` : ''} it saves a handover and continues in a fresh conversation.`,
+    '/jeeves later postpones a handover, /jeeves off stops it for this session, /jeeves auto off turns it off.',
+  ].join('\n'),
   // ST-13.3 (spec §5.1): the R-25 re-check ends an auto task.
   autoUnsupported: "Jeeves: not watching any more (this account isn't supported); /jeeves status for details",
   upgradeNotice: 'Jeeves can now watch long sessions by itself. Type /jeeves auto on to turn it on. Nothing changes until you do.',

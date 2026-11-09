@@ -12,3 +12,8 @@ Wrong branch: Blocked (REPO_MISMATCH): the handover was written on branch main, 
 Wrong path: Task t_1 was started in /work/old, which no longer exists (REPO_MISMATCH). If you moved the repository here, type /jeeves recover --relink to continue it here.
 Lock held: Another session owns task t_1 and is still running (LOCK_HELD), so nothing was changed. If that session is gone, try again in 42 s.
 Unreadable state: Task t_1: its state.json is unreadable. /jeeves recover rebuilds it from the task's files (nothing is deleted).
+Auto task, first reading near the threshold: Jeeves: not watching this session, context already at 34%; /jeeves on to watch anyway
+Auto task, model switch to 200K: Jeeves: not watching any more (this model's window is 200K); /jeeves on to watch anyway
+Auto task, Stop hook skipped: Jeeves: not watching any more (this account isn't supported); /jeeves status for details
+First eligible session: Jeeves watches long sessions here. At 40% context (~400K tokens) it saves a handover and continues in a fresh conversation.
+/jeeves later postpones a handover, /jeeves off stops it for this session, /jeeves auto off turns it off.
