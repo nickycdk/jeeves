@@ -21,13 +21,16 @@ export type ToolOutcome = {
 
 const EDIT_TOOLS: Record<string, string> = { Edit: 'file_path', Write: 'file_path', MultiEdit: 'file_path', NotebookEdit: 'notebook_path' }
 
+/** A command as the ledger keeps it; a verification command is compared in this form too (audit 5). */
+// Cut before redacting (a heredoc can be megabytes), with room past the cap so a secret is never cut in half at it.
+export const ledgerCommand = (raw: string) => redact(raw.slice(0, 4000)).replace(/\s+/g, ' ').trim().slice(0, LEDGER_COMMAND_MAX)
+
 /** The entry a call adds, or null (another tool, or an edit that did not happen). Never throws. */
 export function toolRecord(o: ToolOutcome): LedgerRecord | null {
   const agent = o.agentId ?? null
   if (o.tool === 'Bash') {
     const raw = typeof o.args.command === 'string' ? o.args.command : ''
-    // Cut before redacting (a heredoc can be megabytes), with room past the cap so a secret is never cut in half at it.
-    const command = redact(raw.slice(0, 4000)).replace(/\s+/g, ' ').trim().slice(0, LEDGER_COMMAND_MAX)
+    const command = ledgerCommand(raw)
     const ok = !o.denied && !o.isError
     const code = o.isError ? /Exit code (\d+)/.exec(o.text ?? '')?.[1] : undefined
     // A backgrounded command has not ended: no exit status is known yet.

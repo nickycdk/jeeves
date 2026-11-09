@@ -1,6 +1,7 @@
 // Completion (ST-5.1, FR-10, ADR-007): Claude's JEEVES-COMPLETE block and the machine evidence it is checked against.
 // "Done" text alone never completes: only a block, and only when every verification command ran with exit 0 after
 // the last edit and no blocker is open. Pure.
+import { ledgerCommand } from './evidence.ts'
 import type { LedgerEntry } from './types.ts'
 
 export const COMPLETE_OPEN = '<<<JEEVES-COMPLETE v1'
@@ -49,8 +50,8 @@ export function evaluate(commands: readonly string[], ledger: readonly LedgerEnt
   const lastEdit = ledger.findLastIndex(e => e.kind === 'edit')
   const missing: Missing[] = []
   for (const command of commands) {
-    const want = command.trim()
-    const i = ledger.findLastIndex(e => e.kind === 'cmd' && e.command.trim() === want)
+    const want = ledgerCommand(command)
+    const i = ledger.findLastIndex(e => e.kind === 'cmd' && e.command === want)
     const run = i >= 0 ? ledger[i] : undefined
     if (!run || run.kind !== 'cmd') missing.push({ command, why: 'never run (run it exactly as written)' })
     else if (run.exit !== 0) missing.push({ command, why: run.exit === null ? 'did not finish' : `last run exited ${run.exit}` })

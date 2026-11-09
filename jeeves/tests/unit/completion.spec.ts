@@ -1,6 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { completionInstruction, evaluate, parseComplete } from '../../src/core/completion.ts'
+import { toolRecord } from '../../src/core/evidence.ts'
 import type { LedgerEntry } from '../../src/core/types.ts'
 import { AT } from './helpers.ts'
 
@@ -51,4 +52,11 @@ test('the instruction names the task, the exact commands and the block lines; de
   assert.match(completionInstruction('t_1', []), /\/jeeves done/)
   // The template itself parses back as a block with the commands as checks.
   assert.deepEqual(parseComplete(t)?.checks, ['./verify.sh'])
+})
+
+test('audit 5: a check is compared in the ledger\'s form: a secret, a whitespace run, past the 300-character cap', () => {
+  const recorded = (command: string) => ({ ...toolRecord({ tool: 'Bash', args: { command } })!, at: AT }) as LedgerEntry
+  for (const check of ['DB_TOKEN=sk-ant-abcdefghijklmnop npm test', 'npm  test', `npm test -- ${'x'.repeat(400)}`]) {
+    assert.equal(evaluate([check], [recorded(check)], []).ok, true, check)
+  }
 })
