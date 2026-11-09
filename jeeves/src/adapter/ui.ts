@@ -63,7 +63,8 @@ export function transitionLine(from: Status, to: Status, code: ReasonCode | null
     case 'QUIESCING': return 'Jeeves: letting the current turn finish'
     case 'HANDOVER_GENERATING': return 'Jeeves: asking Claude for the handover'
     case 'VALIDATING': return 'Jeeves: checking the handover'
-    case 'ROTATING': return `Jeeves: handover validated${s.rotation?.goal ? ` (goal: ${s.rotation.goal})` : ''}, starting fresh`
+    // ST-14.3 (spec §6.2): the full id, since `claude --resume` takes an id or a name, not a prefix.
+    case 'ROTATING': return `Jeeves: handover validated${s.rotation?.goal ? ` (goal: ${s.rotation.goal})` : ''}, starting fresh${s.activeSessionId ? `. Previous conversation: claude --resume ${s.activeSessionId}` : ''}`
     case 'RESTORING': return 'Jeeves: restoring the task'
     case 'CONTINUING': return 'Jeeves: the fresh conversation continues the task'
     case 'DISABLED': return 'Jeeves: off (task files kept)'
@@ -119,6 +120,8 @@ export function statusText(v: StatusView): string {
     if (s.taskRevision === 0) lines.push('Waiting for your first prompt')
     lines.push(
       `Task: ${s.taskId} (${s.origin})`,
+      // ST-14.3: `auto` is set only when this session has no task of its own, so this task runs elsewhere.
+      ...(v.auto && s.activeSessionId ? ['Owned by another session'] : []),
       `State: ${s.status}${s.reason ? ` (${s.reason})` : ''}`,
       `Context: ${pct === undefined ? 'unknown' : `${Math.round(pct * 10) / 10}%`}  Threshold: ${shownThreshold(s, v.thresholdOverride, v.thresholdRelative)}%${tokensAt(s.lastContext?.window, s.thresholdPercent)}`,
       ...(v.thresholdRelative ? [`TEST OVERRIDE +${v.thresholdRelative} (task setting ${s.thresholdPercent}%)`]

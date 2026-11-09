@@ -110,7 +110,7 @@ test('ST-13.6 AC 2: a task created before the upgrade still accepts a v1 block (
   expect(await stop($, handover(taskId, rotationId, { [GOAL_LINES]: '' }))).toEqual({})
   const s = stateOf(h, dir)
   expect([s.status, s.rotation.goal]).toEqual(['ROTATING', undefined])
-  expect(h.notes).toContain('Jeeves: handover validated, starting fresh')
+  expect(h.notes).toContain('Jeeves: handover validated, starting fresh. Previous conversation: claude --resume sess-test')
 })
 
 test('ST-13.6 AC 5: the rotation line shows the goal on one line, without its tag, cut and redacted', async ($, on) => {
@@ -120,5 +120,5 @@ test('ST-13.6 AC 5: the rotation line shows the goal on one line, without its ta
   const goal = stateOf(h, dir).rotation.goal as string
   expect(goal.startsWith('Finish the parser then xxx')).toBe(true)
   expect([goal.length, goal.endsWith('…'), goal.includes('\n'), goal.includes('[inferred]')]).toEqual([80, true, false, false])
-  expect(h.notes).toContain(`Jeeves: handover validated (goal: ${goal}), starting fresh`)
+  expect(h.notes).toContain(`Jeeves: handover validated (goal: ${goal}), starting fresh. Previous conversation: claude --resume sess-test`)
 })

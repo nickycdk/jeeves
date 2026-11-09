@@ -25,7 +25,7 @@ test('a full rotation: one line per transition, in order; status shows context/t
   await measure($, 4)
   expect(h.notes.slice(3)).toEqual([
     'Jeeves: checking the handover',
-    'Jeeves: handover validated (goal: Finish operator precedence in the calculator.), starting fresh',
+    'Jeeves: handover validated (goal: Finish operator precedence in the calculator.), starting fresh. Previous conversation: claude --resume sess-test',
     'Jeeves: restoring the task',
     'Jeeves: the fresh conversation continues the task',
     'Jeeves: session 2 at 4%, watching context',

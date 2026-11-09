@@ -3,7 +3,7 @@
 import type { SessionMeasureInput } from 'claude-code'
 import { expect } from 'claude-code/testing'
 import { NUDGE_PROMPT } from '../../src/core/handover/template.ts'
-import { bottom, generating, handover, PROMPT, relay, start, stateOf, stop, submit, taskDirs, turnEnd, turnStart, until, type Kit, test } from './kit.ts'
+import { bottom, engineClear, generating, handover, PROMPT, relay, start, stateOf, stop, submit, taskDirs, turnEnd, turnStart, until, type Kit, test } from './kit.ts'
 import { memHost } from './memfs.ts'
 
 const measure = ($: Kit, percent: number) =>
@@ -120,4 +120,28 @@ test('an interrupted turn is never nudged: the user has the floor', async ($, on
   await h.clock.settle()
   expect(prompts.some(p => p.text === NUDGE_PROMPT)).toBe(false)
   expect(stateOf(h, taskDirs(h)[0]!).status).toBe('ROTATION_REQUESTED')
+})
+
+test('ST-14.3: the rotation line names the old conversation in full; resumed, it cannot drive the task', async ($, on) => {
+  const g = await rotating($, on)
+  const { h, dir } = g
+  expect(h.notes).toContain(`Jeeves: handover validated (goal: Finish operator precedence in the calculator.), starting fresh. Previous conversation: claude --resume sess-test`)
+  g.ctl.onClear = async () => { await engineClear($, h, 'sess-2') }
+  await turnEnd($)
+  await until(h, () => stateOf(h, dir).status === 'CONTINUING')
+  await measure($, 4)
+  expect([stateOf(h, dir).status, stateOf(h, dir).activeSessionId]).toEqual(['MONITORING', 'sess-2'])
+  // `claude --resume sess-test`: a new process under the old id, with turns.
+  const before = h.files.get(`${dir}/state.json`)
+  h.sessionId = 'sess-test'
+  h.turns = 12
+  await start($)
+  await submit($, 'carry on in the old one')
+  await measure($, 70)
+  for (const cmd of ['rotate', 'pause', 'later', 'threshold 60', 'retry', 'dod x']) await relay($, cmd)
+  const status = await relay($, '')
+  expect(status).toContain('Owned by another session')
+  expect(status).toMatch(/^Auto off: /m)
+  expect(h.files.get(`${dir}/state.json`)).toBe(before)
+  expect(g.clears.length).toBe(1)
 })

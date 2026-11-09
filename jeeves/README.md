@@ -40,7 +40,7 @@ The same in Terminal, iTerm, Cursor's or VS Code's integrated terminal: Jeeves l
 2. Type `/jeeves on`. Jeeves answers `Jeeves on: task t_... Your next prompt is saved word for word as the task.` (the first time on a machine, plus three lines on where it keeps files and how to pause). Or `/jeeves on <goal>`: the goal is saved and sent as the first prompt.
 3. Optional: `/jeeves check npm test` adds a command that proves the task is done, and `/jeeves dod <text>` a done criterion. Jeeves stores them as text and never runs them; Claude does, and Jeeves checks the result.
 4. Type your task and work as usual. The entry under the prompt shows `Jeeves ?/50%` until Claude's first reply, then `Jeeves 12%/50%`.
-5. At 50% Jeeves takes over between turns: `Jeeves: handover requested`, `... validated, starting fresh`, then the fresh conversation continues. In full mode you type nothing, unless Claude asks for a permission as it would without Jeeves.
+5. At 50% Jeeves takes over between turns: `Jeeves: handover requested`, `... validated, starting fresh. Previous conversation: claude --resume <id>`, then the fresh conversation continues. The old conversation stays in Claude Code; resumed with that command, it can be read but cannot drive the task (`/jeeves status` there says `Owned by another session`). In full mode you type nothing, unless Claude asks for a permission as it would without Jeeves.
 
 `/jeeves pause` stops handovers until `/jeeves resume`; `/jeeves off` ends the task (files kept).
 
