@@ -131,8 +131,9 @@ async function nothing(rt: Runtime, acts: { c: Candidate; a: Action }[]): Promis
 export async function recover(rt: Runtime, me: string, endedHere: ReadonlySet<string>, relink = false): Promise<string> {
   const acts = (await candidates(rt)).map(c => ({ c, a: classify(c.found, me, s => endedHere.has(s)) }))
   // One task per session: a second one's lock would go without heartbeats and look stale to everyone else.
-  if (acts.some(x => x.a.kind === 'mine')) return MSG.recoverMine
+  const mine = acts.find(x => x.a.kind === 'mine')
   const pick = acts.find(x => x.a.kind === 'recover' || x.a.kind === 'rebuild')
+  if (mine) return pick ? MSG.recoverMineOther(mine.c.taskId, pick.c.taskId) : MSG.recoverMine
   if (!pick) {
     // ST-6.5: nothing here, but a task whose repository folder is gone may be this one, moved.
     const moved = acts.some(x => x.a.kind !== 'none' || x.a.why !== 'ended') ? [] : await movedTasks(rt)

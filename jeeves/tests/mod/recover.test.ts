@@ -141,7 +141,8 @@ test('code review 1: with its own active task, /jeeves recover refuses instead o
   // Seed this session as the owner of a second, running task.
   const mine = dir.replace(/[^/]+$/, 't_20261108_mine01')
   h.files.set(`${mine}/state.json`, JSON.stringify({ ...stateOf(h, dir), taskId: 't_20261108_mine01', status: 'MONITORING', reason: null, rotation: null, activeSessionId: 'sess-2', updatedAt: '2026-11-07T09:00:00.000Z' }))
-  expect(await relay($, 'recover')).toBe('This session runs the task already: nothing to recover. /jeeves status shows it.')
+  // Audit 4: the reply names both tasks and the way forward.
+  expect(await relay($, 'recover')).toBe(`This session runs task t_20261108_mine01, so task ${stateOf(h, dir).taskId} was not taken over. To continue it instead: /jeeves off ends t_20261108_mine01, then /jeeves recover.`)
   expect(stateOf(h, dir).status).toBe('HANDOVER_GENERATING')
 })
 

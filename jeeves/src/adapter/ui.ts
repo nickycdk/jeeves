@@ -223,6 +223,7 @@ export const MSG = {
   recoverUsage: 'Usage: /jeeves recover, or /jeeves recover --relink to continue after a branch switch or a moved folder.',
   notRebuilt: (taskId: string) => `Task ${taskId}: its state.json can be read again (or could not be read at all), so nothing was rebuilt. Type /jeeves recover again; /jeeves status shows it.`,
   recoverMine: 'This session runs the task already: nothing to recover. /jeeves status shows it.',
+  recoverMineOther: (mine: string, other: string) => `This session runs task ${mine}, so task ${other} was not taken over. To continue it instead: /jeeves off ends ${mine}, then /jeeves recover.`,
   recoverTooNew: (taskId: string) => `Task ${taskId} was saved by a newer Jeeves (SCHEMA_TOO_NEW). Update Jeeves; nothing was changed.`,
   recoverPaused: 'The task is paused, not interrupted: /jeeves resume continues it.',
   nothingToRecover: 'Nothing to recover: no task here was interrupted. /jeeves status shows the task.',
