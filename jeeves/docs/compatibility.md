@@ -7,9 +7,9 @@ Each version was installed from npm into a scratch folder and ran `claude plugin
 
 | Claude Code | validate --strict | mod tests | supported |
 |---|---|---|---|
-| 2.1.302 | pass | FAIL (320 pass, 1 fail) | no (below minimum) |
-| 2.1.303 | pass | FAIL (320 pass, 1 fail) | no (below minimum) |
-| 2.1.310 | pass | FAIL (320 pass, 1 fail) | no (below minimum) |
-| 2.1.316 | pass | FAIL (320 pass, 1 fail) | no (below minimum) |
-| 2.1.319 | pass | pass (321) | yes |
+| 2.1.302 | pass | FAIL (322 pass, 1 fail) | no (below minimum) |
+| 2.1.303 | pass | FAIL (322 pass, 1 fail) | no (below minimum) |
+| 2.1.310 | pass | FAIL (322 pass, 1 fail) | no (below minimum) |
+| 2.1.316 | pass | pass (323) | no (below minimum) |
+| 2.1.319 | pass | pass (323) | yes |
 
