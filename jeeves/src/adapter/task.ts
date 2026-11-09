@@ -271,7 +271,10 @@ export async function heartbeat(rt: Runtime): Promise<void> {
   const me = await rt.port.sessionId()
   const own = ownTask((await projectTasks(rt)).tasks, me)
   const now = await rt.port.now(), at = new Date(now).toISOString()
-  if (!own || (await rt.storage.heartbeat(own.dir, me, at))) return
+  if (!own) return
+  // ADR-004: the quiesce wait also ends by the clock; with a background shell left running no Stop comes to count.
+  if (own.state.status === 'QUIESCING' && now - Date.parse(own.state.rotation!.requestedAt) > DEFAULT_CONFIG.quiesceMaxMinutes * 60_000) await apply(rt, own.dir, { type: 'QUIESCE_TICK' })
+  if (await rt.storage.heartbeat(own.dir, me, at)) return
   // Exit gave the lock up but `claude --resume` brings the same session back to its task: take a free lock again (ADR-005: a stale one only through recover).
   if (!(await rt.storage.acquireLock(own.dir, me, at, now)).ok) rt.port.log(`jeeves: lost the lock of ${own.state.taskId}`)
 }

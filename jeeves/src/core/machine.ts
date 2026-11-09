@@ -37,6 +37,8 @@ export type Input =
   | { type: 'TURN_COMPLETE'; reason: 'answer' | 'aborted' | 'refusal' | 'error'; handoverVerified?: boolean }
   /** The main loop is idle (no turn open), so no Stop will come by itself (D-23). */
   | { type: 'IDLE' }
+  /** The heartbeat's clock check while QUIESCING (ADR-004: 3 stops or quiesceMaxMinutes, whichever comes first): with work left in the background no further Stop may ever come. */
+  | { type: 'QUIESCE_TICK' }
   /** `costUsd`: the ending conversation's cost, when the engine gave one. */
   | { type: 'SESSION_END'; reason: string; sessionId: string; costUsd?: number }
   /** `handoverOk`: the handover to inject was read back and matches its SHA-256 (or the task has none yet). */
@@ -477,6 +479,14 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
       setRotation({ nudged: true })
       effects.push({ type: 'SUBMIT_NUDGE', key: key('nudge') })
       return done()
+
+    case 'QUIESCE_TICK': {
+      if (state.status !== 'QUIESCING') return ignore('not waiting for a safe point')
+      if (ctx.now - Date.parse(state.rotation!.requestedAt) <= ctx.config.quiesceMaxMinutes * 60_000) return ignore('still within the wait')
+      go('PAUSED', 'UNSAFE_BOUNDARY', { rotation: null, armedFired: false }, `no safe point after ${ctx.config.quiesceMaxMinutes} minutes`)
+      effects.push({ type: 'TOAST', key: key('unsafe'), text: `Paused: no safe point to hand over (background work still running after ${ctx.config.quiesceMaxMinutes} minutes). Finish the work, then /jeeves resume.` })
+      return done()
+    }
 
     case 'SESSION_END':
       if (input.reason !== 'clear') return ignore(`end reason ${input.reason}`)

@@ -1,7 +1,7 @@
 // ST-3.3 / AC-07: the safe boundary at classic.Stop, the quiesce limit, interrupts, and failing open.
 import type { SessionMeasureInput } from 'claude-code'
 import { expect } from 'claude-code/testing'
-import { bottom, PROMPT, relay, start, stateOf, submit, taskDirs, type Kit, test } from './kit.ts'
+import { bottom, PROMPT, relay, start, stateOf, submit, taskDirs, until, type Kit, test } from './kit.ts'
 import { memHost } from './memfs.ts'
 
 const measure = ($: Kit, percent: number) =>
@@ -80,4 +80,15 @@ test('a subagent Stop, a Stop outside a rotation, and a Stop without a task chan
   await relay($, 'pause')
   expect(await stop($)).toEqual({})
   expect(stateOf(h, dir).status).toBe('PAUSED')
+})
+
+test('a background shell that never ends: with no further Stop the wait still ends after 20 minutes, PAUSED(UNSAFE_BOUNDARY), said once', STOP, async ($, on) => {
+  const { h, dir } = await requested($, on)
+  expect((await stop($, { background_tasks: [SHELL] })).block).toBeUndefined()
+  await h.clock.advance(19 * 60_000)
+  expect(stateOf(h, dir).status).toBe('QUIESCING')
+  await h.clock.advance(2 * 60_000)
+  await until(h, () => stateOf(h, dir).status === 'PAUSED')
+  expect([stateOf(h, dir).status, stateOf(h, dir).reason]).toEqual(['PAUSED', 'UNSAFE_BOUNDARY'])
+  expect(h.toasts.at(-1)).toBe('Paused: no safe point to hand over (background work still running after 20 minutes). Finish the work, then /jeeves resume.')
 })

@@ -19,6 +19,7 @@ How `src/core/machine.ts` reads the table where it is open to interpretation:
 - Stop (M3): only a main-loop `classic.Stop` counts, and not when another hook beneath already blocked it (the turn goes on). Safe = no background task and no `running` agent (crons only listed). The handover Stop is checked again for in-flight work: if any, the handover counts as invalid (retry). A handover outcome can be `fatal` (the branch moved during the handover, or git did not answer): NEEDS_REVIEW(REPO_MISMATCH or HANDOVER_INVALID) at once, no retry.
 - Validation (D-20): file paths, branch/HEAD and "passed" claims are checked in `[verified]` bullets and under "Tests and checks"; `[inferred]`/`[unknown]` bullets are guesses and are not checked.
 - `turn.complete` (main loop): an interrupt in HANDOVER_GENERATING pauses (USER_INTERRUPT). In ROTATING at step HANDOVER_PERSISTED the adapter re-reads the saved handover and passes `handoverVerified`; only true gives RUN_CLEAR (run by the adapter from `$.clock.after(0)`, once per rotation by the persisted step), anything else gives NEEDS_REVIEW(HANDOVER_INVALID) (ST-4.1).
+- `QUIESCE_TICK` (ADR-004): the lock heartbeat's clock check while QUIESCING; past `quiesceMaxMinutes` since the request the task goes to PAUSED(UNSAFE_BOUNDARY) even when no further Stop comes (a background shell left running).
 - `IDLE` (D-23): the main loop has no open turn while ROTATION_REQUESTED, so no Stop will come by itself; the adapter submits one nudge prompt per rotation (`rotation.nudged`). It is raised after a normal turn end and after a reading taken with no turn open.
 - Readings: besides `session.measure`, every main-loop `TOOL_RESULT` carries the current `usage().context` and is applied as a MEASURE first (one state write with the ledger entry), so a request made there gets its quiesce note at the same tool result. The engine sent one context measure in a 60 s turn (debug run 3).
 - ADR-010: `HOLD_PROMPT` (a composer prompt, not a slash command) in HANDOVER_GENERATING..RESTORING keeps the status, stores the full text in `heldPrompts` (max 50; past that the prompt goes through) and logs a redacted copy. The hook drops it and empties the box from `$.clock.after(0)`. In the window after the old session ended, the clearing task holds it.
@@ -46,6 +47,7 @@ stateDiagram-v2
   ROTATION_REQUESTED --> QUIESCING: Stop [unsafe (background task or running agent; crons do not
   QUIESCING --> QUIESCING: Stop [unsafe (background task or running agent; crons do not
   QUIESCING --> PAUSED: Stop [count > max or time > max]
+  QUIESCING --> PAUSED: lock heartbeat (every 30 s) [time > max; no Stop came (backg
   HANDOVER_GENERATING --> VALIDATING: Stop (stop_hook_active) [block parses + validates]
   HANDOVER_GENERATING --> HANDOVER_GENERATING: Stop [invalid, retries < 2]
   HANDOVER_GENERATING --> NEEDS_REVIEW: Stop [invalid, retries exhausted]
@@ -57,6 +59,7 @@ stateDiagram-v2
   RESTORING --> CONTINUING: after clear resolves
   CONTINUING --> MONITORING: measure(p) [p < T−10]
   CONTINUING --> FAILED: measure(p) [p ≥ T−10]
+  CONTINUING --> NEEDS_REVIEW: measure(p) [p ≥ T−10 (v0.2, D-31)]
   MONITORING --> PAUSED: /relay pause
   ROTATION_REQUESTED --> PAUSED: /relay pause
   QUIESCING --> PAUSED: /relay pause
@@ -91,19 +94,19 @@ stateDiagram-v2
   NEEDS_REVIEW --> DISABLED: /relay off
   FAILED --> DISABLED: /relay off
   COMPLETED --> DISABLED: /relay off
-  MONITORING --> PAUSED: session.end(clear) [not ROTATING]
-  ROTATION_REQUESTED --> PAUSED: session.end(clear) [not ROTATING]
-  QUIESCING --> PAUSED: session.end(clear) [not ROTATING]
-  HANDOVER_GENERATING --> PAUSED: session.end(clear) [not ROTATING]
-  VALIDATING --> PAUSED: session.end(clear) [not ROTATING]
-  ROTATING --> PAUSED: session.end(clear) [not ROTATING]
-  RESTORING --> PAUSED: session.end(clear) [not ROTATING]
-  CONTINUING --> PAUSED: session.end(clear) [not ROTATING]
-  PAUSED --> PAUSED: session.end(clear) [not ROTATING]
-  BLOCKED --> PAUSED: session.end(clear) [not ROTATING]
-  NEEDS_REVIEW --> PAUSED: session.end(clear) [not ROTATING]
-  FAILED --> PAUSED: session.end(clear) [not ROTATING]
-  COMPLETED --> PAUSED: session.end(clear) [not ROTATING]
+  MONITORING --> PAUSED: session.end(clear) [not ROTATING (from v0.3: explicit task)]
+  ROTATION_REQUESTED --> PAUSED: session.end(clear) [not ROTATING (from v0.3: explicit task)]
+  QUIESCING --> PAUSED: session.end(clear) [not ROTATING (from v0.3: explicit task)]
+  HANDOVER_GENERATING --> PAUSED: session.end(clear) [not ROTATING (from v0.3: explicit task)]
+  VALIDATING --> PAUSED: session.end(clear) [not ROTATING (from v0.3: explicit task)]
+  ROTATING --> PAUSED: session.end(clear) [not ROTATING (from v0.3: explicit task)]
+  RESTORING --> PAUSED: session.end(clear) [not ROTATING (from v0.3: explicit task)]
+  CONTINUING --> PAUSED: session.end(clear) [not ROTATING (from v0.3: explicit task)]
+  PAUSED --> PAUSED: session.end(clear) [not ROTATING (from v0.3: explicit task)]
+  BLOCKED --> PAUSED: session.end(clear) [not ROTATING (from v0.3: explicit task)]
+  NEEDS_REVIEW --> PAUSED: session.end(clear) [not ROTATING (from v0.3: explicit task)]
+  FAILED --> PAUSED: session.end(clear) [not ROTATING (from v0.3: explicit task)]
+  COMPLETED --> PAUSED: session.end(clear) [not ROTATING (from v0.3: explicit task)]
   BLOCKED --> RESTORING: /relay recover (ST-6.1) [lock free, stale or ended by this p
   NEEDS_REVIEW --> RESTORING: /relay recover (ST-6.1) [lock free, stale or ended by this p
 ```

@@ -166,6 +166,7 @@ States (PRD §7 plus explicit `QUIESCING` substates kept as data): `DISABLED, MO
 | ROTATION_REQUESTED/QUIESCING | Stop | safe (ADR-004) | HANDOVER_GENERATING | capture facts; Stop → `{ block: handoverInstruction }` |
 | ROTATION_REQUESTED/QUIESCING | Stop | unsafe (background task or running agent; crons do not count, ADR-004 A1) | QUIESCING | quiesceCount++; allow stop; status "waiting: <reason>" |
 | QUIESCING | Stop | count > max or time > max | PAUSED(UNSAFE_BOUNDARY) | toast |
+| QUIESCING | lock heartbeat (every 30 s) | time > max; no Stop came (background work left running) | PAUSED(UNSAFE_BOUNDARY) | toast |
 | HANDOVER_GENERATING | Stop (stop_hook_active) | block parses + validates | VALIDATING→ROTATING | persist handover (immutable + verify); allow stop |
 | HANDOVER_GENERATING | Stop | invalid, retries < 2 | HANDOVER_GENERATING | `{ block: specific errors }` |
 | HANDOVER_GENERATING | Stop | invalid, retries exhausted | NEEDS_REVIEW(HANDOVER_INVALID) | keep last good handover, allow stop |
