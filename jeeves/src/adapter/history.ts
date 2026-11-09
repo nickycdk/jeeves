@@ -1,12 +1,14 @@
 // ST-11.3: `/jeeves history --full`: per rotation, its sessions, context, cost, end reason and handover file with its
 // first next actions. Plain ASCII, 50 columns. Reads only; a handover that is missing or changed is said, not printed.
-import { HANDOVER_REF_RE } from '../core/handover/render.ts'
+import { goalLine, HANDOVER_REF_RE } from '../core/handover/render.ts'
+import { parseHandover } from '../core/handover/parse.ts'
 import { join } from '../core/paths.ts'
 import { parseJson } from '../core/schema.ts'
 import type { EventLine, State } from '../core/types.ts'
 import type { Runtime } from './runtime.ts'
 import { sha256Hex } from './storage.ts'
 import { aggregate, statsLines } from '../core/stats.ts'
+import { fitLeft, WIDTH } from './ui.ts'
 
 const COLS = 50
 const ascii = (s: string) => s.replace(/[^\x20-\x7e]/g, '?')
@@ -67,13 +69,33 @@ export async function fullHistory(rt: Runtime, dir: string, s: State, events: re
       const r = pick.r.value
       out.push(`  context ${pct(r.startPct)} > ${pct(r.endPct)}, cost ${r.costUsd === undefined ? 'unknown' : `$${r.costUsd.toFixed(2)}`}`, `  ended: ${r.endReason ?? 'unknown'}`)
     } else out.push(`  session record: ${pick ? 'unreadable' : 'none'}`)
-    const text = await rt.port.read(join(dir, file)).catch(() => null)
     const want = sha.get(file)
-    if (text === null) out.push(`  ${file}: missing`)
-    else if (want && (await sha256Hex(text)) !== want) out.push(`  ${file}: changed since saved`)
+    const text = await readSaved(rt, dir, file, want)
+    if (typeof text !== 'string') out.push(`  ${file}: ${text.problem}`)
     else out.push(`  ${file}${want ? '' : ' (hash not recorded)'}`, ...nextActions(text, 2).map(a => `    ${a}`))
   }
   return out.map(cut)
+}
+
+/** A saved handover's text, or why it is not shown: missing, or no longer the bytes whose hash was recorded. */
+async function readSaved(rt: Runtime, dir: string, file: string, want: string | undefined): Promise<string | { problem: string }> {
+  const text = await rt.port.read(join(dir, file)).catch(() => null)
+  if (text === null) return { problem: 'missing' }
+  return want && (await sha256Hex(text)) !== want ? { problem: 'changed since saved' } : text
+}
+
+/** ST-14.4 (spec §6.2): `/jeeves handover`, the last validated handover at the status width. Reads only. */
+export async function handoverText(rt: Runtime, dir: string, s: State): Promise<string> {
+  const m = s.lastValidatedHandover ? HANDOVER_REF_RE.exec(s.lastValidatedHandover) : null
+  if (!m) return 'No handover yet for this task.'
+  const text = await readSaved(rt, dir, m[1]!, m[2]!)
+  const head = `Handover: ${fitLeft(join(dir, m[1]!), WIDTH - 10)}`
+  if (typeof text !== 'string') return [head, `Not shown: the file is ${text.problem}.`].join('\n')
+  const p = parseHandover(text)
+  const goal = p.ok ? goalLine(p.value) : null
+  const next = p.ok ? p.value.sections['Exact next actions'].slice(0, 3).map((a, i) => `${i + 1}. ${a.text.replace(/^\s*\[(verified|inferred|unknown)\]\s*/i, '')}`) : []
+  const fit = (l: string) => { const a = ascii(l); return a.length <= WIDTH ? a : `${a.slice(0, WIDTH - 3)}...` }
+  return [head, `Goal: ${goal ?? 'none recorded'}`, ...(next.length ? ['Next:', ...next] : [])].map(fit).join('\n')
 }
 
 /** ST-11.4: `/jeeves stats`, for this project and the task status shows. Reads only. */

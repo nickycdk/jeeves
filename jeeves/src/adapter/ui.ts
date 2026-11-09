@@ -100,6 +100,7 @@ function commandsLine(v: StatusView): string {
   const cmds = own && s.status === 'MONITORING' && pct !== undefined && pct >= t - DEFAULT_CONFIG.warnBeforePercent && pct < t ? ['later', 'off']
     : s && resumable(s) ? ['resume', 'off']
     : own && s.status === 'NEEDS_REVIEW' && (s.reason === 'HANDOVER_INVALID' || s.reason === 'POSSIBLE_LOOP') && s.consecutiveFailures < DEFAULT_CONFIG.maxConsecutiveFailures ? ['retry', 'off']
+    : own && s.rotationCount > 0 && s.lastValidatedHandover ? ['handover']
     : v.auto?.startsWith('Auto off') ? ['on'] : []
   return `Try: /jeeves ${[...cmds, 'help'].slice(0, 3).join(' | ')}`
 }
@@ -149,7 +150,7 @@ export const offStatus = (p: Probe) =>
   p.missing[0] === 'classic.Stop hook' ? 'off: Stop hook skipped' : p.mode === 'unsupported' ? `off: needs ${p.missing[0]}` : 'assisted mode'
 
 /** The `/jeeves` command menu's argument hint; a unit test keeps it in step with HELP. */
-export const ARGUMENT_HINT = 'on [goal] | off | pause | resume | rotate | later | continue | recover | done | retry | threshold <n> | defaults ... | auto [on|off] | task | dod <text> | check <cmd> | status [--diagnose] | history [--full] | stats | purge | help'
+export const ARGUMENT_HINT = 'on [goal] | off | pause | resume | rotate | later | continue | recover | done | retry | threshold <n> | defaults ... | auto [on|off] | task | dod <text> | check <cmd> | status [--diagnose] | history [--full] | handover | stats | purge | help'
 
 export const HELP = [
   'Jeeves commands (/jeeves ...):',
@@ -172,6 +173,7 @@ export const HELP = [
   'status        mode, task, context',
   'status --diagnose  report for a bug',
   'history [--full]  state changes',
+  'handover      the last handover',
   'stats         rotations, context, cost',
   'purge ...     delete task files',
   'help          this list',

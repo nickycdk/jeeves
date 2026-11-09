@@ -47,6 +47,7 @@ At the threshold you'll see `Jeeves: handover requested`, then `Jeeves: handover
 | `/jeeves recover` | Continue a task a crashed or closed session left behind |
 | `/jeeves retry` | Try again after a handover failed its checks or a possible loop |
 | `/jeeves stats` | Rotations, context cleared, cost and stops, for this project and the current task |
+| `/jeeves handover` | The last handover: its file, Current goal and first next actions (a missing or changed file is said, not printed) |
 | `/jeeves history [--full]` | Recent state changes and rotations; `--full` adds each rotation's context, cost and handover file |
 | `/jeeves auto [on\|off]` | Show or set auto-start everywhere; `/jeeves defaults auto on\|off` sets one project |
 | `/jeeves off` | End the task (files are kept); auto-start stays off for the rest of the session |

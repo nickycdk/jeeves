@@ -151,6 +151,7 @@ test('ST-14.2: the commands line offers what fits now and survives the 8-line ru
   assert.equal(last({ task: { state: validState(ctx(50)), dir } }), 'Try: /jeeves help', 'at the threshold the handover is under way')
   assert.equal(last({ task: { state: validState(ctx(45)), dir }, auto: 'Auto off: off everywhere' }), 'Try: /jeeves on | help', "another session's warning is not this one's")
   assert.equal(last({ task: { state: validState({ status: 'BLOCKED', reason: 'DISK' }), dir } }), 'Try: /jeeves resume | off | help')
+  assert.equal(last({ task: { state: validState({ ...ctx(10), rotationCount: 1, lastValidatedHandover: 'history/handover-001.md#sha256:ab' }), dir } }), 'Try: /jeeves handover | help', 'after a rotation (ST-14.4)')
   assert.equal(last({ task: { state: validState({ status: 'NEEDS_REVIEW', reason: 'POSSIBLE_LOOP' }), dir } }), 'Try: /jeeves retry | off | help')
   assert.equal(last({ task: { state: validState({ status: 'NEEDS_REVIEW', reason: 'HANDOVER_INVALID', consecutiveFailures: 2 }), dir } }), 'Try: /jeeves help', 'retries used up')
   assert.equal(last({ auto: 'Auto off: resumed conversation (+1 more)' }), 'Try: /jeeves on | help')
