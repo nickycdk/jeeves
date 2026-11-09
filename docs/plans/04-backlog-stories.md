@@ -631,7 +631,6 @@ Module names refer to `02-architecture-and-adrs.md` §3.
 - **AC:** (1) a task with 2 rotations shows both with their numbers; (2) a missing or hash-mismatched handover file is reported as such, not printed; (3) without `--full` output is unchanged; (4) no non-ASCII in plain-text mode.
 - **Tests:** I (`history.test.ts` snapshots, missing file, changed file).
 - **DoD:** + README command table.
-- **Status:** Solved (2026-11-09). `handoverText` in `src/adapter/history.ts`, read-only (not in the changing commands), for the task status shows (this session's, else the latest; anyone may read it, as `history`). Source: the task's `lastValidatedHandover` ref, so the file is checked against the hash recorded at validation; `history --full`'s missing/changed handling is now one helper, `readSaved`, used by both. Output: `Handover: <path cut from the left>`, `Goal: <first Current goal bullet, tag dropped>` (`none recorded` for a v1 handover), `Next:` and the first 3 numbered actions with tags dropped; every line cut to 40 ASCII columns. No validated handover → `No handover yet for this task.`; no task → the usual no-task line; a missing or changed file → `Not shown: the file is missing.` / `… changed since saved.` and nothing of its text. `/jeeves` alone now offers `handover` (ST-14.2's line) for this session's own task after a rotation. Help and the command menu list it. I: `handover-cmd.test.ts` (AC 1 snapshot after a rotation, typed by a plugin, nothing written; AC 2 none yet and no task; AC 3 changed and missing); U: `ui.spec.ts` (the `handover` offer). Not done: the goal is cut, not wrapped, so a long goal shows its first 34 characters (spec: "cut to the status width"). Root and plugin README command tables, CHANGELOG updated. Live: none.
 
 ### ST-11.4 `/jeeves stats` — M
 - **Status:** Solved (M8, 2026-11-08). The < 100 ms check runs in the test kit on its in-memory file system, not on a real disk. "Failures" counts every stop (NEEDS_REVIEW, FAILED, PAUSED, BLOCKED) not caused by the user, by reason. AC 4 borderline: Profiled 2026-11-08: one `stats` over 50 tasks makes 202 reads plus about 200 exists/list calls (state 2, sessions list 1 + 2 reads, events 2 exists + 1 read per task), about 0.25 ms each in the kit, so 99–106 ms warm and about 200 ms cold; no single slow step. The two cuts that would save about a quarter (read state.json without `exists`, find event files with one listing) were not made: reads give no ENOENT code to tell missing from unreadable (R-21), and `listFiles` swallows errors where recovery also reads events. Recorded as borderline; bound kept at 100 ms.
@@ -806,6 +805,7 @@ If v0.3 must be smaller, ST-14.1 and ST-14.2 ship first (spec §11).
 - **AC:** (1) snapshot after a rotation; (2) none yet → one line saying so; (3) changed file reported.
 - **Tests:** I (`handover-cmd.test.ts`).
 - **DoD:** + README command table.
+- **Status:** Solved (2026-11-09). `handoverText` in `src/adapter/history.ts`, read-only (not in the changing commands), for the task status shows (this session's, else the latest; anyone may read it, as `history`). Source: the task's `lastValidatedHandover` ref, so the file is checked against the hash recorded at validation; `history --full`'s missing/changed handling is now one helper, `readSaved`, used by both. Output: `Handover: <path cut from the left>`, `Goal: <first Current goal bullet, tag dropped>` (`none recorded` for a v1 handover), `Next:` and the first 3 numbered actions with tags dropped; every line cut to 40 ASCII columns. No validated handover → `No handover yet for this task.`; no task → the usual no-task line; a missing or changed file → `Not shown: the file is missing.` / `… changed since saved.` and nothing of its text. `/jeeves` alone now offers `handover` (ST-14.2's line) for this session's own task after a rotation. Help and the command menu list it. I: `handover-cmd.test.ts` (AC 1 snapshot after a rotation, typed by a plugin, nothing written; AC 2 none yet and no task; AC 3 changed and missing); U: `ui.spec.ts` (the `handover` offer). Not done: the goal is cut, not wrapped, so a long goal shows its first 34 characters (spec: "cut to the status width"). Root and plugin README command tables, CHANGELOG updated. Live: none.
 
 ### ST-14.5 Quiet status line in auto tasks — S
 - **Cites:** §6.3, AC-47.
@@ -841,11 +841,80 @@ If v0.3 must be smaller, ST-14.1 and ST-14.2 ship first (spec §11).
 
 ### ST-15.3 v0.3.0 release prep — S
 - **Cites:** FR-15, 08 §6.
-- **Scope:** version 0.3.0 in the three version fields, CHANGELOG, `jeeves/docs/release-notes/v0.3.0.md` (including downgrade and upgrader behaviour), `docs/done/evidence/v0.3.0/README.md` (AC-35 … AC-47 plus re-runs of the existing suite), reproducible zip. Tag and publication stay the maintainer's.
-- **Depends on:** ST-13.1 … ST-15.2.
+- **Scope:** version 0.3.0 in the three version fields, CHANGELOG, `jeeves/docs/release-notes/v0.3.0.md` (including downgrade and upgrader behaviour), `docs/done/evidence/v0.3.0/README.md` (AC-35 … AC-54 plus re-runs of the existing suite; release notes say what turn mode does and does not give), reproducible zip. Tag and publication stay the maintainer's.
+- **Depends on:** ST-13.1 … ST-15.2, ST-16.1 … ST-16.8.
 - **AC:** zip SHA-256 identical from two clean clones; notes claim only what the evidence shows.
 - **Tests:** `release-zip.sh` twice; `claude plugin validate`.
 - **DoD:** + maintainer sign-off.
+
+## E16 — Turn mode for Team accounts (v0.3, before ST-15.3)
+
+Spec `docs/specs/team-accounts-turn-mode.md` §5 (a)–(h); (a), the ADR amendments, is done (revision 2 accepted, D-48). Every story keeps Stop mode byte-identical where Stop arrives: its tests run the existing suite as well as its own. **Live checks:** each story names what it must verify; the ones that need a live session can be answered together in one throwaway probe-mod session (scratchpad only, as in `8d99bf9`; haiku, estimated US$0.10–0.30) before ST-16.2, on the maintainer's go-ahead and budget. A check that cannot be answered is recorded as unverified in the story, with the fallback the ADR names.
+
+### ST-16.1 Turn mode chosen at the skip; status, diagnose, refusals — S
+- **Cites:** ADR-002 A2, A3; spec §3, §6; D-39.
+- **Scope:** where A2's check (`stopSkipped`, `markStopSkipped`) now sets `unsupported`, set turn mode instead: mode stays `full`, the probe records `boundary: turn`; status shows `mode: full (turn)`, `--diagnose` names the mode and the reason (`Stop hook skipped`); `on`/`resume`/`rotate`/`retry` work; an auto task is not ended by the skip any more (ST-13.3's `unsupported` reason applies only to a version refusal). A `$.prompt.submit` that fails in turn mode makes the process `unsupported` (not `assisted`); a version refusal keeps its own message. A skip seen while `ROTATION_REQUESTED` hands the rotation to the turn-mode boundary at the same `turn.complete` (ST-16.2). The background count (ST-16.2) starts at `session.start` in every process, before the mode is known.
+- **Verify:** none live (the skip and its log line were seen in `8d99bf9`).
+- **Depends on:** —.
+- **AC:** (1) skip seen → `mode: full (turn)` and every command accepted; (2) Stop arrives → no turn-mode state, event trace identical to v0.2.0's for the same script; (3) failed submit in turn mode → `unsupported` with its message, no further requests; (4) an auto task survives the skip.
+- **Tests:** U (probe with the boundary); I (skip simulated by never delivering `classic.Stop` after an answered turn).
+
+### ST-16.2 Safe boundary on `turn.complete` and the background count — M
+- **Cites:** ADR-004 A2, AC-07; spec §3 row 1, §4 Q1.
+- **Scope:** pure count in the core: +1 at a `tool.call` that started work in the background, −1 at `prompt.submit` with `origin.kind: 'task-notification'`, clamped at 0, reset at each Jeeves `/clear` and on leaving `PAUSED(UNSAFE_BOUNDARY)`. Boundary: main-loop `turn.complete` with `reason: 'answer'`, not aborted, no `$.agent.list()` entry `running`, count 0, state `ROTATION_REQUESTED`; otherwise QUIESCING exactly as at an unsafe Stop (`quiesceMaxTurns` 3, `quiesceMaxMinutes` 20, then `PAUSED(UNSAFE_BOUNDARY)`). Soft quiesce unchanged.
+- **Verify (live):** does a background shell the user kills produce a `task-notification`? If not, record it; the reset covers it (at most one pause).
+- **Depends on:** ST-16.1.
+- **AC:** (1) no request while the count is above 0, a subagent runs, or the turn was aborted; (2) a lost notification costs at most one `PAUSED(UNSAFE_BOUNDARY)`, and the next rotation after resume is not blocked by it; (3) the count never goes negative; (4) a permission dialog open at the threshold gets no request (AC-07: `turn.complete` comes after the turn ended).
+- **Tests:** U (count table); I (background shell, subagent, abort, lost notification, permission dialog).
+
+### ST-16.3 Handover requested by submit, read from `answer`, retried — M
+- **Cites:** ADR-003 A2, ADR-010, AC-08, AC-17; spec §3 rows 2–4.
+- **Scope:** at the boundary, state → `HANDOVER_GENERATING`, then `$.prompt.submit` with the existing instruction (the idle-nudge path, `submitPromptSoon`); a prompt the user queued is held by ADR-010 and never runs ahead of the request. The next main-loop `turn.complete` with `reason: 'answer'` → its `answer` through the same parser and validator; an invalid one → the retry instruction submitted the same way (same counter, limit 2, then `NEEDS_REVIEW(HANDOVER_INVALID)`); an aborted or tool-only turn counts as no handover, as in Stop mode. The verified section lists crons as `not available in turn mode`.
+- **Verify (live):** a handover near `handoverMaxChars` (12,000) arrives whole in `answer`; a final message with several text blocks (whether `answer` joins them).
+- **Depends on:** ST-16.2.
+- **AC:** (1) a valid handover is saved byte-identical to the Stop-mode file for the same answer (apart from the crons line); (2) a prompt typed between the boundary and the request is held and quoted in the continuation; (3) two invalid answers → NEEDS_REVIEW, earlier handover unchanged, no `/clear` (AC-17); (4) an interrupt during the request pauses as in Stop mode.
+- **Tests:** U (crons line); I (valid, invalid ×2, queued prompt order, interrupt, 12K fixture answer).
+
+### ST-16.4 Delivery through the continuation prompt after Jeeves's `/clear` — M
+- **Cites:** ADR-003 A2, 02 §4 ROTATING (turn mode) row, S-05; spec §2.
+- **Scope:** after the handover is saved, `$.command.run('clear')` as today; when it resolves: new id from `$.session.id()`, checked to differ from the old one (else the rotation fails as today), lock owner := new id, then the continuation prompt with task + handover through the restore path's `$.prompt.submit`, then CONTINUING. No `additionalContext`. Rotation line (ST-14.3) and `/jeeves handover` (ST-14.4) unchanged.
+- **Verify (live):** does the engine's `session.start` after a plugin `/clear` arrive before `$.command.run('clear')` resolves? If it does and carries the new id first, use it as the row says.
+- **Depends on:** ST-16.3.
+- **AC:** (1) two rotations in a row with nothing typed (I); (2) an unchanged session id fails the rotation with the existing message; (3) a crash at each turn-mode step is recovered by the existing crash matrix (6/6 in turn mode).
+- **Tests:** I (two rotations, same-id failure, crash matrix in turn mode).
+
+### ST-16.5 Compaction recognised from `session.measure` — M
+- **Cites:** ADR-006 A1; spec §3 compaction row.
+- **Scope:** pure rule: a reading whose context tokens fall by more than a set amount below the previous reading, with no Jeeves `/clear` and no user `/clear` since, is a compaction → `COMPACTED` logged, the completion row re-appended (ST-16.6), `ROTATION_REQUESTED` at the next safe boundary. The story sets the amount from the live readings.
+- **Verify (live):** the token drop of a typed `/compact` and of an auto-compaction, and of a rewind (a rewind read as a compaction causes one rotation that was not needed: harmless, noted).
+- **Depends on:** ST-16.2.
+- **AC:** (1) a drop above the amount → one rotation, not two; (2) a smaller drop, or one after any `/clear`, → nothing; (3) a rewind case documented with its result.
+- **Tests:** U (rule table); I (compaction, small drop, after `/clear`, rewind-sized drop).
+
+### ST-16.6 Completion rules as a hidden row — S
+- **Cites:** ADR-007 A1, AC-13.
+- **Scope:** the `prompt.compose` section's text goes in with `$.session.append` (hidden row) when a task starts (after its first prompt is captured or submitted), after every continuation, after a recognised compaction and every 10 turns. The completion block is read from `turn.complete`'s `answer`; "block Stop once with the missing checks" becomes one submitted prompt listing them; still missing after that turn → `NEEDS_REVIEW` as today.
+- **Verify (live):** the row reaches the model before its next answer (a probe asks the model to repeat a marker from the row).
+- **Depends on:** ST-16.3.
+- **AC:** (1) rows at the four points and no more; (2) a claimed completion with failing checks gets one prompt, then NEEDS_REVIEW; (3) a passing completion → COMPLETED.
+- **Tests:** U (cadence); I (rows, completion pass and fail).
+
+### ST-16.7 Every I-layer rotation test in both modes — M
+- **Cites:** spec §5 (g), §6; ST-13.9 (the mode-file pattern).
+- **Scope:** like `tests/mod/mode.ts`: a `BOUNDARY = 'stop'` constant; `npm run test:mod:turn` runs a temporary copy with `turn`, where the kit drops `classic.Stop`, `classic.SessionStart`, `session.compact` and `prompt.compose` after an answered turn, as the prepend plugin does. Every rotation test (boundary, handover, retry, clear, continue, crash, compact, complete, held, recover, auto) passes in both; tests that assert Stop-only facts (crons in the handover, `additionalContext`) say so and are skipped in turn mode with the reason. CI and `scripts/check-all.sh` run stop × autoStart off, stop × on, turn × off (turn × on adds no path the auto tests do not already cover in turn × off; reconsidered if a failure says otherwise). README, PRIVACY, `/jeeves help` and `jeeves/docs/compatibility.md`: "Team accounts unsupported" replaced by turn mode and what it does not give (crons line, precompute skip).
+- **Verify:** none live.
+- **Depends on:** ST-16.1 … ST-16.6.
+- **AC:** (1) green in all three runs; (2) every skip has a written reason; (3) texts match the shipped behaviour.
+- **Tests:** I (three runs); M (text review).
+- **DoD:** + CHANGELOG.
+
+### ST-16.8 Live E runs on the Team account — M
+- **Cites:** spec §5 (h), §6; AC-07 E, AC-10, AC-11, Q-12.
+- **Scope:** through `tests/pty/e_layers.py` and `ptylib.py` on the maintainer's Team account (fresh-install command from the M9 handover §3), haiku: (1) two rotations in a row with nothing typed after the task (`six-steps`); (2) AC-07 with a permission dialog open at the threshold; (3) a typed `/compact` → one rotation; (4) any probe item from ST-16.2 … ST-16.6 still open. The handover is validated and saved as in Stop mode; status shows `mode: full (turn)`.
+- **Depends on:** ST-16.7. **Live run:** estimate in the story before asking (M4–M8 runs cost US$0.03–0.43 each); go-ahead and budget asked first.
+- **AC:** each run PASS/FAIL with cost, or a recorded reason it did not run; Q-12 answered for the Team account.
+- **Tests:** E.
+- **DoD:** + `docs/done/evidence/v0.3.0/turn-mode/RESULT.md`.
 
 ---
 
@@ -854,3 +923,5 @@ If v0.3 must be smaller, ST-14.1 and ST-14.2 ship first (spec §11).
 **M8 (v0.2) count:** 12 stories (E10 3, E11 4, E12 5): 4 M, 8 S ≈ 10 engineer-days.
 
 **M9 (v0.3) count:** 17 stories (E13 9, E14 5, E15 3): 7 M, 10 S ≈ 15.5 engineer-days (E13 10.5, E14 2.5, E15 2.5). This is above the spec's rough 5 + 2 days (§11): the story midpoints include tests in both modes, the downgrade check and the live run.
+
+**E16 (turn mode, D-48) count:** 8 stories: 6 M, 2 S ≈ 10 engineer-days (the spec's rough 6–8 days plus the three-run suite and the live runs). M9 with E16: 25 stories ≈ 25.5 engineer-days.

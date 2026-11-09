@@ -2,7 +2,7 @@
 
 Priority: P0 = MVP. Each epic cites PRD identifiers. Standard epic DoD (applies to all, plus epic-specific items): all child stories meet their DoD; epic AC demonstrated with the listed artifact; docs updated; no open Critical/High review findings; CI green.
 
-Dependency order: E0 → E1 → E2 → E3 → E4 → E5 → (E6, E7 in parallel) → E8 → E9 → (E10, E11) → E12 → E13 → E14 → E15 (v0.3, `docs/specs/auto-start.md`).
+Dependency order: E0 → E1 → E2 → E3 → E4 → E5 → (E6, E7 in parallel) → E8 → E9 → (E10, E11) → E12 → E13 → E14 → E16 → E15 (v0.3, `docs/specs/auto-start.md`; E16 turn mode, `docs/specs/team-accounts-turn-mode.md`, D-48, before ST-15.3).
 
 ---
 
@@ -133,7 +133,7 @@ Dependency order: E0 → E1 → E2 → E3 → E4 → E5 → (E6, E7 in parallel)
 ## E13 — Auto-start (P1, v0.3)
 - **Status:** Open. Spec approved 2026-11-08 (D-40); AC-41's owner and date still open (spec Q7).
 - **Goal:** Installing Jeeves is the opt-in on fresh installs: an eligible session starts an auto task at its first typed prompt, with no command per task, while upgraders keep the v0.2 promise until they turn it on.
-- **Scope:** spec §5: eligibility decided once at `session.start` (interactive, full mode, git, window above 200K, fresh conversation, auto-start on) with the reason order and `(+N more)`; lazy start at the first `composer` prompt; first-run notice (`autoNoticeShown`); near-threshold rule, 3-turn grace, model-switch end; task `origin` auto/explicit (state schema bump, migration); `/jeeves later` with the auto-compaction cap; `/jeeves off` for the session, `/jeeves defaults auto`, `/jeeves auto` (`auto.json`), the `autoStart` row and their precedence; upgrade detection and notice; Current goal heading and the continuation order; user `/clear` ends an auto task; auto tasks recover by themselves under the same gates; cleanup of ended auto tasks without a rotation after 7 days; privacy and README text; downgrade safety. **Out:** 200K windows (Q8, decided by AC-41); Team accounts (turn mode); a setting for the cleanup age; any network use.
+- **Scope:** spec §5: eligibility decided once at `session.start` (interactive, full mode, git, window above 200K, fresh conversation, auto-start on) with the reason order and `(+N more)`; lazy start at the first `composer` prompt; first-run notice (`autoNoticeShown`); near-threshold rule, 3-turn grace, model-switch end; task `origin` auto/explicit (state schema bump, migration); `/jeeves later` with the auto-compaction cap; `/jeeves off` for the session, `/jeeves defaults auto`, `/jeeves auto` (`auto.json`), the `autoStart` row and their precedence; upgrade detection and notice; Current goal heading and the continuation order; user `/clear` ends an auto task; auto tasks recover by themselves under the same gates; cleanup of ended auto tasks without a rotation after 7 days; privacy and README text; downgrade safety. **Out:** 200K windows (Q8, decided by AC-41); Team accounts (turn mode, E16); a setting for the cleanup age; any network use.
 - **User value:** long tasks hand over by themselves without remembering `/jeeves on`; one step turns it off at any level.
 - **Dependencies:** E10–E12 (v0.2.0). **Risks:** R-03, R-15, R-19, R-25, R-26, R-27.
 - **Cites:** FR-05, FR-11, ADR-003, ADR-007, ADR-009 A3, ADR-010, AC-03, D-41, D-42, D-43.
@@ -154,10 +154,20 @@ Dependency order: E0 → E1 → E2 → E3 → E4 → E5 → (E6, E7 in parallel)
 - **Status:** Open. Owner, account and target date for ST-15.2 decided (D-44: maintainer logs in a non-Team, dollar-billed account on a separate macOS user; the agent builds and runs; target 2026-11-20); Q8's bar set (D-45). Go-ahead and US$40 budget approved (D-46), valid once E13, ST-15.1, the D-44 account and the dry run are in place.
 - **Goal:** Measure what auto-start costs and how it behaves live before any cost wording ships, decide Q8, ship v0.3.0.
 - **Scope:** the test-only window override; AC-41 live: a dry run in a fresh-install state (AC-35 E), then a 1M fixture with and without Jeeves (auto mode, two rotations as the target) and a 200K simulated fixture, each under a spending cap; Q8 decided from it; README cost wording only from the measured result; v0.3.0 release prep. **Out:** widening auto-start to 200K windows in v0.3.0 (v0.3.x, spec §13).
-- **Dependencies:** ST-15.2 on E13 and ST-15.1 only (E14 changes no cost, rate or outcome); ST-15.3 on everything. **Risks:** R-15, R-25 (the maintainer's account is a Team account), Q-12, Q-13, Q-14.
+- **Dependencies:** ST-15.2 on E13 and ST-15.1 only (E14 changes no cost, rate or outcome), and on E16 if it runs on the Team account; ST-15.3 on everything, E16 included. **Risks:** R-15, R-25 (the maintainer's account is a Team account), Q-12, Q-13, Q-14.
 - **Cites:** AC-41, spec §7, §11.1, Q7, Q8.
 - **AC:** AC-41 has a PASS/FAIL result with its cost, or a recorded reason it could not run; Q8 answered; release zip reproducible.
 - **Artifact:** `docs/done/evidence/v0.3.0/`, draft release v0.3.0.
+
+## E16 — Turn mode for Team accounts (P1, v0.3, before ST-15.3)
+- **Status:** Open. Spec `docs/specs/team-accounts-turn-mode.md`; ADR-002 A3, ADR-003 A2, ADR-004 A2, ADR-006 A1, ADR-007 A1 (revision 2) accepted 2026-11-09 (D-48).
+- **Goal:** where a higher-tier plugin skips Jeeves's `classic.*`, `session.compact` and `prompt.compose` hooks (R-25; seen on every Team-organization account), Jeeves keeps working in turn mode instead of turning off, and the maintainer's Team account becomes the live test account.
+- **Scope:** spec §5 (b)–(h) as amended: turn mode chosen when the Stop skip is seen (any cause), status and `--diagnose` name it, a failed submit makes the process `unsupported`; the safe boundary on `turn.complete` with Jeeves's own background count; the handover requested with `$.prompt.submit` (HANDOVER_GENERATING first), read from `turn.complete`'s `answer`, retried the same way; delivery through the continuation prompt after Jeeves's `/clear` (ROTATING turn-mode row); compaction recognised from a `session.measure` drop; completion rules as a hidden `$.session.append` row; every I-layer rotation test in both modes; live E runs on the Team account. README, PRIVACY and `/jeeves help` drop "Team accounts unsupported" (D-39) where turn mode replaces it. **Out:** getting around an organization policy that turns mods or hooks off (R-16); scheduled crons in a turn-mode handover (`not available in turn mode`); skipping compaction ahead of time in turn mode.
+- **User value:** people on Team accounts, the maintainer included, can use Jeeves; nothing changes where Stop arrives.
+- **Dependencies:** E13 (auto tasks rotate in turn mode too), ST-14.3/ST-14.4 (rotation line, `/jeeves handover` read the same files). ST-15.2 depends on E16 when it runs on the Team account (proposal in the M9 handover; D-44/D-46 unchanged until the maintainer decides). **Risks:** R-25, R-03, R-07, R-15, R-19.
+- **Cites:** spec §3–§6, ADR-002 A3, ADR-003 A2, ADR-004 A2, ADR-006 A1, ADR-007 A1, AC-07, AC-10, AC-11, AC-17, AC-25, D-39, D-48.
+- **AC:** AC-48 … AC-53 pass (U + I in both modes), AC-54 on the Team account (E); every existing AC keeps passing with the turn-mode suite on and off; on an account without the skip the turn-mode path never runs.
+- **Artifact:** `npm run test:mod:turn` report; `docs/done/evidence/v0.3.0/turn-mode/RESULT.md`; README/PRIVACY diffs.
 
 ---
 

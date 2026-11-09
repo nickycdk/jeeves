@@ -1,6 +1,6 @@
 # Spec: Jeeves on Team accounts ("turn mode")
 
-**Status:** Draft, for the maintainer's decision (Q-11). Not scheduled. · **Date:** 2026-11-08 · **Relates to:** R-25, Q-11, D-39, ADR-002, ADR-003, ADR-004, ADR-006, ADR-007.
+**Status:** Accepted (D-48): built before v0.3.0 as epic E16 (03, 04 ST-16.1 … ST-16.8). Where this spec and the accepted ADR amendments (02: ADR-002 A3, ADR-003 A2, ADR-004 A2, ADR-006 A1, ADR-007 A1, revision 2) differ, the amendments win; rows and items they change are marked **amended by revision 2**. · **Date:** 2026-11-08 · **Relates to:** R-25, Q-11, D-39, ADR-002, ADR-003, ADR-004, ADR-006, ADR-007.
 
 ## 1. Problem
 
@@ -29,14 +29,14 @@ When the skip is detected (the v0.2.0 check), use **turn mode** for the rest of 
 
 | Step | Stop mode (today) | Turn mode |
 |---|---|---|
-| Safe boundary | main-loop `classic.Stop`: `background_tasks` empty, no running agent, not aborted | main-loop `turn.complete` with `reason: 'answer'`, not aborted, `$.agent.list()` has no running agent. Background shells: see open question 1 |
-| Ask for the handover | block the stop with the instruction (same turn) | submit the instruction as a new prompt (`$.prompt.submit`), as the idle nudge already does (`NUDGE_PROMPT`, `submitPromptSoon`) |
+| Safe boundary | main-loop `classic.Stop`: `background_tasks` empty, no running agent, not aborted | main-loop `turn.complete` with `reason: 'answer'`, not aborted, `$.agent.list()` has no running agent. Background shells: **amended by revision 2:** Jeeves's own background count is zero (ADR-004 A2) |
+| Ask for the handover | block the stop with the instruction (same turn) | submit the instruction as a new prompt (`$.prompt.submit`), as the idle nudge already does (`NUDGE_PROMPT`, `submitPromptSoon`); **amended by revision 2:** state HANDOVER_GENERATING before the submit (ADR-003 A2) |
 | Read the handover | `last_assistant_message` | the next `turn.complete`'s `answer` (the final visible text of that turn), through the same parser and validator |
 | Retry an invalid handover | block again with the reasons | submit the retry instruction (same counter, same limit of 2) |
 | Fresh conversation | `$.command.run('clear')` | unchanged |
 | Deliver the handover | `classic.SessionStart` `additionalContext` | the restore path's continuation prompt with the handover text (proven on Team accounts, 30K chars arrived intact per ADR-003) |
 | Compaction | `session.compact` | not visible. A context drop in `session.measure` with no Jeeves `/clear` behind it is treated as a compaction (COMPACTED), at the next safe boundary. Compaction ahead of time can no longer be skipped |
-| Completion rules | `prompt.compose` section | added to the task prompt and to every continuation prompt |
+| Completion rules | `prompt.compose` section | **amended by revision 2:** a hidden `$.session.append` row at task start, after each continuation, after a recognised compaction and every 10 turns (ADR-007 A1) |
 | Soft quiesce | hidden row at the first tool result | unchanged (`tool.call` arrives) |
 | Held prompts (ADR-010) | `prompt.submit` | unchanged |
 
@@ -44,8 +44,8 @@ What stays the same: the pure core (states, reducer, validator, storage, locks, 
 
 ### Costs and risks
 
-- **An extra turn per rotation.** Stop mode asks inside the finishing turn. Turn mode needs a submitted prompt, so one more model call (the handover reply itself is the same size).
-- **ADR changes.** ADR-004 (boundary = Stop), ADR-003 (channel = Stop message and SessionStart), ADR-006 (precompute skip) and ADR-007 (compose section) each get an amendment for turn mode. This needs the maintainer's yes before any code (rule: a story that conflicts with an ADR stops and asks).
+- ~~**An extra turn per rotation.**~~ **Amended by revision 2:** about the same model work (Stop's `{ block }` also makes Claude answer again); the differences are a visible request prompt in the transcript and the window before the request (ADR-003 A2).
+- **ADR changes.** ADR-004 (boundary = Stop), ADR-003 (channel = Stop message and SessionStart), ADR-006 (precompute skip) and ADR-007 (compose section) each get an amendment for turn mode. Accepted by the maintainer on 2026-11-09 (revision 2, D-48).
 - **A user typing while the handover is requested.** Their prompt and Jeeves's request can race. ADR-010 already holds typed prompts in ROTATION_REQUESTED and later states, so the same rule applies; this needs I-layer tests for the turn-mode order.
 - **Policy intent.** The prepend plugin is a security default. Turn mode uses only events and calls it lets through; it does not try to get around the skip. Still, see §5 (ask first).
 
@@ -60,16 +60,16 @@ What stays the same: the pure core (states, reducer, validator, storage, locks, 
 1. **Ask upstream first** (free): a short question to Anthropic on whether `cc-plugin-sec-default` is meant to skip every user-tier plugin's `classic.*` hooks on Team accounts, and whether a plugin opt-in is planned. Drafted by Jeeves's maintainer and posted by them (agents never post, D-37). If the answer is "a bug" or "an opt-in is coming", turn mode may not be needed.
 2. **Answer open questions 1 and 2** (one look at the types, one US$0.01 live turn).
 3. **If still needed: v0.3 epic "Turn mode"**, with stories:
-   - (a) ADR amendments
+   - (a) ADR amendments: **done** (revision 2 accepted, D-48)
    - (b) the boundary and handover request on `turn.complete`
    - (c) handover read from `answer`, with retries
    - (d) delivery through the restore path's continuation
    - (e) compaction from `session.measure`
-   - (f) completion rules in prompts
+   - (f) completion rules **(amended by revision 2: a hidden `$.session.append` row, ADR-007 A1)**
    - (g) I-layer tests that run every rotation test in both modes
    - (h) live E runs on the Team account (rotation, two rotations, AC-07 with a permission dialog, compaction)
 
-   Rough size: M–L, about 6–8 engineer-days.
+   Rough size: M–L, about 6–8 engineer-days. Planned as E16, ST-16.1 … ST-16.8, ≈ 10 days at the story midpoints (04).
 
 ## 6. Acceptance (for the v0.3 epic, if built)
 
