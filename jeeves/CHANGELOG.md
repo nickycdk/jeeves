@@ -1,8 +1,10 @@
 # Changelog
 
-## Unreleased (0.3.1)
+## 0.3.1 (release candidate; dated when tagged)
 
-- Auto-start now watches models with a context window of **200K tokens or more** (ST-17.1, ADR-009 A4); 0.3.0 watched only windows above 200K. On 200K the threshold is 50% (~100K tokens) and the grace period ends at 60%. The status reason for a smaller window is `window below 200K at start` (was `200K window at start`). A model switch ends an auto task only when the new window is below 200K; a switch from 1M to 200K keeps the task and its threshold. Upgraders are unchanged: auto-start stays off after an upgrade from 0.2 until `/jeeves auto on`. Not yet checked live on a real 200K window (ST-17.3).
+Release notes: `docs/release-notes/v0.3.1.md`.
+
+- Auto-start now watches models with a context window of **200K tokens or more** (ST-17.1, ADR-009 A4); 0.3.0 watched only windows above 200K. On 200K the threshold is 50% (~100K tokens) and the grace period ends at 60%. The status reason for a smaller window is `window below 200K at start` (was `200K window at start`). A model switch ends an auto task only when the new window is below 200K; a switch from 1M to 200K keeps the task and its threshold. Upgraders are unchanged: auto-start stays off after an upgrade from 0.2 until `/jeeves auto on`. Checked live on a real 200K window (ST-17.3): four rotations with nothing typed after the task, in turn mode on a Team account.
 - Turn mode: while Jeeves waits for a handover, a turn that a `/loop`, a background notification or another plugin opened is no longer read as the handover attempt (it used up a retry; ST-15.4 review finding 3, ADR-003 A2 note).
 - Turn mode: when Claude Code refuses a prompt Jeeves sends, this session's task no longer stays mid-rotation with its lock held until the process exits: an auto task ends, an explicit one gives up its lock so `/jeeves recover` can continue it elsewhere (ST-15.4 review finding 4, ADR-002 A3 note).
 - Test kit: a `distinct-task` fixture whose modules cannot be solved by one script, and the AC-41 driver stops a scripted run as void by itself (ST-17.2).

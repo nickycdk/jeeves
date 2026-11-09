@@ -12,7 +12,7 @@ src/core/              pure TypeScript: the state machine, handover template/par
 
 - **core** has no `$`, no I/O and no clock (`npm run lint` enforces it). Everything here is unit-tested with `node:test`.
 - **adapter** implements the ports (`ports.ts`: files, processes, prompts, `/clear`, status, toasts) with `$` (`engine-mod.ts`) and runs one cycle per input: read `state.json` → `reduce` → write `state.json` → run the effects (`task.ts` `transition`). All cycles go through one serial queue per process, so two hooks never act on the same old state.
-- **hooks** only route: `session.start` (probe, command registration, startup recovery notice), `command.run` (`/jeeves`), `session.measure` and `tool.call` (context readings, evidence ledger), `classic.Stop` (handover request and capture), `turn.complete` (`/clear` after a verified handover), `classic.SessionStart` (inject the task into the fresh conversation), `prompt.submit` (capture the task prompt, hold messages during a handover), `prompt.compose` (the completion block), `session.compact`, `classic.StopFailure`, `session.end`.
+- **hooks** only route: `session.start` (probe, command registration, auto-start eligibility and notices, cleanup, startup recovery notice), `prompt.submit` (the first prompt, held prompts, the turn's opener), `turn.start`/`turn.complete` (turn mode's boundary), `command.run` (`/jeeves`), `session.measure` and `tool.call` (context readings, evidence ledger), `classic.Stop` (handover request and capture), `turn.complete` (`/clear` after a verified handover), `classic.SessionStart` (inject the task into the fresh conversation), `prompt.submit` (capture the task prompt, hold messages during a handover), `prompt.compose` (the completion block), `session.compact`, `classic.StopFailure`, `session.end`.
 
 ## The state machine
 
@@ -27,6 +27,23 @@ src/core/              pure TypeScript: the state machine, handover template/par
 3. **Check and save.** The next Stop carries the handover. `parse.ts` reads it and `validate.ts` checks ids, size, secrets, files, branch and HEAD (against git, read-only) and test claims (against the evidence ledger). An invalid one gets up to 2 retries with the exact errors. A valid one is written once as `history/handover-NNN.md` and verified by SHA-256 before anything else happens.
 4. **Clear.** When that turn ends, the saved handover is read back and hashed again; only then does Jeeves run `/clear`, once.
 5. **Continue.** The fresh conversation's `SessionStart` gets the original task, its Definition of Done and the handover as context; then Jeeves submits a continuation prompt built from the handover (`src/core/continuation.ts`). The first low reading rearms the threshold.
+
+## Auto-start (0.3)
+
+On a new install a session can be watched without `/jeeves on` (ADR-009 A3, A4). At `session.start`, `src/adapter/eligible.ts` decides once per session: interactive, full mode, inside a git work tree, a window of 200K tokens or more, a fresh conversation, and auto-start resolved on (`src/core/autostart.ts`: session, project, the `/config` row, `auto.json`, then the install default; an upgrade from 0.2 stays off). The decision and its reasons live in the plugin store, not the state folder, so nothing is written before the first typed prompt; that prompt becomes an **auto** task, word for word. Auto tasks differ in the machine (`src/core/machine.ts`): the near-threshold end at the first reading, the grace period (3 main turns, or until threshold + 10), the end on a model switch below 200K, `/clear` ends them, and `src/core/cleanup.ts` removes ended ones that never handed over after 7 days.
+
+## Turn mode (0.3, Team accounts)
+
+Some accounts get a built-in plugin that runs first and skips Jeeves's `classic.Stop`, `session.compact` and `prompt.compose` hooks. The first main turn that ends without Jeeves's Stop switches the process to turn mode (ADR-002 A3; `probe.boundary: 'turn'`, status `mode: full (turn)`). Then:
+
+- `turn.complete` is the boundary; Jeeves keeps its own record of running background tasks (`src/core/background.ts`, ADR-004 A2).
+- The handover is asked for with a submitted prompt and read from the next answer that Jeeves's own prompt opened (ADR-003 A2). A refusal gets the retry, and an API error pauses.
+- After Jeeves's `/clear` no `SessionStart` arrives, so the continuation prompt carries the task and the handover.
+- A compaction is recognised from a drop in `session.measure` (`src/core/compaction.ts`, ADR-006 A1).
+- The completion rules go in as a hidden row (ADR-007 A1).
+- A refused submit makes the process `unsupported`: an auto task ends, and an explicit task gives up its lock.
+
+`npm run test:mod:turn` runs the whole mod suite this way.
 
 Recovery (`/jeeves recover`, `src/adapter/recover.ts`, `src/core/recovery.ts`) uses the same continuation by the "restore path": the context goes into the prompt itself.
 
