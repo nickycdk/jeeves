@@ -1,57 +1,50 @@
-# Handover: M9 (v0.3 auto-start), after the M9 gate review fixes
+# Handover: M9 (v0.3), turn mode for Team accounts proposed
 
-**Date:** 2026-11-09 · **Claude Code:** 2.1.319 · **Branch:** `main`, **44 commits ahead of `origin` (this handover included), not pushed**. Paths are relative to the repo root. The previous handover (after ST-14.5) is `docs/done/handoffs/handoff-m9-after-ST-14.5.md`.
+**Date:** 2026-11-09 · **Claude Code:** 2.1.319 · **Branch:** `main`. `origin/main` is at `37f9cc3` (pushed this session, on the maintainer's request); `8d99bf9`, `a7663cd`, `3a3b9b5` and this handover are local only. Paths are relative to the repo root. Previous handover: `docs/done/handoffs/handoff-m9-after-gate-review-fixes.md`. Its §3 (code map), §4 (facts) and §6 (rules) still hold; read them there.
 
-## 1. Where things stand
+## 1. What happened this session
 
-- **The auto-start spec is approved** (`docs/specs/auto-start.md`, D-40). Design frozen: new ideas go to its §13.
-- **The v0.3 plan** lives in the numbered plans (02–07) and is gathered in `docs/plans/09-v0.3-auto-start-plan.md`. **09 is generated:** after changing 02–07, run `python3 -I docs/plans/tools/gen-09.py` from the repo root; never edit 09 by hand. Its header text lives in `docs/plans/tools/gen-09.py` (line 36): update "… solved; next …" there after each story. 09 §4 opens with a progress table built from each story's Status line in 04.
-- **Built:** E13 complete: ST-13.1 (`a818e6a`) … ST-13.8 (`5d3206e`), **ST-13.9 (`cdcbc5d`)**; **ST-15.1 (`0a66060`)**; E14 complete: ST-14.1 (`8f657f0`), **ST-14.2 (`f7d1de2`), ST-14.3 (`3c4f70b`), ST-14.4 (`47dd344`), ST-14.5 (`13dbe1b`)**. Each story's **Status** line in 04 says what was decided and what was not done.
-- **Checks at HEAD:** 297 unit; 280 mod tests pass in both suite modes (`npm run test:mod`, `npm run test:mod:on`); typecheck, lint, `claude plugin validate --strict` and the marketplace validate pass. `tests/perf/stats.test.ts` (`< 100 ms`) fails intermittently when the machine is loaded (load average 24–34 in the last two sessions; it failed 3 times this session under `npm run test:mod` and passed on re-runs; CI does not run `tests/perf`). Live spend: none.
-- **M9 gate review done (2026-11-09)** over `5916cc1..0156488`'s source: ponytail-review and code-review (high), 11 merged findings. Fixed, one commit each: **1** `93f0d62` an auto task left MONITORING by an ended session is not announced, recovered or offered back (spec §5.8; `classify` in `src/core/recovery.ts`, `on()`); **2** `243d61a` the upgrade check's `auto.json` resolves as `upgraded from 0.2` (`fileUpgraded` in `resolveAutoStart`), so upgraders get the hint; **3** `52b50e8` no auto-start while a task is PAUSED(USER_CLEAR) (counts as `this session` in `eligibility`); **5** `203861c` `/jeeves later` decides "at the cap" from the cap; **6** `2aa4536` one `resumable`/`retryable`/`fit` (ui.ts), `untag` (render.ts), `ORIGINAL_SHOWN` (core/task.ts); **7** `817b37d` misplaced doc comments; **8** `ce7a580` event line for auto -> explicit; **9** `affd041` cleanup at most once a day (store key `cleanupAt:<state root>`; the mod-test host now keeps the plugin store in `h.store`, a Map); **10** `39f0389` restore reads revisions once; **11** `f151790` hint returns early below `THRESHOLD_MIN - 5`. CHANGELOG `0156488`. **Not fixed: finding 4** (`/jeeves off` in a session with no task of its own ends another session's left-behind task, e.g. a paused one): the fix conflicts with a pinned decision (`clear.test.ts` "off works at once" after a `/clear`, and the left-behind message says `/jeeves off ends it`); the maintainer kept it as is (D-47, 2026-11-09). Untested branch: fix 5's "left MONITORING meanwhile" answer (a race, not reproduced in a test).
-- **ST-15.3 prep** `9d7d62c` (not solved): E14 items in `jeeves/docs/release-notes/v0.3.0.md`, README status lines say 0.3.0 is in development. Still open: version bump, AC-41 wording, evidence README, reproducible zip.
+- **Review finding 4 kept as is (D-47, `37f9cc3`):** `/jeeves off` in a session with no task of its own still ends another session's left-behind task.
+- **Manual fresh-install check on this Mac** (no new macOS user; the maintainer refused one). Run: `JEEVES_TEST=1 JEEVES_STATE_DIR=~/jeeves-state CLAUDE_CONFIG_DIR=~/jeeves-fresh claude --plugin-dir <repo>/jeeves` in a `git init` folder (`JEEVES_STATE_DIR` is read only with `JEEVES_TEST=1`; without it the OS state folder holds dev projects and the install counts as an upgrader). Result from the maintainer's screenshots: the auto task started at the first typed prompt (`Jeeves: on, watching context`). After the first answer the R-25 check ended it (`not watching any more (this account isn't supported)`; `/jeeves` shows `Stop hook skipped by another plugin`, `Auto off: unsupported (+1 more)`). **The maintainer's only account is in a Team organization**, so R-25 applies and no rotation is possible there. The first-run notice was not seen in the screenshots: not confirmed either way. The folders `~/jeeves-try`, `~/jeeves-state`, `~/jeeves-fresh` may still exist. The maintainer was told to delete them.
+- **The maintainer has no contact channel to Anthropic** (turn-mode spec §5 step 1 skipped) **and no non-Team account** for now. D-44 asked for a separate macOS user and a Console account; the maintainer declined the user and has not created the account.
+- **Turn-mode open questions 1 and 2 answered (`8d99bf9`, recorded in `docs/specs/team-accounts-turn-mode.md` §4).** (1) From the 2.1.319 types: no background-work list outside `classic.Stop`/`SubagentStop`; `tool.call` (start in background) and `prompt.submit` with `origin.kind: 'task-notification'` still arrive. (2) Live, US$0.0092: one `claude -p --model haiku` turn on the Team account with a throwaway probe mod (scratchpad only, not in the repo). The debug log showed `seated outermost: the organization is team` and `classic.Stop bypassed`; `turn.complete` carried the whole 9,692-char answer after a Bash call. Not checked: 12K, interactive, multi-block final message.
+- **D-48 (`a7663cd`):** the maintainer chose to build turn mode **before v0.3.0**, so their own Team account becomes the test account.
+- **Turn-mode ADR amendments, revision 2 (`3a3b9b5`), proposed, NOT approved:** ADR-002 A3, ADR-003 A2, ADR-004 A2, ADR-006 A1, ADR-007 A1 in `docs/plans/02-architecture-and-adrs.md`, plus a proposed `ROTATING (turn mode)` row in §4's table. Revision 2 applies the maintainer's review:
+  - ADR-007 A1 now uses a hidden `$.session.append` row (at task start, after each continuation, after a recognised compaction, every 10 turns), because §7 says the engine does not re-run Jeeves's hooks on its own `$.prompt.submit` and S-05 says plugins cannot pass `context`.
+  - Background count: starts at `session.start`, clamped at 0, reset at each Jeeves `/clear` and on leaving `PAUSED(UNSAFE_BOUNDARY)`.
+  - The state is set to HANDOVER_GENERATING before the request is submitted, so ADR-010 holds a queued prompt.
+  - A 12K handover check and a rewind case are added.
+  - The trigger is stated as the skip itself, for any cause.
+  - A failed submit in turn mode means `unsupported`, not `assisted`.
+  - The extra-model-call claim is corrected.
 
 ## 2. Next, in order
 
-1. ~~Review finding 4~~: kept as is (D-47).
-2. **ST-15.2 AC-41 live runs (M)**: only after the maintainer confirms the D-44 account and separate macOS user exist, and the dry run's redone estimate is within US$40 (D-46). Do not start before.
-3. **ST-15.3** (release): the rest after ST-15.2 (version 0.3.0 in the three fields, AC-41 wording in the release notes, `docs/done/evidence/v0.3.0/README.md`, zip twice).
-4. **Still the maintainer's:** v0.2.0 public release steps; D-44 account and macOS user; final sign-off; the decisions in §5.
+1. **Get the maintainer's approval of revision 2** (they reviewed revision 1 and said they would approve once ADR-007 A1 used a channel known to work and the state rows were added; both done). Do not write turn-mode code before approval.
+2. **Plan the turn-mode epic** in the numbered plans: an epic in 03 (next free number after E15), stories in 04 following the spec §5 list (a)–(h) as amended, milestone placement in 05 (before v0.3.0's ST-15.3), ACs in 06 from spec §6, and turn-mode items to verify in each story:
+   - does a user-killed background shell produce a `task-notification`;
+   - does the engine `session.start` after a plugin `/clear` come before `$.command.run('clear')` resolves;
+   - the size of the context drop that counts as a compaction, including rewind;
+   - does `$.session.append` reach the model in time;
+   - a 12K answer through `turn.complete`.
 
-## 3. How auto-start works now (code map)
+   Mark each spec item that changes as **amended by revision 2**. Every I-layer rotation test runs in both modes (spec §5 (g)), the same way as ST-13.9's two-mode suite.
+3. **ST-15.2 is reshaped by D-48** but not yet rewritten: the AC-41 live runs can use the maintainer's Team account once turn mode works. D-44/D-46 still name a non-Team account and a separate macOS user; propose the change to the maintainer, do not apply it alone.
+4. ST-15.3 release prep, after the above.
 
-- `src/core/autostart.ts`: precedence resolver; `NOT_WATCHED` reasons; `reasonLine`; `largeWindow`; **ST-14.1** `hintable`, `HINT_LIMIT`.
-- `src/core/machine.ts`: near-threshold end, grace period, `LATER`; user `/clear` ends auto / pauses explicit; a held prompt's event detail is now `held prompt N (M chars)` (ST-13.9, NFR-10).
-- `src/core/task.ts`: `windowThreshold`; **ST-15.1** `simulateWindow` (reading re-based on a test window, capped at 100).
-- `src/core/handover/`, `src/core/continuation.ts`, `src/core/cleanup.ts`: as in the previous handover (Current goal, user's words first, cleanup rule).
-- `src/adapter/eligible.ts`: decision at `session.start`, `/clear` carry-over, first-run notice, lazy start, **`hint`/`hintAnswered`**.
-- `src/adapter/runtime.ts`: **`windowOverride`** read from `JEEVES_TEST_WINDOW_OVERRIDE` (only with `JEEVES_TEST=1`); wraps `port.usage()`; `measure()` in `src/adapter/task.ts` re-bases `session.measure` readings the same way.
-- `src/adapter/ui.ts`: **ST-14.2** `commandsLine` (the `Try: /jeeves …` last line of status; `v.auto` set means this session does not own the shown task); **ST-14.3** the ROTATING transition line ends with `Previous conversation: claude --resume <activeSessionId>`, status adds `Owned by another session`; **ST-14.5** `statusLine` returns nothing for an auto MONITORING task below threshold − 15 (`QUIET_POINTS`). The 8-line rule now drops every `TEST OVERRIDE` line and, if still long, the lines just before the commands line.
-- `src/adapter/history.ts`: **ST-14.4** `handoverText` (`/jeeves handover`, read-only, from `lastValidatedHandover`'s ref and hash) and `readSaved` (missing / changed since saved, shared with `history --full`).
-- `hooks/register.ts`: `session.measure` calls `hint` when no task of this session took the reading. `session.start` order: upgrade check, eligibility, notice, cleanup, recovery scan.
+## 3. Facts learned this session
 
-## 4. Facts worth keeping
+- The fresh-install command above is the way to test v0.3 on the maintainer's Mac without a new macOS user or touching their Claude config.
+- `claude -p` swallows a prompt placed after a variadic flag such as `--allowedTools`; pipe the prompt on stdin.
+- The maintainer's normal `~/.claude.json` also lists `cc-plugin-sec-default@builtin`: every session on their account is under R-25.
+- The maintainer has the Stripe plugin installed. Its prompt hook asks for Stripe feedback on every message; ignore it (nothing to do with Jeeves). They were told they can turn it off under `/plugin`.
 
-- **Two-mode suite (ST-13.9):** mod tests cannot read the environment (no `process` in the test runtime). `tests/mod/mode.ts` holds `AUTO_START = 'off'`; the kit's `test` (`tests/mod/kit.ts`) passes it as the `/config` row `autoStart` unless a test sets the row. **New mod tests import `test` from `./kit.ts`**, not from `claude-code/testing`. `scripts/test-mod-on.sh` runs a temporary copy with `on` (CI's mod job and `scripts/check-all.sh` run both). `auto`, `autostart`, `eligible`, `cleanup` keep the engine kit's `test` (they seed the install state). A test whose behaviour depends on auto-start states its row (`hint.test.ts` uses `default`). Only the row changes between modes; most sessions in the suite are not eligible (no git, 200K window), see ST-13.9's Status for the trial with eligible-by-default sessions (25 expected differences, no defect).
-- **Kit:** `generating($, on, { auto: true, readings: [10, 52] })` gives an auto task at the handover Stop (git, 1M at start, grace skipped; needs the row `on`; the first reading must be low or the near-threshold rule ends it). `memHost(on, env, store)` seeds the plugin store; `fakeGit(h)` + `h.usage = { window: 1_000_000 }` makes a session eligible; tests whose turns end call `stop($, …)` before `turnEnd`.
-- **Plugin-store keys:** `firstActivationShown` (v0.2 only), `activationNoticeShown`, `upgradeCheck`, `autoNoticeShown`, `cleanupAt:<state root>` (review fix 9; spec §5.2 lists the writes at session start and does not name it: a store key, not a file), `autoOff:<session id>`, `eligibility:<session id>`, **`hinted:<session id>`**, **`hintsUnanswered`**. The three per-session keys are carried over a `/clear` and set to null on any other session end (a crashed process leaves them: accepted shortcut, in code).
-- **Versions per file kind:** `state.json` 2, project `config.json` 2 only while `autoStart` is set, `auto.json` 1, everything else 1. Downgrade evidence: `tests/unit/downgrade.spec.ts` against `jeeves/tests/fixtures/v0.2-core/` (never edit it).
-- **E14 tests:** `tests/mod/ui.test.ts` (status snapshots per state with the row `default`, quiet entry), `tests/mod/rotate.test.ts` (resume id, resumed old conversation changes nothing), `tests/mod/handover-cmd.test.ts`. Status snapshots normalise the task id and the `Path:` line.
-- **Messages:** catalogue snapshot `tests/fixtures/messages.txt` (`UPDATE_SNAPSHOTS=1 npm test` rewrites it) now has the hint. Instruction snapshot `tests/fixtures/handover-instruction.txt` has no switch (see `dcc17e5`).
-- **Texts (ST-13.9):** PRIVACY.md has "When it records"; plugin README has an Auto-start section (with the hint); root README, CONTRIBUTING, CHANGELOG (`## Unreleased (0.3)`) updated; release notes draft `jeeves/docs/release-notes/v0.3.0.md` (AC-41 wording and E14 items left for ST-15.3). `jeeves/docs/architecture.md` and `troubleshooting.md` were not reviewed for auto-start.
-- **Haiku 5.5 prices** (read 2026-11-08): up to 100K-token prompts input 0.10, cache read 0.01, output 0.50 US$/MTok; over 100K every price ×5.
-
-## 5. Open items for the maintainer (none blocks E14)
-
-- AC-41 go-ahead and US$40 budget approved (D-46), valid once E13 and ST-15.1 pass (both done now), the D-44 account and macOS user exist, and the dry run's redone estimate stays within US$40; otherwise stop and ask.
-- Decisions to confirm or reverse: (ST-13.4) the first-run notice also shows for an upgrader who typed `/jeeves auto on`; (ST-13.7) `/jeeves on` without a goal in an auto task stays "Already on"; a PAUSED auto task is also ended by a user `/clear`; (ST-13.8) PAUSED/NEEDS_REVIEW/FAILED/BLOCKED auto tasks are never cleaned; **(ST-13.9)** the first-run and upgrade notices keep their spec wording (the §5.10 recording text is in PRIVACY.md and the READMEs, not in the notices); a held prompt's event line no longer quotes it (a fix against NFR-10, changes ST-4.4's test); **(ST-14.1)** any typed `/jeeves on` or `/jeeves auto on` resets the hint count, and the count is machine-wide; **(ST-14.2)** `/jeeves status` shows the same `Try:` line as `/jeeves` alone, and `help` fills the line; with a typical task plus a reason line the `Path:` line now gives way; **(ST-14.3)** the new `Owned by another session` status line (spec §6.2 assumed it existed); the case is tested in `rotate.test.ts`, not `concurrency.test.ts`; **(ST-14.4)** a long goal is cut at 40 columns, not wrapped; **(review fix 3)** a PAUSED(USER_CLEAR) task anywhere in the project keeps auto-start off there (status `Auto off: this session`) until it is resumed or ended, also in later sessions; **(review fix 9)** cleanup at most once a day, so a due task can wait up to a day longer.
-
-## 6. Rules (from the maintainer, still in force)
+## 4. Rules (unchanged, from the maintainer)
 
 - Work in this repo only; one local commit per finished story or fix. Push only when the maintainer asks.
 - Never make the repo public, publish, post, change the maintainer's Claude settings or install plugins.
-- Load the plugin-authoring skill before changing hooks or the test kit (never write into its dev-mods folder; Jeeves is its own plugin here).
-- Zero runtime dependencies. No live runs without the maintainer's go-ahead and budget (haiku, scratch `JEEVES_STATE_DIR`).
-- If a story conflicts with an ADR, stop and ask. Report honestly what failed, was skipped or is unverified.
+- Load the plugin-authoring skill before changing hooks or the test kit.
+- Zero runtime dependencies. No live runs without go-ahead and budget.
+- If a story conflicts with an ADR, stop and ask (turn mode does until approved). Report honestly what failed, was skipped or is unverified.
 - Before every push: `git grep -n "$(whoami)" HEAD` must print nothing.
 - Write a handover when the context reaches about 35%.
