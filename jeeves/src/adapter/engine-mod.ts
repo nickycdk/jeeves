@@ -44,6 +44,10 @@ export function enginePort($: EngineInterface): EnginePort {
       const c = (await $.session.usage()).context
       return { window: c.window, ...(c.percent !== undefined ? { percent: c.percent } : {}), ...(c.tokens !== undefined ? { tokens: c.tokens } : {}) }
     },
+    autoCompactTokens: () => $.session.usage({ breakdown: 'summary', columns: 80 }).then(u => {
+      const b = u.context.breakdown
+      return b?.isAutoCompactEnabled && b.autoCompactThreshold !== undefined ? b.autoCompactThreshold : null
+    }, () => null),
     rateLimitReset: () => $.session.usage().then(u => [...u.rateLimits].sort((a, b) => b.percentUsed - a.percentUsed).find(w => w.resetsAt)?.resetsAt ?? null, () => null),
     costUsd: () => $.session.usage().then(u => u.cost?.usd ?? null, () => null),
     runCommand: async name => { await $.command.run({ command: name, args: '' }) },

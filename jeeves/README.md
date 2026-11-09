@@ -78,6 +78,7 @@ All are `/jeeves <command>`. Only commands you type yourself change a task; anyt
 | `off` | End the task and release it. Nothing is deleted. |
 | `pause` / `resume` | No handover until `resume`. Kept across restarts. `resume` also continues after a `/clear` you typed, a rate limit or a disk error. |
 | `rotate` | Hand over now, at the next safe stop. |
+| `later` | Skip the next handover: the threshold moves up 10 points and the warning comes again 5 points before. Repeatable up to 90%, or 5 points below the point where Claude Code would compact, when that is lower. A handover already under way goes on (`/jeeves pause` stops it). |
 | `threshold <n>` | Hand over at n% context (20 to 90; default 50, or 40 above a 200K window). Warns 5 points before. |
 | `defaults` | This project's defaults for new tasks. `defaults threshold <n>`, `defaults check <cmd>` (add one; up to 20), `defaults clear`. Applied at the next `/jeeves on` in this project; running tasks are not changed. Kept in the state folder, never in your repository. |
 | `task` | Show the original prompt, every change since and the Definition of Done. |

@@ -1,10 +1,10 @@
 // /jeeves parsing and answers (ST-1.9, E2). Commands that change a task run only when the user typed them (FR-05).
-import { isThreshold, THRESHOLD_MAX, THRESHOLD_MIN } from '../core/machine.ts'
+import { capText, isThreshold, laterCap, THRESHOLD_MAX, THRESHOLD_MIN } from '../core/machine.ts'
 import { heldPrompt } from '../core/continuation.ts'
 import { suggestChecks } from '../core/suggest.ts'
 import { taskText } from '../core/task.ts'
 import { join } from '../core/paths.ts'
-import type { State } from '../core/types.ts'
+import { DEFAULT_CONFIG, ROTATION_STATES, type State } from '../core/types.ts'
 import type { Runtime } from './runtime.ts'
 import { addRevision, apply, claim, heldByOther, liveTasks, ownTask, projectTasks, readTask, nudgeIfWaiting, restoreHere, startTask, takeLock, type Task } from './task.ts'
 import { recover, restoredText } from './recover.ts'
@@ -40,7 +40,7 @@ export function pickTask<T extends { state: State }>(tasks: T[], sessionId: stri
  */
 export type Caller = { userTyped: boolean; idle?: boolean; endedHere: ReadonlySet<string>; autoRow?: AutoRow }
 
-const CHANGES = new Set(['purge', 'on', 'off', 'dod', 'check', 'threshold', 'pause', 'resume', 'continue', 'rotate', 'done', 'recover', 'retry'])
+const CHANGES = new Set(['purge', 'later', 'on', 'off', 'dod', 'check', 'threshold', 'pause', 'resume', 'continue', 'rotate', 'done', 'recover', 'retry'])
 
 export async function relay(rt: Runtime, args: string, caller: Caller): Promise<string> {
   const m = /^\s*(\S*)\s?([\s\S]*)$/.exec(args)!
@@ -96,6 +96,7 @@ export async function relay(rt: Runtime, args: string, caller: Caller): Promise<
     case 'resume': return resume(rt, tasks, me)
     case 'continue': return continueHere(rt, tasks, me, caller.endedHere)
     case 'rotate': return rotate(rt, tasks, me, caller.idle === true)
+    case 'later': return later(rt, tasks, me)
     case 'done': return confirmDone(rt, tasks, me, caller.endedHere)
     case 'retry': return retry(rt, tasks, me, caller.idle === true)
     case 'recover': return rest.trim() === '' || rest.trim() === '--relink' ? recover(rt, me, caller.endedHere, rest.trim() === '--relink') : MSG.recoverUsage
@@ -168,6 +169,22 @@ async function rotate(rt: Runtime, tasks: Task[], me: string, idle: boolean): Pr
   if (!requested) return MSG.notRotatable(r?.state.status ?? own.state.status)
   if (idle) await nudgeIfWaiting(rt)
   return MSG.rotateRequested
+}
+
+/**
+ * ST-13.5 (spec §5.5): skip the next handover. The cap is read at each `later` (a model switch moves the
+ * auto-compaction point); a rotation already under way is not stopped.
+ */
+async function later(rt: Runtime, tasks: Task[], me: string): Promise<string> {
+  const own = ownTask(tasks, me)
+  if (!own) return MSG.noTask
+  if (own.state.status !== 'MONITORING') return MSG.laterRefused(own.state.status, ROTATION_STATES.includes(own.state.status))
+  const u = await rt.port.usage().catch(() => null)
+  const cap = laterCap(u?.window ?? 0, await rt.port.autoCompactTokens())
+  const r = await apply(rt, own.dir, { type: 'LATER', cap })
+  const t = r?.state.thresholdPercent ?? own.state.thresholdPercent
+  if (t === own.state.thresholdPercent) return capText(t, u?.percent)
+  return MSG.postponed(t, t - DEFAULT_CONFIG.warnBeforePercent, t >= cap)
 }
 
 const retryable = (s: State) => s.status === 'NEEDS_REVIEW' && (s.reason === 'HANDOVER_INVALID' || s.reason === 'POSSIBLE_LOOP')

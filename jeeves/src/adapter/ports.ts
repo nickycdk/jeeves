@@ -35,6 +35,8 @@ export interface EnginePort extends FsPort {
   /** Turns in the main conversation so far (`$.session.turns()`). */
   turns(): Promise<number>
   usage(): Promise<Usage>
+  /** Tokens at which auto-compaction runs (a local estimate, no model call), or null when it is off or unknown. */
+  autoCompactTokens(): Promise<number | null>
   /** When the most used rate-limit window resets (ISO), or null when unknown. */
   rateLimitReset(): Promise<string | null>
   /** This conversation's cost so far in US$, or null when unknown. */

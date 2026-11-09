@@ -12,7 +12,7 @@ function fakeEngine(over: Partial<EnginePort> = {}) {
   const port: EnginePort = {
     ...nodePort(),
     version: async () => ({ version: '2.1.319' }), sessionId: async () => 'sess-a', cwd: async () => '/w',
-    usage: async () => ({ window: 1 }), costUsd: async () => null, rateLimitReset: async () => null, turns: async () => 0, runCommand: async n => { commands.push(n) }, after: (_ms, fn) => fn(), submitPrompt: async () => {}, submitPromptSoon: () => {}, firstActivation: async () => false,
+    usage: async () => ({ window: 1 }), costUsd: async () => null, rateLimitReset: async () => null, autoCompactTokens: async () => null, turns: async () => 0, runCommand: async n => { commands.push(n) }, after: (_ms, fn) => fn(), submitPrompt: async () => {}, submitPromptSoon: () => {}, firstActivation: async () => false,
     appendHiddenNote: async () => {}, runningAgents: async () => 0, status: () => {}, toast: t => { toasts.push(t) }, log: () => {}, note: () => {}, pluginVersion: async () => null, now: async () => Date.parse(AT),
     ...over,
   }

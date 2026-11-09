@@ -42,6 +42,7 @@ At the threshold you'll see `Jeeves: handover requested`, then `Jeeves: handover
 | `/jeeves threshold <n>` | Hand over at n% context (20 to 90) |
 | `/jeeves defaults` | This project's defaults for new tasks: `defaults threshold <n>`, `defaults check <cmd>`, `defaults clear` |
 | `/jeeves rotate` | Hand over now, at the next safe stop |
+| `/jeeves later` | Skip the next handover (threshold +10, up to a cap below auto-compaction) |
 | `/jeeves pause` / `resume` | Stop handovers for a while |
 | `/jeeves recover` | Continue a task a crashed or closed session left behind |
 | `/jeeves retry` | Try again after a handover failed its checks or a possible loop |

@@ -18,6 +18,8 @@ export type Input =
   /** `fromTool`: read at a main-loop tool result, so after a model call (D-25 counts only those as a session's start). */
   | { type: 'MEASURE'; percent?: number; tokens?: number; window: number; sessionId: string; fromTool?: boolean }
   | { type: 'ROTATE_CMD' }
+  /** `/jeeves later` (ST-13.5): move the threshold up by LATER_STEP, never past `cap` (laterCap, read at each command). */
+  | { type: 'LATER'; cap: number }
   /** `/jeeves retry` (ST-10.2, ST-10.3): ask again after NEEDS_REVIEW(HANDOVER_INVALID), or watch again after POSSIBLE_LOOP. */
   | { type: 'RETRY_CMD' }
   /** A compaction of the main conversation stood (ADR-006); `trigger` as the engine named it. */
@@ -107,6 +109,20 @@ export const TEST_LOOP_MARGIN = 0.5
 export const GRACE_TURNS = 3
 /** Spec §5.2: a new auto task whose first reading is this close to the threshold ends at once. */
 export const NEAR_MARGIN = 10
+/** `/jeeves later` (spec §5.5): each one moves the threshold up this much. */
+export const LATER_STEP = 10
+export const LATER_MAX = 90
+/**
+ * The highest threshold `/jeeves later` may set: 90%, or 5 points below the auto-compaction point when that is lower,
+ * so a postponed handover always comes before Claude Code compacts. `autoCompactTokens` null: auto-compaction is off.
+ */
+export function laterCap(window: number, autoCompactTokens: number | null): number {
+  if (autoCompactTokens === null || window <= 0) return LATER_MAX
+  return Math.min(LATER_MAX, Math.floor((autoCompactTokens / window) * 100) - 5)
+}
+/** The warning and the `/jeeves later` answer once the cap is reached (spec §5.5). */
+export const capText = (t: number, p: number | undefined) =>
+  `Jeeves hands over at ${t}% (now ${p === undefined ? '?' : Math.round(p)}%); can't postpone further. /jeeves off to keep this conversation.`
 /** The near-threshold message (spec §5.2). */
 export const nearText = (p: number) => `Jeeves: not watching this session, context already at ${Math.round(p)}%; /jeeves on to watch anyway`
 export const THRESHOLD_MIN = 20
@@ -260,7 +276,7 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
       if (p >= T && !state.armedFired && !inGrace) return request('THRESHOLD')
       if (p >= T - ctx.config.warnBeforePercent && p < T && state.warnedSessionId !== input.sessionId) {
         next = { ...next, warnedSessionId: input.sessionId }
-        effects.push({ type: 'TOAST', key: `-:warn:${input.sessionId}`, text: `Context at ${Math.round(p)}%. Jeeves will hand over at ${shown(T)}%.` })
+        effects.push({ type: 'TOAST', key: `-:warn:${input.sessionId}:${T}`, text: state.laterCapped && ctx.thresholdOverride === undefined ? capText(T, p) : `Context at ${Math.round(p)}%. Jeeves will hand over at ${shown(T)}%.` })
       }
       return done()
     }
@@ -299,6 +315,15 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
       effects.push({ type: 'RELEASE_LOCK', key: key('release') })
       return done()
 
+    case 'LATER': {
+      // Only while watching: a rotation under way is not stopped (`/jeeves pause` is for that). The adapter answers.
+      if (state.status !== 'MONITORING') return ignore('only while watching')
+      const to = Math.min(state.thresholdPercent + LATER_STEP, input.cap)
+      if (to <= state.thresholdPercent) return ignore('at the cap')
+      // The warning comes again 5 points before the new threshold.
+      return edit({ thresholdPercent: to, warnedSessionId: null, laterCapped: to >= input.cap }, `later-${to}`, `later: threshold ${state.thresholdPercent}% -> ${to}%`)
+    }
+
     case 'REVISED':
       if (state.status === 'DISABLED') return ignore('no active task')
       if (input.revision !== state.taskRevision + 1) return ignore(`revision ${input.revision} after ${state.taskRevision}`)
@@ -314,7 +339,7 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
     case 'SET_THRESHOLD':
       if (state.status === 'DISABLED') return ignore('no active task')
       if (!isThreshold(input.percent)) return ignore(`threshold ${input.percent} is outside ${THRESHOLD_MIN}..${THRESHOLD_MAX}`)
-      return edit({ thresholdPercent: input.percent }, `threshold-${input.percent}`, `threshold ${input.percent}%`)
+      return edit({ thresholdPercent: input.percent, ...(state.laterCapped ? { laterCapped: false } : {}) }, `threshold-${input.percent}`, `threshold ${input.percent}%`)
 
     case 'ROTATE_CMD':
     case 'COMPACTED':

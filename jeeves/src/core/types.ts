@@ -141,6 +141,8 @@ export type State = {
   pendingChanges?: { kind: 'dod' | 'check'; text: string }[]
   /** Auto tasks (ST-13.4, spec §5.2): main turns ended so far, counted to GRACE_TURNS; no rotation before that. */
   graceTurns?: number
+  /** `/jeeves later` reached its cap (ST-13.5): the warning says no further postponing is possible. */
+  laterCapped?: boolean
   /** A completion block already got its one "run the missing checks" Stop block in this session (ST-5.2). */
   completionAsked?: boolean
   /** `/jeeves pause` during a handover: pause once the fresh conversation has its task (ST-2.5). */

@@ -40,6 +40,8 @@ export type MemHost = {
   git?: (args: string[]) => { exitCode: number; stdout: string }
   /** Q-9: a Stop hook beneath Jeeves (a user's settings hook, another plugin) that blocks when this returns text. */
   stopBlock?: () => string | undefined
+  /** Tokens at which auto-compaction runs, in `$.session.usage({ breakdown })`; absent: auto-compaction off. */
+  autoCompact?: number
   /** What `$.session.usage().context` answers. */
   usage: { window: number; percent?: number; tokens?: number }
 }
@@ -69,7 +71,7 @@ export function memHost(on: On, env: Record<string, string> = { HOME: '/home/t' 
   on('turn.complete', (_, e) => ({ text: e.answer }))
   on('session.end', (_, e) => ({ sessionId: e.sessionId }))
   on('session.version', () => ({ value: { version: h.version } }))
-  on('session.usage', () => ({ value: { startedAt: 0, context: { ...h.usage }, rateLimits: [...h.rateLimits], ...(h.costUsd !== undefined ? { cost: { usd: h.costUsd } } : {}) } }))
+  on('session.usage', (_, e) => ({ value: { startedAt: 0, context: { ...h.usage, ...(e.breakdown ? { breakdown: { isAutoCompactEnabled: h.autoCompact !== undefined, ...(h.autoCompact !== undefined ? { autoCompactThreshold: h.autoCompact } : {}) } as never } : {}) }, rateLimits: [...h.rateLimits], ...(h.costUsd !== undefined ? { cost: { usd: h.costUsd } } : {}) } }))
   on('session.cwd', () => ({ value: h.cwd }))
   on('session.id', () => ({ value: h.sessionId }))
   on('session.turns', () => ({ value: h.turns }))

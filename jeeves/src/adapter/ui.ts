@@ -123,7 +123,7 @@ export const offStatus = (p: Probe) =>
   p.missing[0] === 'classic.Stop hook' ? 'off: Stop hook skipped' : p.mode === 'unsupported' ? `off: needs ${p.missing[0]}` : 'assisted mode'
 
 /** The `/jeeves` command menu's argument hint; a unit test keeps it in step with HELP. */
-export const ARGUMENT_HINT = 'on [goal] | off | pause | resume | rotate | continue | recover | done | retry | threshold <n> | defaults ... | auto [on|off] | task | dod <text> | check <cmd> | status [--diagnose] | history [--full] | stats | purge | help'
+export const ARGUMENT_HINT = 'on [goal] | off | pause | resume | rotate | later | continue | recover | done | retry | threshold <n> | defaults ... | auto [on|off] | task | dod <text> | check <cmd> | status [--diagnose] | history [--full] | stats | purge | help'
 
 export const HELP = [
   'Jeeves commands (/jeeves ...):',
@@ -132,6 +132,7 @@ export const HELP = [
   'pause         no handover until resume',
   'resume        allow the handover again',
   'rotate        hand over now',
+  'later         postpone the next handover',
   'continue      after /clear (assisted)',
   'recover       continue a stopped task',
   'done          confirm the task is done',
@@ -188,6 +189,9 @@ export const MSG = {
   recoverPaused: 'The task is paused, not interrupted: /jeeves resume continues it.',
   nothingToRecover: 'Nothing to recover: no task here was interrupted. /jeeves status shows the task.',
   restored: (taskId: string) => `Continuing task ${taskId} here: Jeeves sends the task and its latest handover as the next prompt.`,
+  // ST-13.5 (spec §5.5)
+  postponed: (t: number, warn: number, atCap: boolean) => `Postponed: Jeeves now hands over at ${t}% and warns at ${warn}%.${atCap ? " That is the cap: it can't be postponed again." : ' /jeeves later again postpones further.'}`,
+  laterRefused: (status: string, rotating: boolean) => `Nothing to postpone: the task is ${status}.${rotating ? ' A handover under way goes on; /jeeves pause stops handovers until /jeeves resume.' : ''}`,
   rotateRequested: 'Handover requested: Jeeves asks Claude for it at the next safe stop, then starts a fresh conversation.',
   notRotatable: (status: string) => `No handover now: the task is ${status}. /jeeves status shows why.`,
   suggestedChecks: (cmds: string[]) => `Suggested checks: ${cmds.map(c => `/jeeves check ${c}`).join(', ')}`,
