@@ -542,15 +542,16 @@ async function latestHandover(rt: Runtime, dir: string, s: State): Promise<Lates
 }
 
 /** What the fresh conversation is given (ST-4.3). Its session number counts this new one (`sessionSequence` moves on at rearm). */
-async function contextFor(rt: Runtime, dir: string, s: State, h: Latest): Promise<string> {
-  const { view } = await readTask(rt, dir, s)
+async function contextFor(rt: Runtime, dir: string, s: State, h: Latest, read?: TaskView): Promise<string> {
+  const view = read ?? (await readTask(rt, dir, s)).view
   return freshContext({ taskId: s.taskId, session: s.sessionSequence + 1, view, handover: h.file && h.text ? { file: h.file, text: h.text } : null })
 }
 
 /** The continuation prompt (ST-4.3, D-23): generated from the validated handover, plus the prompts held during rotation. */
-async function continuationFor(rt: Runtime, dir: string, s: State, h: Latest, held: readonly string[], context?: string, gap?: boolean): Promise<string> {
+/** `read`: the task already read by the caller (the restore path reads it once for both texts). */
+async function continuationFor(rt: Runtime, dir: string, s: State, h: Latest, held: readonly string[], context?: string, gap?: boolean, read?: TaskView): Promise<string> {
   const parsed = h.text ? parseHandover(h.text) : null
-  const { view } = await readTask(rt, dir, s)
+  const view = read ?? (await readTask(rt, dir, s)).view
   return continuationPrompt({
     taskId: s.taskId, session: s.sessionSequence + 1, view, handoverFile: h.file, narrative: parsed?.ok ? parsed.value : null,
     changedFiles: h.text ? changedFiles(h.text) : null, heldPrompts: held, ...(context ? { context } : {}), ...(gap ? { gap } : {}),
@@ -656,7 +657,8 @@ export async function restoreHere(rt: Runtime, dir: string, input: Input, opts: 
   const ready = await apply(rt, dir, { type: 'CONTEXT_READY' })
   const submit = ready?.forHook.find(f => f.type === 'SUBMIT_CONTINUATION')
   if (!ready || submit?.type !== 'SUBMIT_CONTINUATION') return null
-  const text = await continuationFor(rt, dir, ready.state, h, submit.heldPrompts, await contextFor(rt, dir, ready.state, h), opts.gap)
+  const { view } = await readTask(rt, dir, ready.state)
+  const text = await continuationFor(rt, dir, ready.state, h, submit.heldPrompts, await contextFor(rt, dir, ready.state, h, view), opts.gap, view)
   // A command.run hook may not submit (D-19): it goes out once the hook has returned.
   rt.port.submitPromptSoon(text, err => {
     rt.port.log(`jeeves: continuation rejected: ${why(err)}`)
