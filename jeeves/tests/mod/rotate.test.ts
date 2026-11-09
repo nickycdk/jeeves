@@ -96,6 +96,8 @@ test('D-23: a request during an open turn is not nudged (that turn\'s Stop asks)
   await relay($, 'on')
   await submit($, PROMPT)
   await turnStart($)
+  // Live the turn's Stop comes before a late reading; without it the turn end would read as the Stop skip (turn mode).
+  await stop($, 'done')
   await measure($, 52)
   await h.clock.settle()
   expect(prompts.some(p => p.text === NUDGE_PROMPT)).toBe(false)

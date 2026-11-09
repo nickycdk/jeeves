@@ -15,7 +15,7 @@ import { DEFAULT_CONFIG, INERT, SCHEMA_VERSION, type ReasonCode, type State, typ
 import { runEffects, type EffectResult } from './effects.ts'
 import { shownThreshold, statusLine, transitionLine } from './ui.ts'
 import { gitFacts } from './git.ts'
-import type { CrashPoint, Runtime } from './runtime.ts'
+import { bgCount, bgReset, type CrashPoint, type Runtime } from './runtime.ts'
 import { sha256Hex, StorageError } from './storage.ts'
 
 export type Task = { state: State; dir: string }
@@ -73,6 +73,8 @@ async function transition(rt: Runtime, dir: string, prev: State, input: Input): 
       await blockOnDisk(rt, dir, state, out.state.status, err)
       throw err
     }
+    // ADR-004 A2: leaving PAUSED(UNSAFE_BOUNDARY) forgets turn mode's background record, so a lost notification blocks once.
+    if (state.status === 'PAUSED' && state.reason === 'UNSAFE_BOUNDARY' && out.state.status !== 'PAUSED') bgReset()
     state = out.state
     const r = await runEffects(out.effects, { port: rt.port, storage: rt.storage, taskDir: dir, state })
     for (const f of r.failed) rt.port.log(`jeeves: effect ${f.effect.type} failed: ${f.error}`)
@@ -410,6 +412,17 @@ export async function onStop(rt: Runtime, info: StopInfo): Promise<string | null
 }
 
 /**
+ * ADR-004 A2: turn mode's boundary, a main-loop `turn.complete` answered and not aborted. A waiting rotation is judged
+ * as at a Stop, with Jeeves's own background record for `background_tasks` (no crons: `classic.Stop` is skipped).
+ * Returns the handover instruction when the boundary is safe (ST-16.3 submits it), else null.
+ */
+export async function turnBoundary(rt: Runtime, answer: string): Promise<string | null> {
+  const own = ownTask((await projectTasks(rt)).tasks, await rt.port.sessionId())
+  if (own?.state.status !== 'ROTATION_REQUESTED' && own?.state.status !== 'QUIESCING') return null
+  return onStop(rt, { backgroundTasks: bgCount(), crons: [], message: answer })
+}
+
+/**
  * The Stop that carries Claude's JEEVES-COMPLETE block (ST-5.2, ADR-007). The reducer checks it against the ledger
  * inside the serial queue (a check's entry lands before the Stop is applied). Missing evidence: one block listing
  * the checks to run; still missing: NEEDS_REVIEW(DOD_UNMET); passing: COMPLETED with a summary and the lock released.
@@ -601,6 +614,7 @@ export async function nudgeIfWaiting(rt: Runtime): Promise<void> {
  * resolves it after the fresh SessionStart. Whichever path finds RESTORING continues: here, or the fresh session's timer.
  */
 async function runClear(rt: Runtime, dir: string): Promise<void> {
+  bgReset()
   try {
     await rt.port.runCommand('clear')
   } catch (err) {

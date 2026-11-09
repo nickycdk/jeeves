@@ -7,8 +7,8 @@ import { cleanupAuto } from '../src/adapter/purge.ts'
 import { upgradeCheck } from '../src/adapter/auto.ts'
 import { autoNotice, carryOver, decideAtStart, forget, hint, startAuto } from '../src/adapter/eligible.ts'
 import { isAutoRow } from '../src/core/autostart.ts'
-import { markStopSkipped, runtime, type Options } from '../src/adapter/runtime.ts'
-import { captureFirstPrompt, compacted, heartbeat, managedNow, holdPrompt, measure, nudgeIfWaiting, onFreshSession, onStop, onTurnComplete, taskSection, onUserClear, recordTool, releaseOnExit, stopFailure, why } from '../src/adapter/task.ts'
+import { bgNotified, bgStarted, markStopSkipped, runtime, type Options } from '../src/adapter/runtime.ts'
+import { captureFirstPrompt, compacted, heartbeat, managedNow, holdPrompt, measure, nudgeIfWaiting, onFreshSession, onStop, onTurnComplete, taskSection, turnBoundary, onUserClear, recordTool, releaseOnExit, stopFailure, why } from '../src/adapter/task.ts'
 import { HEARTBEAT_MS } from '../src/core/lock.ts'
 import { ARGUMENT_HINT, HELD_TEXT, MSG, offStatus } from '../src/adapter/ui.ts'
 
@@ -111,6 +111,8 @@ export const register: Register = (on, options) => {
   // ST-2.1: the person's first prompt after `/jeeves on` (no goal) is the task, byte for byte. Slash commands are not.
   // ST-4.4: during a handover a typed prompt is held for the fresh conversation; slash commands still run.
   on('prompt.submit', async ($, e, next) => {
+    // ADR-004 A2: a background task's notification ends it in turn mode's record (kept in every mode, it costs nothing).
+    if (e.origin.kind === 'task-notification') bgNotified(e.text)
     if (e.origin.kind !== 'composer' || e.command || e.isMeta) return next(e)
     let held = false
     await quietly($, opts, 'hold', async rt => { held = await holdPrompt(rt, e.text, endedHere) })
@@ -127,6 +129,8 @@ export const register: Register = (on, options) => {
   // ST-3.1: record after the tool answered; the write runs after the hook returns, so it never delays, changes or blocks the call.
   on('tool.call', async ($, e, next) => {
     const r = await next(e)
+    const bg = (r.result as { backgroundTaskId?: unknown } | undefined)?.backgroundTaskId
+    if (e.agentId === undefined && typeof bg === 'string') bgStarted(bg)
     void quietly($, opts, 'ledger', rt => recordTool(rt, outcome(e, r)))
     return r
   }).catch(($, e, next) => next(e))
@@ -146,6 +150,10 @@ export const register: Register = (on, options) => {
           rt.port.log('jeeves: Stop hook skipped, turn mode')
         })
       }
+      // ADR-004 A2: in turn mode this is the boundary; a rotation requested before the skip was seen is taken over here.
+      if (e.reason === 'answer' && !e.isAborted) await quietly($, opts, 'turn boundary', async rt => {
+        if (rt.probe.boundary === 'turn' && rt.probe.mode !== 'unsupported') await turnBoundary(rt, e.answer)
+      })
       await quietly($, opts, 'turn end', rt => onTurnComplete(rt, e.isAborted ? 'aborted' : e.reason))
     }
     return next(e)

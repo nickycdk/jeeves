@@ -1,6 +1,7 @@
 // Per-process context, rebuilt after every reload (no state lives only in memory; this is all derived).
 import type { EngineInterface } from 'claude-code'
 import { submitRefused, turnMode, type Probe } from '../core/probe.ts'
+import { notified, started, type Background } from '../core/background.ts'
 import { enginePort } from './engine-mod.ts'
 import type { EnginePort } from './ports.ts'
 import type { AutoRow } from '../core/autostart.ts'
@@ -54,6 +55,15 @@ let refused = false
 export function markStopSkipped(rt: Runtime): void { stopSkipped = true; rt.probe = turnMode(rt.probe) }
 
 const lens = (p: Probe) => (refused ? submitRefused(p) : p)
+
+// ADR-004 A2: background work this process saw start, counted from register() on in every process (before turn mode
+// is known), so work from the turn that reveals the skip is counted. A reload starts over (at most one pause).
+let background: Background = []
+export const bgStarted = (id: string) => { background = started(background, id) }
+export const bgNotified = (text: string) => { background = notified(background, text) }
+/** At each Jeeves /clear and when a task leaves PAUSED(UNSAFE_BOUNDARY): one lost notification costs at most one pause. */
+export const bgReset = () => { background = [] }
+export const bgCount = () => background.length
 
 /** One storage (one write queue) per process. Reset by `session.start` so a reload re-probes. */
 export function runtime($: EngineInterface, options: Options, refresh = false): Promise<Runtime> {
