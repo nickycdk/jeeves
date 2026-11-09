@@ -130,7 +130,7 @@ test('near-threshold: a first reading within 10 points ends the auto task with i
   expect(taskDirs(h)).toEqual([dir])
 })
 
-test('grace: no rotation in turns 1-3 even past the threshold; the handover is requested in turn 4 (AC 5)', async ($, on) => {
+test('grace: no rotation in turns 1-3 past the threshold (below +10); the handover is requested in turn 4 (AC 5)', async ($, on) => {
   const h = eligibleHost(on, { autoNoticeShown: true })
   bottom(on)
   await start($)
@@ -138,11 +138,25 @@ test('grace: no rotation in turns 1-3 even past the threshold; the handover is r
   const [dir] = taskDirs(h)
   await mainTurn($, h, 't1', 20)
   await mainTurn($, h, 't2', 45)
-  await mainTurn($, h, 't3', 50)
+  await mainTurn($, h, 't3', 49) // below threshold + 10: grace still holds
   expect(stateOf(h, dir!).status).toBe('MONITORING')
   expect(stateOf(h, dir!).graceTurns).toBe(3)
   await turnStart($, 't4')
   await measure($, h, 52)
+  expect(stateOf(h, dir!).status).toBe('ROTATION_REQUESTED')
+})
+
+test('grace ends at threshold + 10: a one-turn task is handed over within its first turn (AC-41 1M run)', async ($, on) => {
+  const h = eligibleHost(on, { autoNoticeShown: true })
+  bottom(on)
+  await start($)
+  await submit($, PROMPT)
+  const [dir] = taskDirs(h)
+  await turnStart($, 't1')
+  await measure($, h, 20)
+  await measure($, h, 49)
+  expect(stateOf(h, dir!).status).toBe('MONITORING')
+  await measure($, h, 50)
   expect(stateOf(h, dir!).status).toBe('ROTATION_REQUESTED')
 })
 

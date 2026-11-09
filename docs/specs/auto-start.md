@@ -59,7 +59,7 @@ When several reasons apply, the line ends with `(+N more)`, so a fix that remove
 - Session start creates no task. The cleanup in §5.9 is the only write to task state at session start; the upgrade check (`auto.json`) and the notice key (`autoNoticeShown`) are the other writes there.
 - The task is created at the **first prompt typed at the terminal**: origin kind `composer`, not a slash command. Any other origin kind (`bridge`, `sdk`, `task-notification`, a plugin's `$.prompt.submit`, any other) never starts an auto task; one test per kind.
 - **Near-threshold rule.** If the first reading of a new auto task is within 10 points of the threshold (a large CLAUDE.md, a pasted log), the task ends at once (DISABLED, files kept) and Jeeves says so in one line: `Jeeves: not watching this session, context already at 34%; /jeeves on to watch anyway`.
-- **Grace period.** An auto task never rotates in its first 3 main turns.
+- **Grace period.** An auto task does not rotate in its first 3 main turns, unless the context passes the threshold by 10 points (the near-threshold margin): 50% on a 1M window. *Amended 2026-11-09 (maintainer, after AC-41): with nothing typed, a whole task is one turn, and a grace period counted only in turns let it run into the engine's own compaction.*
 
 ### 5.3 What "the task" is, and who said it
 
@@ -216,7 +216,7 @@ The 8-line limit holds. The commands line sits with the reason line and the warn
 |---|---|---|
 | AC-35 | Fresh install, eligible session: the notice shows at `session.start`; the first `composer` prompt **in that same session** creates the auto task, word for word; nothing is written before it; every other origin kind never starts one (one test per kind) | U, I, E |
 | AC-36 | Not eligible under `-p`/SDK, assisted, unsupported, outside git, 200K window (read at `session.start`, no task file written), resumed conversation; eligibility is decided once at `session.start` (a later switch to 1M does not start watching; the reason reads "200K window at start"); status shows the first reason in the §5.1 order and `(+N more)` when several apply | I |
-| AC-37 | Near-threshold rule with its message, 3-turn grace period, and a model switch to a non-eligible window ending the auto task with its message | U, I |
+| AC-37 | Near-threshold rule with its message, 3-turn grace period (ending at threshold + 10), and a model switch to a non-eligible window ending the auto task with its message | U, I |
 | AC-38 | Opt-out levels and precedence (session, project, `/config` on/off, `auto.json`, default); `/jeeves auto on/off` writes only `auto.json` and says when the `/config` row overrides it; Claude settings never written; `/jeeves on` after `/jeeves off` gives an explicit task and auto stays off for the session | U, I |
 | AC-39 | `/jeeves later` moves the threshold by 10, warns again, never past the cap (90%, or 5 points below the auto-compaction point when lower, auto-compaction off counted as no limit below 90%), says "can't postpone further" at the cap, works in auto and explicit tasks, does not stop a running rotation | U, I |
 | AC-40 | User `/clear`: ends an auto task with its message; pauses an explicit task with its message; status shows auto/explicit | I |

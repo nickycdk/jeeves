@@ -107,7 +107,7 @@ export type Output = { state: State; effects: Effect[]; ignored?: string }
 const ACTIVE = (s: Status) => !INERT.includes(s)
 export const LOOP_MARGIN = 10
 export const TEST_LOOP_MARGIN = 0.5
-/** Spec §5.2: an auto task never rotates in its first 3 main turns. */
+/** Spec §5.2: an auto task does not rotate in its first 3 main turns unless the context passes the threshold by NEAR_MARGIN. */
 export const GRACE_TURNS = 3
 /** A user's /clear (spec §5.7). */
 export const USER_CLEAR_AUTO = 'Jeeves: task ended (new conversation); the next prompt starts a new one'
@@ -278,7 +278,8 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
         effects.push({ type: 'RELEASE_LOCK', key: key('release') }, { type: 'TOAST', key: `-:near:${input.sessionId}`, text: nearText(p) })
         return done()
       }
-      if (p >= T && !state.armedFired && !inGrace) return request('THRESHOLD')
+      // Grace (spec §5.2 as amended 2026-11-09) holds the handover back at most `margin` points: a one-turn task still rotates.
+      if (p >= T && !state.armedFired && (!inGrace || p >= T + margin)) return request('THRESHOLD')
       if (p >= T - ctx.config.warnBeforePercent && p < T && state.warnedSessionId !== input.sessionId) {
         next = { ...next, warnedSessionId: input.sessionId }
         effects.push({ type: 'TOAST', key: `-:warn:${input.sessionId}:${T}`, text: state.laterCapped && ctx.thresholdOverride === undefined ? capText(T, p) : `Context at ${Math.round(p)}%. Jeeves will hand over at ${shown(T)}%.` })

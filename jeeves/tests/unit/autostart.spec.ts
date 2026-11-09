@@ -114,7 +114,7 @@ test('near-threshold: the first known reading of a new auto task within 10 point
   assert.equal(reduce(fresh(), at(7.6), { ...C, thresholdOverride: 8 }).state.status, 'DISABLED')
 })
 
-test('grace: a new auto task never rotates in its first 3 main turns; the first reading at or past the threshold after them does', () => {
+test('grace: a new auto task does not rotate in its first 3 main turns below threshold + 10; the first reading at or past the threshold after them does', () => {
   let s = run(fresh(), at(20))
   for (let i = 1; i <= GRACE_TURNS; i++) {
     s = run(s, at(45))
@@ -125,6 +125,11 @@ test('grace: a new auto task never rotates in its first 3 main turns; the first 
   s = run(s, turn) // past the grace period the count stops
   assert.equal(s.graceTurns, GRACE_TURNS)
   assert.equal(run(s, at(45)).status, 'ROTATION_REQUESTED')
+  // Grace holds the handover back at most 10 points: at threshold + 10 it is requested in turn 1 (a one-turn task, AC-41).
+  assert.equal(run(fresh(), at(20), at(49.9)).status, 'MONITORING')
+  assert.equal(run(fresh(), at(20), at(50)).status, 'ROTATION_REQUESTED')
+  assert.equal(reduce(run(fresh(), at(2)), at(8.4), { ...C, thresholdOverride: 8 }).state.status, 'MONITORING')
+  assert.equal(reduce(run(fresh(), at(2)), at(8.5), { ...C, thresholdOverride: 8 }).state.status, 'ROTATION_REQUESTED')
   // Explicit tasks have no grace period, and count nothing.
   const ex = run(validState({ thresholdPercent: 40 }), at(20), turn)
   assert.equal(ex.graceTurns, undefined)
