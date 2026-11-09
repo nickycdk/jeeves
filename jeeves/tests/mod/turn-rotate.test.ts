@@ -85,3 +85,17 @@ for (const point of CRASH_POINTS) {
     expect([stateOf(h, dir).status, stateOf(h, dir).activeSessionId]).toEqual(['CONTINUING', 'sess-new'])
   })
 }
+
+test('a /clear whose promise never resolves: the ended session still brings the continuation, once, and a typed prompt is not swallowed', async ($, on) => {
+  const g = await turnGenerating($, on)
+  g.ctl.never = true
+  await wholeTurn($, handover(g.taskId, g.rotationId))
+  await g.h.clock.advance(FRESH_CONTINUE_MS)
+  await until(g.h, () => g.prompts.some(p => p.text.includes(session(2))))
+  expect([stateOf(g.h, g.dir).status, stateOf(g.h, g.dir).activeSessionId, owner(g.h, g.dir)]).toEqual(['CONTINUING', 'sess-2', 'sess-2'])
+  await g.h.clock.advance(10 * FRESH_CONTINUE_MS)
+  await g.h.clock.settle()
+  expect(g.prompts.filter(p => p.text.includes(session(2))).length).toBe(1)
+  await submit($, 'hello? are you still working')
+  expect(g.prompts.at(-1)).toEqual({ text: 'hello? are you still working', origin: 'composer' })
+})

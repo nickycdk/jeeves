@@ -223,7 +223,7 @@ export async function wholeTurn($: Kit, answer = 'ok', reason: Parameters<typeof
 /**
  * A turn-mode process whose task's boundary turn just ended: the request was submitted, state HANDOVER_GENERATING.
  * A plugin /clear does what the probe saw live: session.end(clear), then the new id, and no SessionStart;
- * `ask` false: stop before the boundary turn (`request()` runs it). `ctl.sameId` keeps the old id, `ctl.ids` names the fresh sessions in order.
+ * `ask` false: stop before the boundary turn (`request()` runs it). `ctl.sameId` keeps the old id, `ctl.never` leaves the /clear promise unresolved (live run 5), `ctl.ids` names the fresh sessions in order.
  */
 export async function turnGenerating($: Kit, on: Parameters<typeof memHost>[0], opts: { env?: Record<string, string>; ask?: boolean } = {}) {
   const h = memHost(on, opts.env)
@@ -233,12 +233,13 @@ export async function turnGenerating($: Kit, on: Parameters<typeof memHost>[0], 
   /** Hidden rows Jeeves appended (`$.session.append`), in order. */
   const rows: string[] = []
   on('session.append', (_, e, next) => { rows.push(e.message.content.map(b => String((b as { text?: string }).text ?? '')).join('')); return next(e) })
-  const ctl = { sameId: false, ids: ['sess-2', 'sess-3', 'sess-4'] }
+  const ctl = { sameId: false, never: false, ids: ['sess-2', 'sess-3', 'sess-4'] }
   on('command.run', async ($e, e) => {
     clears.push(e.command)
     const from = h.sessionId
     await $.session.end({ reason: 'clear', sessionId: from, resume: { id: from } })
     if (!ctl.sameId) h.sessionId = ctl.ids.shift()!
+    if (ctl.never) await new Promise<never>(() => {})
     return { text: '' }
   })
   on('tool.call', (_, e) => ((e as { command?: string }).command === 'npm test'

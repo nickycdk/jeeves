@@ -374,6 +374,8 @@ export async function onUserClear(rt: Runtime, oldSessionId: string): Promise<vo
   const cost = await rt.port.costUsd()
   const r = await apply(rt, own.dir, { type: 'SESSION_END', reason: 'clear', sessionId: oldSessionId, ...(cost !== null ? { costUsd: cost } : {}) })
   if ((r?.state.status === 'PAUSED' || r?.state.status === 'DISABLED') && r.state.reason === 'USER_CLEAR') await rt.storage.releaseLock(own.dir, oldSessionId)
+  // Turn mode: live the /clear promise may never resolve (run 5), and no SessionStart comes; the ended session is the signal.
+  if (rt.probe.boundary === 'turn' && r?.state.status === 'ROTATING' && r.state.rotation?.step === 'CLEARED') afterEnd(rt, own.dir, 5)
   // A paused task waits for /jeeves resume: auto-start stays off for this session (carried over the /clear), not the project.
   if (r?.state.status === 'PAUSED' && r.state.reason === 'USER_CLEAR') await rt.port.storeSet(sessionOffKey(oldSessionId), true)
 }
@@ -728,6 +730,20 @@ async function freshInTurnMode(rt: Runtime, dir: string): Promise<void> {
   const h = await latestHandover(rt, dir, before.value)
   const r = await apply(rt, dir, { type: 'SESSION_START_CLEAR', sessionId: id, handoverOk: h.ok && h.text !== null })
   if (r?.forHook.some(f => f.type === 'INJECT_CONTEXT')) await continueFresh(rt, dir, true)
+}
+
+/**
+ * Turn mode's second way into the fresh conversation, beside the resolved /clear: once the old session ended, look for
+ * the new id (a few times, a second apart) and continue from there. Whichever comes first continues; the other finds
+ * the task no longer ROTATING, or the reducer refuses it.
+ */
+function afterEnd(rt: Runtime, dir: string, tries: number): void {
+  rt.port.after(FRESH_CONTINUE_MS, () => void (async () => {
+    const s = await rt.storage.readState(dir)
+    if (!s?.ok || s.value.status !== 'ROTATING') return
+    if ((await rt.port.sessionId()) !== s.value.activeSessionId) return freshInTurnMode(rt, dir)
+    if (tries > 1) afterEnd(rt, dir, tries - 1)
+  })().catch(err => rt.port.log(`jeeves: continuation after /clear failed: ${why(err)}`)))
 }
 
 /** How long after the fresh SessionStart that session continues on its own; live this is the path that continues. */
