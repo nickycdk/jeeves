@@ -196,9 +196,12 @@ async function later(rt: Runtime, tasks: Task[], me: string): Promise<string> {
   if (own.state.status !== 'MONITORING') return MSG.laterRefused(own.state.status, ROTATION_STATES.includes(own.state.status))
   const u = await rt.port.usage().catch(() => null)
   const cap = laterCap(u?.window ?? 0, await rt.port.autoCompactTokens())
+  if (own.state.thresholdPercent >= cap) return capText(own.state.thresholdPercent, u?.percent)
   const r = await apply(rt, own.dir, { type: 'LATER', cap })
-  const t = r?.state.thresholdPercent ?? own.state.thresholdPercent
-  if (t === own.state.thresholdPercent) return capText(t, u?.percent)
+  if (!r) return MSG.noTask
+  const t = r.state.thresholdPercent
+  // Not at the cap, yet unchanged: the task left MONITORING meanwhile (a handover started), so say that, not the cap.
+  if (t === own.state.thresholdPercent) return MSG.laterRefused(r.state.status, ROTATION_STATES.includes(r.state.status))
   return MSG.postponed(t, t - DEFAULT_CONFIG.warnBeforePercent, t >= cap)
 }
 
