@@ -45,6 +45,8 @@ export const register: Register = (on, options) => {
   let beat: Timer | null = null
   // Whether a main-loop turn is open: engine state, not task state. Starts idle (a reload mid-turn at worst queues one nudge).
   let turnOpen = false
+  // ADR-007 A1: a main turn started in turn mode whose completion row is not decided yet (sent at its first reading).
+  let rowDue = false
   // R-25: whether this main turn's classic.Stop reached Jeeves.
   let stopSeen = true
   let warnedSkip = false
@@ -92,6 +94,7 @@ export const register: Register = (on, options) => {
   // ST-2.3: only a context change counts; rate-limit or cost changes never move the reading (AC-04).
   on('session.measure', async ($, e, next) => {
     if (e.changed.includes('context')) await quietly($, opts, 'measure', async rt => {
+      if (rowDue && rt.probe.boundary === 'turn' && rt.probe.mode !== 'unsupported' && await completionRow(rt)) rowDue = false
       // ST-14.1: no task of this session's own took the reading, so it may be one for the hint.
       if (!(await measure(rt, e.context))) await hint(rt, opts.autoStart ?? 'default', e.context)
       // Q-10: a reading that crosses the threshold after the turn ended finds Claude idle (D-23).
@@ -140,8 +143,9 @@ export const register: Register = (on, options) => {
     if (e.agentId === undefined) {
       turnOpen = true
       stopSeen = false
-      // ADR-007 A1: turn mode's completion rules, as a hidden row (no prompt.compose there).
-      await quietly($, opts, 'completion row', async rt => { if (rt.probe.boundary === 'turn' && rt.probe.mode !== 'unsupported') await completionRow(rt) })
+      // ADR-007 A1: turn mode's completion rules go in at this turn's first reading (ST-16.8: a row appended at
+      // turn.start does not reach any request of its own turn, live).
+      rowDue = true
     }
     return next(e)
   })

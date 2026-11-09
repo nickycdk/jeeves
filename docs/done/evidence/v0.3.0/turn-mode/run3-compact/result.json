@@ -1,0 +1,28 @@
+{
+ "claude_version": "2.1.319 (Claude Code)",
+ "k": {
+  "checks": {
+   "k: the /compact was recognised at the next reading (COMPACTED request)": true,
+   "k: one rotation followed (RESTORING once, handover-001 saved)": true
+  },
+  "costs": [
+   0.0053
+  ],
+  "trust": true,
+  "before_compact": 107329,
+  "events": [
+   "DISABLED>MONITORING  None% ",
+   "MONITORING>MONITORING  None% task revision 1",
+   "MONITORING>ROTATION_REQUESTED COMPACTED 4.33% after recognised compaction",
+   "ROTATION_REQUESTED>HANDOVER_GENERATING COMPACTED 4.33% ",
+   "HANDOVER_GENERATING>VALIDATING COMPACTED 4.4% ",
+   "VALIDATING>ROTATING COMPACTED 4.4% history/handover-001.md#sha256:0df989f2d242f7a22d179b5d72eddf7b0b1cde9",
+   "ROTATING>RESTORING COMPACTED 4.51% ",
+   "RESTORING>CONTINUING COMPACTED 4.51% ",
+   "CONTINUING>MONITORING  3.41% rearmed at 3.41%"
+  ],
+  "session_costs": [
+   0.09077811
+  ]
+ }
+}

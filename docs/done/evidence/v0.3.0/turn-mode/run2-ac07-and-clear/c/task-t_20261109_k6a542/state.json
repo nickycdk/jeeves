@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 2,
+  "taskId": "t_20261109_k6a542",
+  "projectId": "f171156ba026494e",
+  "origin": "explicit",
+  "status": "MONITORING",
+  "reason": null,
+  "mode": "full",
+  "taskRevision": 1,
+  "sessionSequence": 1,
+  "activeSessionId": "2271f977-c22e-4a48-a834-bf5b15d9c6f5",
+  "rotation": null,
+  "lastValidatedHandover": null,
+  "rotationCount": 0,
+  "consecutiveFailures": 0,
+  "thresholdPercent": 40,
+  "lastContext": {
+    "window": 1000000,
+    "at": "2026-11-09T14:45:29.392Z",
+    "percent": 4.17,
+    "tokens": 41694
+  },
+  "armedFired": false,
+  "warnedSessionId": null,
+  "heldPrompts": [],
+  "pauseRequested": false,
+  "taskStartHead": "cfdf4a858140dbdf06ee730b9a81afdee9989375",
+  "lastErrorCode": null,
+  "ledger": [
+    {
+      "kind": "cmd",
+      "command": "wc -l notes/log.txt",
+      "ok": true,
+      "exit": 0,
+      "agent": null,
+      "at": "2026-11-09T14:45:28.738Z"
+    }
+  ],
+  "updatedAt": "2026-11-09T14:45:29.392Z",
+  "sessionStart": {
+    "at": "2026-11-09T14:45:24.329Z",
+    "pct": 4.15
+  }
+}

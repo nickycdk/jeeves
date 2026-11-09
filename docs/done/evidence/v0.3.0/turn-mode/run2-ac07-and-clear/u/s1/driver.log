@@ -1,0 +1,15 @@
+[    0.0s] spawn claude --plugin-dir ~/Desktop/Projects/jeeves/jeeves --model haiku --permission-mode default
+[    1.0s] key Down
+[    2.0s] key Enter
+[    9.5s] type 'Reply with the single word ALPHA and nothing else.'
+[   10.6s] key Enter
+[   14.0s] state ["MONITORING", null, 0, 4.14]
+[   29.0s] type '/clear'
+[   29.6s] key Enter
+[   36.1s] type 'Reply with the single word BETA and nothing else.'
+[   37.1s] key Enter
+[   40.6s] state ["MONITORING", null, 0, 4.15]
+[   55.6s] type '/jeeves status'
+[   56.3s] key Enter
+[   60.7s] type '/cost'
+[   61.4s] key Enter

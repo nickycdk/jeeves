@@ -1,0 +1,1 @@
+Run `wc -l notes/log.txt` and tell me the number of lines. Then stop.

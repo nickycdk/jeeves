@@ -1,0 +1,1 @@
+Do these three things back to back in one go, without stopping in between: read notes/log.txt completely with the Read tool (the whole file, not a search), then run exactly this Bash command: date > stamp.txt , then reply with the word DONE.

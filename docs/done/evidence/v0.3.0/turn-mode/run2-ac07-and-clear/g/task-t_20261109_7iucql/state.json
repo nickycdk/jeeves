@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 2,
+  "taskId": "t_20261109_7iucql",
+  "projectId": "07f2b54ff3ce8a21",
+  "origin": "explicit",
+  "status": "MONITORING",
+  "reason": null,
+  "mode": "full",
+  "taskRevision": 1,
+  "sessionSequence": 2,
+  "activeSessionId": "24af2632-5c09-44ae-aa4d-3b3aa7fca167",
+  "rotation": null,
+  "lastValidatedHandover": "history/handover-001.md#sha256:6dd418d296a372032e1036b8c03a00955554116bf16b77961eeaec14d8802238",
+  "rotationCount": 1,
+  "consecutiveFailures": 0,
+  "thresholdPercent": 40,
+  "lastContext": {
+    "window": 1000000,
+    "at": "2026-11-09T14:44:33.083Z",
+    "percent": 4.42,
+    "tokens": 44198
+  },
+  "armedFired": false,
+  "warnedSessionId": "24af2632-5c09-44ae-aa4d-3b3aa7fca167",
+  "heldPrompts": [],
+  "pauseRequested": false,
+  "taskStartHead": "d6534b254c2e97887eacaa0f1d5bef0726f4f037",
+  "lastErrorCode": null,
+  "ledger": [
+    {
+      "kind": "cmd",
+      "command": "date > stamp.txt",
+      "ok": true,
+      "exit": 0,
+      "agent": null,
+      "at": "2026-11-09T14:44:19.325Z"
+    },
+    {
+      "kind": "cmd",
+      "command": "git status --porcelain && echo \"---\" && git rev-parse --show-toplevel && echo \"---\" && cat stamp.txt",
+      "ok": true,
+      "exit": 0,
+      "agent": null,
+      "at": "2026-11-09T14:44:29.973Z"
+    }
+  ],
+  "updatedAt": "2026-11-09T14:44:33.083Z",
+  "sessionStart": {
+    "at": "2026-11-09T14:44:28.315Z",
+    "pct": 3.38
+  },
+  "completionAsked": false
+}

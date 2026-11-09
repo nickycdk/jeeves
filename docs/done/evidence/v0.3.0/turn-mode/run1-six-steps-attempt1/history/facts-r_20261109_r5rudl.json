@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "rotationId": "r_20261109_r5rudl",
+  "capturedAt": "2026-11-09T14:41:31.156Z",
+  "git": {
+    "kind": "git",
+    "worktree": "<scratch>/run1/repo",
+    "branch": "main",
+    "detached": false,
+    "head": "455a5cf469f32ed2d76ec8b35ec790081285a128",
+    "status": [],
+    "changedSinceStart": [
+      "src/step1.js",
+      "src/step2.js",
+      "src/step3.js"
+    ]
+  },
+  "crons": null
+}

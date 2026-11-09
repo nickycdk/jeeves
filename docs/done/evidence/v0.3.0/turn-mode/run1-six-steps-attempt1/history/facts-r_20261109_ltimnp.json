@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "rotationId": "r_20261109_ltimnp",
+  "capturedAt": "2026-11-09T14:40:40.130Z",
+  "git": {
+    "kind": "git",
+    "worktree": "<scratch>/run1/repo",
+    "branch": "main",
+    "detached": false,
+    "head": "69d5a07512a151097a774008f6a2d0609260c1ac",
+    "status": [],
+    "changedSinceStart": [
+      "src/step1.js"
+    ]
+  },
+  "crons": null
+}

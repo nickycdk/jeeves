@@ -1,0 +1,19 @@
+──────────────────────────────────────────────────────────────────────────────────❯ ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────⚠ jeeves: Jeeves: writing handover
+⏵⏵accepteditson (shift+tabtocycle)·esctointerrupt
+[unknown]Whether./verify.shpassesafterstep6hasnotbeencheckedyet.Decisions and constraints  -────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────❯ 
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+⚠jeeves:Jeeves:writinghandover
+⏵⏵accepteditson (shift+tabtocycle)·esctointerrupt
+[verified]SPEC.mddefinessumDigits(n)asthesumofthedecimaldigitsofthewholenumber,signignored.-────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────❯ ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────⚠ jeeves: Jeeves: writing handover
+⏵⏵accepteditson (shift+tabtocycle)·esctointerrupt
+[verified]Thecommitformatisgit add -A && git commit -m "step N: <name>"withasecond-mcontainingtheCo-Authored-Bytrailer,asusedforsteps1and 2.  -❯ ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+⚠jeeves:Jeeves:writinghandover
+⏵⏵accepteditson (shift+tabtocycle)·esctointerrupt
+[verified]Steps1and2arecommittedandmustnotbechanged.-────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────❯ ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────⚠ jeeves: Jeeves: writing handover
+⏵⏵accepteditson (shift+tabtocycle)·esctointerrupt
+[inferred]Eachstep'ssourcefileshouldbetouchedonlyinitsownstep.-────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────❯ ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────⚠ jeeves: Jeeves: writing handover
+⏵⏵accepteditson (shift+tabtocycle)·esctointerrupt
+[unknown]WhetherthesumDigitsexpectationscontainanycasebeyondintegerswithanoptionalminussign.Tests and checks  -────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────❯ 
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+⚠jeeves:Jeeves:writinghandover
+⏵⏵accepteditson (shift+tabtocycle)·esctointerrupt

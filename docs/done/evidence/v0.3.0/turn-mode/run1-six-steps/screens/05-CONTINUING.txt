@@ -1,0 +1,51 @@
+                                                                                             
+  - [verified] No blockers were hit.                                                                                                        
+                                                                                                                                            
+  Where to pick up (exact next actions):                                                                                                    
+  1. [inferred] Run `git add -A && git commit -m "step 2: isPalindrome"` with the Co-Authored-By trailer, then confirm with `git log        
+  --oneline`.                                                                                                                               
+  2. [inferred] Read `tests/step3.test.js`, implement `src/step3.js` (sumDigits, sign ignored), run `./verify.sh`, and commit as "step 3:   
+  sumDigits".                                                                                                                               
+  3. [inferred] Repeat for step 4 (`src/step4.js`, wordCount), step 5 (`src/step5.js`, fizzbuzz), and step 6 (`src/step6.js`, roman), each  
+  with read, implement, verify, commit.                                                                                                     
+  4. [inferred] Run a final `./verify.sh` and confirm it exits 0.                                                                           
+                                                                                                                                            
+  First verify the repository state against the handover: run git status, look at the files above and rerun the last tests. Do not redo     
+  anything listed as completed or under "Do not repeat". Then continue with next action 1 and keep working through the task until it is     
+  done.                                                                                                                                     
+
+✳Waddling…
+ ⎿ Tip:Use/voicetoenablepush-to-talkdictation
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+⚠jeeves:Jeeves:continuing
+⏵⏵accepteditson (shift+tabtocycle)·esctointerrupt
+⏺jeeves: its prompt.compose hook was skipped. "cc-plugin-sec-default" runs first and sent the event on past it.✳Waddling…   ⎿  Tip: Use /voice to enable push-to-talk dictation❯ ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+⚠jeeves:Jeeves:continuing
+⏵⏵accepteditson (shift+tabtocycle)·esctointerrupt
+✶
+
+
+
+
+
+
+
+W
+
+
+
+
+
+
+
+✻
+
+
+
+
+
+
+

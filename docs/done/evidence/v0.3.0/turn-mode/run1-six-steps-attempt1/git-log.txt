@@ -1,0 +1,4 @@
+six-steps fixture
+step 1: double
+step 2: isPalindrome
+step 3: sumDigits

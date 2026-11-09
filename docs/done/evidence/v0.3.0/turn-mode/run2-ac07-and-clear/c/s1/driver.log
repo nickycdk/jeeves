@@ -1,0 +1,14 @@
+[    0.0s] spawn claude --plugin-dir ~/Desktop/Projects/jeeves/jeeves --model haiku --permission-mode default --allowedTools Bash(wc:*)
+[    1.0s] key Down
+[    2.0s] key Enter
+[    9.4s] type '/jeeves on'
+[   10.1s] key Enter
+[   11.6s] type 'Run `wc -l notes/log.txt` and tell me the number of lines. Then stop.'
+[   12.9s] key Enter
+[   16.3s] state ["MONITORING", null, 0, 4.17]
+[   49.3s] type '/compact'
+[   50.0s] key Enter
+[   53.4s] state ["MONITORING", null, 0, 4.17]
+[  531.3s] TIMEOUT until_quiet
+[  531.3s] type '/cost'
+[  531.9s] key Enter

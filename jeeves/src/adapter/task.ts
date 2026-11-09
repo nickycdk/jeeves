@@ -445,19 +445,20 @@ export const ROW_EVERY = 10
 let row: { key: string; turns: number } | null = null
 
 /**
- * ADR-007 A1: turn mode has no `prompt.compose`, so the completion rules go in as a hidden row: at the first main turn
- * of each conversation the task runs in (its start, every continuation), every ROW_EVERY turns after, and at once
- * after a recognised compaction (`now`).
+ * ADR-007 A1: turn mode has no `prompt.compose`, so the completion rules go in as a hidden row, at a main turn's first
+ * reading: at the first main turn of each conversation the task runs in (its start, every continuation), every
+ * ROW_EVERY turns after, and at once after a recognised compaction (`now`). False: no task of this session's to count yet.
  */
-export async function completionRow(rt: Runtime, now = false): Promise<void> {
+export async function completionRow(rt: Runtime, now = false): Promise<boolean> {
   const sessionId = await rt.port.sessionId()
   const own = ownTask((await projectTasks(rt)).tasks, sessionId)
-  if (!own || INERT.includes(own.state.status) || own.state.taskRevision < 1) return
+  if (!own || INERT.includes(own.state.status) || own.state.taskRevision < 1) return false
   const key = `${sessionId}:${own.state.taskId}`
-  if (!now && row?.key === key && ++row.turns < ROW_EVERY) return
+  if (!now && row?.key === key && ++row.turns < ROW_EVERY) return true
   row = { key, turns: 0 }
   const { view } = await readTask(rt, own.dir, own.state)
   await rt.port.appendHiddenNote(completionInstruction(own.state.taskId, view.checks))
+  return true
 }
 
 /**

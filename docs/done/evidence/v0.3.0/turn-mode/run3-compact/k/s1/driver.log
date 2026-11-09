@@ -1,0 +1,20 @@
+[    0.0s] spawn claude --plugin-dir ~/Desktop/Projects/jeeves/jeeves --model haiku --permission-mode default --allowedTools Read
+[    1.0s] key Down
+[    2.0s] key Enter
+[    9.4s] type '/jeeves on'
+[   10.1s] key Enter
+[   11.6s] type 'Read notes/log.txt completely with the Read tool (the whole file, not a search) '
+[   13.5s] key Enter
+[   16.9s] state ["MONITORING", null, 0, 4.15]
+[   19.9s] state ["MONITORING", null, 0, 6.51]
+[   25.9s] state ["MONITORING", null, 0, 10.73]
+[   40.9s] type '/compact'
+[   41.6s] key Enter
+[   55.1s] type 'Reply with the single word OK and nothing else.'
+[   56.2s] key Enter
+[   59.6s] state ["ROTATION_REQUESTED", "COMPACTED", 0, 4.33]
+[   62.6s] state ["HANDOVER_GENERATING", "COMPACTED", 0, 4.4]
+[   68.6s] state ["CONTINUING", "COMPACTED", 1, 4.51]
+[   86.6s] state ["MONITORING", null, 1, 4.45]
+[  101.6s] type '/cost'
+[  102.3s] key Enter

@@ -1,0 +1,35 @@
+p 2 case shapes were     
+  read).                                                                                                                                    
+                                                                                                                                            
+  Where to pick up (exact next actions):                                                                                                    
+  1. [inferred] Read `tests/step2.test.js` case table fully, then implement `isPalindrome(s)` in `src/step2.js`, lowercasing and removing   
+  spaces before comparing with its reverse.                                                                                                 
+  2. [inferred] Run `./verify.sh` and confirm step 2 passes, then `git add -A && git commit -m "step 2: isPalindrome"` with the             
+  Co-Authored-By trailer.                                                                                                                   
+  3. [inferred] Repeat for steps 3–6 in order: `sumDigits` (sign ignored), `wordCount` (empty/blank is 0), `fizzbuzz`, `roman` (1–3999,     
+  subtractive form), reading each test file first.                                                                                          
+  4. [inferred] When all six are committed and `./verify.sh` exits 0, report completion.                                                    
+                                                                                                                                            
+  First verify the repository state against the handover: run git status, look at the files above and rerun the last tests. Do not redo     
+  anything listed as completed or under "Do not repeat". Then continue with next action 1 and keep working through the task until it is     
+  done.                                                                                                                                     
+
+✳Misting…
+ ⎿ Tip:Run/terminal-setuptoenableconvenientterminalintegrationlikeShift+Enterfornewlineandmore
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+⚠jeeves:Jeeves:continuing
+⏵⏵accepteditson (shift+tabtocycle)·esctointerrupt
+⏺jeeves: its prompt.compose hook was skipped. "cc-plugin-sec-default" runs first and sent the event on past it.✳Misting…   ⎿  Tip: Run /terminal-setup to enable convenient terminal integration like Shift + Enter for new line and more❯ ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+⚠jeeves:Jeeves:continuing
+⏵⏵accepteditson (shift+tabtocycle)·esctointerrupt
+✢
+
+
+
+
+
+
+

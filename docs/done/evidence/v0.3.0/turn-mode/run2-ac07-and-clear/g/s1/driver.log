@@ -1,0 +1,15 @@
+[    0.0s] spawn claude --plugin-dir ~/Desktop/Projects/jeeves/jeeves --model haiku --permission-mode default --allowedTools Read
+[    1.0s] key Down
+[    2.0s] key Enter
+[    9.4s] type '/jeeves on'
+[   10.1s] key Enter
+[   11.6s] type 'Do these three things back to back in one go, without stopping in between: read '
+[   14.7s] key Enter
+[   27.1s] DIALOG holding it open 20 s
+[   47.1s] approve Enter
+[   47.1s] key Enter
+[   53.5s] state ["HANDOVER_GENERATING", "THRESHOLD", 0, 10.7]
+[   59.6s] state ["MONITORING", null, 1, 3.38]
+[   77.6s] state ["MONITORING", null, 1, 4.42]
+[   92.6s] type '/cost'
+[   93.2s] key Enter

@@ -1,0 +1,72 @@
+{
+ "claude_version": "2.1.319 (Claude Code)",
+ "g": {
+  "checks": {
+   "g/AC-07: a handover was pending when the permission dialog opened": true,
+   "g/AC-07: dialog open 20 s, nothing saved or cleared meanwhile": true,
+   "g/AC-07: the rotation followed after the answer": true
+  },
+  "costs": [
+   0.0038
+  ],
+  "trust": true,
+  "ac07": {
+   "status_when_shown": "ROTATION_REQUESTED",
+   "status_after_20s": "ROTATION_REQUESTED",
+   "pct_when_shown": 6.52,
+   "dialog_still_open": true,
+   "handovers_while_open": 0
+  },
+  "events": [
+   "DISABLED>MONITORING  None% ",
+   "MONITORING>MONITORING  None% task revision 1",
+   "MONITORING>ROTATION_REQUESTED THRESHOLD 6.52% context 6.52%",
+   "ROTATION_REQUESTED>HANDOVER_GENERATING THRESHOLD 10.67% ",
+   "HANDOVER_GENERATING>VALIDATING THRESHOLD 10.7% ",
+   "VALIDATING>ROTATING THRESHOLD 10.7% history/handover-001.md#sha256:6dd418d296a372032e1036b8c03a00955554116",
+   "ROTATING>RESTORING THRESHOLD 10.8% ",
+   "RESTORING>CONTINUING THRESHOLD 10.8% ",
+   "CONTINUING>MONITORING  3.38% rearmed at 3.38%"
+  ],
+  "session_costs": [
+   0.11526383
+  ]
+ },
+ "c": {
+  "checks": {
+   "c: the /compact was recorded as a COMPACTED request": false,
+   "c: one rotation followed (RESTORING once, handover-001 saved)": false
+  },
+  "costs": [
+   0.0054
+  ],
+  "trust": true,
+  "events": [
+   "DISABLED>MONITORING  None% ",
+   "MONITORING>MONITORING  None% task revision 1"
+  ],
+  "session_costs": []
+ },
+ "u": {
+  "checks": {
+   "u: the first typed prompt started an auto task": true,
+   "u: the user /clear ended it (auto tasks end at a user /clear)": true,
+   "u: the fresh conversation auto-started again at its first typed prompt (no SessionStart in turn mode)": true,
+   "u: status shows turn mode": true
+  },
+  "costs": [
+   0.0027
+  ],
+  "trust": true,
+  "status_screen": "─────────────────────────────\r\r\n❯ /jeeveson[goal]|off|pause|resume|rotate|later|continue|recover|done|retry|threshold<n>|defaults...|auto[on|…\r\r\n────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\r\r\n⏸manualmodeon\r\r\n\rs\r\r\n\r\n\r\n\rt\r\r\n\r\n\r\n\ra\r\r\n\r\n\r\n\rt\r\r\n\r\n\r\n\ru\r\r\n\r\n\r\n\rs\r\r\n\r\n\r\n\r❯ /jeeves status                                                                                                                            \r\r· Sublimating… \r  ⎿ Tip: Run /install-github-app to tag @claude right from your Github issues and PRs\r\r\n\r\r\n────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\r\r\n❯ \r\r\n────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\r\r\n⏸manualmodeon·esctointerrupt\r\r\n\r  \r  ⎿  jeeves:Jeevesmode:full(turn)\r    Task: t_20261109_yksqbn(auto)\r     State: MONITORING\rContext:4%Threshold:40%(~400K)\r     Rotations: 0  Session: 1\r  Last:nohandoveryet\r     Path: ...31853e9/tasks/t_20261109_yksqbn\r   Try: /jeeves help\r\r\n\r\r\n────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\r\r\n❯ \r\r\n────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\r\r\n⏸manualmodeon·?forshortcuts\r\r\n",
+  "after_clear": {
+   "status": "DISABLED",
+   "reason": "USER_CLEAR",
+   "origin": "auto"
+  },
+  "events": [
+   "DISABLED>MONITORING  None% "
+  ],
+  "session_costs": []
+ }
+}

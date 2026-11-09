@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 2,
+  "taskId": "t_20261109_yksqbn",
+  "projectId": "a6fef9b4431853e9",
+  "origin": "auto",
+  "status": "MONITORING",
+  "reason": null,
+  "mode": "full",
+  "taskRevision": 1,
+  "sessionSequence": 1,
+  "activeSessionId": "bd551c38-cf25-4c36-a49b-8b0d5e48648b",
+  "rotation": null,
+  "lastValidatedHandover": null,
+  "rotationCount": 0,
+  "consecutiveFailures": 0,
+  "thresholdPercent": 40,
+  "lastContext": {
+    "window": 1000000,
+    "at": "2026-11-09T14:54:54.381Z",
+    "percent": 4.15,
+    "tokens": 41484
+  },
+  "armedFired": false,
+  "warnedSessionId": null,
+  "heldPrompts": [],
+  "pauseRequested": false,
+  "taskStartHead": "66643a2268f19daba8b874c05f838fdd53fd3e0c",
+  "lastErrorCode": null,
+  "ledger": [],
+  "updatedAt": "2026-11-09T14:54:54.381Z",
+  "sessionStart": {
+    "at": "2026-11-09T14:54:53.082Z",
+    "pct": 4.15
+  },
+  "graceTurns": 1
+}

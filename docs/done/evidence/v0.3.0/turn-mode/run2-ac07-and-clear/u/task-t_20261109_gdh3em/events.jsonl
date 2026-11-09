@@ -1,0 +1,2 @@
+{"v":1,"at":"2026-11-09T14:54:26.443Z","taskId":"t_20261109_gdh3em","rotationId":null,"from":"DISABLED","to":"MONITORING","code":null,"pct":null,"sessionId":"30111cda-31ac-432f-91df-fb528a0eb024","detail":""}
+{"v":1,"at":"2026-11-09T14:54:45.482Z","taskId":"t_20261109_gdh3em","rotationId":null,"from":"MONITORING","to":"DISABLED","code":"USER_CLEAR","pct":4.14,"sessionId":"30111cda-31ac-432f-91df-fb528a0eb024","detail":"conversation cleared by the user"}

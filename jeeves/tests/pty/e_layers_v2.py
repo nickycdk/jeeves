@@ -16,6 +16,7 @@ sys.path.insert(0, HERE)
 from ptylib import Claude  # noqa: E402
 from e_layers import DIALOG, build_repo, cost, idle  # noqa: E402
 
+CONFIG = {}  # ST-16.8: {'CLAUDE_CONFIG_DIR': ...} from --config-dir
 SETTINGS = {'pluginConfigs': {'jeeves@inline': {'options': {'autoRecover': True}}}}
 
 
@@ -29,7 +30,7 @@ class Phase:
 
     def claude(self, n, args=(), env=None, repo=None):
         out = f"{self.out}/s{n}"; os.makedirs(out, exist_ok=True)
-        e = {'JEEVES_TEST': '1', 'JEEVES_STATE_DIR': self.state, **(env or {})}
+        e = {'JEEVES_TEST': '1', 'JEEVES_STATE_DIR': self.state, **CONFIG, **(env or {})}
         return Claude(out, PLUGIN, repo or self.repo, ['--permission-mode', 'default', *args], e)
 
     def tasks(self): return sorted(glob.glob(f"{self.state}/projects/*/tasks/*"))
@@ -192,16 +193,65 @@ def phase_h(sp, out):
     return ph.save()
 
 
+def phase_k(sp, out):
+    """ST-16.8 (3): a typed /compact in turn mode. No session.compact arrives, so the compaction is recognised from the
+    next reading (a fall of more than 10,000 tokens, ADR-006 A1): the context is filled first, and one prompt is typed
+    after the /compact so a reading comes."""
+    ph = Phase(sp, out, 'k'); build_repo(ph.repo)
+    c = ph.claude(1, ['--allowedTools', 'Read'])
+    ph.start_task(c, 'Read notes/log.txt completely with the Read tool (the whole file, not a search) and tell me how many lines it has. Then stop.')
+    until_quiet(c, ph, lambda s: s.get('status') == 'MONITORING' and ((s.get('lastContext') or {}).get('tokens') or 0) > 70_000, 5)
+    ph.r['before_compact'] = (ph.st().get('lastContext') or {}).get('tokens')
+    c.line('/compact'); c.wait(lambda: 'Compacted' in c.plain()[-4000:] or 'compacted' in c.plain()[-4000:], 240, label='compact done'); c.pump(5)
+    c.line('Reply with the single word OK and nothing else.')
+    ok = until_quiet(c, ph, lambda s: (s.get('rotationCount') or 0) >= 1 and s.get('status') in ('MONITORING', 'CONTINUING', 'COMPLETED'), 6)
+    ph.finish(c)
+    ev = ph.events()
+    ph.r['checks'] = {
+        'k: the /compact was recognised at the next reading (COMPACTED request)': any(e['to'] == 'ROTATION_REQUESTED' and e['code'] == 'COMPACTED' for e in ev),
+        'k: one rotation followed (RESTORING once, handover-001 saved)': ok and sum(e['to'] == 'RESTORING' for e in ev) == 1 and bool(glob.glob(f"{ph.tasks()[-1]}/history/handover-001.md")),
+    }
+    return ph.save()
+
+
+def phase_u(sp, out):
+    """ST-16.8 / ST-16.7's fix: in turn mode a user /clear brings no SessionStart; the fresh conversation's first typed
+    prompt must still auto-start (the decision carried over). Needs an install where auto-start is on and an eligible
+    session (git, 1M window)."""
+    ph = Phase(sp, out, 'u'); build_repo(ph.repo)
+    c = ph.claude(1)
+    ph.r['trust'] = c.accept_trust(); c.pump(4)
+    c.line('Reply with the single word ALPHA and nothing else.')
+    first = until_quiet(c, ph, lambda s: s.get('origin') == 'auto', 3)
+    c.line('/clear'); c.pump(6)
+    after_clear = {k: ph.st().get(k) for k in ('status', 'reason', 'origin')}
+    c.line('Reply with the single word BETA and nothing else.')
+    second = until_quiet(c, ph, lambda s: len(ph.tasks()) >= 2 and s.get('origin') == 'auto', 3)
+    c.line('/jeeves status'); c.pump(4)
+    ph.r['status_screen'] = c.tail(1500)
+    ph.finish(c)
+    ph.r['after_clear'] = after_clear
+    ph.r['checks'] = {
+        'u: the first typed prompt started an auto task': first,
+        'u: the user /clear ended it (auto tasks end at a user /clear)': after_clear.get('status') == 'DISABLED' and after_clear.get('reason') == 'USER_CLEAR',
+        'u: the fresh conversation auto-started again at its first typed prompt (no SessionStart in turn mode)': second,
+        'u: status shows turn mode': 'full(turn)' in re.sub(r'\s', '', ph.r['status_screen']),
+    }
+    return ph.save()
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('scratch')
     ap.add_argument('--out', default=None)
     ap.add_argument('--only', default='h,c,e,g,d')
     ap.add_argument('--override', default='6', help='phase g: absolute test threshold, above a fresh session, below it plus the log')
+    ap.add_argument('--config-dir', default=None, metavar='CLAUDE_CONFIG_DIR')
     a = ap.parse_args()
+    if a.config_dir: CONFIG['CLAUDE_CONFIG_DIR'] = os.path.abspath(a.config_dir)
     sp = os.path.abspath(a.scratch); out = os.path.abspath(a.out or f"{sp}/evidence"); os.makedirs(out, exist_ok=True)
     res = {'claude_version': subprocess.run(['claude', '--version'], capture_output=True, text=True).stdout.strip()}
-    runs = {'c': lambda: phase_c(sp, out), 'd': lambda: phase_d(sp, out), 'e': lambda: phase_e(sp, out), 'g': lambda: phase_g(sp, out, a.override), 'h': lambda: phase_h(sp, out)}
+    runs = {'c': lambda: phase_c(sp, out), 'd': lambda: phase_d(sp, out), 'e': lambda: phase_e(sp, out), 'g': lambda: phase_g(sp, out, a.override), 'u': lambda: phase_u(sp, out), 'k': lambda: phase_k(sp, out), 'h': lambda: phase_h(sp, out)}
     for p in a.only.split(','):
         try: res[p] = runs[p]()
         except Exception as err:  # one phase failing must not lose the others' evidence

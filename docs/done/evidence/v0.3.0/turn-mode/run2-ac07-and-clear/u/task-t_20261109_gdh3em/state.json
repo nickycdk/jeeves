@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 2,
+  "taskId": "t_20261109_gdh3em",
+  "projectId": "a6fef9b4431853e9",
+  "origin": "auto",
+  "status": "DISABLED",
+  "reason": "USER_CLEAR",
+  "mode": "full",
+  "taskRevision": 1,
+  "sessionSequence": 1,
+  "activeSessionId": "30111cda-31ac-432f-91df-fb528a0eb024",
+  "rotation": null,
+  "lastValidatedHandover": null,
+  "rotationCount": 0,
+  "consecutiveFailures": 0,
+  "thresholdPercent": 40,
+  "lastContext": {
+    "window": 1000000,
+    "at": "2026-11-09T14:54:27.625Z",
+    "percent": 4.14,
+    "tokens": 41363
+  },
+  "armedFired": false,
+  "warnedSessionId": null,
+  "heldPrompts": [],
+  "pauseRequested": false,
+  "taskStartHead": "66643a2268f19daba8b874c05f838fdd53fd3e0c",
+  "lastErrorCode": null,
+  "ledger": [],
+  "updatedAt": "2026-11-09T14:54:45.482Z",
+  "sessionStart": {
+    "at": "2026-11-09T14:54:26.443Z",
+    "pct": 4.14
+  },
+  "graceTurns": 1
+}

@@ -28,6 +28,8 @@ def main():
     ap.add_argument('--installed', default=None, metavar='CLAUDE_CONFIG_DIR')
     # Stop once this many rotations have continued (the task need not finish).
     ap.add_argument('--rotations', type=int, default=0)
+    # ST-16.8: the repo's plugin (--plugin-dir) under a separate Claude config folder (the fresh-install command).
+    ap.add_argument('--config-dir', default=None, metavar='CLAUDE_CONFIG_DIR')
     a = ap.parse_args()
     sp = os.path.abspath(a.scratch)
     out = os.path.abspath(a.out or f"{sp}/evidence")
@@ -39,7 +41,7 @@ def main():
                            f"import('{PLUGIN}/tests/fixtures/build-repo.ts').then(m => process.stdout.write(m.SIX_STEPS_TASK))"],
                           check=True, capture_output=True, text=True).stdout
 
-    env = {'JEEVES_TEST': '1', 'JEEVES_STATE_DIR': state_dir, 'JEEVES_TEST_THRESHOLD_OVERRIDE': a.override, **({'CLAUDE_CONFIG_DIR': os.path.abspath(a.installed)} if a.installed else {})}
+    env = {'JEEVES_TEST': '1', 'JEEVES_STATE_DIR': state_dir, 'JEEVES_TEST_THRESHOLD_OVERRIDE': a.override, **({'CLAUDE_CONFIG_DIR': os.path.abspath(a.installed or a.config_dir)} if a.installed or a.config_dir else {})}
     # acceptEdits + Bash allowed: a permission dialog would need a keystroke, which the run must not need.
     # The debug file stays in the scratch folder; only Jeeves's own lines go into the evidence.
     debug = f"{sp}/claude-debug.log"
@@ -137,7 +139,8 @@ def main():
             'no permission dialog': dialog is None,
             'no step committed twice': all(v <= 1 for v in step_commits.values()),
             'status entry seen (Jeeves N%/T%)': bool(re.search(r'Jeeves(\d+|\?)%?/[\d.?]+%', re.sub(r'\s', '', c.plain()))),
-            'transition lines seen': 'Jeeves:handovervalidated,startingfresh' in re.sub(r'\s', '', c.plain()),
+            # Since ST-14.3 the line names the goal: "handover validated (goal: …), starting fresh".
+            'transition lines seen': re.search(r'Jeeves:handovervalidated(\(goal:.{0,600}?\))?,startingfresh', re.sub(r'\s', '', c.plain())) is not None,
             **({'loaded as the installed plugin (jeeves@jeeves, no --plugin-dir)': os.path.exists(debug) and 'jeeves@jeeves' in open(debug, errors='replace').read()} if a.installed else {}),
         }
     r.update(checks=checks, step_commits=step_commits, step_files_touched=touched, git_log=log, sessions=sessions,

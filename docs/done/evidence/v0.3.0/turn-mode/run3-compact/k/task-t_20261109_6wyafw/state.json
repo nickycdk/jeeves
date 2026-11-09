@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 2,
+  "taskId": "t_20261109_6wyafw",
+  "projectId": "bd7b1127082dc674",
+  "origin": "explicit",
+  "status": "MONITORING",
+  "reason": null,
+  "mode": "full",
+  "taskRevision": 1,
+  "sessionSequence": 2,
+  "activeSessionId": "e35f86cb-49d9-4b02-88c9-1e3836fd677d",
+  "rotation": null,
+  "lastValidatedHandover": "history/handover-001.md#sha256:0df989f2d242f7a22d179b5d72eddf7b0b1cde90c3b4f82855af008a9411fb84",
+  "rotationCount": 1,
+  "consecutiveFailures": 0,
+  "thresholdPercent": 40,
+  "lastContext": {
+    "window": 1000000,
+    "at": "2026-11-09T15:05:11.444Z",
+    "percent": 4.45,
+    "tokens": 44517
+  },
+  "armedFired": false,
+  "warnedSessionId": null,
+  "heldPrompts": [],
+  "pauseRequested": false,
+  "taskStartHead": "adce9bb7798ff78d959571f419ce5a0e50d247e6",
+  "lastErrorCode": null,
+  "ledger": [
+    {
+      "kind": "cmd",
+      "command": "echo silent",
+      "ok": false,
+      "exit": null,
+      "agent": "a6d2dd5664ee9af44",
+      "at": "2026-11-09T15:05:07.124Z"
+    },
+    {
+      "kind": "cmd",
+      "command": "git status --porcelain && echo \"---\" && git rev-parse --abbrev-ref HEAD && git rev-parse HEAD && echo \"---\" && git log --oneline -2",
+      "ok": true,
+      "exit": 0,
+      "agent": null,
+      "at": "2026-11-09T15:05:09.088Z"
+    }
+  ],
+  "updatedAt": "2026-11-09T15:05:11.444Z",
+  "sessionStart": {
+    "at": "2026-11-09T15:05:06.267Z",
+    "pct": 3.41
+  },
+  "completionAsked": false
+}

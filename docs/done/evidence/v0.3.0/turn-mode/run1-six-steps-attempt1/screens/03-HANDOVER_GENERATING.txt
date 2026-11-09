@@ -1,0 +1,59 @@
+
+  - [verified] <fact you checked> / [inferred] <your conclusion> / [unknown] <open question>                                                
+  Open work and blockers                                                                                                                    
+                                                                                                                                            
+  - [verified] <fact you checked> / [inferred] <your conclusion> / [unknown] <open question>                                                
+  Exact next actions                                                                                                                        
+                                                                                                                                            
+  1. [inferred] <first concrete step>                                                                                                       
+  Do not repeat / do not change                                                                                                             
+                                                                                                                                            
+  - [verified] <fact you checked> / [inferred] <your conclusion> / [unknown] <open question>                                                
+    JEEVES-HANDOVER>>>                                                                                                                      
+                                                                                                                                            
+  Every bullet starts with one tag: [verified] (you saw it in tool output this session), [inferred], or [unknown]. Every section has at     
+  least one bullet; write "- [verified] none" if empty. "Current goal": 1 or 2 bullets, each at most 300 characters. "Exact next actions"   
+  is a numbered list with at least one item. A [verified] bullet that names a file or claims a check passed is checked against the          
+  repository and the command record: name each file by its real path from the repository root, never a placeholder such as stepN or a path  
+  starting with ../. Copy the first and last line of the block exactly.                                                                     
+
+✽Infusing…
+ ⎿ Tip:Run/terminal-setuptoenableconvenientterminalintegrationlikeShift+Enterfornewlineandmore
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+⚠jeeves:Jeeves:writinghandover
+⏵⏵accepteditson (shift+tabtocycle)·esctointerrupt
+✻
+
+
+
+
+
+
+
+✶
+
+
+
+
+
+
+
+✳
+
+
+
+
+
+
+
+✢
+
+
+
+
+
+
+

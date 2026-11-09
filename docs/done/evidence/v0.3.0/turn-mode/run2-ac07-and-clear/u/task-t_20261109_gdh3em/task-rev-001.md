@@ -1,0 +1,1 @@
+Reply with the single word ALPHA and nothing else.

@@ -12,16 +12,23 @@ const complete = (taskId: string) => `Finished.\n<<<JEEVES-COMPLETE v1 task=${ta
 const tokens = ($: Kit, n: number) =>
   $.session.measure({ context: { window: 1_000_000, tokens: n, percent: n / 10_000 }, rateLimits: [], changed: ['context'] } satisfies SessionMeasureInput)
 
+// ST-16.8: the row goes in at a turn's first reading (live, a row appended at turn.start reached no request of its turn).
+let n = 0
+const workTurn = async ($: Kit) => { const id = `r${++n}`; await turnStart($, id); await tokens($, 60_000); await turnEnd($, 'answer', id) }
+
 test('AC 1: a row at the task\'s first turn, again after 10 turns, at once after a recognised compaction, after a continuation; no more', async ($, on) => {
   const g = await turnGenerating($, on, { ask: false })
   const { h, dir, rows } = g
   expect(rules(rows)).toBe(0)
-  await wholeTurn($)
+  await turnStart($, 'r0')
+  expect(rules(rows)).toBe(0)
+  await tokens($, 60_000)
   expect(rules(rows)).toBe(1)
+  await turnEnd($, 'answer', 'r0')
   expect(rows.at(-1)).toContain(`(${g.taskId})`)
-  for (let i = 1; i < ROW_EVERY; i++) await wholeTurn($)
+  for (let i = 1; i < ROW_EVERY; i++) await workTurn($)
   expect(rules(rows)).toBe(1)
-  await wholeTurn($)
+  await workTurn($)
   expect(rules(rows)).toBe(2)
   // A recognised compaction (mid-turn): a row at once, then the rotation; the fresh conversation's first turn gets one.
   await turnStart($, 'c1'); await tokens($, 70_222); await turnEnd($, 'answer', 'c1')
@@ -33,9 +40,9 @@ test('AC 1: a row at the task\'s first turn, again after 10 turns, at once after
   await wholeTurn($, handover(g.taskId, stateOf(h, dir).rotation.rotationId))
   await until(h, () => stateOf(h, dir).status === 'CONTINUING')
   expect(rules(rows)).toBe(3)
-  await wholeTurn($)
+  await workTurn($)
   expect(rules(rows)).toBe(4)
-  await wholeTurn($)
+  await workTurn($)
   expect(rules(rows)).toBe(4)
 })
 

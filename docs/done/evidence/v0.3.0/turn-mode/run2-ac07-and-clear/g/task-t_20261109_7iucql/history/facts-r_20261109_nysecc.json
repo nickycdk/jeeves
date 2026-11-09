@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "rotationId": "r_20261109_nysecc",
+  "capturedAt": "2026-11-09T14:44:22.055Z",
+  "git": {
+    "kind": "git",
+    "worktree": "<scratch>/v2/g/repo",
+    "branch": "main",
+    "detached": false,
+    "head": "d6534b254c2e97887eacaa0f1d5bef0726f4f037",
+    "status": [
+      {
+        "xy": "??",
+        "path": "stamp.txt"
+      }
+    ],
+    "changedSinceStart": [
+      "stamp.txt"
+    ]
+  },
+  "crons": null
+}
