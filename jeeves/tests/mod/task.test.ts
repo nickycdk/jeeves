@@ -84,6 +84,20 @@ test('/jeeves off: DISABLED, lock released, every file kept (FR-11)', async ($, 
   expect(taskDirs(h).length).toBe(2)
 })
 
+test('/jeeves off with no task of its own leaves a COMPLETED task as it is (audit 2)', async ($, on) => {
+  const h = memHost(on)
+  bottom(on)
+  await start($)
+  await relay($, 'on')
+  await submit($, PROMPT)
+  const [dir] = taskDirs(h)
+  h.files.set(`${dir}/state.json`, JSON.stringify({ ...stateOf(h, dir!), status: 'COMPLETED', reason: null }, null, 2) + '\n')
+  h.files.delete(`${dir}/lock.d/owner.json`)
+  h.dirs.delete(`${dir}/lock.d`)
+  expect(await relay($, 'off')).toBe('No managed task. Auto-start is off for the rest of this session; /jeeves on still starts a task.')
+  expect(stateOf(h, dir!).status).toBe('COMPLETED')
+})
+
 test('LOCK_HELD: another live session\'s task stays its own; on starts a separate task (ST-6.6), off cannot end the other', async ($, on) => {
   const h = memHost(on)
   await start($)

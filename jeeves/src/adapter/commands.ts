@@ -140,7 +140,7 @@ async function on(rt: Runtime, tasks: Task[], me: string, rest: string): Promise
 }
 
 async function off(rt: Runtime, tasks: Task[], me: string): Promise<string> {
-  const target = ownTask(tasks, me) ?? tasks.find(t => t.state.status !== 'DISABLED') ?? null
+  const target = ownTask(tasks, me) ?? liveTasks(tasks)[0] ?? null
   if (!target) return MSG.autoOffSession
   if (!(await claim(rt, target.dir, me))) return MSG.lockHeld(target.state.taskId)
   await apply(rt, target.dir, { type: 'OFF', sessionId: me })
