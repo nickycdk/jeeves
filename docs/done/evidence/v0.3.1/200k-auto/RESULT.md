@@ -42,3 +42,21 @@ Run 3 (40 modules) meets ST-17.3's pass list. The first two runs did not reach i
   - A stable rate: one passing run.
   - Cost against a run without Jeeves.
 - **Open behaviour, not a Jeeves error:** Haiku sometimes ends a continuation turn by announcing the next step without taking it (run 2). An unattended task then waits for the person. Whether Jeeves's hidden completion-rules row (ADR-007 A1) makes this more likely is not known.
+
+## Run 4 (2026-11-09, after the full review): the fixed build, PASS
+
+`run4-40-review-fixes/` (`result.json`, `git-log.txt`; the transcript and task folder were not kept in the repository, they hold a home path). Plugin at `53b7cce` (the five review fixes), **Claude Code 2.1.321**, same driver, account and settings as run 3 (`ac41.py auto … --modules 40 --cap 2 --window 200000 --no-1m`), turn mode.
+
+| Check | Run 4 |
+|---|---|
+| First-run notice, auto task with the prompt word for word | yes |
+| Rotations, nothing typed after the task | **4** (`keystrokes_after_task: []`), 5 conversations, one continuation each |
+| Outcome | all 40 modules committed, `./verify.sh` exits 0 |
+| Growth between rotations | 105,600 / 70,940 / 68,080 / 63,960 tokens; peak prompt 144,925 |
+| Handover retries | 1: Claude named a placeholder, `tests/mNN.test.js`, in a `[verified]` bullet; the check caught it and the corrected block passed |
+| Each module committed once | **40 of 40** |
+| End state | `NEEDS_REVIEW (DOD_UNMET)`, as designed for a task with no check commands |
+| NFR-10 grep | clean |
+| Spend | US$0.58 (cap US$2) |
+
+The turn-mode fallback added in `f5d8b26` (the ended session brings the continuation) ran beside the resolved `/clear` in all four rotations without a second continuation or a failed rotation. The carry-on prompt was never needed. Not exercised live: the 20-minute quiesce limit and a `/clear` promise that never resolves (mod tests only).
