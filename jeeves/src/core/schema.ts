@@ -75,6 +75,7 @@ const rotation = obj<NonNullable<State['rotation']>>({
   rotationId: safeName, trigger: oneOf(TRIGGERS), requestedAt: iso,
   sourceSessionId: nullable(str({ nonEmpty: true })), targetSessionId: nullable(str({ nonEmpty: true })),
   step: oneOf(ROTATION_STEPS), retries: int(0, 100), quiesceCount: int(0), noteAppended: bool, nudged: { optional: bool }, guardPct: { optional: num(0, 100) },
+  goal: { optional: str({ max: 300 }) },
 })
 const reason = nullable(oneOf(REASON_CODES))
 const cmdEntry = obj<CommandEntry>({
@@ -93,7 +94,7 @@ const stateShape = obj<State>({
   rotation: nullable(rotation),
   lastValidatedHandover: nullable(handoverRef), rotationCount: int(0), consecutiveFailures: int(0),
   thresholdPercent: int(20, 90), lastContext: nullable(contextReading), armedFired: bool,
-  warnedSessionId: nullable(str()), heldPrompts: arr(str({ max: 100_000 }), 50), completionAsked: { optional: bool }, graceTurns: { optional: int(0, 3) }, laterCapped: { optional: bool },
+  warnedSessionId: nullable(str()), heldPrompts: arr(str({ max: 100_000 }), 50), completionAsked: { optional: bool }, graceTurns: { optional: int(0, 3) }, laterCapped: { optional: bool }, preUpgrade: { optional: bool },
   pendingChanges: { optional: arr(obj<NonNullable<State['pendingChanges']>[number]>({ kind: oneOf(['dod', 'check']), text: str({ nonEmpty: true, max: 100_000 }) }), 20) }, pauseRequested: bool, taskStartHead: nullable(commitHash),
   lastErrorCode: reason, ledger: arr(ledgerEntry, LEDGER_MAX), updatedAt: iso,
 })
@@ -136,7 +137,7 @@ const VERSION_FIELD: { [K in Kind]: string } = { state: 'schemaVersion', config:
 type Migration = (old: Record<string, unknown>) => Record<string, unknown>
 /** MIGRATIONS[kind][n - 1] turns version n into n + 1; a kind's current version is its length + 1. */
 export const MIGRATIONS: { [K in Kind]: Migration[] } = {
-  state: [old => ({ ...old, origin: 'explicit' })], // v1 → v2 (v0.3): every v0.2 task was started by /jeeves on
+  state: [old => ({ ...old, origin: 'explicit', preUpgrade: true })], // v1 → v2 (v0.3): every v0.2 task was started by /jeeves on, with six-heading handovers
   config: [], defaults: [old => old], // v1 → v2 (v0.3): only adds the optional autoStart
   project: [], session: [], lock: [], event: [], auto: [],
 }

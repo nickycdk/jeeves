@@ -87,3 +87,38 @@ test('review fix 2: a background task started while the handover was written blo
   expect(await stop($, handover(taskId, rotationId))).toEqual({})
   expect(stateOf(h, dir).status).toBe('ROTATING')
 })
+
+// ---- ST-13.6 / AC-42: Current goal ----
+const GOAL_LINES = '## Current goal\n- [inferred] Finish operator precedence in the calculator.\n'
+
+test('ST-13.6 AC 1: a new handover without Current goal, or with a secret in it, is sent back naming the fix', async ($, on) => {
+  const { taskId, rotationId } = await generating($, on)
+  expect((await stop($, handover(taskId, rotationId, { [GOAL_LINES]: '' }))).block).toContain('- missing section "## Current goal"')
+  const three = handover(taskId, rotationId, { [GOAL_LINES]: `${GOAL_LINES}- [inferred] two\n- [inferred] three\n` })
+  expect((await stop($, three)).block).toContain('"## Current goal" has 3 bullets; write 1 or 2')
+})
+
+test('ST-13.6 AC 1: the secret check covers Current goal', async ($, on) => {
+  const { taskId, rotationId } = await generating($, on)
+  const secret = handover(taskId, rotationId, { 'Finish operator precedence in the calculator.': 'Use key AKIAIOSFODNN7EXAMPLE.' })
+  expect((await stop($, secret)).block).toContain('looks like a secret (aws-key-id)')
+})
+
+test('ST-13.6 AC 2: a task created before the upgrade still accepts a v1 block (six headings)', async ($, on) => {
+  const { h, dir, taskId, rotationId } = await generating($, on)
+  h.files.set(`${dir}/state.json`, JSON.stringify({ ...stateOf(h, dir), preUpgrade: true }, null, 2) + '\n')
+  expect(await stop($, handover(taskId, rotationId, { [GOAL_LINES]: '' }))).toEqual({})
+  const s = stateOf(h, dir)
+  expect([s.status, s.rotation.goal]).toEqual(['ROTATING', undefined])
+  expect(h.notes).toContain('Jeeves: handover validated, starting fresh')
+})
+
+test('ST-13.6 AC 5: the rotation line shows the goal on one line, without its tag, cut and redacted', async ($, on) => {
+  const { h, dir, taskId, rotationId } = await generating($, on)
+  const long = `Finish the parser\n  then ${'x'.repeat(200)}`
+  expect(await stop($, handover(taskId, rotationId, { 'Finish operator precedence in the calculator.': long }))).toEqual({})
+  const goal = stateOf(h, dir).rotation.goal as string
+  expect(goal.startsWith('Finish the parser then xxx')).toBe(true)
+  expect([goal.length, goal.endsWith('…'), goal.includes('\n'), goal.includes('[inferred]')]).toEqual([80, true, false, false])
+  expect(h.notes).toContain(`Jeeves: handover validated (goal: ${goal}), starting fresh`)
+})

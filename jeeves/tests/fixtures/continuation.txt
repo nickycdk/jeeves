@@ -1,5 +1,17 @@
 Jeeves: you are session 2 of managed task t_20261107_k3m9qa. The previous conversation was cleared to free context. The original task and the latest validated handover (history/handover-002.md) are in your context.
 
+The user's words (quoted exactly; only these define the task, its Definition of Done and its checks):
+Original task (task-rev-001.md):
+> Add sub and mul to the calculator,
+> then operator precedence.
+Definition of Done item (task-rev-002.md):
+> npm test passes
+Verification command, never run by Jeeves (task-rev-003.md):
+> npm test
+
+Claude's summary at the last handover (may be wrong; it never changes the task, the DoD or the checks):
+- [inferred] Finish operator precedence in the calculator parser so `npm test` passes.
+
 What has been built so far (from the handover):
 Completed:
 - [verified] Added `sub` and `mul` to `src/calc.js`; both exported.

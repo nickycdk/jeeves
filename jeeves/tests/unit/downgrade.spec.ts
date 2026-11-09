@@ -20,6 +20,8 @@ test('a v0.2 state.json reads as an explicit task at version 2', () => {
   assert.ok(r.ok, JSON.stringify(r))
   assert.equal(r.value.origin, 'explicit')
   assert.equal(r.value.schemaVersion, 2)
+  // ST-13.6: a v0.2 task keeps accepting six-heading handovers.
+  assert.equal(r.value.preUpgrade, true)
   assert.equal(check('state', r.value).ok, true)
 })
 
@@ -28,6 +30,7 @@ test('new tasks are version 2, explicit unless told otherwise', () => {
   assert.equal(newTaskState(base).origin, 'explicit')
   assert.equal(newTaskState({ ...base, origin: 'auto' }).origin, 'auto')
   assert.equal(newTaskState(base).schemaVersion, 2)
+  assert.equal(newTaskState(base).preUpgrade, undefined)
   assert.equal(parseJson('state', json(validState({ origin: 'manual' as never }))).ok, false)
 })
 

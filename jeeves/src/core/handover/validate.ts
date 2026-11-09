@@ -25,6 +25,8 @@ export type Facts = {
   ledger: readonly LedgerEntry[]
   /** The mentioned paths (as `mentionedPaths` returned them) that exist on disk. */
   existing: ReadonlySet<string>
+  /** A task created before v0.3 (`state.preUpgrade`): its handover may be a v1 block without Current goal (ST-13.6). */
+  preUpgrade?: boolean
 }
 
 export type Validation =
@@ -74,7 +76,7 @@ const flat = (s: string) => s.replace(/\s+/g, ' ').trim().toLowerCase()
 
 /** Parse, then check against the facts. Errors are written for Claude: each names what to fix. */
 export function validateHandover(message: string, f: Facts): Validation {
-  const parsed = parseHandover(message)
+  const parsed = parseHandover(message, { requireGoal: !f.preUpgrade })
   if (!parsed.ok) return { ok: false, errors: parsed.errors }
   const n = parsed.value
   const errors: ValidationError[] = []

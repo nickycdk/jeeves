@@ -37,11 +37,14 @@ test('AC-08: a valid handover is ok with no errors and no warnings, and keeps it
   assert.equal(r.narrative.sections['Exact next actions'].length, 2)
 })
 
-test('the 10 real S-05 handovers validate against their fixture repo (branch main, HEAD 056b512, calc.js)', () => {
+test('the 10 real S-05 handovers (v1, six headings) validate for a pre-upgrade task against their fixture repo (branch main, HEAD 056b512, calc.js)', () => {
   for (let i = 1; i <= 10; i++) {
     const n = String(i).padStart(2, '0')
-    const r = validateHandover(read(`s05-trial-${n}.md`), facts({ taskId: 't_20261107_spike0', rotationId: `r_0${n}`, existing: new Set(['calc.js']), ledger: [], git: { ...GIT, head: '056b512' + '0'.repeat(33), status: [] } }))
+    const f = facts({ taskId: 't_20261107_spike0', rotationId: `r_0${n}`, existing: new Set(['calc.js']), ledger: [], git: { ...GIT, head: '056b512' + '0'.repeat(33), status: [] } })
+    const r = validateHandover(read(`s05-trial-${n}.md`), { ...f, preUpgrade: true })
     assert.ok(r.ok, `trial ${n}: ${JSON.stringify(!r.ok && r.errors)}`)
+    // ST-13.6 AC 2: the same block from a task created after the upgrade lacks the seventh heading.
+    assert.deepEqual(codes(validateHandover(read(`s05-trial-${n}.md`), f)), ['MISSING_HEADING'])
   }
 })
 

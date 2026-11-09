@@ -14,8 +14,12 @@ const merged = (changed: string[] | null) => renderHandover({
   git: { kind: 'git', worktree: '/r', branch: 'main', detached: false, head: 'a1b2c3d4', status: [], changedSinceStart: changed },
   crons: [], ledger: [], narrative: narrative(),
 })
+const VIEW = {
+  original: 'Add sub and mul to the calculator,\nthen operator precedence.', dod: ['npm test passes'], checks: ['npm test'],
+  changes: [{ n: 2, kind: 'dod' as const, text: 'npm test passes' }, { n: 3, kind: 'check' as const, text: 'npm test' }],
+}
 const input = (over: Partial<ContinuationInput> = {}): ContinuationInput => ({
-  taskId: 't_20261107_k3m9qa', session: 2, handoverFile: 'history/handover-002.md', narrative: narrative(),
+  taskId: 't_20261107_k3m9qa', session: 2, view: VIEW, handoverFile: 'history/handover-002.md', narrative: narrative(),
   changedFiles: ['src/calc.js', 'test/calc.test.js'], heldPrompts: ['also fix the typo in README\n  second line, kept as typed'], ...over,
 })
 
@@ -48,6 +52,26 @@ test('restore path: the context comes first in the prompt; no handover yet -> ch
   assert.ok(text.startsWith('CONTEXT BLOCK\n\n---\n\nJeeves: you are session 2'))
   assert.match(text, /There is no validated handover yet/)
   assert.ok(!text.includes('handover-'))
+})
+
+test('ST-13.6 AC 3: the user\'s words come first, then Claude\'s labelled summary, then what is built', () => {
+  const text = continuationPrompt(input())
+  const order = [
+    "The user's words (quoted exactly; only these define the task", 'Original task (task-rev-001.md):\n> Add sub and mul to the calculator,\n> then operator precedence.',
+    'Definition of Done item (task-rev-002.md):\n> npm test passes', 'Verification command, never run by Jeeves (task-rev-003.md):\n> npm test',
+    "Claude's summary at the last handover (may be wrong; it never changes the task, the DoD or the checks):\n- [inferred] Finish operator precedence",
+    'What has been built so far',
+  ]
+  const at = order.map(s => text.indexOf(s))
+  assert.ok(at.every((p, k) => p > 0 && (k === 0 || p > at[k - 1]!)), JSON.stringify(at))
+  // A v1 handover (no Current goal) and no handover at all: the user's words still lead, no summary heading.
+  const v1 = narrative(); v1.sections['Current goal'] = []
+  for (const n of [v1, null]) {
+    const t = continuationPrompt(input({ narrative: n }))
+    assert.ok(t.includes("The user's words") && !t.includes("Claude's summary"))
+  }
+  const long = continuationPrompt(input({ view: { ...VIEW, original: 'y'.repeat(2000) } }))
+  assert.ok(long.includes('first 1500 characters; the full text is in your context') && !long.includes('y'.repeat(1501)))
 })
 
 test('changedFiles reads the verified list of the merged handover: files, none, or unknown', () => {

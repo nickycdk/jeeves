@@ -71,6 +71,7 @@ export const ROOT = '/work/proj'
 export function handover(taskId: string, rotationId: string, over: Record<string, string> = {}) {
   let t = [
     `<<<JEEVES-HANDOVER v1 task=${taskId} rotation=${rotationId}`,
+    '## Current goal', '- [inferred] Finish operator precedence in the calculator.',
     '## Completed since last handover', '- [verified] Added `sub` to `src/calc.js`.',
     '## Decisions and constraints', '- [inferred] Keep zero dependencies.',
     '## Tests and checks', '- [verified] `npm test` fails: 2 cases.',

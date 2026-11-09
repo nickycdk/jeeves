@@ -1,4 +1,6 @@
 <<<JEEVES-HANDOVER v1 task=t_20261107_k3m9qa rotation=r_fixture01
+##  current GOAL:
+- [inferred] Finish operator precedence in the calculator parser so `npm test` passes.
 ##   completed SINCE last handover:
 - [verified] Added `sub` and `mul` to `src/calc.js`; both exported.
 - [inferred] The parser module is half done: tokenising works, precedence does not.

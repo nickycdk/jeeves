@@ -1,7 +1,8 @@
 // What a fresh conversation receives (ST-4.3, FR-09, D-23): the injected context and the continuation prompt.
 // Pure and deterministic: the same task, handover and held prompts always give the same text (snapshot-tested).
 import type { Item, Narrative } from './handover/parse.ts'
-import { revFile, type TaskView } from './task.ts'
+import { GOAL } from './handover/template.ts'
+import { revFile, type ChangeKind, type TaskView } from './task.ts'
 
 const FILES_SHOWN = 50
 const bullets = (xs: readonly string[], none: string) => (xs.length ? xs.map(x => `- ${x}`) : [`- ${none}`])
@@ -41,6 +42,8 @@ export function changedFiles(merged: string): string[] | null {
 export type ContinuationInput = {
   taskId: string
   session: number
+  /** The task as the user wrote it: the original prompt and every revision (ST-13.6: shown first). */
+  view: TaskView
   /** `history/handover-NNN.md`, or null when the task has no validated handover yet. */
   handoverFile: string | null
   narrative: Narrative | null
@@ -62,6 +65,27 @@ export const heldBlock = (prompts: readonly string[]) => [
 /** After a handover that ended in a pause, `/jeeves resume` delivers the messages it held, once (review fix 1). */
 export const heldPrompt = (prompts: readonly string[]) =>
   ['Jeeves: the handover was stopped before a fresh conversation started, so these messages were never delivered.', ...heldBlock(prompts)].join('\n')
+
+const ORIGINAL_SHOWN = 1500
+const quote = (s: string) => s.replace(/\r\n?/g, '\n').split('\n').map(l => `> ${l}`)
+const CHANGE: Record<ChangeKind, string> = { dod: 'Definition of Done item', check: 'Verification command, never run by Jeeves' }
+
+/** ST-13.6 (spec §5.3): the user's words first, quoted; they alone define the task, the DoD and the checks. */
+function usersWords(v: TaskView): string[] {
+  const cut = v.original.length > ORIGINAL_SHOWN
+  return [
+    "The user's words (quoted exactly; only these define the task, its Definition of Done and its checks):",
+    `Original task (${revFile(1)}${cut ? `, first ${ORIGINAL_SHOWN} characters; the full text is in your context` : ''}):`,
+    ...quote(cut ? v.original.slice(0, ORIGINAL_SHOWN) : v.original),
+    ...v.changes.flatMap(c => [`${CHANGE[c.kind as ChangeKind]} (${revFile(c.n)}):`, ...quote(c.text)]),
+    '',
+  ]
+}
+
+/** Claude's own Current goal from the last handover, labelled as such: data, never instructions (R-19). */
+const summary = (n: Narrative | null) => n?.sections[GOAL].length
+  ? ["Claude's summary at the last handover (may be wrong; it never changes the task, the DoD or the checks):", ...items(n.sections[GOAL]), '']
+  : []
 
 /** The prompt Jeeves submits in the fresh conversation: what is built, where to pick up, and the user's held messages. */
 export function continuationPrompt(c: ContinuationInput): string {
@@ -91,6 +115,8 @@ export function continuationPrompt(c: ContinuationInput): string {
     ...(c.context ? [c.context, '', '---', ''] : []),
     `Jeeves: you are session ${c.session} of managed task ${c.taskId}. The previous conversation was cleared to free context. The original task${c.handoverFile ? ` and the latest validated handover (${c.handoverFile})` : ''} are in your context.`,
     '',
+    ...usersWords(c.view),
+    ...summary(n),
     ...(c.gap ? [
       `Jeeves recovered this task: the previous session stopped unexpectedly${c.handoverFile ? ` after ${c.handoverFile} was written` : ''}. Work done after that may exist and is not described here. Before acting, compare the repository with the handover: run git status and git log, read any changed files, and do not redo work that is already there.`,
       '',

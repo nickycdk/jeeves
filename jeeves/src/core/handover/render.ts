@@ -4,7 +4,7 @@ import type { GitFacts } from '../git.ts'
 import { redact } from '../redact.ts'
 import type { LedgerEntry, Trigger } from '../types.ts'
 import { parseHandover, type Narrative } from './parse.ts'
-import { CLOSE, HEADINGS, OPEN } from './template.ts'
+import { CLOSE, GOAL, HEADINGS, OPEN } from './template.ts'
 
 export type Cron = { id: string; schedule: string; recurring: boolean; prompt: string }
 
@@ -64,6 +64,13 @@ function verified(r: RenderInput): string[] {
     '- Scheduled session crons (keep running across the rotation):',
     ...list(r.crons, c => `\`${c.schedule}\`${c.recurring ? ' recurring' : ' once'}: ${oneLine(c.prompt, 120)}`, 'none').map(l => `  ${l}`),
   ]
+}
+
+const GOAL_LINE_MAX = 80
+/** The rotation line's goal (spec §5.3): the first Current goal bullet without its tag, redacted, on one line; null without one. */
+export function goalLine(n: Narrative): string | null {
+  const first = n.sections[GOAL][0]
+  return first ? oneLine(first.text.replace(/^\s*\[(verified|inferred|unknown)\]\s*/i, ''), GOAL_LINE_MAX) || null : null
 }
 
 export function renderHandover(r: RenderInput): string {

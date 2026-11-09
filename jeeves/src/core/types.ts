@@ -102,6 +102,8 @@ export type Rotation = {
   nudged?: boolean
   /** Relative test threshold only (D-25): the source session's last reading; the fresh session must start below it. */
   guardPct?: number
+  /** The validated handover's Current goal on one line (ST-13.6), for the rotation line. */
+  goal?: string
 }
 
 /** A context reading; `percent` absent means unknown, never 0 (AC-06). */
@@ -141,6 +143,8 @@ export type State = {
   pendingChanges?: { kind: 'dod' | 'check'; text: string }[]
   /** Auto tasks (ST-13.4, spec §5.2): main turns ended so far, counted to GRACE_TURNS; no rotation before that. */
   graceTurns?: number
+  /** Created by v0.2 (set by the state v1 → v2 migration): its handovers may omit Current goal (ST-13.6). */
+  preUpgrade?: boolean
   /** `/jeeves later` reached its cap (ST-13.5): the warning says no further postponing is possible. */
   laterCapped?: boolean
   /** A completion block already got its one "run the missing checks" Stop block in this session (ST-5.2). */

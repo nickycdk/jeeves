@@ -4,7 +4,7 @@ import { completionInstruction, parseComplete } from '../core/completion.ts'
 import { changedFiles, continuationPrompt, freshContext } from '../core/continuation.ts'
 import { capturedFacts, toolRecord, type ToolOutcome } from '../core/evidence.ts'
 import { parseHandover } from '../core/handover/parse.ts'
-import { HANDOVER_REF_RE, handoverFile, renderHandover, roundTrips } from '../core/handover/render.ts'
+import { goalLine, HANDOVER_REF_RE, handoverFile, renderHandover, roundTrips } from '../core/handover/render.ts'
 import { handoverInstruction, NUDGE_PROMPT, QUIESCE_NOTE, retryInstruction, type CapturedFacts } from '../core/handover/template.ts'
 import { mentionedPaths, validateHandover } from '../core/handover/validate.ts'
 import { COMPLETION_STATES, HELD_STATES, isSafe, reduce, type Input } from '../core/machine.ts'
@@ -467,7 +467,7 @@ async function handoverStop(rt: Runtime, own: Task, info: StopInfo): Promise<str
   if (parsed.ok) for (const p of mentionedPaths(parsed.value)) if (await rt.port.exists(p.startsWith('/') ? p : join(base, p)).catch(() => false)) existing.add(p)
   const v = validateHandover(info.message, {
     taskId: s.taskId, rotationId: rotation.rotationId, maxChars: DEFAULT_CONFIG.handoverMaxChars, git,
-    capturedBranch: await snapshotBranch(rt, own.dir, rotation.rotationId), ledger: s.ledger, existing,
+    capturedBranch: await snapshotBranch(rt, own.dir, rotation.rotationId), ledger: s.ledger, existing, ...(s.preUpgrade ? { preUpgrade: true } : {}),
   })
   let merged: string | null = null, n = 0
   let outcome: { ok: true } | { ok: false; errors: string[]; fatal?: ReasonCode }
@@ -503,7 +503,8 @@ async function handoverStop(rt: Runtime, own: Task, info: StopInfo): Promise<str
       rt.port.log(`jeeves: handover not saved: ${why(err)}`)
     }
     if (ref) await crashPoint(rt, 'after-persist')
-    const p = await applyOwn(rt, ref ? { type: 'HANDOVER_PERSISTED', ok: true, ref } : { type: 'HANDOVER_PERSISTED', ok: false })
+    const goal = v.ok ? goalLine(v.narrative) : null
+    const p = await applyOwn(rt, ref ? { type: 'HANDOVER_PERSISTED', ok: true, ref, ...(goal ? { goal } : {}) } : { type: 'HANDOVER_PERSISTED', ok: false })
     if (p?.state.status === 'ROTATING') await crashPoint(rt, 'before-clear')
     return null
   }
@@ -544,10 +545,11 @@ async function contextFor(rt: Runtime, dir: string, s: State, h: Latest): Promis
 }
 
 /** The continuation prompt (ST-4.3, D-23): generated from the validated handover, plus the prompts held during rotation. */
-function continuationFor(s: State, h: Latest, held: readonly string[], context?: string, gap?: boolean): string {
+async function continuationFor(rt: Runtime, dir: string, s: State, h: Latest, held: readonly string[], context?: string, gap?: boolean): Promise<string> {
   const parsed = h.text ? parseHandover(h.text) : null
+  const { view } = await readTask(rt, dir, s)
   return continuationPrompt({
-    taskId: s.taskId, session: s.sessionSequence + 1, handoverFile: h.file, narrative: parsed?.ok ? parsed.value : null,
+    taskId: s.taskId, session: s.sessionSequence + 1, view, handoverFile: h.file, narrative: parsed?.ok ? parsed.value : null,
     changedFiles: h.text ? changedFiles(h.text) : null, heldPrompts: held, ...(context ? { context } : {}), ...(gap ? { gap } : {}),
   })
 }
@@ -620,7 +622,7 @@ async function continueFresh(rt: Runtime, dir: string): Promise<void> {
   // shortcut: a /clear that never brings its SessionStart leaves the task ROTATING; recovery is ST-6.1.
   if (!r || submit?.type !== 'SUBMIT_CONTINUATION') return
   try {
-    await rt.port.submitPrompt(continuationFor(r.state, await latestHandover(rt, dir, r.state), submit.heldPrompts))
+    await rt.port.submitPrompt(await continuationFor(rt, dir, r.state, await latestHandover(rt, dir, r.state), submit.heldPrompts))
   } catch (err) {
     await apply(rt, dir, { type: 'SUBMIT_FAILED', heldPrompts: submit.heldPrompts })
     rt.port.log(`jeeves: continuation rejected: ${why(err)}`)
@@ -651,7 +653,7 @@ export async function restoreHere(rt: Runtime, dir: string, input: Input, opts: 
   const ready = await apply(rt, dir, { type: 'CONTEXT_READY' })
   const submit = ready?.forHook.find(f => f.type === 'SUBMIT_CONTINUATION')
   if (!ready || submit?.type !== 'SUBMIT_CONTINUATION') return null
-  const text = continuationFor(ready.state, h, submit.heldPrompts, await contextFor(rt, dir, ready.state, h), opts.gap)
+  const text = await continuationFor(rt, dir, ready.state, h, submit.heldPrompts, await contextFor(rt, dir, ready.state, h), opts.gap)
   // A command.run hook may not submit (D-19): it goes out once the hook has returned.
   rt.port.submitPromptSoon(text, err => {
     rt.port.log(`jeeves: continuation rejected: ${why(err)}`)

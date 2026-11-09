@@ -1,7 +1,7 @@
 // Handover parser (ST-3.5, FR-07): finds exactly one sentinel block in Claude's last message and splits it into
-// the six sections. Tolerant of CRLF, code fences, prose around the block, heading case and spacing. Pure; line-based
+// its sections (seven; a v1 block has six, without Current goal). Tolerant of CRLF, code fences, prose around the block, heading case and spacing. Pure; line-based
 // (no backtracking regex over the whole text), so it never throws and stays linear on any input.
-import { CLOSE, HEADINGS } from './template.ts'
+import { CLOSE, GOAL, GOAL_BULLETS_MAX, GOAL_CHARS_MAX, HEADINGS } from './template.ts'
 
 export type Heading = (typeof HEADINGS)[number]
 export type Tag = 'verified' | 'inferred' | 'unknown'
@@ -16,7 +16,7 @@ export type Narrative = {
 
 export type ParseCode =
   | 'NO_BLOCK' | 'MULTIPLE_BLOCKS' | 'UNCLOSED' | 'MISSING_HEADING' | 'DUPLICATE_HEADING'
-  | 'EMPTY_SECTION' | 'NO_BULLET' | 'NO_NUMBERED_ACTION' | 'UNTAGGED'
+  | 'EMPTY_SECTION' | 'NO_BULLET' | 'NO_NUMBERED_ACTION' | 'UNTAGGED' | 'GOAL_BULLETS' | 'GOAL_TOO_LONG'
 export type ParseError = { code: ParseCode; message: string }
 export type ParseResult = { ok: true; value: Narrative } | { ok: false; errors: ParseError[] }
 
@@ -34,7 +34,11 @@ const BY_KEY = new Map<string, Heading>(HEADINGS.map(h => [key(h), h]))
 
 const attr = (line: string, name: string) => new RegExp(`\\b${name}=(\\S+)`).exec(line)?.[1] ?? null
 
-export function parseHandover(text: string): ParseResult {
+/**
+ * `requireGoal` false: a v1 block without "Current goal" parses, with that section empty (ST-13.6). Only a new handover
+ * of a task created after the upgrade is held to the seventh heading; files Jeeves already wrote are read leniently.
+ */
+export function parseHandover(text: string, opts: { requireGoal?: boolean } = {}): ParseResult {
   const lines = String(text).replace(/\r\n?/g, '\n').split('\n')
   const opens = lines.flatMap((l, i) => (OPEN_RE.test(l) ? [i] : []))
   if (opens.length === 0) return fail('NO_BLOCK', `no "<<<JEEVES-HANDOVER v1" line found; reply with one block whose last line is ${CLOSE}`)
@@ -65,12 +69,16 @@ export function parseHandover(text: string): ParseResult {
   let untagged = 0
   for (const h of HEADINGS) {
     const raw = sections.get(h)
+    if (raw === undefined && h === GOAL && !opts.requireGoal) { out[h] = []; continue }
     if (raw === undefined) { errors.push({ code: 'MISSING_HEADING', message: `missing section "## ${h}"` }); out[h] = []; continue }
     const items = toItems(raw)
     out[h] = items
     if (raw.every(l => !l.trim())) errors.push({ code: 'EMPTY_SECTION', message: `section "## ${h}" is empty; write "- [verified] none" if there is nothing` })
     else if (!items.length) errors.push({ code: 'NO_BULLET', message: `section "## ${h}" has no bullet` })
     else if (h === 'Exact next actions' && !items.some(i => i.numbered)) errors.push({ code: 'NO_NUMBERED_ACTION', message: '"## Exact next actions" needs a numbered item ("1. ...")' })
+    if (h === GOAL && items.length > GOAL_BULLETS_MAX) errors.push({ code: 'GOAL_BULLETS', message: `"## ${GOAL}" has ${items.length} bullets; write 1 or ${GOAL_BULLETS_MAX}` })
+    const long = h === GOAL ? items.filter(i => i.text.length > GOAL_CHARS_MAX).length : 0
+    if (long) errors.push({ code: 'GOAL_TOO_LONG', message: `${long} "## ${GOAL}" bullet(s) are over ${GOAL_CHARS_MAX} characters; shorten them` })
     untagged += items.filter(i => i.tag === null).length
   }
   if (untagged) errors.push({ code: 'UNTAGGED', message: `${untagged} bullet(s) lack a [verified], [inferred] or [unknown] tag` })

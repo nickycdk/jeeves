@@ -61,7 +61,7 @@ export function transitionLine(from: Status, to: Status, code: ReasonCode | null
     case 'QUIESCING': return 'Jeeves: letting the current turn finish'
     case 'HANDOVER_GENERATING': return 'Jeeves: asking Claude for the handover'
     case 'VALIDATING': return 'Jeeves: checking the handover'
-    case 'ROTATING': return 'Jeeves: handover validated, starting fresh'
+    case 'ROTATING': return `Jeeves: handover validated${s.rotation?.goal ? ` (goal: ${s.rotation.goal})` : ''}, starting fresh`
     case 'RESTORING': return 'Jeeves: restoring the task'
     case 'CONTINUING': return 'Jeeves: the fresh conversation continues the task'
     case 'DISABLED': return 'Jeeves: off (task files kept)'

@@ -30,7 +30,7 @@ export type Input =
   /** Main-loop classic.Stop. `handover` is the parse+validate outcome of the last message (HANDOVER_GENERATING only). */
   /** `fatal`: the handover cannot become valid by asking again (the branch moved, git did not answer): stop at once. */
   | { type: 'STOP'; backgroundTasks: number; runningAgents: number; handover?: { ok: true } | { ok: false; errors: string[]; fatal?: ReasonCode } }
-  | { type: 'HANDOVER_PERSISTED'; ok: boolean; ref?: string }
+  | { type: 'HANDOVER_PERSISTED'; ok: boolean; ref?: string; goal?: string }
   /** A main-loop turn ended. `handoverVerified`: the saved handover still matches its SHA-256 (read in ROTATING only). */
   | { type: 'TURN_COMPLETE'; reason: 'answer' | 'aborted' | 'refusal' | 'error'; handoverVerified?: boolean }
   /** The main loop is idle (no turn open), so no Stop will come by itself (D-23). */
@@ -428,7 +428,7 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
       }
       // The ref in the event keeps every handover's hash, for /jeeves history --full (ST-11.3).
       go('ROTATING', state.rotation!.trigger, { lastValidatedHandover: input.ref }, input.ref)
-      setRotation({ step: 'HANDOVER_PERSISTED' })
+      setRotation({ step: 'HANDOVER_PERSISTED', ...(input.goal ? { goal: input.goal } : {}) })
       return done()
 
     case 'TURN_COMPLETE':

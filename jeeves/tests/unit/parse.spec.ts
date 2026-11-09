@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readdirSync, readFileSync } from 'node:fs'
 import { parseHandover, type ParseCode } from '../../src/core/handover/parse.ts'
-import { CLOSE, HEADINGS, OPEN } from '../../src/core/handover/template.ts'
+import { CLOSE, GOAL, HEADINGS, OPEN } from '../../src/core/handover/template.ts'
 import { prng } from './helpers.ts'
 
 const DIR = new URL('../fixtures/handover/', import.meta.url)
@@ -15,6 +15,8 @@ export const PARSE: Record<string, 'ok' | ParseCode> = {
   'missing-heading.md': 'MISSING_HEADING', 'two-blocks.md': 'MULTIPLE_BLOCKS', 'no-block.md': 'NO_BLOCK', 'empty-section.md': 'EMPTY_SECTION',
   'no-bullet.md': 'NO_BULLET', 'no-numbered-action.md': 'NO_NUMBERED_ACTION', 'untagged.md': 'UNTAGGED', 'unclosed.md': 'UNCLOSED',
   'duplicate-heading.md': 'DUPLICATE_HEADING',
+  // ST-13.6: the Current goal checks; v1-no-goal.md is a six-heading block as v0.2 asked for it.
+  'v1-no-goal.md': 'ok', 'goal-three-bullets.md': 'GOAL_BULLETS', 'goal-untagged.md': 'UNTAGGED', 'goal-empty.md': 'EMPTY_SECTION', 'goal-too-long.md': 'GOAL_TOO_LONG',
   'wrong-ids.md': 'ok', 'secret-inside.md': 'ok', 'oversize.md': 'ok', 'false-pass.md': 'ok', 'missing-path.md': 'ok', 'wrong-branch.md': 'ok',
   ...Object.fromEntries(Array.from({ length: 10 }, (_, i) => [`s05-trial-${String(i + 1).padStart(2, '0')}.md`, 'ok' as const])),
 }
@@ -30,7 +32,9 @@ for (const [file, want] of Object.entries(PARSE)) {
     const r = parseHandover(read(file))
     if (want === 'ok') {
       assert.ok(r.ok, JSON.stringify(!r.ok && r.errors))
-      for (const h of HEADINGS) assert.ok(r.value.sections[h].length > 0, h)
+      // v1 blocks (the S-05 samples, v1-no-goal.md) have no Current goal; every other section is filled.
+      const v1 = file.startsWith('s05-') || file === 'v1-no-goal.md'
+      for (const h of HEADINGS) assert.equal(r.value.sections[h].length > 0, !(v1 && h === GOAL), h)
     } else {
       assert.ok(!r.ok, 'expected an error')
       assert.deepEqual(r.errors.map(e => e.code), [want], JSON.stringify(r.errors))
@@ -84,8 +88,21 @@ test('fuzz: never throws on arbitrary input, including sentinel and heading frag
 })
 
 test('linear time: a 2 MB message with thousands of headings and bullets parses in well under a second', () => {
-  const big = `${OPEN} task=t rotation=r\n${HEADINGS.map(h => `## ${h}\n${'1. [inferred] step\n'.repeat(5000)}`).join('')}${'## '.repeat(100000)}\n## a${' '.repeat(200000)}x\n- ${' '.repeat(200000)}y\n${CLOSE}\n`
+  const big = `${OPEN} task=t rotation=r\n${HEADINGS.map(h => `## ${h}\n${'1. [inferred] step\n'.repeat(h === GOAL ? 1 : 5000)}`).join('')}${'## '.repeat(100000)}\n## a${' '.repeat(200000)}x\n- ${' '.repeat(200000)}y\n${CLOSE}\n`
   const t = performance.now()
   assert.ok(parseHandover(big).ok)
   assert.ok(performance.now() - t < 1000)
+})
+
+test('ST-13.6 AC 1: a new handover needs Current goal with 1 or 2 tagged bullets of at most 300 characters', () => {
+  assert.deepEqual(parseHandover(read('v1-no-goal.md'), { requireGoal: true }), { ok: false, errors: [{ code: 'MISSING_HEADING', message: 'missing section "## Current goal"' }] })
+  assert.ok(parseHandover(read('valid.md'), { requireGoal: true }).ok)
+  const at = (n: number) => read('valid.md').replace(/^- \[inferred\] Finish operator.*$/m, `- [inferred] ${'x'.repeat(n - 11)}`)
+  assert.ok(parseHandover(at(300), { requireGoal: true }).ok)
+  const over = parseHandover(at(301), { requireGoal: true })
+  assert.ok(!over.ok && over.errors[0]!.code === 'GOAL_TOO_LONG' && /over 300 characters/.test(over.errors[0]!.message))
+  const two = parseHandover(read('valid.md').replace('## Current goal\n', '## Current goal\n- [unknown] Whether unary minus is in scope.\n'), { requireGoal: true })
+  assert.ok(two.ok && two.value.sections[GOAL].length === 2)
+  const three = parseHandover(read('goal-three-bullets.md'))
+  assert.ok(!three.ok && three.errors[0]!.message === '"## Current goal" has 3 bullets; write 1 or 2')
 })
