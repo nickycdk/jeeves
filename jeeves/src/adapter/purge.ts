@@ -55,6 +55,8 @@ async function remove(rt: Runtime, paths: string[]): Promise<string[]> {
   return failed
 }
 
+const CLEANUP_EVERY_MS = 24 * 3600_000
+
 /**
  * ST-13.8 (spec §5.9): at session start, delete ended auto tasks without a rotation, 7 days after their last update,
  * in every project under the resolved state folder, whatever auto-start says. A task whose state or lock cannot be
@@ -64,6 +66,11 @@ export async function cleanupAuto(rt: Runtime): Promise<string[]> {
   if (!rt.stateRoot) return []
   const projects = join(rt.stateRoot, 'projects')
   const now = await rt.port.now()
+  // At most once a day per state folder (a task is due after 7 days, so a day late is fine): the scan reads every task.
+  const key = `cleanupAt:${rt.stateRoot}`
+  const last = await rt.port.storeGet(key)
+  if (typeof last === 'number' && now - last >= 0 && now - last < CLEANUP_EVERY_MS) return []
+  await rt.port.storeSet(key, now)
   const doomed: string[] = []
   for (const p of await rt.port.listDirs(projects)) {
     for (const id of await rt.port.listDirs(join(projects, p, 'tasks'))) {

@@ -24,7 +24,9 @@ function aged(h: MemHost, dir: string, ageMs: number, over: Record<string, unkno
   h.files.set(`${dir}/state.json`, JSON.stringify({ ...s, ...over, updatedAt: new Date(Date.parse(s.updatedAt) - ageMs).toISOString() }, null, 2) + '\n')
 }
 const exists = (h: MemHost, dir: string) => h.files.has(`${dir}/state.json`)
+/** A later session; the once-a-day guard of the cleanup (review fix 9) is reset, as a day later. */
 async function nextSession($: Kit, h: MemHost, id: string) {
+  for (const k of h.store.keys()) if (k.startsWith('cleanupAt:')) h.store.delete(k)
   h.sessionId = id
   await start($)
 }
@@ -79,5 +81,18 @@ test('AC 5: auto-start turned off everywhere still cleans', async ($, on) => {
   await relay($, 'auto off')
   aged(h, dir, 7 * DAY)
   await nextSession($, h, 'sess-2')
+  expect(exists(h, dir)).toBe(false)
+})
+
+test('review fix 9: the cleanup scans at most once a day per state folder', async ($, on) => {
+  const { h, dir } = await endedAuto($, on)
+  aged(h, dir, 8 * DAY)
+  h.sessionId = 'sess-2'
+  await start($)
+  expect(exists(h, dir)).toBe(true) // endedAuto's session start scanned today already
+  await h.clock.advance(1000)
+  h.store.set([...h.store.keys()].find(k => k.startsWith('cleanupAt:'))!, h.clock.now() - DAY) // a day ago
+  h.sessionId = 'sess-3'
+  await start($)
   expect(exists(h, dir)).toBe(false)
 })

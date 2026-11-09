@@ -42,6 +42,8 @@ export type MemHost = {
   stopBlock?: () => string | undefined
   /** Tokens at which auto-compaction runs, in `$.session.usage({ breakdown })`; absent: auto-compaction off. */
   autoCompact?: number
+  /** The plugin store (`$.store`), seeded from `memHost`'s `store`. */
+  store: Map<string, unknown>
   /** What `$.session.usage().context` answers. */
   usage: { window: number; percent?: number; tokens?: number }
 }
@@ -56,9 +58,13 @@ export const T0 = Date.parse('2026-11-07T08:00:00.000Z')
 export function memHost(on: On, env: Record<string, string> = { HOME: '/home/t' }, store: Readonly<Record<string, unknown>> = {}): MemHost {
   const h: MemHost = {
     commands: [], registered: [], toasts: [], status: [], version: '2.1.319', failProcess: false, files: new Map(), dirs: new Set(['/', '/work', '/work/proj']), cwd: '/work/proj', access: [], env, argv: [], failWrite: null,
-    sessionId: 'sess-test', agents: [], fills: [], turns: 0, logs: [], notes: [], clock: mock.clock(on, { now: T0 }), usage: { window: 200_000 }, rateLimits: [],
+    sessionId: 'sess-test', agents: [], fills: [], turns: 0, logs: [], notes: [], clock: mock.clock(on, { now: T0 }), usage: { window: 200_000 }, rateLimits: [], store: new Map(Object.entries(store)),
   }
-  mock.store(on, store)
+  // The plugin store as a Map the test can read and change (the kit's mock.store keeps a copy out of reach).
+  on('store.get', (_, e) => ({ value: h.store.has(e.key) ? JSON.parse(JSON.stringify(h.store.get(e.key))) : undefined }))
+  on('store.set', (_, e) => { h.store.set(e.key, JSON.parse(JSON.stringify(e.value))); return { value: undefined } })
+  on('store.delete', (_, e) => { h.store.delete(e.key); return { value: undefined } })
+  on('store.keys', () => ({ value: [...h.store.keys()] }))
   on('session.start', (_, e) => ({ cwd: e.cwd }))
   on('session.measure', (_, e) => ({ changed: e.changed }))
   on('classic.Stop', () => { const b = h.stopBlock?.(); return b ? { block: b } : {} })
