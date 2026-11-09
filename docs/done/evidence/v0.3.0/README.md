@@ -48,6 +48,6 @@ Figures are from the transcripts' token usage at Haiku 5.5 prices (`tests/pty/tr
 
 ## Release artifact
 
-`jeeves/scripts/release-zip.sh` from two clean clones of `5f463e7`: identical `jeeves-0.3.0.zip`, SHA-256 `8780f4f4f4ec35860093ed4441f2cccfbb7ff0a938f228710faa135ed965f102` (247 files, no home path). `claude plugin validate` passes on the unzipped marketplace root and `--strict` on its `jeeves/` folder. A tag on a later commit gives a different SHA (the zip carries the commit time). Tag and publication are the maintainer's.
+**Current (after ST-15.4, 2026-11-09):** `jeeves/scripts/release-zip.sh` from two clean clones of `d10e215`: identical `jeeves-0.3.0.zip`, SHA-256 `4621adb78268e41aaf2f591166f6a2146fa1bd1ac38e046ce0d0f56969c5cfa5` (248 files, no home path); the two review fixes and the `distinct-task` test fixture (ST-17.2, tests only) are the difference. **Superseded:** two clean clones of `5f463e7` gave SHA-256 `8780f4f4f4ec35860093ed4441f2cccfbb7ff0a938f228710faa135ed965f102` (247 files, no home path). `claude plugin validate` passes on the unzipped marketplace root and `--strict` on its `jeeves/` folder. A tag on a later commit gives a different SHA (the zip carries the commit time). Tag and publication are the maintainer's.
 
-**Sign-off:** the maintainer signed off ST-15.3 on 2026-11-09 with no changes to the release texts.
+**Sign-off:** the maintainer signed off ST-15.3 on 2026-11-09 with no changes to the release texts, on the `5f463e7` zip. The `d10e215` zip (ST-15.4) needs that sign-off again.
