@@ -241,7 +241,7 @@ All existing AC keep passing. The I-layer suite runs twice: once with `autoStart
 | Q5 | Current goal for all tasks | Yes, user's words first (§5.3) |
 | Q6 | Setting name | Auto-start, key `autoStart` |
 | Q7 | Who runs AC-41, on which non-Team account, and when | **Answered (plan D-44):** the maintainer logs in a non-Team, dollar-billed account (Console API key preferred, Pro or Max as fallback) on a separate macOS user in fresh-install state; the agent builds the fixture and driver and runs AC-41; target 2026-11-20, after E13 and ST-15.1; budget US$40 with per-run caps (§11.1), asked at run time. (The 200K window question is settled: simulated, AC-41) |
-| Q8 | Auto-start on 200K windows | Off at first; widen only if AC-41's simulated 200K run meets the bar set before it (plan D-45): the outcome passes, median growth between rotations ≥ 40K tokens and none under 20K, no loop or review stops and at most one handover retry, no repeated work. Then proposed for v0.3.x with one auto-started 200K live session (§13) |
+| Q8 | Auto-start on 200K windows | Off at first; widen only if AC-41's simulated 200K run meets the bar set before it (plan D-45): the outcome passes, median growth between rotations ≥ 40K tokens and none under 20K, no loop or review stops and at most one handover retry, no repeated work. Then proposed for v0.3.x with one auto-started 200K live session (§13). **Outcome (2026-11-09, plan D-52):** all four met in AC-41's 200K run, so proposed for v0.3.x; v0.3.0 keeps 200K off |
 
 ## 11. Rough size
 

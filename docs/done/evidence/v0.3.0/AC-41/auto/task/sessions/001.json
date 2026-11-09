@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "sessionId": "7ba3d0db-6ef4-44ab-9c94-14964ea3a086",
-  "startedAt": "2026-11-09T15:23:57.126Z",
-  "endedAt": "2026-11-09T15:30:49.175Z",
+  "sessionId": "33556626-6aa3-4941-a96d-650fb15c25d8",
+  "startedAt": "2026-11-09T17:17:43.987Z",
+  "endedAt": "2026-11-09T17:20:29.632Z",
   "endReason": "clear",
   "startPct": 4.16,
-  "endPct": 31.25,
-  "costUsd": 2.9105363050000004
+  "endPct": 51.8,
+  "costUsd": 1.2043880400000002
 }

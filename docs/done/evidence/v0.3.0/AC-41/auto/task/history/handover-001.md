@@ -1,6 +1,6 @@
 # Jeeves handover 001
 
-Task t_20261109_z56hqr, rotation r_20261109_lzpzmx, written 2026-11-09T15:30:49.115Z. Facts below the narrative heading come from Jeeves; the narrative is Claude's.
+Task t_20261109_3jgndw, rotation r_20261109_x6qsa2, written 2026-11-09T17:20:29.537Z. Facts below the narrative heading come from Jeeves; the narrative is Claude's.
 
 ## Original task and DoD
 - Original prompt: `task-rev-001.md` (never changed). Current revision: `task-rev-001.md`.
@@ -10,13 +10,27 @@ Task t_20261109_z56hqr, rotation r_20261109_lzpzmx, written 2026-11-09T15:30:49.
   - (none)
 
 ## Verified repository state
-Captured by Jeeves at 2026-11-09T15:30:49.115Z from git, tool calls and the Stop event; not written by Claude.
-- Worktree: <scratch>/auto/repo
+Captured by Jeeves at 2026-11-09T17:20:29.537Z from git, tool calls and the Stop event; not written by Claude.
+- Worktree: <scratch>/repo
 - Branch: main
-- HEAD: 144f4a2a4e476608852a802237e9ac684ad2810f
+- HEAD: 90e2ab039bb0b1459fe45dde3d2b9ec8d9ac9baa
 - git status --porcelain (0 entries):
   - clean
-- Files changed since the task started (05707902feb2):
+- Files changed since the task started (d24d4d3b45f2):
+  - `src/m01.js`
+  - `src/m02.js`
+  - `src/m03.js`
+  - `src/m04.js`
+  - `src/m05.js`
+  - `src/m06.js`
+  - `src/m07.js`
+  - `src/m08.js`
+  - `src/m09.js`
+  - `src/m10.js`
+  - `src/m11.js`
+  - `src/m12.js`
+  - `src/m13.js`
+  - `src/m14.js`
   - `src/m15.js`
   - `src/m16.js`
   - `src/m17.js`
@@ -28,187 +42,78 @@ Captured by Jeeves at 2026-11-09T15:30:49.115Z from git, tool calls and the Stop
   - `src/m23.js`
   - `src/m24.js`
   - `src/m25.js`
-  - `src/m26.js`
-  - `src/m27.js`
-  - `src/m28.js`
-  - `src/m29.js`
-  - `src/m30.js`
-  - `src/m31.js`
-  - `src/m32.js`
-  - `src/m33.js`
-  - `src/m34.js`
-  - `src/m35.js`
-  - `src/m36.js`
-  - `src/m37.js`
-  - `src/m38.js`
-  - `src/m39.js`
-  - `src/m40.js`
-  - `src/m41.js`
-  - `src/m42.js`
-  - `src/m43.js`
-  - `src/m44.js`
-  - `src/m45.js`
-  - `src/m46.js`
-  - `src/m47.js`
-  - `src/m48.js`
-  - `src/m49.js`
-  - `src/m50.js`
-  - `src/m51.js`
-  - `src/m52.js`
-  - `src/m53.js`
-  - `src/m54.js`
-  - `src/m55.js`
-  - `src/m56.js`
-  - `src/m57.js`
-  - `src/m58.js`
-  - `src/m59.js`
-  - `src/m60.js`
-  - `src/m61.js`
-  - `src/m62.js`
-  - `src/m63.js`
-  - `src/m64.js`
-  - (14 earlier not shown)
 - Edited files (ledger):
-  - `<scratch>/auto/repo/src/m15.js`
-  - `<scratch>/auto/repo/src/m16.js`
-  - `<scratch>/auto/repo/src/m17.js`
-  - `<scratch>/auto/repo/src/m18.js`
-  - `<scratch>/auto/repo/src/m19.js`
-  - `<scratch>/auto/repo/src/m20.js`
-  - `<scratch>/auto/repo/src/m21.js`
-  - `<scratch>/auto/repo/src/m22.js`
-  - `<scratch>/auto/repo/src/m23.js`
-  - `<scratch>/auto/repo/src/m24.js`
-  - `<scratch>/auto/repo/src/m25.js`
-  - `<scratch>/auto/repo/src/m26.js`
-  - `<scratch>/auto/repo/src/m27.js`
-  - `<scratch>/auto/repo/src/m28.js`
-  - `<scratch>/auto/repo/src/m29.js`
-  - `<scratch>/auto/repo/src/m30.js`
-  - `<scratch>/auto/repo/src/m31.js`
-  - `<scratch>/auto/repo/src/m32.js`
-  - `<scratch>/auto/repo/src/m33.js`
-  - `<scratch>/auto/repo/src/m34.js`
-  - `<scratch>/auto/repo/src/m35.js`
-  - `<scratch>/auto/repo/src/m36.js`
-  - `<scratch>/auto/repo/src/m37.js`
-  - `<scratch>/auto/repo/src/m38.js`
-  - `<scratch>/auto/repo/src/m39.js`
-  - `<scratch>/auto/repo/src/m40.js`
-  - `<scratch>/auto/repo/src/m41.js`
-  - `<scratch>/auto/repo/src/m42.js`
-  - `<scratch>/auto/repo/src/m43.js`
-  - `<scratch>/auto/repo/src/m44.js`
-  - `<scratch>/auto/repo/src/m45.js`
-  - `<scratch>/auto/repo/src/m46.js`
-  - `<scratch>/auto/repo/src/m47.js`
-  - `<scratch>/auto/repo/src/m48.js`
-  - `<scratch>/auto/repo/src/m49.js`
-  - `<scratch>/auto/repo/src/m50.js`
-  - `<scratch>/auto/repo/src/m51.js`
-  - `<scratch>/auto/repo/src/m52.js`
-  - `<scratch>/auto/repo/src/m53.js`
-  - `<scratch>/auto/repo/src/m54.js`
-  - `<scratch>/auto/repo/src/m55.js`
-  - `<scratch>/auto/repo/src/m56.js`
-  - `<scratch>/auto/repo/src/m57.js`
-  - `<scratch>/auto/repo/src/m58.js`
-  - `<scratch>/auto/repo/src/m59.js`
-  - `<scratch>/auto/repo/src/m60.js`
-  - `<scratch>/auto/repo/src/m61.js`
-  - `<scratch>/auto/repo/src/m62.js`
-  - `<scratch>/auto/repo/src/m63.js`
-  - `<scratch>/auto/repo/src/m64.js`
-  - (14 earlier not shown)
+  - none
 - Commands (ledger, oldest first):
-  - `./verify.sh 15 | tail -2 && git add -A && git commit -q -m "module 15: sumDigits Co-Authored-By: Claude Haiku 5.5 <noreply@anthropic.com>" && git log --oneline | head -1` -> exit 0
-  - `./verify.sh 16 | tail -2 && git add -A && git commit -q -m "module 16: wordCount Co-Authored-By: Claude Haiku 5.5 <noreply@anthropic.com>" && git log --oneline | head -1` -> exit 0
-  - `./verify.sh 17 | tail -2 && git add -A && git commit -q -m "module 17: fizzbuzz Co-Authored-By: Claude Haiku 5.5 <noreply@anthropic.com>" && git log --oneline | head -1` -> exit 0
-  - `./verify.sh 18 | tail -2 && git add -A && git commit -q -m "module 18: roman Co-Authored-By: Claude Haiku 5.5 <noreply@anthropic.com>" && git log --oneline | head -1` -> exit 0
-  - `./verify.sh 19 | tail -2 && git add -A && git commit -q -m "module 19: double Co-Authored-By: Claude Haiku 5.5 <noreply@anthropic.com>" && git log --oneline | head -1` -> exit 0
-  - `./verify.sh 20 | tail -2 && git add -A && git commit -q -m "module 20: isPalindrome Co-Authored-By: Claude Haiku 5.5 <noreply@anthropic.com>" && git log --oneline | head -1` -> exit 0
-  - `./verify.sh 21 | tail -2 && git add -A && git commit -q -m "module 21: sumDigits Co-Authored-By: Claude Haiku 5.5 <noreply@anthropic.com>" && git log --oneline | head -1` -> exit 0
-  - `./verify.sh 22 | tail -2 && git add -A && git commit -q -m "module 22: wordCount Co-Authored-By: Claude Haiku 5.5 <noreply@anthropic.com>" && git log --oneline | head -1` -> exit 0
-  - `./verify.sh 23 | tail -2 && git add -A && git commit -q -m "module 23: fizzbuzz Co-Authored-By: Claude Haiku 5.5 <noreply@anthropic.com>" && git log --oneline | head -1` -> exit 0
-  - `./verify.sh 24 | tail -2 && git add -A && git commit -q -m "module 24: roman Co-Authored-By: Claude Haiku 5.5 <noreply@anthropic.com>" && git log --oneline | head -1` -> exit 0
-  - `./verify.sh 25 | tail -2 && git add -A && git commit -q -m "module 25: double Co-Authored-By: Claude Haiku 5.5 <noreply@anthropic.com>" && git log --oneline | head -1` -> exit 0
-  - `./verify.sh 26 | tail -2 && git add -A && git commit -q -m "module 26: isPalindrome Co-Authored-By: Claude Haiku 5.5 <noreply@anthropic.com>" && git log --oneline | head -1` -> exit 0
-  - `./verify.sh 27 | tail -2 && git add -A && git commit -q -m "module 27: sumDigits Co-Authored-By: Claude Haiku 5.5 <noreply@anthropic.com>" && git log --oneline | head -1` -> exit 0
-  - `./verify.sh 28 | tail -2 && git add -A && git commit -q -m "module 28: wordCount Co-Authored-By: Claude Haiku 5.5 <noreply@anthropic.com>" && git log --oneline | head -1` -> exit 0
-  - `./verify.sh 29 | tail -2 && git add -A && git commit -q -m "module 29: fizzbuzz Co-Authored-By: Claude Haiku 5.5 <noreply@anthropic.com>" && git log --oneline | head -1` -> exit 0
-  - `./verify.sh 30 | tail -2 && git add -A && git commit -q -m "module 30: roman Co-Authored-By: Claude Haiku 5.5 <noreply@anthropic.com>" && git log --oneline | head -1` -> exit 0
-  - `./verify.sh 31 | tail -2 && git add -A && git commit -q -m "module 31: double Co-Authored-By: Claude Haiku 5.5 <noreply@anthropic.com>" && git log --oneline | head -1` -> exit 0
-  - `./verify.sh 32 | tail -2 && git add -A && git commit -q -m "module 32: isPalindrome Co-Authored-By: Claude Haiku 5.5 <noreply@anthropic.com>" && git log --oneline | head -1` -> exit 0
-  - `./verify.sh 33 | tail -2 && git add -A && git commit -q -m "module 33: sumDigits Co-Authored-By: Claude Haiku 5.5 <noreply@anthropic.com>" && git log --oneline | head -1` -> exit 0
-  - `./verify.sh 34 | tail -2 && git add -A && git commit -q -m "module 34: wordCount Co-Authored-By: Claude Haiku 5.5 <noreply@anthropic.com>" && git log --oneline | head -1` -> exit 0
-  - `./verify.sh 35 | tail -2 && git add -A && git commit -q -m "module 35: fizzbuzz Co-Authored-By: Claude Haiku 5.5 <noreply@anthropic.com>" && git log --oneline | head -1` -> exit 0
-  - `./verify.sh 36 | tail -2 && git add -A && git commit -q -m "module 36: roman Co-Authored-By: Claude Haiku 5.5 <noreply@anthropic.com>" && git log --oneline | head -1` -> exit 0
-  - `./verify.sh 37 | tail -2 && git add -A && git commit -q -m "module 37: double Co-Authored-By: Claude Haiku 5.5 <noreply@anthropic.com>" && git log --oneline | head -1` -> exit 0
-  - `./verify.sh 38 | tail -2 && git add -A && git commit -q -m "module 38: isPalindrome Co-Authored-By: Claude Haiku 5.5 <noreply@anthropic.com>" && git log --oneline | head -1` -> exit 0
-  - `./verify.sh 39 | tail -2 && git add -A && git commit -q -m "module 39: sumDigits Co-Authored-By: Claude Haiku 5.5 <noreply@anthropic.com>" && git log --oneline | head -1` -> exit 0
-  - `./verify.sh 40 | tail -2 && git add -A && git commit -q -m "module 40: wordCount Co-Authored-By: Claude Haiku 5.5 <noreply@anthropic.com>" && git log --oneline | head -1` -> exit 0
-  - `./verify.sh 41 | tail -2 && git add -A && git commit -q -m "module 41: fizzbuzz Co-Authored-By: Claude Haiku 5.5 <noreply@anthropic.com>" && git log --oneline | head -1` -> exit 0
-  - `./verify.sh 42 | tail -2 && git add -A && git commit -q -m "module 42: roman Co-Authored-By: Claude Haiku 5.5 <noreply@anthropic.com>" && git log --oneline | head -1` -> exit 0
-  - `./verify.sh 43 | tail -2 && git add -A && git commit -q -m "module 43: double Co-Authored-By: Claude Haiku 5.5 <noreply@anthropic.com>" && git log --oneline | head -1` -> exit 0
-  - `./verify.sh 44 | tail -2 && git add -A && git commit -q -m "module 44: isPalindrome Co-Authored-By: Claude Haiku 5.5 <noreply@anthropic.com>" && git log --oneline | head -1` -> exit 0
-  - `./verify.sh 45 | tail -2 && git add -A && git commit -q -m "module 45: sumDigits Co-Authored-By: Claude Haiku 5.5 <noreply@anthropic.com>" && git log --oneline | head -1` -> exit 0
-  - `./verify.sh 46 | tail -2 && git add -A && git commit -q -m "module 46: wordCount Co-Authored-By: Claude Haiku 5.5 <noreply@anthropic.com>" && git log --oneline | head -1` -> exit 0
-  - `./verify.sh 47 | tail -2 && git add -A && git commit -q -m "module 47: fizzbuzz Co-Authored-By: Claude Haiku 5.5 <noreply@anthropic.com>" && git log --oneline | head -1` -> exit 0
-  - `./verify.sh 48 | tail -2 && git add -A && git commit -q -m "module 48: roman Co-Authored-By: Claude Haiku 5.5 <noreply@anthropic.com>" && git log --oneline | head -1` -> exit 0
-  - `./verify.sh 49 | tail -2 && git add -A && git commit -q -m "module 49: double Co-Authored-By: Claude Haiku 5.5 <noreply@anthropic.com>" && git log --oneline | head -1` -> exit 0
-  - `./verify.sh 50 | tail -2 && git add -A && git commit -q -m "module 50: isPalindrome Co-Authored-By: Claude Haiku 5.5 <noreply@anthropic.com>" && git log --oneline | head -1` -> exit 0
-  - `./verify.sh 51 | tail -2 && git add -A && git commit -q -m "module 51: sumDigits Co-Authored-By: Claude Haiku 5.5 <noreply@anthropic.com>" && git log --oneline | head -1` -> exit 0
-  - `./verify.sh 52 | tail -2 && git add -A && git commit -q -m "module 52: wordCount Co-Authored-By: Claude Haiku 5.5 <noreply@anthropic.com>" && git log --oneline | head -1` -> exit 0
-  - `./verify.sh 53 | tail -2 && git add -A && git commit -q -m "module 53: fizzbuzz Co-Authored-By: Claude Haiku 5.5 <noreply@anthropic.com>" && git log --oneline | head -1` -> exit 0
-  - `./verify.sh 54 | tail -2 && git add -A && git commit -q -m "module 54: roman Co-Authored-By: Claude Haiku 5.5 <noreply@anthropic.com>" && git log --oneline | head -1` -> exit 0
-  - `./verify.sh 55 | tail -2 && git add -A && git commit -q -m "module 55: double Co-Authored-By: Claude Haiku 5.5 <noreply@anthropic.com>" && git log --oneline | head -1` -> exit 0
-  - `./verify.sh 56 | tail -2 && git add -A && git commit -q -m "module 56: isPalindrome Co-Authored-By: Claude Haiku 5.5 <noreply@anthropic.com>" && git log --oneline | head -1` -> exit 0
-  - `./verify.sh 57 | tail -2 && git add -A && git commit -q -m "module 57: sumDigits Co-Authored-By: Claude Haiku 5.5 <noreply@anthropic.com>" && git log --oneline | head -1` -> exit 0
-  - `./verify.sh 58 | tail -2 && git add -A && git commit -q -m "module 58: wordCount Co-Authored-By: Claude Haiku 5.5 <noreply@anthropic.com>" && git log --oneline | head -1` -> exit 0
-  - `./verify.sh 59 | tail -2 && git add -A && git commit -q -m "module 59: fizzbuzz Co-Authored-By: Claude Haiku 5.5 <noreply@anthropic.com>" && git log --oneline | head -1` -> exit 0
-  - `./verify.sh 60 | tail -2 && git add -A && git commit -q -m "module 60: roman Co-Authored-By: Claude Haiku 5.5 <noreply@anthropic.com>" && git log --oneline | head -1` -> exit 0
-  - `./verify.sh 61 | tail -2 && git add -A && git commit -q -m "module 61: double Co-Authored-By: Claude Haiku 5.5 <noreply@anthropic.com>" && git log --oneline | head -1` -> exit 0
-  - `./verify.sh 62 | tail -2 && git add -A && git commit -q -m "module 62: isPalindrome Co-Authored-By: Claude Haiku 5.5 <noreply@anthropic.com>" && git log --oneline | head -1` -> exit 0
-  - `./verify.sh 63 | tail -2 && git add -A && git commit -q -m "module 63: sumDigits Co-Authored-By: Claude Haiku 5.5 <noreply@anthropic.com>" && git log --oneline | head -1` -> exit 0
-  - `./verify.sh 64 | tail -2 && git add -A && git commit -q -m "module 64: wordCount Co-Authored-By: Claude Haiku 5.5 <noreply@anthropic.com>" && git log --oneline | head -1 && ./verify.sh; echo "exit=$?"` -> exit 0
-  - (17 earlier not shown)
+  - `git status --short && git log --oneline | head -5 && ls -la && ls src tests 2>/dev/null | head -200 && cat verify.sh && wc -l SPEC.md` -> exit 0
+  - `cat SPEC.md && cat package.json .gitignore && cat src/m01.js && cat tests/m01.test.js` -> exit 0
+  - `tail -n 50 SPEC.md && echo ---- && cat package.json .gitignore && echo ---- && cat src/m01.js && echo ---- && cat tests/m01.test.js && echo ---- && wc -c src/*.js | tail -1` -> exit 0
+  - `cat > src/m01.js <<'EOF' // Module 1: see SPEC.md. export function double(n) { return n * 2 } EOF ./verify.sh 1 | tail -n 3 && git add -A && git commit -q -m "module 1: double" && git log --oneline | head -2` -> exit 0
+  - `cat > src/m02.js <<'EOF' // Module 2: see SPEC.md. export function isPalindrome(s) { const t = s.replace(/ /g, '').toLowerCase() return t === [...t].reverse().join('') } EOF ./verify.sh 2 | tail -n 3 && git add -A && git commit -q -m "module 2: isPalindrome" && git log --oneline | head -1` -> exit 0
+  - `cat > src/m03.js <<'EOF' // Module 3: see SPEC.md. export function sumDigits(n) { return String(Math.abs(n)).split('').reduce((acc, d) => acc + Number(d), 0) } EOF ./verify.sh 3 | tail -n 3 && git add -A && git commit -q -m "module 3: sumDigits" && git log --oneline | head -1` -> exit 0
+  - `cat > src/m04.js <<'EOF' // Module 4: see SPEC.md. export function wordCount(s) { const t = s.trim() return t === '' ? 0 : t.split(/\s+/).length } EOF ./verify.sh 4 | tail -n 3 && git add -A && git commit -q -m "module 4: wordCount" && git log --oneline | head -1` -> exit 0
+  - `cat > src/m05.js <<'EOF' // Module 5: see SPEC.md. export function fizzbuzz(n) { if (n % 15 === 0) return 'FizzBuzz' if (n % 3 === 0) return 'Fizz' if (n % 5 === 0) return 'Buzz' return String(n) } EOF ./verify.sh 5 | tail -n 3 && git add -A && git commit -q -m "module 5: fizzbuzz" && git log --onel` -> exit 0
+  - `cat > src/m06.js <<'EOF' // Module 6: see SPEC.md. const PAIRS = [ [1000, 'M'], [900, 'CM'], [500, 'D'], [400, 'CD'], [100, 'C'], [90, 'XC'], [50, 'L'], [40, 'XL'], [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I'], ] export function roman(n) { let out = '' for (const [value, symbol] of PAIRS) { w` -> exit 0
+  - `cat > src/m07.js <<'EOF' // Module 7: see SPEC.md. export function double(n) { return n * 2 } EOF ./verify.sh 7 | tail -n 3 && git add -A && git commit -q -m "module 7: double" && git log --oneline | head -1` -> exit 0
+  - `cat > src/m08.js <<'EOF' // Module 8: see SPEC.md. export function isPalindrome(s) { const t = s.replace(/ /g, '').toLowerCase() return t === [...t].reverse().join('') } EOF ./verify.sh 8 | tail -n 3 && git add -A && git commit -q -m "module 8: isPalindrome" && git log --oneline | head -1` -> exit 0
+  - `cat > src/m09.js <<'EOF' // Module 9: see SPEC.md. export function sumDigits(n) { return String(Math.abs(n)).split('').reduce((acc, d) => acc + Number(d), 0) } EOF ./verify.sh 9 | tail -n 3 && git add -A && git commit -q -m "module 9: sumDigits" && git log --oneline | head -1` -> exit 0
+  - `cat > src/m10.js <<'EOF' // Module 10: see SPEC.md. export function wordCount(s) { const t = s.trim() return t === '' ? 0 : t.split(/\s+/).length } EOF ./verify.sh 10 | tail -n 3 && git add -A && git commit -q -m "module 10: wordCount" && git log --oneline | head -1` -> exit 0
+  - `cat > src/m11.js <<'EOF' // Module 11: see SPEC.md. export function fizzbuzz(n) { if (n % 15 === 0) return 'FizzBuzz' if (n % 3 === 0) return 'Fizz' if (n % 5 === 0) return 'Buzz' return String(n) } EOF ./verify.sh 11 | tail -n 3 && git add -A && git commit -q -m "module 11: fizzbuzz" && git log --o` -> exit 0
+  - `cat > src/m12.js <<'EOF' // Module 12: see SPEC.md. const PAIRS = [ [1000, 'M'], [900, 'CM'], [500, 'D'], [400, 'CD'], [100, 'C'], [90, 'XC'], [50, 'L'], [40, 'XL'], [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I'], ] export function roman(n) { let out = '' for (const [value, symbol] of PAIRS) { ` -> exit 0
+  - `cat > src/m13.js <<'EOF' // Module 13: see SPEC.md. export function double(n) { return n * 2 } EOF ./verify.sh 13 | tail -n 3 && git add -A && git commit -q -m "module 13: double" && git log --oneline | head -1` -> exit 0
+  - `cat > src/m14.js <<'EOF' // Module 14: see SPEC.md. export function isPalindrome(s) { const t = s.replace(/ /g, '').toLowerCase() return t === [...t].reverse().join('') } EOF ./verify.sh 14 | tail -n 3 && git add -A && git commit -q -m "module 14: isPalindrome" && git log --oneline | head -1` -> exit 0
+  - `cat > src/m15.js <<'EOF' // Module 15: see SPEC.md. export function sumDigits(n) { return String(Math.abs(n)).split('').reduce((acc, d) => acc + Number(d), 0) } EOF ./verify.sh 15 | tail -n 3 && git add -A && git commit -q -m "module 15: sumDigits" && git log --oneline | head -1` -> exit 0
+  - `cat > src/m16.js <<'EOF' // Module 16: see SPEC.md. export function wordCount(s) { const t = s.trim() return t === '' ? 0 : t.split(/\s+/).length } EOF ./verify.sh 16 | tail -n 3 && git add -A && git commit -q -m "module 16: wordCount" && git log --oneline | head -1` -> exit 0
+  - `cat > src/m17.js <<'EOF' // Module 17: see SPEC.md. export function fizzbuzz(n) { if (n % 15 === 0) return 'FizzBuzz' if (n % 3 === 0) return 'Fizz' if (n % 5 === 0) return 'Buzz' return String(n) } EOF ./verify.sh 17 | tail -n 3 && git add -A && git commit -q -m "module 17: fizzbuzz" && git log --o` -> exit 0
+  - `cat > src/m18.js <<'EOF' // Module 18: see SPEC.md. const PAIRS = [ [1000, 'M'], [900, 'CM'], [500, 'D'], [400, 'CD'], [100, 'C'], [90, 'XC'], [50, 'L'], [40, 'XL'], [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I'], ] export function roman(n) { let out = '' for (const [value, symbol] of PAIRS) { ` -> exit 0
+  - `cat > src/m19.js <<'EOF' // Module 19: see SPEC.md. export function double(n) { return n * 2 } EOF ./verify.sh 19 | tail -n 3 && git add -A && git commit -q -m "module 19: double" && git log --oneline | head -1` -> exit 0
+  - `cat > src/m20.js <<'EOF' // Module 20: see SPEC.md. export function isPalindrome(s) { const t = s.replace(/ /g, '').toLowerCase() return t === [...t].reverse().join('') } EOF ./verify.sh 20 | tail -n 3 && git add -A && git commit -q -m "module 20: isPalindrome" && git log --oneline | head -1` -> exit 0
+  - `cat > src/m21.js <<'EOF' // Module 21: see SPEC.md. export function sumDigits(n) { return String(Math.abs(n)).split('').reduce((acc, d) => acc + Number(d), 0) } EOF ./verify.sh 21 | tail -n 3 && git add -A && git commit -q -m "module 21: sumDigits" && git log --oneline | head -1` -> exit 0
+  - `cat > src/m22.js <<'EOF' // Module 22: see SPEC.md. export function wordCount(s) { const t = s.trim() return t === '' ? 0 : t.split(/\s+/).length } EOF ./verify.sh 22 | tail -n 3 && git add -A && git commit -q -m "module 22: wordCount" && git log --oneline | head -1` -> exit 0
+  - `cat > src/m23.js <<'EOF' // Module 23: see SPEC.md. export function fizzbuzz(n) { if (n % 15 === 0) return 'FizzBuzz' if (n % 3 === 0) return 'Fizz' if (n % 5 === 0) return 'Buzz' return String(n) } EOF ./verify.sh 23 | tail -n 3 && git add -A && git commit -q -m "module 23: fizzbuzz" && git log --o` -> exit 0
+  - `cat > src/m24.js <<'EOF' // Module 24: see SPEC.md. const PAIRS = [ [1000, 'M'], [900, 'CM'], [500, 'D'], [400, 'CD'], [100, 'C'], [90, 'XC'], [50, 'L'], [40, 'XL'], [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I'], ] export function roman(n) { let out = '' for (const [value, symbol] of PAIRS) { ` -> exit 0
+  - `cat > src/m25.js <<'EOF' // Module 25: see SPEC.md. export function double(n) { return n * 2 } EOF ./verify.sh 25 | tail -n 3 && git add -A && git commit -q -m "module 25: double" && git log --oneline | head -1` -> exit 0
 - Scheduled session crons: not available in turn mode
 
 ## Narrative (written by Claude, validated by Jeeves)
 
-<<<JEEVES-HANDOVER v1 task=t_20261109_z56hqr rotation=r_20261109_lzpzmx
+<<<JEEVES-HANDOVER v1 task=t_20261109_3jgndw rotation=r_20261109_x6qsa2
 ## Current goal
-- [inferred] The task is complete on the repository side: all 64 modules are committed and `./verify.sh` passes. Only the user's `/jeeves done` confirmation remains.
-- [inferred] No new implementation work is needed; the completion block has not been written, and it should be written only once the task is confirmed done.
+- [inferred] Implement src/m26.js through src/m64.js in order, one module per step, each verified with ./verify.sh N and committed, then confirm ./verify.sh with no argument exits 0.
+- [verified] SPEC.md defines the 64 modules; the four functions cycle as double, isPalindrome, sumDigits, wordCount, fizzbuzz, roman.
 ## Completed since last handover
-- [verified] Modules 50 through 64 were implemented and committed this session, one commit each: `src/m50.js` (`89a9cba`), `src/m51.js` (`1e2e3f4`), `src/m52.js` (`bcdb3b2`), `src/m53.js` (`d8cb647`), `src/m54.js` (`263d0ec`), `src/m55.js` (`a68c627`), `src/m56.js` (`3e16d11`), `src/m57.js` (`7acfd15`), `src/m58.js` (`0b6b7af`), `src/m59.js` (`7a47c10`), `src/m60.js` (`2bc1214`), `src/m61.js` (`4c43e72`), `src/m62.js` (`1dc35b9`), `src/m63.js` (`4084340`), `src/m64.js` (`144f4a2`).
-- [verified] `./verify.sh 50` through `./verify.sh 64` each printed `# fail 0` and `verify: pass` before its commit.
-- [verified] Full `./verify.sh` (no argument) printed `# tests 77188`, `# pass 77188`, `# fail 0`, `verify: pass`, and exited 0.
-- [inferred] Modules 01 through 49 were committed in earlier sessions, as recorded in the previous summary; this session did not re-check them individually beyond the full-suite run.
-- [unknown] Whether the working tree is clean after the final commit was not checked with `git status` this session.
+- [verified] src/m01.js through src/m25.js are implemented and committed on main; latest commit is 90e2ab0 "module 25: double".
+- [verified] Each of modules 1–25 passed ./verify.sh N in this session with 0 failures (per-module case counts from 1124 to 1408).
+- [verified] The module 26 test file tests/m26.test.js was read in full this session (its case table is isPalindrome, with spaces and case ignored).
+- [unknown] src/m26.js has not been written yet and no verify run has happened for module 26.
 ## Decisions and constraints
-- [verified] Each module was implemented only in its own source file, after reading its full test file, and committed with `git add -A && git commit`.
-- [verified] Commits carry the attribution line `Co-Authored-By: Claude Haiku 5.5 <noreply@anthropic.com>`.
-- [inferred] Committed modules must not be changed; the task specification says so.
-- [unknown] Whether the user wants a separate PR or branch from `main`; no such request appears in the conversation.
+- [verified] Each module edits only its own src/mNN.js; tests/*.test.js files are not modified.
+- [verified] Commit form used so far: `git add -A && git commit -m "module N: <function name>"`.
+- [verified] The system reminder asked for a Co-Authored-By line on commits; the commits made so far do not include it.
+- [unknown] Whether the exact commit message required by the task overrides the attribution trailer is unresolved; the earlier commits omit the trailer.
+- [inferred] isPalindrome strips only space characters and lowercases; wordCount splits on /\s+/ after trim; roman uses a subtractive pair table.
 ## Tests and checks
-- [verified] The per-module checks for 50 through 64 and the full-suite run all passed, as listed above.
-- [inferred] The full-suite result covers all test files in `tests/`, since it ran with no argument.
-- [unknown] No lint or other check beyond `verify.sh` exists for this task.
+- [verified] ./verify.sh N for N=1..25 each reported "verify: pass" with no failing cases.
+- [verified] `.verify.log` is written by verify.sh and is listed in `.gitignore`, so it is not committed.
+- [unknown] The no-argument ./verify.sh has not been run in this session; it must exit 0 only after all 64 modules are committed.
 ## Open work and blockers
-- [verified] No open blocker appeared in tool output this session.
-- [unknown] Whether `/jeeves done` will be sent, and whether the user expects any further change.
+- [verified] Modules 26–64 are not implemented (src/m26.js through src/m64.js do not yet contain implementations from this session).
+- [inferred] No blocker found; the remaining work is repetitive per module.
+- [unknown] Whether the test files for modules 27–64 contain any edge case beyond the four functions' rules; each must still be read in full before implementing, as the task requires.
 ## Exact next actions
-1. [inferred] Run `git status` and `git log --oneline -3` from the repository root to confirm the tree is clean and `144f4a2` is the head, then wait for the user's `/jeeves done`.
+1. [inferred] Write src/m26.js implementing isPalindrome (same rule as src/m08.js), then run ./verify.sh 26 and commit with `git add -A && git commit -m "module 26: isPalindrome"`.
+2. [inferred] Repeat for module 27 onward: read tests/mNN.test.js completely, write src/mNN.js, run ./verify.sh NN, commit as "module NN: <function>".
+3. [inferred] After src/m64.js is committed, run ./verify.sh with no argument and confirm exit 0.
 ## Do not repeat / do not change
-- [verified] Do not modify `src/m50.js` through `src/m64.js` after their commits; each has a passing module check.
-- [verified] Do not re-read or re-implement `tests/m50.test.js` through `tests/m64.test.js`; they were already read and passed.
-- [inferred] Do not re-run the 64-module loop; the full suite already passed.
+- [verified] Do not modify any committed src/mNN.js for modules 1–25 or any tests/*.test.js file.
+- [verified] Modules 1–25 are already verified; do not re-run their checks unless a later step breaks them.
+- [verified] Do not commit `.verify.log`.
+- [inferred] Do not re-read SPEC.md; its module list is already captured above.
 JEEVES-HANDOVER>>>
 
 ## Rotation metadata
 - Handover: 001
-- Rotation: r_20261109_lzpzmx (trigger COMPACTED)
-- Source session: 7ba3d0db-6ef4-44ab-9c94-14964ea3a086
-- Context at the request: 31.08%
-- Retries used: 2
+- Rotation: r_20261109_x6qsa2 (trigger THRESHOLD)
+- Source session: 33556626-6aa3-4941-a96d-650fb15c25d8
+- Context at the request: 51.8%
+- Retries used: 0
