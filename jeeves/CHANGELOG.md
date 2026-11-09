@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased (0.3)
+## 0.3.0 (release candidate; dated when tagged)
+
+Release notes: `docs/release-notes/v0.3.0.md`.
 
 - Auto-start runs (ST-13.3 … ST-13.9; release notes draft: `docs/release-notes/v0.3.0.md`). On a new install, an interactive session in a git repository, on a model with a window above 200K tokens, in a fresh conversation, is watched by itself: the first typed prompt becomes the task (`auto`; `/jeeves on` tasks are `explicit`). A notice once, before anything is recorded. Auto tasks: no handover in the first 3 turns unless the context is 10 points past the threshold; end when the first reading is already near the threshold, on a switch to a 200K model, and on a `/clear` you type (explicit tasks still pause); recover by themselves after a session closed mid-handover; deleted 7 days after they ended without a handover. `/jeeves on <goal>` makes an auto task explicit. `/jeeves status` shows `(auto)`/`(explicit)` and, for a session that is not watched, why. `/jeeves later` postpones a handover by 10 points up to a cap. New handovers carry a Current goal, shown in the rotation line; the continuation gives the user's own words first. README and PRIVACY.md describe all of it.
 - A message typed during a handover is no longer quoted in `events.jsonl` (the line names it by its length); it was kept there after delivery, against NFR-10 and PRIVACY.md.

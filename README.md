@@ -2,7 +2,7 @@
 
 **Long Claude Code tasks, without the context running out.** Jeeves is a plugin for Claude Code. When a long task fills the context window, it saves a verified handover, starts a fresh conversation in the same terminal and carries on with the task there. You keep working; you don't write summaries or paste anything back.
 
-**Status:** public beta 0.2.0 (not published yet); 0.3.0 with auto-start is in development (see the [CHANGELOG](jeeves/CHANGELOG.md)). Claude Code 2.1.319 or later, macOS, tested in Cursor's terminal too. On Claude accounts in a Team organization 0.2.0 turns itself off (a built-in plugin there skips Jeeves's hooks); 0.3.0 hands over there too, in turn mode. No API key, no server, no network calls. Not made by or affiliated with Anthropic.
+**Status:** public beta 0.3.0, with auto-start (not published yet; see the [CHANGELOG](jeeves/CHANGELOG.md)). Claude Code 2.1.319 or later, macOS, tested in Cursor's terminal too. On Claude accounts in a Team organization a built-in plugin skips Jeeves's hooks; 0.3.0 hands over there too, in turn mode (0.2.0 turned itself off). No API key, no server, no network calls. Not made by or affiliated with Anthropic.
 
 ## How it works
 

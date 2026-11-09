@@ -8,7 +8,9 @@ Paths: `tests/` = `jeeves/tests/`. Raw live-run folders stay local (scratch path
 
 ## Suite re-run
 
-SUITE_RERUN
+`jeeves/scripts/check-all.sh` on 2026-11-09 at the release-prep commit, machine load average 17–35: typecheck ok, lint ok, **302 unit; 311 mod in each of the three runs (Stop mode with auto-start off, Stop mode with auto-start on, turn mode); every functional test passes**; `claude plugin validate --strict` and the marketplace validate pass. The timing test `tests/perf/stats.test.ts` ("P: stats over 50 tasks < 100 ms") failed in some runs at this load (100.4–257 ms) and passed in others, as recorded for v0.2.0 (AC-32 there: borderline, bound kept, runs locally only).
+
+Compatibility (C): [`jeeves/docs/compatibility.md`](../../../../jeeves/docs/compatibility.md), regenerated for 0.3.0: 2.1.302, 2.1.303, 2.1.310, 2.1.316 and 2.1.319 all validate, and their mod tests pass except the timing test above in the generated rows for 2.1.302 and 2.1.310 (2.1.302 passed 311/311 on a re-run). Only 2.1.319 is supported (D-38). `scripts/compat.mjs` had not run since ST-16.7, which put unescaped backticks into a template literal; fixed in ST-15.3.
 
 ## v0.3 acceptance criteria
 
