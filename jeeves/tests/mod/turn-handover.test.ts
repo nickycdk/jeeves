@@ -62,3 +62,20 @@ test('AC 4: an interrupt during the request pauses as in Stop mode', async ($, o
   expect([stateOf(h, dir).status, stateOf(h, dir).reason]).toEqual(['PAUSED', 'USER_INTERRUPT'])
   expect(clears).toEqual([])
 })
+
+test('ST-15.4: a refused handover turn counts as no handover and gets the retry (not stuck in HANDOVER_GENERATING)', async ($, on) => {
+  const { h, dir, prompts } = await requested($, on)
+  await turn($, '', 'refusal')
+  await h.clock.settle()
+  expect(prompts.at(-1)!.text).toContain('no "<<<JEEVES-HANDOVER v1" line found')
+  expect(stateOf(h, dir).rotation.retries).toBe(1)
+})
+
+test('ST-15.4: an API error ending the handover turn pauses with API_ERROR, as classic.StopFailure does in Stop mode', async ($, on) => {
+  const { h, dir, clears } = await requested($, on)
+  await turn($, '', 'error')
+  expect([stateOf(h, dir).status, stateOf(h, dir).reason]).toEqual(['PAUSED', 'API_ERROR'])
+  expect(clears).toEqual([])
+  const r = await submit($, 'go on')
+  expect(r.drop).toBeUndefined()
+})

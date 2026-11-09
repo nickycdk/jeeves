@@ -78,11 +78,12 @@ const release = (c: { held: (() => void)[] } | undefined) => { for (const go of 
 /** Turn mode: a plugin /clear asked at the turn end `stop` stood for waits until the test ends that turn (turnEnd) or starts another. */
 const heldClear = ($: Kit) => new Promise<void>(go => { const c = ctx.get($); if (TURN && c) c.held.push(go); else go() })
 /** In turn mode the turn `stop` already ended is not ended again. */
-export const turnEnd = async ($: Kit, reason: 'answer' | 'aborted' = 'answer', turnId = 't1', answer = 'ok') => {
+export const turnEnd = async ($: Kit, reason: 'answer' | 'aborted' | 'refusal' | 'error' = 'answer', turnId = 't1', answer = 'ok') => {
   const c = ctx.get($)
   if (c?.stopEnded) return void (c.stopEnded = false, release(c))
   if (c) c.open = null
-  await $.turn.complete({ answer, durationMs: 1, isAborted: reason === 'aborted', turnId, reason })
+  const base = { answer, durationMs: 1, isAborted: reason === 'aborted', turnId }
+  await $.turn.complete(reason === 'refusal' ? { ...base, reason, refusal: { category: null, explanation: null } } : { ...base, reason })
 }
 
 /**
@@ -213,7 +214,7 @@ export async function generating($: Kit, on: Parameters<typeof memHost>[0], opts
 // ---- Turn mode (ST-16.3, ST-16.4): no classic.Stop and no classic.SessionStart reach Jeeves ----
 
 /** One main turn that answers `answer`; no classic.Stop reaches Jeeves (the skip). */
-export async function wholeTurn($: Kit, answer = 'ok', reason: 'answer' | 'aborted' = 'answer') {
+export async function wholeTurn($: Kit, answer = 'ok', reason: Parameters<typeof turnEnd>[1] = 'answer') {
   const turnId = `w${++turnNo}`
   await turnStart($, turnId)
   await turnEnd($, reason, turnId, answer)
