@@ -68,11 +68,11 @@ export const bottom = (on: On, ctl: { drop?: (text: string) => boolean } = {}) =
 }
 
 /** A main-loop turn opening and ending, as the engine raises them. */
-export const turnStart = ($: Kit, turnId = 't1') => {
+export const turnStart = ($: Kit, turnId = 't1', text = 'x') => {
   const c = ctx.get($)
   if (c) Object.assign(c, { open: turnId, stopEnded: false })
   release(c)
-  return $.turn.start({ text: 'x', turnId })
+  return $.turn.start({ text, turnId })
 }
 const release = (c: { held: (() => void)[] } | undefined) => { for (const go of c?.held.splice(0) ?? []) go() }
 /** Turn mode: a plugin /clear asked at the turn end `stop` stood for waits until the test ends that turn (turnEnd) or starts another. */

@@ -57,7 +57,8 @@ export const register: Register = (on, options) => {
   // ADR-003 A2 (ST-15.4): what opened this main turn, so a /loop or notification turn ahead of Jeeves's request is not read as the handover.
   // A turn another source opened (a /loop, a notification, another plugin or session) is foreign; unknown (a reload mid-turn) and typed ones are not.
   const foreignTurn = (o: PromptOrigin | null) => o !== null && o.kind !== 'composer' && !(o.kind === 'plugin' && o.name === PLUGIN)
-  let nextOpener: PromptOrigin | null = null
+  // Keyed by text: several prompts may wait at once, and turn.start names the text it begins with. Unmatched: unknown.
+  const openers = new Map<string, PromptOrigin>()
   let opener: PromptOrigin | null = null
   // R-25: whether this main turn's classic.Stop reached Jeeves.
   let stopSeen = true
@@ -127,7 +128,9 @@ export const register: Register = (on, options) => {
   // ST-2.1: the person's first prompt after `/jeeves on` (no goal) is the task, byte for byte. Slash commands are not.
   // ST-4.4: during a handover a typed prompt is held for the fresh conversation; slash commands still run.
   on('prompt.submit', async ($, e, next) => {
-    nextOpener = e.origin
+    openers.set(e.text, e.origin)
+    // shortcut: a held or dropped prompt never starts a turn; keep the newest 20, more is never queued in practice.
+    if (openers.size > 20) openers.delete(openers.keys().next().value!)
     // ADR-004 A2: a background task's notification ends it in turn mode's record (kept in every mode, it costs nothing).
     if (e.origin.kind === 'task-notification') bgNotified(e.text)
     if (e.origin.kind !== 'composer' || e.command || e.isMeta) return next(e)
@@ -155,8 +158,8 @@ export const register: Register = (on, options) => {
   on('turn.start', async ($, e, next) => {
     if (e.agentId === undefined) {
       turnOpen = true
-      opener = nextOpener
-      nextOpener = null
+      opener = openers.get(e.text) ?? null
+      openers.delete(e.text)
       stopSeen = false
       rowDue = true
     }

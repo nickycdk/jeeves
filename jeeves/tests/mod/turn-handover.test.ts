@@ -92,15 +92,19 @@ test('ST-15.4: a turn whose Stop did reach Jeeves after turn mode was chosen is 
 
 test('ST-15.4 (ADR-003 A2 note): a /loop or notification turn ahead of the request is not read as the handover; the request turn is', async ($, on) => {
   const { h, dir, prompts, clears, taskId, rotationId } = await requested($, on)
-  for (const origin of [{ kind: 'scheduled-trigger' }, { kind: 'task-notification' }] as const) {
-    await submit($, 'loop prompt', origin as never)
-    await turn($, 'loop output, no handover')
+  // Both queued before either turn starts (review): each turn is matched to its own prompt by text.
+  await submit($, 'loop prompt', { kind: 'scheduled-trigger' } as never)
+  await submit($, 'notification', { kind: 'task-notification' } as never)
+  for (const [id, text] of [['l1', 'loop prompt'], ['n1', 'notification']]) {
+    await turnStart($, id, text)
+    await turnEnd($, 'answer', id, 'loop output, no handover')
     await h.clock.settle()
   }
   expect(stateOf(h, dir).rotation.retries ?? 0).toBe(0)
   expect(prompts.filter(p => p.text.includes('no "<<<JEEVES-HANDOVER v1" line found'))).toEqual([])
-  await submit($, 'Jeeves: write the handover', { kind: 'plugin', name: 'jeeves' } as never)
-  await turn($, handover(taskId, rotationId))
+  // Jeeves's own request, queued before the loop and the notification, opens its turn by its text.
+  await turnStart($, 'r1', prompts.find(p => p.text.includes('JEEVES-HANDOVER'))!.text)
+  await turnEnd($, 'answer', 'r1', handover(taskId, rotationId))
   expect(h.files.get(`${dir}/history/handover-001.md`)).toContain(handover(taskId, rotationId))
   await until(h, () => clears.length > 0)
 })
