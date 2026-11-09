@@ -115,8 +115,9 @@ function commandsLine(v: StatusView): string {
 
 export function statusText(v: StatusView): string {
   // AC-25: a task that fell back to assisted shows it, whatever the probe said.
-  const lines = [`Jeeves  mode: ${v.task?.state.mode === 'assisted' ? 'assisted' : v.probe.mode}`]
-  if (v.probe.missing[0] === 'classic.Stop hook') lines.push('Stop hook skipped by another plugin')
+  // ADR-002 A3: `(turn)` names the boundary, so a bug report says which path ran.
+  const lines = [`Jeeves  mode: ${v.task?.state.mode === 'assisted' ? 'assisted' : v.probe.mode}${v.probe.boundary === 'turn' ? ' (turn)' : ''}`]
+  if (v.probe.missing[0] === '$.prompt.submit') lines.push('Stop hook skipped and a prompt refused')
   else if (v.probe.mode === 'unsupported') lines.push(`Needs ${(v.probe.missing[0] ?? 'newer').replace('Claude Code ', '')}, this is ${v.probe.version ?? '?'}`)
   else if (v.probe.mode === 'assisted') lines.push(`Missing: ${v.probe.missing.join(', ')}`)
   if (v.auto) lines.push(v.auto)
@@ -155,7 +156,7 @@ export function statusText(v: StatusView): string {
 
 /** The status line when Jeeves is not in full mode. */
 export const offStatus = (p: Probe) =>
-  p.missing[0] === 'classic.Stop hook' ? 'off: Stop hook skipped' : p.mode === 'unsupported' ? `off: needs ${p.missing[0]}` : 'assisted mode'
+  p.missing[0] === '$.prompt.submit' ? 'off: prompt refused' : p.mode === 'unsupported' ? `off: needs ${p.missing[0]}` : 'assisted mode'
 
 /** The `/jeeves` command menu's argument hint; a unit test keeps it in step with HELP. */
 export const ARGUMENT_HINT = 'on [goal] | off | pause | resume | rotate | later | continue | recover | done | retry | threshold <n> | defaults ... | auto [on|off] | task | dod <text> | check <cmd> | status [--diagnose] | history [--full] | handover | stats | purge | help'
@@ -247,7 +248,6 @@ export const MSG = {
     '/jeeves later postpones a handover, /jeeves off stops it for this session, /jeeves auto off turns it off.',
   ].join('\n'),
   // ST-13.3 (spec §5.1): the R-25 re-check ends an auto task.
-  autoUnsupported: "Jeeves: not watching any more (this account isn't supported); /jeeves status for details",
   upgradeNotice: 'Jeeves can now watch long sessions by itself. Type /jeeves auto on to turn it on. Nothing changes until you do.',
   hint: (percent: number) => `Jeeves: this session is at ${percent}%. /jeeves on would hand it over to a fresh conversation before it fills up. /jeeves auto off hides this.`,
   autoOffSession: 'No managed task. Auto-start is off for the rest of this session; /jeeves on still starts a task.',

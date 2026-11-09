@@ -23,7 +23,6 @@ function allMessages(): string {
     `Unreadable state: ${MSG.corrupt('t_1')}`,
     `Auto task, first reading near the threshold: ${nearText(34)}`,
     `Auto task, model switch to 200K: ${windowEndText(200_000)}`,
-    `Auto task, Stop hook skipped: ${MSG.autoUnsupported}`,
     `First eligible session: ${MSG.autoNotice(40, 1_000_000)}`,
     `Auto task, user /clear: ${USER_CLEAR_AUTO}`,
     `Explicit task, user /clear: ${USER_CLEAR_EXPLICIT}`,

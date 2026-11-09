@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { chooseCommandName, pickTask } from '../../src/adapter/commands.ts'
 import { ARGUMENT_HINT, firstActivationText, HELP, statusText, WIDTH, type StatusView } from '../../src/adapter/ui.ts'
-import { probe, withoutStopHook } from '../../src/core/probe.ts'
+import { probe, submitRefused, turnMode } from '../../src/core/probe.ts'
 import { validState } from './helpers.ts'
 
 const all = { 'command.run': true, 'prompt.submit': true, 'session.usage': true, 'process.run': true }
@@ -134,9 +134,9 @@ test('the command menu hint names every command in help', () => {
 
 test('more than 8 lines: Path, Last, Rotations, Waiting, TEST OVERRIDE give way in that order; the reason and the defaults warning always show', () => {
   const state = validState({ status: 'NEEDS_REVIEW', reason: 'HANDOVER_INVALID', taskRevision: 0 })
-  const t = statusText(view({ probe: withoutStopHook(full), task: { state, dir: `${root}/projects/p/tasks/t1` }, defaultsError: 'bad', thresholdOverride: 30 }))
+  const t = statusText(view({ probe: submitRefused(turnMode(full)), task: { state, dir: `${root}/projects/p/tasks/t1` }, defaultsError: 'bad', thresholdOverride: 30 }))
   shape(t)
-  for (const want of ['Stop hook skipped', 'Handover invalid', 'Warning: defaults unreadable', 'State: NEEDS_REVIEW', 'Try: /jeeves retry | off | help']) assert.ok(t.includes(want), `missing ${want}:\n${t}`)
+  for (const want of ['mode: unsupported (turn)', 'Stop hook skipped and a prompt refused', 'Handover invalid', 'Warning: defaults unreadable', 'State: NEEDS_REVIEW', 'Try: /jeeves retry | off | help']) assert.ok(t.includes(want), `missing ${want}:\n${t}`)
   assert.ok(!t.includes('Path:') && !t.includes('Last:'), t)
   const roomy = statusText(view({ task: { state: validState(), dir: `${root}/projects/p/tasks/t1` }, defaultsError: 'bad' }))
   assert.ok(roomy.includes('Try:') && roomy.includes('Last:') && roomy.includes('Warning: defaults unreadable'), roomy)
@@ -157,7 +157,7 @@ test('ST-14.2: the commands line offers what fits now and survives the 8-line ru
   assert.equal(last({ auto: 'Auto off: resumed conversation (+1 more)' }), 'Try: /jeeves on | help')
   assert.equal(last({ auto: 'Auto-start: on (default)' }), 'Try: /jeeves help')
   // Every test setting and warning at once: still 8 lines, the reason and the commands kept.
-  const crowded = statusText(view({ probe: withoutStopHook(full), task: { state: validState({ status: 'PAUSED', reason: 'USER_PAUSE', taskRevision: 0 }), dir }, defaultsError: 'bad', thresholdOverride: 30, windowOverride: 200_000 }))
+  const crowded = statusText(view({ probe: submitRefused(turnMode(full)), task: { state: validState({ status: 'PAUSED', reason: 'USER_PAUSE', taskRevision: 0 }), dir }, defaultsError: 'bad', thresholdOverride: 30, windowOverride: 200_000 }))
   shape(crowded)
   for (const want of ['Paused by you', 'Try: /jeeves resume | off | help']) assert.ok(crowded.includes(want), crowded)
 })

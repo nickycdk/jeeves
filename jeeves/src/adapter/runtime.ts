@@ -1,6 +1,6 @@
 // Per-process context, rebuilt after every reload (no state lives only in memory; this is all derived).
 import type { EngineInterface } from 'claude-code'
-import { withoutStopHook, type Probe } from '../core/probe.ts'
+import { submitRefused, turnMode, type Probe } from '../core/probe.ts'
 import { enginePort } from './engine-mod.ts'
 import type { EnginePort } from './ports.ts'
 import type { AutoRow } from '../core/autostart.ts'
@@ -8,6 +8,7 @@ import type { RepoIdentity } from '../core/git.ts'
 import { projectDir, projectId, repoIdentity } from './git.ts'
 import { simulateWindow } from '../core/task.ts'
 import { runProbe } from './probe.ts'
+import { offStatus } from './ui.ts'
 import { createQueue, createStorage, resolveStateRoot, StorageError, type StateRootSource, type Storage } from './storage.ts'
 
 export type Runtime = {
@@ -44,11 +45,15 @@ export type CrashPoint = (typeof CRASH_POINTS)[number]
 export type Options = { stateDir?: string | undefined; autoRecover?: boolean; autoStart?: AutoRow }
 
 let current: Promise<Runtime> | null = null
-// R-25: set once this process saw a main turn answer without the Stop hook; a reload starts over and finds it again.
+// R-25 / ADR-002 A3: set once this process saw a main turn answer without the Stop hook (turn mode), and once a submit
+// was refused in turn mode; kept across session.start's re-probe in this process, a reload starts over.
 let stopSkipped = false
+let refused = false
 
-/** The Stop hook is being skipped: this runtime and any later one (session.start re-probes) say so. Same storage and queue. */
-export function markStopSkipped(rt: Runtime): void { stopSkipped = true; rt.probe = withoutStopHook(rt.probe) }
+/** The Stop hook is being skipped: turn mode for this runtime and any later one (session.start re-probes). Same storage and queue. */
+export function markStopSkipped(rt: Runtime): void { stopSkipped = true; rt.probe = turnMode(rt.probe) }
+
+const lens = (p: Probe) => (refused ? submitRefused(p) : p)
 
 /** One storage (one write queue) per process. Reset by `session.start` so a reload re-probes. */
 export function runtime($: EngineInterface, options: Options, refresh = false): Promise<Runtime> {
@@ -59,7 +64,7 @@ export function runtime($: EngineInterface, options: Options, refresh = false): 
 async function build($: EngineInterface, options: Options): Promise<Runtime> {
   const port = enginePort($)
   const storage = createStorage(port)
-  const probe = await runProbe($).then(p => stopSkipped ? withoutStopHook(p) : p)
+  const probe = await runProbe($).then(p => lens(stopSkipped ? turnMode(p) : p))
   let stateRoot: string | null = null, stateRootError: string | null = null, stateRootSource: StateRootSource | null = null
   const id = await port.cwd().then(cwd => repoIdentity(port, cwd)).catch(() => null)
   try {
@@ -79,7 +84,7 @@ async function build($: EngineInterface, options: Options): Promise<Runtime> {
   const crash = (await port.env('JEEVES_TEST')) === '1' ? (await port.env('JEEVES_TEST_CRASH'))?.trim() : undefined
   const w = (await port.env('JEEVES_TEST')) === '1' ? Number((await port.env('JEEVES_TEST_WINDOW_OVERRIDE'))?.trim() || NaN) : NaN
   const windowOverride = Number.isInteger(w) && w >= 1000 ? w : null
-  return {
+  const rt: Runtime = {
     port: windowOverride ? { ...port, usage: () => port.usage().then(u => simulateWindow(u, windowOverride)) } : port, storage, probe, stateRoot, stateRootError, stateRootSource, identity: id, projectId: pid,
     projectDir: stateRoot && pid ? projectDir(stateRoot, pid) : null, serial: createQueue(),
     thresholdOverride: Number.isFinite(override) && override >= 1 && override <= 99 ? override : null,
@@ -87,4 +92,20 @@ async function build($: EngineInterface, options: Options): Promise<Runtime> {
     windowOverride,
     crashAt: (CRASH_POINTS as readonly string[]).includes(crash ?? '') ? crash as CrashPoint : null,
   }
+  // ADR-002 A3: any refused submit in turn mode makes the process unsupported, said once; the caller's own handling still runs.
+  const base = rt.port
+  const onRefused = (err: unknown) => {
+    if (rt.probe.boundary !== 'turn' || rt.probe.mode === 'unsupported') return
+    refused = true
+    rt.probe = submitRefused(rt.probe)
+    base.status(offStatus(rt.probe))
+    base.toast(rt.probe.message ?? '')
+    base.log(`jeeves: submit refused in turn mode: ${err instanceof Error ? err.message : String(err)}`)
+  }
+  rt.port = {
+    ...base,
+    submitPrompt: text => base.submitPrompt(text).catch(err => { onRefused(err); throw err }),
+    submitPromptSoon: (text, onError) => base.submitPromptSoon(text, err => { onRefused(err); onError(err) }),
+  }
+  return rt
 }

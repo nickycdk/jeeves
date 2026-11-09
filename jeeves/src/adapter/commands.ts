@@ -91,7 +91,7 @@ export async function relay(rt: Runtime, args: string, caller: Caller): Promise<
   if (sub === 'purge') return purge(rt, me, rest)
   // ST-13.2: /jeeves off also keeps auto-start off for the rest of this session, with or without a task.
   if (sub === 'off') await setSessionOff(rt)
-  // R-25: no rotation can finish without the Stop hook, and none starts on an unsupported version.
+  // Nothing starts on an unsupported version, or in turn mode once a submit was refused (ADR-002 A3).
   if (rt.probe.mode === 'unsupported' && ['on', 'resume', 'rotate', 'retry'].includes(sub)) return rt.probe.message ?? MSG.unsupported
   if (!rt.projectDir) return MSG.noProject(rt.stateRootError)
   const { tasks } = await projectTasks(rt)

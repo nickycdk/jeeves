@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { compareVersions, MIN_VERSION, probe, withoutStopHook, type ProbeFacts } from '../../src/core/probe.ts'
+import { compareVersions, MIN_VERSION, probe, submitRefused, turnMode, type ProbeFacts } from '../../src/core/probe.ts'
 
 const all = { 'command.run': true, 'prompt.submit': true, 'session.usage': true, 'process.run': true }
 const facts = (over: Partial<ProbeFacts> = {}): ProbeFacts => ({ version: '2.1.319', primitives: all, ...over })
@@ -15,7 +15,7 @@ test('compareVersions on x.y.z cores', () => {
 })
 
 test('supported version with every primitive -> full', () => {
-  assert.deepEqual(probe(facts()), { mode: 'full', version: '2.1.319', missing: [], message: null })
+  assert.deepEqual(probe(facts()), { mode: 'full', version: '2.1.319', missing: [], message: null, boundary: 'stop' })
   assert.equal(probe(facts({ version: '2.3.0' })).mode, 'full')
 })
 
@@ -28,10 +28,16 @@ test('below the range -> unsupported, naming the exact version needed', () => {
   assert.equal(probe(facts({ version: 'nightly' })).mode, 'unsupported')
 })
 
-test('a missing primitive -> assisted, listing what is missing; a skipped Stop hook -> unsupported', () => {
+test('a missing primitive -> assisted, listing what is missing; a skipped Stop hook -> turn mode (ADR-002 A3)', () => {
   const p = probe(facts({ primitives: { ...all, 'process.run': false } }))
   assert.deepEqual([p.mode, p.missing], ['assisted', ['$.process.run']])
-  assert.deepEqual([withoutStopHook(probe(facts())).mode, withoutStopHook(probe(facts())).missing], ['unsupported', ['classic.Stop hook']])
-  assert.equal(withoutStopHook(probe(facts({ version: '2.1.1' }))).missing[0], 'Claude Code 2.1.319+', 'a version refusal stays')
+  assert.deepEqual(turnMode(probe(facts())), { ...probe(facts()), boundary: 'turn' }, 'mode stays full')
+  assert.deepEqual([turnMode(p).mode, turnMode(p).boundary], ['assisted', 'turn'])
+  assert.deepEqual(turnMode(probe(facts({ version: '2.1.1' }))), probe(facts({ version: '2.1.1' })), 'a version refusal stays')
+  assert.deepEqual(submitRefused(probe(facts())), probe(facts()), 'a refused submit in stop mode changes nothing here (A1)')
+  const r = submitRefused(turnMode(probe(facts())))
+  assert.deepEqual([r.mode, r.missing, r.boundary], ['unsupported', ['$.prompt.submit'], 'turn'])
+  assert.match(r.message!, /refused a prompt/)
+  assert.equal(submitRefused(turnMode(probe(facts({ version: '2.1.1' })))).missing[0], 'Claude Code 2.1.319+', 'a version refusal keeps its message')
   assert.equal(probe(facts({ version: '2.1.1', primitives: { ...all, 'process.run': false } })).mode, 'unsupported', 'version gate wins')
 })

@@ -7,7 +7,6 @@ import { bottom, engineClear, fakeGit, PROMPT, relay, stateOf, stop, submit, tas
 import { memHost, type MemHost } from './memfs.ts'
 
 const SWITCHED = "Jeeves: not watching any more (this model's window is 200K); /jeeves on to watch anyway"
-const UNSUPPORTED = "Jeeves: not watching any more (this account isn't supported); /jeeves status for details"
 const start = ($: Kit, isInteractive = true) => $.session.start({ cwd: '/work/proj', surface: 'terminal', isInteractive })
 const taskFiles = (h: MemHost) => [...h.files.keys()].filter(f => f.includes('/tasks/'))
 const autoLine = async ($: Kit) => (await relay($, 'status')).split('\n').find(l => l.startsWith('Auto'))
@@ -160,27 +159,20 @@ test('model switch: an explicit task keeps watching with its threshold (AC 5)', 
   expect(h.toasts).not.toContain(SWITCHED)
 })
 
-test('R-25 re-check after the first answer: an auto task ends with its message; status then names "unsupported" (AC 4)', async ($, on) => {
-  const h = eligibleHost(on)
-  bottom(on)
-  await start($)
-  const dir = await autoTask($, h)
-  await turnStart($); await turnEnd($)
-  expect(stateOf(h, dir).status).toBe('DISABLED')
-  expect(h.toasts).toContain(UNSUPPORTED)
-  expect(await autoLine($)).toBe('Auto off: unsupported (+1 more)') // + this session: its auto task ended
-})
-
-test('R-25 re-check: an explicit task is not ended by it (its Stop-skip message as before)', async ($, on) => {
-  const h = eligibleHost(on)
-  bottom(on)
-  await start($)
-  const dir = await autoTask($, h, 'explicit')
-  await turnStart($); await stop($, 'done'); await turnEnd($)
-  await turnStart($, 't2'); await turnEnd($, 'answer', 't2')
-  expect(stateOf(h, dir).status).toBe('MONITORING')
-  expect(h.toasts).not.toContain(UNSUPPORTED)
-})
+for (const origin of ['auto', 'explicit'] as const) {
+  test(`ST-16.1: the Stop skip ends no ${origin} task (turn mode); the auto line is unchanged (AC 4)`, async ($, on) => {
+    const h = eligibleHost(on)
+    bottom(on)
+    await start($)
+    const dir = await autoTask($, h, origin)
+    const line = await autoLine($)
+    await turnStart($); await turnEnd($)
+    expect(stateOf(h, dir).status).toBe('MONITORING')
+    expect(h.toasts.filter(t => t.includes("isn't supported") || t.includes('Automatic rotation is off'))).toEqual([])
+    expect(await autoLine($)).toBe(line)
+    expect(await relay($, 'status')).toContain('mode: full (turn)')
+  })
+}
 
 test('two sessions at once (one plugin store): each keeps its own decision and its own /jeeves off', async ($, on) => {
   const h = eligibleHost(on)

@@ -12,8 +12,10 @@ import { eligibility } from './eligible.ts'
 const HINT: Record<string, string> = {
   '$.process.run': 'plugins cannot start processes (an organization policy or a sandbox may block them)',
   '$.session.usage': 'the context reading is unavailable to plugins',
-  'classic.Stop hook': 'a main turn ended without Jeeves\'s Stop hook running: a plugin above it skips it (claude --debug-file names it: "bypassed by")',
+  '$.prompt.submit': 'Claude Code refused a prompt Jeeves sent in turn mode, so no handover can be asked for',
 }
+
+const TURN_HINT = 'a main turn ended without Jeeves\'s Stop hook running: a plugin above it skips it (claude --debug-file names it: "bypassed by"); Jeeves uses turn mode'
 
 /** `t`: the task status would show; `errors`: unreadable task folders. */
 export async function diagnose(rt: Runtime, me: string, t: Task | null, errors: readonly string[], row: AutoRow): Promise<string> {
@@ -26,7 +28,8 @@ export async function diagnose(rt: Runtime, me: string, t: Task | null, errors: 
     'Jeeves diagnose (safe to paste: home folder shown as ~, secrets redacted)',
     `Jeeves: ${(await rt.port.pluginVersion()) ?? 'unknown'}`,
     `Claude Code: ${v ? v.version : 'unknown'}${v?.base && v.base !== v.version ? ` (base ${v.base})` : ''}, needs ${MIN_VERSION}+`,
-    `Mode: ${rt.probe.mode}${rt.probe.missing.length ? `, missing ${rt.probe.missing.join(', ')}` : ''}`,
+    `Mode: ${rt.probe.mode}${rt.probe.boundary === 'turn' ? ' (turn: Stop hook skipped)' : ''}${rt.probe.missing.length ? `, missing ${rt.probe.missing.join(', ')}` : ''}`,
+    ...(rt.probe.boundary === 'turn' ? [`Hint: ${TURN_HINT}`] : []),
     ...rt.probe.missing.flatMap(m => (HINT[m] ? [`Hint: ${HINT[m]}`] : [])),
     `OS: ${os}`,
     rt.stateRoot ? `State folder: ${rt.stateRoot} (${rt.stateRootSource}), writable: ${writable}` : `State folder: none (${rt.stateRootError ?? 'unset'})`,

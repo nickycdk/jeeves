@@ -79,17 +79,6 @@ export async function eligibility(rt: Runtime, row: AutoRow) {
   return { reasons: ordered([...fixed, ...(off ? [off] : []), ...(ended ? ['this session' as const] : [])]), auto, decided: k !== null, owns }
 }
 
-/** The R-25 re-check found the Stop hook skipped: the session is unsupported now, and an auto task ends (files kept). */
-export async function stopSkipped(rt: Runtime): Promise<boolean> {
-  const me = await rt.port.sessionId()
-  const k = await kept(rt, me)
-  if (k !== null) await keep(rt, me, ordered([...k.filter(r => r !== 'assisted mode'), 'unsupported']))
-  const own = ownTask((await projectTasks(rt)).tasks, me)
-  if (own?.state.origin !== 'auto') return false
-  await applyOwn(rt, { type: 'OFF', sessionId: me })
-  return true
-}
-
 const NOTICE_KEY = 'autoNoticeShown'
 
 /**

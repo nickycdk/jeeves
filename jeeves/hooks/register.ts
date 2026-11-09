@@ -5,7 +5,7 @@ import { chooseCommandName, FALLBACK, PRIMARY, relay } from '../src/adapter/comm
 import { recover, recoveryNotice } from '../src/adapter/recover.ts'
 import { cleanupAuto } from '../src/adapter/purge.ts'
 import { upgradeCheck } from '../src/adapter/auto.ts'
-import { autoNotice, carryOver, decideAtStart, forget, hint, startAuto, stopSkipped } from '../src/adapter/eligible.ts'
+import { autoNotice, carryOver, decideAtStart, forget, hint, startAuto } from '../src/adapter/eligible.ts'
 import { isAutoRow } from '../src/core/autostart.ts'
 import { markStopSkipped, runtime, type Options } from '../src/adapter/runtime.ts'
 import { captureFirstPrompt, compacted, heartbeat, managedNow, holdPrompt, measure, nudgeIfWaiting, onFreshSession, onStop, onTurnComplete, taskSection, onUserClear, recordTool, releaseOnExit, stopFailure, why } from '../src/adapter/task.ts'
@@ -57,7 +57,8 @@ export const register: Register = (on, options) => {
     if (commandName === FALLBACK) $.ui.toast('/jeeves is taken by another command, so Jeeves uses /relay.')
     if (rt.probe.mode !== 'full' && rt.probe.message) {
       $.ui.status(offStatus(rt.probe))
-      if (!warnedSkip) $.ui.toast(rt.probe.message)
+      // A refusal in turn mode was said when it happened; a later session start in this process only restores the status.
+      if (rt.probe.boundary !== 'turn') $.ui.toast(rt.probe.message)
     }
     // ST-13.2 (spec §5.6): the upgrade check, once per install; an upgrader hears once that auto-start waits for them.
     await quietly($, opts, 'upgrade check', async rt => { if ((await upgradeCheck(rt))?.notice) rt.port.toast(MSG.upgradeNotice) })
@@ -139,13 +140,10 @@ export const register: Register = (on, options) => {
       turnOpen = false
       if (stopSeen === false && e.reason === 'answer' && !e.isAborted && !warnedSkip) {
         warnedSkip = true
+        // ADR-002 A3: turn mode from here on; tasks, auto ones too, carry on (ST-16.1). A version refusal stays as it is.
         await quietly($, opts, 'stop skipped', async rt => {
           markStopSkipped(rt)
-          // ST-13.3: the R-25 re-check after the first answer; an auto task ends with its own message.
-          const endedAuto = await stopSkipped(rt)
-          if (!rt.probe.message) return
-          $.ui.status(offStatus(rt.probe))
-          $.ui.toast(endedAuto ? MSG.autoUnsupported : rt.probe.message)
+          rt.port.log('jeeves: Stop hook skipped, turn mode')
         })
       }
       await quietly($, opts, 'turn end', rt => onTurnComplete(rt, e.isAborted ? 'aborted' : e.reason))

@@ -1,9 +1,9 @@
 import { expect } from 'claude-code/testing'
 import { memHost } from './memfs.ts'
 import type { SessionMeasureInput } from 'claude-code'
-import { bottom, PROMPT, relay, start as kitStart, stateOf, stop, submit, taskDirs, turnEnd, turnStart, test } from './kit.ts'
+import { bottom, PROMPT, relay, start as kitStart, stateOf, stop, submit, taskDirs, turnEnd, turnStart, test, until } from './kit.ts'
 
-const SKIPPED = 'Jeeves cannot hand over in this session: its Stop hook does not run (a plugin above it, such as cc-plugin-sec-default on Team accounts, skips it). Automatic rotation is off. See troubleshooting.'
+const REFUSED = 'Jeeves cannot ask for a handover in this session: its Stop hook does not run here and Claude Code refused a prompt Jeeves sent. Automatic rotation is off. See troubleshooting.'
 
 const start = ($: { session: { start: (e: { cwd: string; surface: 'terminal'; isInteractive: boolean }) => Promise<unknown> } }) =>
   $.session.start({ cwd: '/work/proj', surface: 'terminal', isInteractive: true })
@@ -41,19 +41,20 @@ test('never edits Claude settings', async ($, on) => {
   expect(writes).toEqual([])
 })
 
-// R-25: a plugin in a higher tier (cc-plugin-sec-default on Team orgs, 2.1.319) passes classic.Stop on past Jeeves.
-test('a main turn that answers without reaching the Stop hook: unsupported, said once, /jeeves on refused', async ($, on) => {
+// R-25 / ADR-002 A3: a plugin in a higher tier (cc-plugin-sec-default on Team orgs, 2.1.319) passes classic.Stop on past Jeeves.
+test('ST-16.1: a main turn that answers without reaching the Stop hook: turn mode, mode stays full, every command accepted', async ($, on) => {
   const h = memHost(on)
   await start($)
   await turnStart($); await turnEnd($)
   await turnStart($, 't2'); await turnEnd($, 'answer', 't2')
-  expect(h.status).toEqual(['off: Stop hook skipped'])
-  expect(h.toasts).toEqual([SKIPPED])
-  expect(await relay($, 'status')).toContain('mode: unsupported')
-  expect(await relay($, 'on')).toBe(SKIPPED)
+  expect(h.status).toEqual([])
+  expect(h.toasts).toEqual([])
+  expect(await relay($, 'status')).toContain('mode: full (turn)')
+  expect(await relay($, 'status --diagnose')).toContain('Mode: full (turn: Stop hook skipped)')
+  expect(await relay($, 'on')).toContain('Jeeves on: task')
 })
 
-test('a turn whose Stop reaches Jeeves, an aborted turn, or a subagent turn: still full', async ($, on) => {
+test('ST-16.1: a turn whose Stop reaches Jeeves, an aborted turn, or a subagent turn: stop mode', async ($, on) => {
   const h = memHost(on)
   await start($)
   await turnStart($); await stop($, 'done'); await turnEnd($)
@@ -61,10 +62,12 @@ test('a turn whose Stop reaches Jeeves, an aborted turn, or a subagent turn: sti
   await $.turn.start({ text: 'x', turnId: 't3', agentId: 'a1' }); await $.turn.complete({ answer: 'ok', durationMs: 1, isAborted: false, turnId: 't3', reason: 'answer', agentId: 'a1' })
   expect(h.status).toEqual([])
   expect(h.toasts).toEqual([])
-  expect(await relay($, 'status')).toContain('mode: full')
+  const s = await relay($, 'status')
+  expect(s).toContain('mode: full')
+  expect(s).not.toContain('(turn)')
 })
 
-test('review fix: a task started before the skip was found never requests, holds a prompt or rotates; an interrupt is no skip', async ($, on) => {
+test('ST-16.1: a task started before the skip carries on in turn mode; rotate, retry and resume are answered, not refused', async ($, on) => {
   const h = memHost(on)
   const got = bottom(on)
   await kitStart($)
@@ -72,21 +75,44 @@ test('review fix: a task started before the skip was found never requests, holds
   await submit($, PROMPT)
   const dir = taskDirs(h)[0]!
   await turnStart($); await $.turn.complete({ answer: '', durationMs: 1, isAborted: true, turnId: 't1', reason: 'answer' })
-  expect(await relay($, 'status')).toContain('mode: full')
+  expect(await relay($, 'status')).not.toContain('(turn)')
   await turnStart($, 't2'); await turnEnd($, 'answer', 't2')
-  await $.session.measure({ context: { window: 1_000_000, percent: 95 }, rateLimits: [], changed: ['context'] } satisfies SessionMeasureInput)
-  expect(stateOf(h, dir).status).toBe('MONITORING')
+  expect(await relay($, 'status')).toContain('mode: full (turn)')
   await submit($, 'next step')
   expect(got.map(g => g.text)).toContain('next step')
-  for (const cmd of ['rotate', 'retry', 'resume']) expect(await relay($, cmd)).toBe(SKIPPED)
   expect(stateOf(h, dir).status).toBe('MONITORING')
+  for (const cmd of ['rotate', 'retry', 'resume']) expect(await relay($, cmd)).not.toContain('Automatic rotation is off')
 })
 
-test('review fix: a later session start in the same process keeps the skip and its own status text, no second toast', async ($, on) => {
+test('ST-16.1: a later session start in the same process keeps turn mode, no toast', async ($, on) => {
   const h = memHost(on)
   await start($)
   await turnStart($); await turnEnd($)
   await start($)
-  expect(h.status).toEqual(['off: Stop hook skipped', 'off: Stop hook skipped'])
-  expect(h.toasts).toEqual([SKIPPED])
+  expect(h.status).toEqual([])
+  expect(h.toasts).toEqual([])
+  expect(await relay($, 'status')).toContain('mode: full (turn)')
+})
+
+test('ST-16.1 (ADR-002 A3): a refused submit in turn mode -> unsupported, said once, then nothing starts; in stop mode it stays full', async ($, on) => {
+  const h = memHost(on)
+  const refuse: { drop?: (text: string) => boolean } = {}
+  bottom(on, refuse)
+  await start($)
+  refuse.drop = t => t === 'stop goal'
+  await relay($, 'on stop goal')
+  await until(h, () => h.toasts.some(t => t.startsWith('Jeeves could not send your goal')))
+  await relay($, 'off')
+  expect(await relay($, 'status')).toContain('mode: full')
+  await turnStart($); await turnEnd($)
+  refuse.drop = t => t === 'turn goal'
+  await relay($, 'on turn goal')
+  await until(h, () => h.toasts.includes(REFUSED))
+  expect(h.status.at(-1)).toBe('off: prompt refused')
+  expect(h.toasts.filter(t => t === REFUSED)).toHaveLength(1)
+  expect(await relay($, 'status')).toContain('mode: unsupported (turn)')
+  expect(await relay($, 'rotate')).toBe(REFUSED)
+  await start($)
+  expect(h.toasts.filter(t => t === REFUSED)).toHaveLength(1)
+  expect(h.status.at(-1)).toBe('off: prompt refused')
 })

@@ -13,9 +13,12 @@ export type ProbeFacts = {
   primitives: Record<Primitive, boolean>
 }
 
-export const STOP_SKIPPED = 'Jeeves cannot hand over in this session: its Stop hook does not run (a plugin above it, such as cc-plugin-sec-default on Team accounts, skips it). Automatic rotation is off. See troubleshooting.'
+export const SUBMIT_REFUSED = 'Jeeves cannot ask for a handover in this session: its Stop hook does not run here and Claude Code refused a prompt Jeeves sent. Automatic rotation is off. See troubleshooting.'
 
-export type Probe = { mode: Mode; version: string | null; missing: string[]; message: string | null }
+/** Where a rotation is asked for: `classic.Stop`, or `turn.complete` once the Stop hook was seen skipped (ADR-002 A3). */
+export type Boundary = 'stop' | 'turn'
+
+export type Probe = { mode: Mode; version: string | null; missing: string[]; message: string | null; boundary: Boundary }
 
 const core = (v: string) => /^(\d+)\.(\d+)\.(\d+)/.exec(v)?.slice(1).map(Number) ?? null
 
@@ -34,6 +37,7 @@ export function probe(f: ProbeFacts): Probe {
     return {
       mode: 'unsupported', version: f.version, missing: [`Claude Code ${MIN_VERSION}+`],
       message: `Jeeves needs Claude Code ${MIN_VERSION} or later (${seen}). Automatic rotation is off. Update Claude Code (claude update) and restart the session.`,
+      boundary: 'stop',
     }
   }
   const missing = PRIMITIVES.filter(p => !f.primitives[p]).map(p => `$.${p}`)
@@ -41,12 +45,18 @@ export function probe(f: ProbeFacts): Probe {
     return {
       mode: 'assisted', version: f.version, missing,
       message: `Jeeves is in assisted mode: this Claude Code lacks ${missing.join(', ')}. Handovers are saved, but you start the fresh session yourself.`,
+      boundary: 'stop',
     }
   }
-  return { mode: 'full', version: f.version, missing: [], message: null }
+  return { mode: 'full', version: f.version, missing: [], message: null, boundary: 'stop' }
 }
 
-/** Without the Stop hook there is no safe boundary and no handover (ADR-003/004), so not even assisted mode works. A version refusal stays. */
-export function withoutStopHook(p: Probe): Probe {
-  return p.mode === 'unsupported' ? p : { mode: 'unsupported', version: p.version, missing: ['classic.Stop hook'], message: STOP_SKIPPED }
+/** ADR-002 A3: the Stop hook is skipped (any cause), so the boundary moves to `turn.complete`; the mode stays. A version refusal stays. */
+export function turnMode(p: Probe): Probe {
+  return p.mode === 'unsupported' ? p : { ...p, boundary: 'turn' }
+}
+
+/** ADR-002 A3: in turn mode a refused `$.prompt.submit` leaves no way to ask for a handover: unsupported, not assisted. */
+export function submitRefused(p: Probe): Probe {
+  return p.boundary !== 'turn' || p.mode === 'unsupported' ? p : { mode: 'unsupported', version: p.version, missing: ['$.prompt.submit'], message: SUBMIT_REFUSED, boundary: 'turn' }
 }
