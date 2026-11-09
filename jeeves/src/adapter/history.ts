@@ -1,6 +1,6 @@
 // ST-11.3: `/jeeves history --full`: per rotation, its sessions, context, cost, end reason and handover file with its
 // first next actions. Plain ASCII, 50 columns. Reads only; a handover that is missing or changed is said, not printed.
-import { goalLine, HANDOVER_REF_RE } from '../core/handover/render.ts'
+import { goalLine, HANDOVER_REF_RE, untag } from '../core/handover/render.ts'
 import { parseHandover } from '../core/handover/parse.ts'
 import { join } from '../core/paths.ts'
 import { parseJson } from '../core/schema.ts'
@@ -8,7 +8,7 @@ import type { EventLine, State } from '../core/types.ts'
 import type { Runtime } from './runtime.ts'
 import { sha256Hex } from './storage.ts'
 import { aggregate, statsLines } from '../core/stats.ts'
-import { fitLeft, WIDTH } from './ui.ts'
+import { fit, fitLeft, WIDTH } from './ui.ts'
 
 const COLS = 50
 const ascii = (s: string) => s.replace(/[^\x20-\x7e]/g, '?')
@@ -93,9 +93,8 @@ export async function handoverText(rt: Runtime, dir: string, s: State): Promise<
   if (typeof text !== 'string') return [head, `Not shown: the file is ${text.problem}.`].join('\n')
   const p = parseHandover(text)
   const goal = p.ok ? goalLine(p.value) : null
-  const next = p.ok ? p.value.sections['Exact next actions'].slice(0, 3).map((a, i) => `${i + 1}. ${a.text.replace(/^\s*\[(verified|inferred|unknown)\]\s*/i, '')}`) : []
-  const fit = (l: string) => { const a = ascii(l); return a.length <= WIDTH ? a : `${a.slice(0, WIDTH - 3)}...` }
-  return [head, `Goal: ${goal ?? 'none recorded'}`, ...(next.length ? ['Next:', ...next] : [])].map(fit).join('\n')
+  const next = p.ok ? p.value.sections['Exact next actions'].slice(0, 3).map((a, i) => `${i + 1}. ${untag(a.text)}`) : []
+  return [head, `Goal: ${goal ?? 'none recorded'}`, ...(next.length ? ['Next:', ...next] : [])].map(l => fit(ascii(l))).join('\n')
 }
 
 /** ST-11.4: `/jeeves stats`, for this project and the task status shows. Reads only. */

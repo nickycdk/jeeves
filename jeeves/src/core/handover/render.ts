@@ -66,11 +66,14 @@ function verified(r: RenderInput): string[] {
   ]
 }
 
+/** An item's text without its leading `[verified]`/`[inferred]`/`[unknown]` tag. */
+export const untag = (text: string) => text.replace(/^\s*\[(verified|inferred|unknown)\]\s*/i, '')
+
 const GOAL_LINE_MAX = 80
 /** The rotation line's goal (spec §5.3): the first Current goal bullet without its tag, redacted, on one line; null without one. */
 export function goalLine(n: Narrative): string | null {
   const first = n.sections[GOAL][0]
-  return first ? oneLine(first.text.replace(/^\s*\[(verified|inferred|unknown)\]\s*/i, ''), GOAL_LINE_MAX) || null : null
+  return first ? oneLine(untag(first.text), GOAL_LINE_MAX) || null : null
 }
 
 export function renderHandover(r: RenderInput): string {

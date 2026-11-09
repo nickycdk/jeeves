@@ -15,7 +15,7 @@ import { diagnose } from './diagnose.ts'
 import { eligibility, hintAnswered } from './eligible.ts'
 import { fullHistory, handoverText, statsText } from './history.ts'
 import { purge } from './purge.ts'
-import { firstActivationText, HELP, historyText, MSG, statusText } from './ui.ts'
+import { firstActivationText, HELP, historyText, MSG, resumable, retryable, statusText } from './ui.ts'
 
 export const PLUGIN = 'jeeves'
 export const PRIMARY = 'jeeves'
@@ -159,7 +159,6 @@ async function pause(rt: Runtime, tasks: Task[], me: string): Promise<string> {
 /** This session's paused task, else the project's latest paused one (a pause survives a restart, FR-11). */
 async function resume(rt: Runtime, tasks: Task[], me: string): Promise<string> {
   const own = ownTask(tasks, me)
-  const resumable = (s: State) => s.status === 'PAUSED' || (s.status === 'BLOCKED' && s.reason === 'DISK')
   const target = own && resumable(own.state) ? own : own ? null : tasks.find(t => resumable(t.state)) ?? null
   if (!target) return own ? MSG.notPaused(own.state.status) : MSG.noTask
   // Only the lock holder writes the task: a live owner elsewhere gets LOCK_HELD and nothing is written.
@@ -204,8 +203,6 @@ async function later(rt: Runtime, tasks: Task[], me: string): Promise<string> {
   if (t === own.state.thresholdPercent) return MSG.laterRefused(r.state.status, ROTATION_STATES.includes(r.state.status))
   return MSG.postponed(t, t - DEFAULT_CONFIG.warnBeforePercent, t >= cap)
 }
-
-const retryable = (s: State) => s.status === 'NEEDS_REVIEW' && (s.reason === 'HANDOVER_INVALID' || s.reason === 'POSSIBLE_LOOP')
 
 /** ST-10.2 / ST-10.3 (ADR-009 A2): this session's own task only; another session's is LOCK_HELD, nothing written. */
 async function retry(rt: Runtime, tasks: Task[], me: string, idle: boolean): Promise<string> {

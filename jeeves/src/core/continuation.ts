@@ -2,7 +2,7 @@
 // Pure and deterministic: the same task, handover and held prompts always give the same text (snapshot-tested).
 import type { Item, Narrative } from './handover/parse.ts'
 import { GOAL } from './handover/template.ts'
-import { revFile, type ChangeKind, type TaskView } from './task.ts'
+import { ORIGINAL_SHOWN, revFile, type ChangeKind, type TaskView } from './task.ts'
 
 const FILES_SHOWN = 50
 const bullets = (xs: readonly string[], none: string) => (xs.length ? xs.map(x => `- ${x}`) : [`- ${none}`])
@@ -67,7 +67,6 @@ export const heldBlock = (prompts: readonly string[]) => [
 export const heldPrompt = (prompts: readonly string[]) =>
   ['Jeeves: the handover was stopped before a fresh conversation started, so these messages were never delivered.', ...heldBlock(prompts)].join('\n')
 
-const ORIGINAL_SHOWN = 1500
 const quote = (s: string) => s.replace(/\r\n?/g, '\n').split('\n').map(l => `> ${l}`)
 const CHANGE: Record<ChangeKind, string> = { dod: 'Definition of Done item', check: 'Verification command, never run by Jeeves', goal: 'Goal the user set with /jeeves on' }
 

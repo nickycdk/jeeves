@@ -60,7 +60,8 @@ export function foldTask(revs: Revision[]): TaskView {
   }
 }
 
-const ORIGINAL_SHOWN = 1500
+/** How much of the original prompt `/jeeves task` and the continuation quote. */
+export const ORIGINAL_SHOWN = 1500
 
 /** `/jeeves task`: the original prompt, every change since (each typed by the user), and the current DoD and checks. */
 export function taskText(taskId: string, v: TaskView): string {

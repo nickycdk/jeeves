@@ -7,7 +7,7 @@ export const WIDTH = 40
 
 /** Shorten from the left so the end of a path stays visible. */
 export const fitLeft = (s: string, width: number) => (s.length <= width ? s : `...${s.slice(s.length - width + 3)}`)
-const fit = (s: string) => (s.length <= WIDTH ? s : `${s.slice(0, WIDTH - 3)}...`)
+export const fit = (s: string) => (s.length <= WIDTH ? s : `${s.slice(0, WIDTH - 3)}...`)
 
 export type StatusView = {
   probe: Probe
@@ -83,14 +83,18 @@ const tokensAt = (window: number | undefined, pct: number) => {
   return k >= 1 ? ` (~${k}K)` : ''
 }
 
+/** `/jeeves resume` applies (FR-11). */
+export const resumable = (s: State) => s.status === 'PAUSED' || (s.status === 'BLOCKED' && s.reason === 'DISK')
+/** `/jeeves retry` applies (ST-10.2, ST-10.3), until the failure limit is used up. */
+export const retryable = (s: State) => s.status === 'NEEDS_REVIEW' && (s.reason === 'HANDOVER_INVALID' || s.reason === 'POSSIBLE_LOOP')
+
 /** The reason's line; one that /jeeves retry applies to says so, or that the retries are used up (ST-10.2). */
 const reasonLine = (s: State) => {
-  if (s.status !== 'NEEDS_REVIEW' || (s.reason !== 'HANDOVER_INVALID' && s.reason !== 'POSSIBLE_LOOP')) return REASON_TEXT[s.reason!]
+  if (!retryable(s)) return REASON_TEXT[s.reason!]
   if (s.consecutiveFailures >= DEFAULT_CONFIG.maxConsecutiveFailures) return 'Retries used up. /jeeves off ends it'
   return s.reason === 'HANDOVER_INVALID' ? 'Handover invalid. Try: /jeeves retry' : 'Fresh session too full. /jeeves retry'
 }
 
-const resumable = (s: State) => s.status === 'PAUSED' || (s.status === 'BLOCKED' && s.reason === 'DISK')
 
 /**
  * ST-14.2 (spec §6.5): the commands that fit now, at most three, `help` filling a short list. `v.auto` is set only when
@@ -103,7 +107,7 @@ function commandsLine(v: StatusView): string {
   const pct = s?.lastContext?.percent
   const cmds = own && s.status === 'MONITORING' && pct !== undefined && pct >= t - DEFAULT_CONFIG.warnBeforePercent && pct < t ? ['later', 'off']
     : s && resumable(s) ? ['resume', 'off']
-    : own && s.status === 'NEEDS_REVIEW' && (s.reason === 'HANDOVER_INVALID' || s.reason === 'POSSIBLE_LOOP') && s.consecutiveFailures < DEFAULT_CONFIG.maxConsecutiveFailures ? ['retry', 'off']
+    : own && retryable(s) && s.consecutiveFailures < DEFAULT_CONFIG.maxConsecutiveFailures ? ['retry', 'off']
     : own && s.rotationCount > 0 && s.lastValidatedHandover ? ['handover']
     : v.auto?.startsWith('Auto off') ? ['on'] : []
   return `Try: /jeeves ${[...cmds, 'help'].slice(0, 3).join(' | ')}`
