@@ -45,4 +45,6 @@ assert 'holds modules [1, 2]' in void_reason(repo([(1200, [1, 2])]), honest)
 script = transcript([(1100, {'command': 'for n in 01 02 03 04; do node gen.js $n; git commit -qam "module $n"; done'})])
 assert 'module 1 committed' in void_reason(repo([(1200, [1]), (1201, [2])]), script)
 assert 'module 2 committed' in void_reason(repo([(1200, [1]), (1250, [2])]), transcript([(1100, {'file_path': 'tests/m01.test.js'}), (1300, {'file_path': 'tests/m02.test.js'})]))
+# Working from `./verify.sh 2`'s output counts as reading module 2's tests (review); `verify.sh $n` in a loop does not.
+assert void_reason(repo([(1200, [1]), (1400, [2])]), transcript([(1100, {'command': './verify.sh 1'}), (1300, {'command': 'cd /r && ./verify.sh 02'})])) is None
 print('void_check_test: ok')

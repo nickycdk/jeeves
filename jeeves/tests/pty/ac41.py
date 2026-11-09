@@ -11,7 +11,8 @@
 #
 #   --fixture distinct-task (default, ST-17.2) or long-task (v0.3.0's evidence, the six-function cycle).
 #   --window  the real window for the growth figures (default 200K for 200k, else 1M; ST-17.3 passes 200000 to auto).
-#   --model   passed to claude (ST-17.3 needs a real 200K window).
+#   --no-1m   CLAUDE_CODE_DISABLE_1M_CONTEXT=1: haiku on a real 200K window (ST-17.3; /context read 31.1k/200k, autocompact
+#             buffer 33k, so compaction at ~83.5%).
 #   A run is stopped as void, by itself, when one commit holds more than one module or a module is committed before
 #   any tool call named its test file (ST-17.2: a scripted run is reported in minutes, not after its cap).
 #
@@ -75,7 +76,9 @@ def void_reason(repo, paths):
             if d.get('type') != 'assistant': continue
             for b in (d.get('message') or {}).get('content') or []:
                 if not isinstance(b, dict) or b.get('type') != 'tool_use': continue
-                for n in re.findall(r'tests/m(\d\d)\.test\.js', json.dumps(b.get('input'))):
+                # Read: its test file named, or `./verify.sh n` (which prints every case); a loop's `verify.sh $n` is neither.
+                s = json.dumps(b.get('input'))
+                for n in re.findall(r'tests/m(\d\d)\.test\.js', s) + re.findall(r'verify\.sh\s+0*(\d+)', s):
                     at = transcripts.epoch(d.get('timestamp', ''))
                     read[int(n)] = min(read.get(int(n), at), at)
     log = subprocess.run(['git', 'log', '--reverse', '--format=@%h %ct', '--name-only'], cwd=repo, capture_output=True, text=True).stdout
@@ -106,7 +109,7 @@ def main():
     ap.add_argument('--minutes', type=float, default=240)
     ap.add_argument('--fixture', choices=['distinct-task', 'long-task'], default='distinct-task')
     ap.add_argument('--window', type=int)
-    ap.add_argument('--model')
+    ap.add_argument('--no-1m', action='store_true')
     a = ap.parse_args()
     sp, config = os.path.abspath(a.scratch), os.path.abspath(a.config_dir)
     out, repo, state = f"{sp}/evidence", f"{sp}/repo", f"{sp}/state"
@@ -116,8 +119,10 @@ def main():
     if a.phase in ('dry', 'auto'): r['store_moved'] = [os.path.basename(x) for x in fresh_store(config, sp)]
     env = {'CLAUDE_CONFIG_DIR': config, 'JEEVES_TEST': '1', 'JEEVES_STATE_DIR': state}
     if a.phase == '200k': env['JEEVES_TEST_WINDOW_OVERRIDE'] = '200000'
+    if a.no_1m: env['CLAUDE_CODE_DISABLE_1M_CONTEXT'] = '1'
+    r['no_1m'] = a.no_1m
     debug = f"{sp}/claude-debug.log"
-    args = ['--permission-mode', 'acceptEdits', '--allowedTools', 'Bash', '--debug-file', debug] + (['--model', a.model] if a.model else [])
+    args = ['--permission-mode', 'acceptEdits', '--allowedTools', 'Bash', '--debug-file', debug]
     c = Claude(out, None if a.phase == 'base' else PLUGIN, repo, args, env)
     r['trust'] = c.accept_trust(); c.pump(5)
     r['recorded_before_task'] = [os.path.relpath(p, state) for p in glob.glob(f"{state}/**/*", recursive=True) if os.path.isfile(p)]
@@ -161,6 +166,9 @@ def main():
     else:
         r.setdefault('stopped', 'time limit')
     r['keystrokes_after_task'] = c.typed[typed_at:]
+    # ST-17.1's grace margin check: /context is local (no model call) and names the auto-compaction point; typed only after the run stopped.
+    if a.phase == 'auto' and c.pump(1):
+        mark = len(c.plain()); c.line('/context'); c.pump(4); r['context_screen'] = c.plain()[mark:][-3000:]
     c.close()
     usd, sessions = spend(config, repo)
     t = tasks(state)
