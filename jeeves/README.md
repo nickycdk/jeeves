@@ -59,7 +59,8 @@ An auto task works like any other, with these differences:
 - if its first context reading is already within 10 points of the threshold (a large CLAUDE.md, a pasted log), Jeeves stops watching this session and says so; `/jeeves on` watches anyway;
 - it does not hand over in its first 3 turns, unless the context is already 10 points past the threshold (50% on a 1M window, 60% on 200K);
 - switching to a model with a window below 200K ends it, with a message (a switch from 1M to 200K keeps it, with its threshold);
-- a `/clear` you type ends it (files kept) and your next prompt starts a new one; in a task you started with `/jeeves on`, `/clear` pauses as before. `/jeeves on <goal>` makes an auto task yours: the goal is saved as a new revision and `/clear` then pauses it;
+- a `/clear` you type ends it (files kept) and your next prompt starts a new one; in a task you started with `/jeeves on`, `/clear` pauses as before, and no auto task starts for the rest of that session (a later session is watched again; the paused task waits for `/jeeves resume`). `/jeeves on <goal>` makes an auto task yours: the goal is saved as a new revision and `/clear` then pauses it;
+- after a handover, if Claude ends the first turn of the fresh conversation by announcing its next step instead of taking it, Jeeves asks it once to carry on (or to say it is done, or what it needs from you). Only once per conversation, never after you typed in it, and never in a task you started with `/jeeves on`;
 - if a session closes in the middle of a handover, the next fresh interactive session continues it by itself, whatever `autoRecover` says;
 - if it ended without a single handover, its folder is deleted at a later session start, 7 days after its last change.
 
@@ -141,7 +142,7 @@ Per task: `/jeeves threshold <n>`. Per project: `/jeeves defaults threshold <n>`
 
 ## Troubleshooting
 
-The common cases, with what to type, are in [docs/troubleshooting.md](docs/troubleshooting.md). For a bug report, paste the output of `/jeeves status --diagnose`.
+To try Jeeves by hand, scenario by scenario, see [docs/testing.md](docs/testing.md). The common cases, with what to type, are in [docs/troubleshooting.md](docs/troubleshooting.md). For a bug report, paste the output of `/jeeves status --diagnose`.
 
 ## FAQ
 

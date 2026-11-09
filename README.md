@@ -9,7 +9,7 @@
 1. You type `/jeeves on`, then your task, and work as usual. On a new install Jeeves can also start by itself: in a git repository, on a model whose context window is 200K tokens or more (0.3.1 and later; 0.3.0: above 200K), your first typed prompt in a fresh session becomes the task (`/jeeves auto off` turns this off; an upgrade from 0.2 keeps it off until `/jeeves auto on`). [Auto-start](jeeves/README.md#auto-start) has the details.
 2. When the context reaches your threshold (default 50%, or 40% on models with a context window above 200K), Jeeves waits until Claude has stopped with nothing still running, then asks Claude for a handover.
 3. It checks the handover against git and its own record of what ran: branch and commit match, files named really exist, no test is claimed as passed when its last run failed, no secrets. A handover that fails is sent back with the reasons; after three tries Jeeves stops and asks you.
-4. It saves the handover, runs `/clear`, and gives the fresh conversation your original task, the handover and the next steps. The task continues, without a keystroke from you.
+4. It saves the handover, runs `/clear`, and gives the fresh conversation your original task, the handover and the next steps. The task continues, without a keystroke from you. If Claude ends that first fresh turn by only announcing its next step, an auto task gets one prompt to carry on (0.3.1).
 
 Jeeves never runs your commands, never changes git, never answers permission prompts for you, and never marks a task done without evidence.
 
@@ -23,7 +23,9 @@ At the Claude Code prompt:
 
 Then, in any project, start `claude` and type `/jeeves status`. A fresh install answers `Jeeves  mode: full` and `No managed task. Start with /jeeves on`.
 
-From a clone instead: `claude plugin install jeeves --marketplace /path/to/this/repo`. Update, uninstall and settings: see the [full README](jeeves/README.md#install).
+The repository is private for now, so that line works only for people with access. From a clone instead: `claude plugin install jeeves --marketplace /path/to/this/repo`. Update, uninstall and settings: see the [full README](jeeves/README.md#install).
+
+**Trying it out?** [docs/testing.md](jeeves/docs/testing.md) walks through seven short scenarios (a forced handover, completion with proof, auto-start, your own `/clear`, crash recovery, the everyday commands, the carry-on prompt), what each should show, and what to send back.
 
 ## Use it
 
@@ -61,7 +63,7 @@ Everything stays on your machine, in a state folder outside your repository: you
 
 ## More
 
-- [Troubleshooting](jeeves/docs/troubleshooting.md) · [Compatibility](jeeves/docs/compatibility.md) · [Architecture](jeeves/docs/architecture.md)
+- [Testing guide](jeeves/docs/testing.md) · [Troubleshooting](jeeves/docs/troubleshooting.md) · [Compatibility](jeeves/docs/compatibility.md) · [Architecture](jeeves/docs/architecture.md)
 - [Contributing](jeeves/CONTRIBUTING.md) · [Security](jeeves/SECURITY.md) · [Changelog](jeeves/CHANGELOG.md)
 - Planning documents and test evidence: [docs/plans](docs/plans/)
 
