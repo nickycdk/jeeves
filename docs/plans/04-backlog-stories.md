@@ -964,7 +964,7 @@ Plan: `docs/plans/10-v0.3.x-plan.md` (approved 2026-11-09, D-53).
 - **Tests:** E. **DoD:** + `docs/done/evidence/v0.3.1/200k-auto/RESULT.md`.
 
 ### ST-17.4 v0.3.1 release prep — S
-- **Status:** Not started.
+- **Status:** Solved (2026-11-09), waits for the maintainer's sign-off. Version 0.3.1 in the three fields; CHANGELOG `0.3.1 (release candidate; dated when tagged)`; `jeeves/docs/release-notes/v0.3.1.md` (200K auto-start, the four turn-mode fixes, what ST-17.3 measured and the heavy-turn limit); README status lines; `jeeves/docs/architecture.md` now has Auto-start and Turn mode sections; compatibility matrix regenerated (rows below 2.1.319 fail only the load-sensitive perf test); `docs/done/evidence/v0.3.1/README.md`. Zip identical from two clean clones of `46fcea2`: SHA-256 `c1fa9565…ca71`, 249 files.
 - **Cites:** FR-15, 08 §6.
 - **Scope:** as ST-15.3: version 0.3.1; CHANGELOG and release notes that say 200K is auto-watched and what ST-17.3 measured, nothing more; compatibility.md; evidence pack; `jeeves/docs/architecture.md` brought up to date (auto-start, turn mode); a zip identical from two clean clones.
 - **Depends on:** ST-17.3.

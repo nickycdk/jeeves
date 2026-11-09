@@ -24,4 +24,4 @@ US$0.86 API-equivalent over the three ST-17.3 runs (budget US$2, D-53), plus the
 
 ## Release artifact
 
-Recorded below once built from two clean clones.
+`jeeves/scripts/release-zip.sh` from two clean clones of `46fcea2`: identical `jeeves-0.3.1.zip`, SHA-256 `c1fa9565e9b39d309dbfacd26d6e49dc1a6c374628c5577054d81aaf3c13ca71` (249 files, no home path). `claude plugin validate` passes on the unzipped marketplace root and `--strict` on its `jeeves/` folder. The tag goes on `46fcea2` (a tag on another commit gives another SHA). **Sign-off:** waits for the maintainer. Tag and publication are the maintainer's.
