@@ -275,7 +275,10 @@ export async function heartbeat(rt: Runtime): Promise<void> {
   if (rt.probe.mode === 'unsupported') return // nothing to keep: after a refused submit the lock was given up (ADR-002 A3 note)
   const me = await rt.port.sessionId()
   const own = ownTask((await projectTasks(rt)).tasks, me)
-  if (own && !(await rt.storage.heartbeat(own.dir, me, new Date(await rt.port.now()).toISOString()))) rt.port.log(`jeeves: lost the lock of ${own.state.taskId}`)
+  const now = await rt.port.now(), at = new Date(now).toISOString()
+  if (!own || (await rt.storage.heartbeat(own.dir, me, at))) return
+  // Exit gave the lock up but `claude --resume` brings the same session back to its task: take a free lock again (ADR-005: a stale one only through recover).
+  if (!(await rt.storage.acquireLock(own.dir, me, at, now)).ok) rt.port.log(`jeeves: lost the lock of ${own.state.taskId}`)
 }
 
 /**

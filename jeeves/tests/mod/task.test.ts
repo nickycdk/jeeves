@@ -138,6 +138,18 @@ test('the lock heartbeat runs every 30 s while this session owns a task', async 
   expect(beat()).toBe(new Date(T0 + 30_000).toISOString())
 })
 
+test('a session that owns its task but not the lock (resumed after exit gave it up) takes the lock back at the next heartbeat (audit 3)', async ($, on) => {
+  const h = memHost(on)
+  await start($)
+  await relay($, 'on')
+  const [dir] = taskDirs(h)
+  h.files.delete(`${dir}/lock.d/owner.json`)
+  h.dirs.delete(`${dir}/lock.d`)
+  await h.clock.advance(30_000)
+  await until(h, () => h.files.has(`${dir}/lock.d/owner.json`))
+  expect(JSON.parse(h.files.get(`${dir}/lock.d/owner.json`)!).ownerSessionId).toBe(stateOf(h, dir!).activeSessionId)
+})
+
 test('a disk error while capturing never blocks the prompt; the task keeps waiting for one', async ($, on) => {
   const h = memHost(on)
   const engine = bottom(on)
