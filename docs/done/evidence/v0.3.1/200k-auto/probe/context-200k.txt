@@ -1,0 +1,158 @@
+/❯ /add-dir                               Add a new working directory
+ /advisorLetClaudeconsultastrongermodelatkeymoments
+ /artifactsBrowseyourpublishedandsharedartifacts
+ /auto-mode-setupTeachautomodeaboutyourenvironment,plusoptionalruletweaks
+ /autocompactSethowfullthecontextgetsbeforeauto-summarizing
+ /autofix-prMonitorandautofixanyissueswiththecurrentPR
+ /backgroundSendthissessiontothebackgroundandfreetheterminal
+ /branchCreateabranchofthecurrentconversationatthispoint
+ /btwAskaquicksidequestionwithoutinterruptingthemainconversation
+ /bugReportabugorshareyourconversation
+ /cdMovethissessiontoanewworkingdirectory
+ /chromeOpenClaudeinChromesettings
+ /clearStartanewsessionwithemptycontext;previoussessionstaysondisk(resumablewith/resume)
+ /colorSetthepromptbarcolorforthissession
+ /compactFreeupcontextbysummarizingtheconversationsofar
+ /configOpensettings
+ /contextVisualizecurrentcontextusageasacoloredgrid
+ /copyCopyClaude'slastresponsetoclipboard(or/copyNfortheNth-latest)
+ /design-loginAuthorizedesign-systemaccessfor/design-syncwithyourclaude.aiaccount
+ /desktopContinuethecurrentsessioninClaudeDesktop
+conconfig Open settingscontextVisuaize current context usage as a colored gridresume (continue)Resuma pevious conversationupdate-config  Chnge settings: hoks, permissis, environmen variablesremte-conrolContrlthissessi from your phnor clade.a/codedoctor    Healh-check your setupand fix ssues:installation, unused extensions, duplicated or bloated                                         mmory files, slow hooks, updates, permissionsdocs  docs (editable dcs pople share and commet on; the default for any document, named as a doc                                         or not: a documnt, reprt, prposal, esume, covr letter, letter, contract, policy, form, te…docxUse thisskill whenever the user wnts to create, read, edit, or manipulate Word documents                                         (.docx) or Word templtes (.dotx).Triggers include: any mention of Microsoft Word Documents, …datavizChart and dashboad deign guidanceompactFree upcontext by summarizingthe conversatn so farimpt-memoryImport a meory export from another AI assistant into Claude's memory — conversationally,                                         additively, andwith the conten treated as data. (claude.ai sync)mcpmarket-me:writing-linkedin-posts(mcpmarket-me) Create engaging, authentic LinkedIn posts like a Top Voice. Use this skill when                                         asked to write LinkedIn content, ocial media posts for LinkedIn, professional thought leaders…design-syncPushyour deign system components t claude.ai/designartfact-capabilitiesRntime capablitie for publishedArtifactcode-reviewReview the current diff or aPRfor bugs and cleanups
+ttextVisualize current context usage as a colored gridresume (continue)Reme a previousconvrsationmot-control   Control this sesion from your phone or claude.ai/codeconfig       Ope settingsupdaconfig Change settings: hoks, permissions,environmnt variablesusage Show sessioncst, planusage, and activty stats  /doctor                                Halth-check your setup and fix issus: installation, unused extensions, duplicated or bloated                                         memory fles, slw hooks, updts, permissions  /docs                                  docs (editable docspople share and comment on; the default for any document, named as a doc                                         or not: a document, rport,proposl, resume, cove lettr, letter, contract, policy, form, te…  /mcpmarket-me:writing-linkedin-posts   mcpmarket-me) Crate engaging, authentic LinkedIn postslike a TpVoice. Use this skill when                                         askedto write LinkeIn content, social media posts for LinkedIn, professional thought leaders…autocompactSet howfull the context gets before auto-summarizingsubtask      Send asubagentoff with your full context; its result comes back here  /clear                                 Star a newsession withempy contx; previous session stay on disk (resumable with /resume)compct                            Free up contxt by summariz the coversation sofar  /desktop                               Continuethe current session in Claude Desktopskill-doctorShowwhich loaded skills are unused and costing contextdocx                 Use this skill whenever the user wants to create, read, edit, or manipulate Word documents                                         (.docx) orWod templates (.dotx). Trigers include: any mention of Microsoft Word Documents, …
+eeemot-control   Control this sesion from your phone or claude.ai/codesum        Resume a previou conversationdctorHealth-check your setup and fix issues: installation, unused extensions, duplicated or bloated                                         memoryfiles, low hooks, updates, permissionsmcpmarket-me:writing-linkedin-posts(mcpmarket-me) Create engaging, authentic LinkedIn posts like a Top Voice. Use this skill when                                         asked to write LinkdIncontent, ocialmedi posts for LinkedIn, prfessional thoughtleaders…  /autocompact                           St how full the context gets bfore auto-summarizingsubtaskSenda subgent ffwith your full context; its result comesback here  /clear                                 Start anew sessionwith empty context; previous session stays on disk (esumable with /esum)compct                            Free up context by summariz the coversation sofar  /skill-doctor                          Show which loaded skills are unused andcosting contextdocs       docs (editable docs pople shar andcomment on; the default for any document, named as a doc                                         or not: a document,report, proposal, rsume, covr etter, letter, contract, policy, form, te…docx Use his skill wheever the user wants to create, read, edit, or manipulate Word documents                                         (.docx)or Wordtemplates (.dotx).Triggers nclude: any mention of Microsoft Word Documents, …import-memoryImport amemory export from another AIasistant into Claude's memory — conversationally,                                         additively, an with thecontet treted a data. (claude.ai sync)pptany timea .pptx or .potx fil is involved n anywy — as input,output, orboth. Thisincluds: crating slide decks, pth cks, or presentations as PowePoint (.pptx)
+xxxdoctor        Health-checkyour setup and fix issues:installtion, unused extensions, duplicated or bloated                                         mmoryfiles, slow hooks, updates, permissionsautocompactSt how fullthe context gets before auto-ummarizig  /subtask                               Snd asubagent ff with your fullcontext; its result comes back hereclear                              Start a new session with empty context; previous sessionstays on disk (resumable with /resume)  /compact                               Fre up context by summarizing the onversation o farskill-doctorhow which oadd skillsare unused and coting contextdocs   docs(editble dcspeople share and comment on; the defaultfor any document, named as a doc                                         or not:a document,report, proposal, resume, cover letter, letter, contact, policy, fom, t…
+/contextttttttt
+
+
+
+
+
+
+
+
+
+
+
+
+⏺ jeeves: its prompt.compose hook was skipped. "cc-plugin-sec-default" runs first and sent the event on past it.❯ /context                                                                                                                                  ✢Forming… ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────❯ ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────⏵⏵ auto mode on(shift+tabtocycle)·esc tointerrupt · ←for gents                         ◐ medium · /effort·g
+
+
+
+
+
+n
+
+
+
+
+
+✢i…
+
+
+
+
+
+   ⎿  Context Usage    ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ ⛁ Haiku5.5⛁ ⛁ ⛁ ⛁ ⛀ ⛀ ⛁ ⛀ ⛶ ⛶ claude-haiku-5-5     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   31.1k/200k tokens (16%)  ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶      ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   Estimated usage by category   ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   ⛁ System prompt: 3.4k tokens (1.7%)
+⛶⛶⛶⛶⛶⛶⛶⛶⛶⛶⛁Systemtools:23.5ktokens(11.7%)
+⛶⛶⛶⛶⛶⛶⛶⛶⛶⛶⛁MCPtools:819tokens(0.4%)
+⛶⛶⛶⛝⛝⛝⛝⛝⛝⛝⛁MCPserverinstructions:717tokens(0.4%)
+⛝⛝⛝⛝⛝⛝⛝⛝⛝⛝⛁Skills:2.6ktokens(1.3%)
+⛁Messages:54tokens(0.0%)
+⛶Freespace:135.9k(68.0%)
+⛝Autocompactbuffer:33ktokens(16.5%)
+
+Auto-compactwindow:200ktokens
+
+MCPtools ·/mcp(loadedon-demand)
+
+Loaded
+├mcp__claude_ai_Claude_Docs__batch:201tokens
+├mcp__claude_ai_Claude_Docs__guide:255tokens
+└mcp__claude_ai_Claude_Docs__update:363tokens
+
+Available
+├mcp__claude_ai_Asana__authenticate
+├mcp__claude_ai_Asana__complete_authentication
+├mcp__claude_ai_Atlassian__authenticate
+├mcp__claude_ai_Atlassian__complete_authentication
+├mcp__claude_ai_Box__authenticate
+├mcp__claude_ai_Box__complete_authentication
+├mcp__claude_ai_Canva__authenticate
+├mcp__claude_ai_Canva__complete_authentication
+├mcp__claude_ai_Claude_Docs__create
+├mcp__claude_ai_Claude_Docs__delete
+├mcp__claude_ai_Claude_Docs__export
+├mcp__claude_ai_Claude_Docs__query
+├mcp__claude_ai_Claude_Docs__read
+├mcp__claude_ai_Figma__authenticate
+├mcp__claude_ai_Figma__complete_authentication
+├mcp__claude_ai_Gmail__authenticate
+├mcp__claude_ai_Gmail__complete_authentication
+├mcp__claude_ai_Google_Calendar__authenticate
+├mcp__claude_ai_Google_Calendar__complete_authentication
+├mcp__claude_ai_Google_Docs__authenticate
+├mcp__claude_ai_Google_Docs__complete_authentication
+├mcp__claude_ai_Google_Drive__authenticate
+├mcp__claude_ai_Google_Drive__complete_authentication
+├mcp__claude_ai_Google_Sheets__authenticate
+├mcp__claude_ai_Google_Sheets__complete_authentication
+├mcp__claude_ai_Google_Slides__authenticate
+├mcp__claude_ai_Google_Slides__complete_authentication
+├mcp__claude_ai_HubSpot__authenticate
+├mcp__claude_ai_HubSpot__complete_authentication
+├mcp__claude_ai_Intercom__authenticate
+├mcp__claude_ai_Intercom__complete_authentication
+├mcp__claude_ai_Linear__authenticate
+├mcp__claude_ai_Linear__complete_authentication
+├mcp__claude_ai_monday_com__authenticate
+├mcp__claude_ai_monday_com__complete_authentication
+├mcp__claude_ai_Notion__authenticate
+├mcp__claude_ai_Notion__complete_authentication
+├mcp__claude_ai_Slack__authenticate
+└mcp__claude_ai_Slack__complete_authentication
+
+Skills ·/skills
+
+claude.aisync
+├google-workspace:<20tokens
+├import-memory:<20tokens
+├skill-creator:<20tokens
+├morning:<20tokens
+├docs:<20tokens
+├docx:<20tokens
+├pptx:<20tokens
+├xlsx:<20tokens
+└pdf:<20tokens
+
+Plugin(mcpmarket-me)
+└mcpmarket-me:writing-linkedin-posts:<20tokens
+
+Plugin(prompt-fixer)
+└prompt-fixer:prompt-fixer:<20tokens
+
+Built-in
+├dataviz:~480tokens
+├claude-api:~360tokens
+├code-review:~280tokens
+├artifact-capabilities:~250tokens
+├update-config:~240tokens
+├schedule:~130tokens
+├run:~120tokens
+├loop:~120tokens
+├plugin-authoring:~90tokens
+├workflow-authoring:~80tokens
+├keybindings-help:~80tokens
+├artifact-diagramming:~70tokens
+├artifact-design:~70tokens
+├fewer-permission-prompts:~60tokens
+├simplify:~60tokens
+├security-review:<20tokens
+└init:<20tokens
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+⏵⏵automodeon (shift+tabtocycle)·←foragents◐medium·/effort
+
+

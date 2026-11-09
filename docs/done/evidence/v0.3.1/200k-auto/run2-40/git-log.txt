@@ -1,0 +1,10 @@
+aa7e5a0 distinct-task fixture
+a575610 module 1: clampPercent
+2b1a01e module 2: countVowels
+e8b127d module 3: reverseWords
+d670d4e module 4: isLeapYear
+5a7ae1c module 5: digitalRoot
+d86f15d module 6: capitalizeWords
+a7f2207 module 7: gcd
+753999c module 8: runLength
+d99cf31 module 9: isPowerOfTwo

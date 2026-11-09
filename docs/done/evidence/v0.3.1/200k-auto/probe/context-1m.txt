@@ -1,0 +1,149 @@
+/❯ /add-dir                               Add a new working directory
+ /advisorLetClaudeconsultastrongermodelatkeymoments
+ /artifactsBrowseyourpublishedandsharedartifacts
+ /auto-mode-setupTeachautomodeaboutyourenvironment,plusoptionalruletweaks
+ /autocompactSethowfullthecontextgetsbeforeauto-summarizing
+ /autofix-prMonitorandautofixanyissueswiththecurrentPR
+ /backgroundSendthissessiontothebackgroundandfreetheterminal
+ /branchCreateabranchofthecurrentconversationatthispoint
+ /btwAskaquicksidequestionwithoutinterruptingthemainconversation
+ /bugReportabugorshareyourconversation
+ /cdMovethissessiontoanewworkingdirectory
+ /chromeOpenClaudeinChromesettings
+ /clearStartanewsessionwithemptycontext;previoussessionstaysondisk(resumablewith/resume)
+ /colorSetthepromptbarcolorforthissession
+ /compactFreeupcontextbysummarizingtheconversationsofar
+ /configOpensettings
+ /contextVisualizecurrentcontextusageasacoloredgrid
+ /copyCopyClaude'slastresponsetoclipboard(or/copyNfortheNth-latest)
+ /design-loginAuthorizedesign-systemaccessfor/design-syncwithyourclaude.aiaccount
+ /desktopContinuethecurrentsessioninClaudeDesktop
+contexcontextVisulizecuretcontext usage as a colored griddoctor Halth-chck yor setup ad fix issues: installaion, unused extensions, duplicated or bloated                                         memoryfiles, sow hooks,updates, permisionscompact    St ow full the context gets befor auto-summarzingsbtask    nd a subagent off withyourfull context; its result comes back hereclear     Star anewsessionwith emptycontext;previous session stays on disk (resumable with /resume)compact   Freeup context by summarizin the coversation so farskill-doctorShow which loaded skills a unused and csting contextdocsdocs (edtable docs people share and comment on; the default for any document, named as a doc                                         or no: a document, reprt, propol, resume, cover letter, letter, contract, policy, form, te…
+/contextttttttt
+
+
+
+
+
+
+
+
+
+
+
+
+⏺ jeeves: its prompt.compose hook was skipped. "cc-plugin-sec-default" runs first and sent the event on past it.❯ /context                                                                                                                                  ✳Levitating… ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────❯ ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────⏵⏵ auto mode on(shift+tabtocycle)·esc tointerrupt · ←for gents                         ◐ medium · /effort✢
+
+
+
+
+
+·
+
+
+
+
+
+   ⎿  Context Usage    ⛁ ⛁ ⛁ ⛁ ⛁ ⛀ ⛀ ⛁ ⛀ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ Haiku5.5⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ claude-haiku-5-5     ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   31.6k/1m tokens (3%)  ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶      ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶   Estimated usage by category   ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶⛶ ⛶ ⛶ ⛶ ⛶⛶⛶ ⛶  ⛁ System prompt: 3.5k tokens (0.4%)
+⛶⛶⛶⛶⛶⛶⛶⛶⛶⛶⛶⛶⛶⛶⛶⛶⛶⛶⛶⛶⛁Systemtools:21.5ktokens(2.2%)
+⛶⛶⛶⛶⛶⛶⛶⛶⛶⛶⛶⛶⛶⛶⛶⛶⛶⛶⛶⛶⛁MCPtools:819tokens(0.1%)
+⛶⛶⛶⛶⛶⛶⛶⛶⛶⛶⛶⛶⛶⛶⛶⛶⛶⛶⛶⛶⛁MCPserverinstructions:717tokens(0.1%)
+⛶⛶⛶⛶⛶⛶⛶⛶⛶⛶⛶⛶⛶⛝⛝⛝⛝⛝⛝⛝⛁Skills:5ktokens(0.5%)
+⛁Messages:54tokens(0.0%)
+⛶Freespace:935.4k(93.5%)
+⛝Autocompactbuffer:33ktokens(3.3%)
+
+Auto-compactwindow:1mtokens
+
+MCPtools ·/mcp(loadedon-demand)
+
+Loaded
+├mcp__claude_ai_Claude_Docs__batch:201tokens
+├mcp__claude_ai_Claude_Docs__guide:255tokens
+└mcp__claude_ai_Claude_Docs__update:363tokens
+
+Available
+├mcp__claude_ai_Asana__authenticate
+├mcp__claude_ai_Asana__complete_authentication
+├mcp__claude_ai_Atlassian__authenticate
+├mcp__claude_ai_Atlassian__complete_authentication
+├mcp__claude_ai_Box__authenticate
+├mcp__claude_ai_Box__complete_authentication
+├mcp__claude_ai_Canva__authenticate
+├mcp__claude_ai_Canva__complete_authentication
+├mcp__claude_ai_Claude_Docs__create
+├mcp__claude_ai_Claude_Docs__delete
+├mcp__claude_ai_Claude_Docs__export
+├mcp__claude_ai_Claude_Docs__query
+├mcp__claude_ai_Claude_Docs__read
+├mcp__claude_ai_Figma__authenticate
+├mcp__claude_ai_Figma__complete_authentication
+├mcp__claude_ai_Gmail__authenticate
+├mcp__claude_ai_Gmail__complete_authentication
+├mcp__claude_ai_Google_Calendar__authenticate
+├mcp__claude_ai_Google_Calendar__complete_authentication
+├mcp__claude_ai_Google_Docs__authenticate
+├mcp__claude_ai_Google_Docs__complete_authentication
+├mcp__claude_ai_Google_Drive__authenticate
+├mcp__claude_ai_Google_Drive__complete_authentication
+├mcp__claude_ai_Google_Sheets__authenticate
+├mcp__claude_ai_Google_Sheets__complete_authentication
+├mcp__claude_ai_Google_Slides__authenticate
+├mcp__claude_ai_Google_Slides__complete_authentication
+├mcp__claude_ai_HubSpot__authenticate
+├mcp__claude_ai_HubSpot__complete_authentication
+├mcp__claude_ai_Intercom__authenticate
+├mcp__claude_ai_Intercom__complete_authentication
+├mcp__claude_ai_Linear__authenticate
+├mcp__claude_ai_Linear__complete_authentication
+├mcp__claude_ai_monday_com__authenticate
+├mcp__claude_ai_monday_com__complete_authentication
+├mcp__claude_ai_Notion__authenticate
+├mcp__claude_ai_Notion__complete_authentication
+├mcp__claude_ai_Slack__authenticate
+└mcp__claude_ai_Slack__complete_authentication
+
+Skills ·/skills
+
+claude.aisync
+├docs:~340tokens
+├pptx:~330tokens
+├google-workspace:~330tokens
+├xlsx:~320tokens
+├docx:~320tokens
+├pdf:~150tokens
+├morning:~120tokens
+├skill-creator:~120tokens
+└import-memory:~60tokens
+
+Plugin(mcpmarket-me)
+└mcpmarket-me:writing-linkedin-posts:~140tokens
+
+Plugin(prompt-fixer)
+└prompt-fixer:prompt-fixer:~190tokens
+
+Built-in
+├dataviz:~480tokens
+├claude-api:~360tokens
+├code-review:~280tokens
+├artifact-capabilities:~250tokens
+├update-config:~240tokens
+├schedule:~130tokens
+├run:~120tokens
+├loop:~120tokens
+├plugin-authoring:~90tokens
+├workflow-authoring:~80tokens
+├keybindings-help:~80tokens
+├artifact-diagramming:~70tokens
+├artifact-design:~70tokens
+├fewer-permission-prompts:~60tokens
+├simplify:~60tokens
+├security-review:~30tokens
+└init:~20tokens
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+⏵⏵automodeon (shift+tabtocycle)·←foragents◐medium·/effort
+
+

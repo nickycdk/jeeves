@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "rotationId": "r_20261109_zgq4c5",
+  "capturedAt": "2026-11-09T18:52:16.612Z",
+  "git": {
+    "kind": "git",
+    "worktree": "<scratch>/st173-40/repo",
+    "branch": "main",
+    "detached": false,
+    "head": "5a7ae1c456a6f51d71e5304f805929864032f5ca",
+    "status": [],
+    "changedSinceStart": [
+      "src/m01.js",
+      "src/m02.js",
+      "src/m03.js",
+      "src/m04.js",
+      "src/m05.js"
+    ]
+  },
+  "crons": null
+}

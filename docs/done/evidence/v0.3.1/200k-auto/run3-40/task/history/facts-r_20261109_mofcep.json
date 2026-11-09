@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "rotationId": "r_20261109_mofcep",
+  "capturedAt": "2026-11-09T19:06:55.845Z",
+  "git": {
+    "kind": "git",
+    "worktree": "<scratch>/st173-40b/repo",
+    "branch": "main",
+    "detached": false,
+    "head": "0977d2e7bc1ca9a822df6dcbada0bd4595782177",
+    "status": [],
+    "changedSinceStart": [
+      "src/m01.js",
+      "src/m02.js",
+      "src/m03.js",
+      "src/m04.js",
+      "src/m05.js",
+      "src/m06.js",
+      "src/m07.js",
+      "src/m08.js",
+      "src/m09.js",
+      "src/m10.js",
+      "src/m11.js",
+      "src/m12.js",
+      "src/m13.js",
+      "src/m14.js",
+      "src/m15.js",
+      "src/m16.js",
+      "src/m17.js",
+      "src/m18.js",
+      "src/m19.js",
+      "src/m20.js",
+      "src/m21.js",
+      "src/m22.js",
+      "src/m23.js",
+      "src/m24.js"
+    ]
+  },
+  "crons": null
+}
