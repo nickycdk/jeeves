@@ -22,7 +22,8 @@ export type RenderInput = {
   checks: string[]
   taskStartHead: string | null
   git: GitFacts
-  crons: readonly Cron[]
+  /** null in turn mode: the crons came from `classic.Stop`, which is skipped there (ADR-003 A2). */
+  crons: readonly Cron[] | null
   ledger: readonly LedgerEntry[]
   narrative: Narrative
 }
@@ -61,8 +62,10 @@ function verified(r: RenderInput): string[] {
     ...list(edits, p => `\`${p}\``, 'none').map(l => `  ${l}`),
     '- Commands (ledger, oldest first):',
     ...list(cmds, c => `\`${c.command}\` -> ${c.exit === null ? (c.ok ? 'no exit status (backgrounded)' : 'denied or did not finish') : `exit ${c.exit}`}${c.agent ? ` (subagent ${c.agent})` : ''}`, 'none').map(l => `  ${l}`),
-    '- Scheduled session crons (keep running across the rotation):',
-    ...list(r.crons, c => `\`${c.schedule}\`${c.recurring ? ' recurring' : ' once'}: ${oneLine(c.prompt, 120)}`, 'none').map(l => `  ${l}`),
+    ...(r.crons === null ? ['- Scheduled session crons: not available in turn mode'] : [
+      '- Scheduled session crons (keep running across the rotation):',
+      ...list(r.crons, c => `\`${c.schedule}\`${c.recurring ? ' recurring' : ' once'}: ${oneLine(c.prompt, 120)}`, 'none').map(l => `  ${l}`),
+    ]),
   ]
 }
 

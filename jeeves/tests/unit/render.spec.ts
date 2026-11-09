@@ -53,3 +53,9 @@ test('no git, unknown git, no start commit, empty lists, long lists', () => {
   const many = renderHandover(input({ ledger: Array.from({ length: 120 }, (_, i) => ({ kind: 'cmd' as const, command: `c${i}`, ok: true, exit: 0, at: AT, agent: null })) }))
   assert.ok(many.includes('- (70 earlier not shown)') && many.includes('`c119`') && !many.includes('`c69`'))
 })
+
+test('ST-16.3: turn mode (crons null) gives the Stop-mode file with only the crons lines replaced', () => {
+  const stop = renderHandover(input({ crons: [] })), turn = renderHandover(input({ crons: null }))
+  assert.equal(turn, stop.replace('- Scheduled session crons (keep running across the rotation):\n  - none', '- Scheduled session crons: not available in turn mode'))
+  assert.notEqual(turn, stop)
+})

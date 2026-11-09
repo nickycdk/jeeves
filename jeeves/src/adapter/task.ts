@@ -368,7 +368,8 @@ export async function onFreshSession(rt: Runtime, sessionId: string, endedHere: 
 }
 
 /** What the Stop hook passes in (classic.Stop on the main loop). */
-export type StopInfo = { backgroundTasks: number; crons: readonly { id: string; schedule: string; recurring: boolean; prompt: string }[]; message: string }
+/** `crons` null: turn mode, where they are not available (ADR-003 A2). */
+export type StopInfo = { backgroundTasks: number; crons: readonly { id: string; schedule: string; recurring: boolean; prompt: string }[] | null; message: string }
 
 /** Rotation states in which a Stop matters. */
 const STOP_STATES = new Set<State['status']>(['ROTATION_REQUESTED', 'QUIESCING', 'HANDOVER_GENERATING'])
@@ -412,14 +413,17 @@ export async function onStop(rt: Runtime, info: StopInfo): Promise<string | null
 }
 
 /**
- * ADR-004 A2: turn mode's boundary, a main-loop `turn.complete` answered and not aborted. A waiting rotation is judged
- * as at a Stop, with Jeeves's own background record for `background_tasks` (no crons: `classic.Stop` is skipped).
- * Returns the handover instruction when the boundary is safe (ST-16.3 submits it), else null.
+ * ADR-004 A2 / ADR-003 A2: turn mode's boundary, a main-loop `turn.complete` answered and not aborted. A waiting
+ * rotation is judged as at a Stop, with Jeeves's own background record for `background_tasks` and no crons
+ * (`classic.Stop` is skipped); in HANDOVER_GENERATING the answer is the handover. What a Stop would block with (the
+ * request, a retry) is submitted as a new prompt instead; the reducer has already moved to HANDOVER_GENERATING, so a
+ * prompt the user queued is held (ADR-010) and never runs ahead of it.
  */
-export async function turnBoundary(rt: Runtime, answer: string): Promise<string | null> {
+export async function turnBoundary(rt: Runtime, answer: string): Promise<void> {
   const own = ownTask((await projectTasks(rt)).tasks, await rt.port.sessionId())
-  if (own?.state.status !== 'ROTATION_REQUESTED' && own?.state.status !== 'QUIESCING') return null
-  return onStop(rt, { backgroundTasks: bgCount(), crons: [], message: answer })
+  if (!own || !STOP_STATES.has(own.state.status)) return
+  const ask = await onStop(rt, { backgroundTasks: bgCount(), crons: null, message: answer })
+  if (ask !== null) rt.port.submitPromptSoon(ask, err => rt.port.log(`jeeves: handover request not sent: ${why(err)}`))
 }
 
 /**
