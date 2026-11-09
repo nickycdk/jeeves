@@ -1,7 +1,7 @@
-import { expect, test } from 'claude-code/testing'
+import { expect } from 'claude-code/testing'
 import { memHost } from './memfs.ts'
 import type { SessionMeasureInput } from 'claude-code'
-import { bottom, PROMPT, relay, start as kitStart, stateOf, stop, submit, taskDirs, turnEnd, turnStart } from './kit.ts'
+import { bottom, PROMPT, relay, start as kitStart, stateOf, stop, submit, taskDirs, turnEnd, turnStart, test } from './kit.ts'
 
 const SKIPPED = 'Jeeves cannot hand over in this session: its Stop hook does not run (a plugin above it, such as cc-plugin-sec-default on Team accounts, skips it). Automatic rotation is off. See troubleshooting.'
 

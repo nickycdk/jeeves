@@ -1,7 +1,7 @@
 // ST-3.3 / AC-07: the safe boundary at classic.Stop, the quiesce limit, interrupts, and failing open.
 import type { SessionMeasureInput } from 'claude-code'
-import { expect, test } from 'claude-code/testing'
-import { bottom, PROMPT, relay, start, stateOf, submit, taskDirs, type Kit } from './kit.ts'
+import { expect } from 'claude-code/testing'
+import { bottom, PROMPT, relay, start, stateOf, submit, taskDirs, type Kit, test } from './kit.ts'
 import { memHost } from './memfs.ts'
 
 const measure = ($: Kit, percent: number) =>

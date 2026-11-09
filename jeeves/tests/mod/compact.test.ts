@@ -1,8 +1,8 @@
 // ST-6.4 / ADR-006: precompute skipped only for an active managed task; manual and auto compaction run, then a handover is requested.
 import type { SessionCompactTrigger } from 'claude-code'
-import { expect, test } from 'claude-code/testing'
+import { expect } from 'claude-code/testing'
 import { NUDGE_PROMPT } from '../../src/core/handover/template.ts'
-import { bottom, PROMPT, relay, start, stateOf, submit, taskDirs, turnStart, until, type Kit } from './kit.ts'
+import { bottom, PROMPT, relay, start, stateOf, submit, taskDirs, turnStart, until, type Kit, test } from './kit.ts'
 import { memHost } from './memfs.ts'
 
 const compact = ($: Kit, trigger: SessionCompactTrigger, agentId?: string) => $.session.compact({ trigger, messages: [{ role: 'user', text: 'hi', toolUses: [] }], ...(agentId ? { agentId } : {}) })

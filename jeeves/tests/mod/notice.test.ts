@@ -1,6 +1,6 @@
 // ST-7.3: the first-activation notice shows once per machine ($.store), on the first successful /jeeves on.
-import { expect, test } from 'claude-code/testing'
-import { relay, start } from './kit.ts'
+import { expect } from 'claude-code/testing'
+import { relay, start, test } from './kit.ts'
 import { memHost } from './memfs.ts'
 
 const NOTICE = 'Jeeves keeps task state on this machine only: /home/t/.local/state/jeeves'

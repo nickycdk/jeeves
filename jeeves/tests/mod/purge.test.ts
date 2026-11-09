@@ -1,7 +1,7 @@
 // ST-8.1: /jeeves purge deletes task files only after a typed code, only under <state root>/projects, never a task
 // running here or held by another live session; only the user can start it.
-import { expect, test } from 'claude-code/testing'
-import { bottom, relay, start, taskDirs } from './kit.ts'
+import { expect } from 'claude-code/testing'
+import { bottom, relay, start, taskDirs, test } from './kit.ts'
 import { memHost } from './memfs.ts'
 
 const ROOT = '/home/t/.local/state/jeeves'

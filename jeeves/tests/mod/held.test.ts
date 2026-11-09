@@ -1,9 +1,9 @@
 // ST-4.4 / ADR-010 (+A1): a prompt typed during a handover is held (never sent to the old conversation), the box is
 // emptied, the full text waits in state (the event line is redacted), and it is delivered once, quoted verbatim, in
 // the continuation. Slash commands such as /jeeves pause still run.
-import { expect, test } from 'claude-code/testing'
+import { expect } from 'claude-code/testing'
 import { HELD_TEXT } from '../../src/adapter/ui.ts'
-import { engineClear, generating, handover, relay, stateOf, stop, submit, turnEnd, until } from './kit.ts'
+import { engineClear, generating, handover, relay, stateOf, stop, submit, turnEnd, until, test } from './kit.ts'
 
 const TYPED = 'also update the README\n  keep this indent; key AKIAIOSFODNN7EXAMPLE'
 
@@ -19,7 +19,8 @@ test('AC 1-2, 4-5: held during the handover, box emptied, delivered once and ver
   expect(h.fills).toEqual([''])
   expect(stateOf(h, dir).heldPrompts).toEqual([TYPED])
   const events = h.files.get(`${dir}/events.jsonl`)!
-  expect(events).toContain('held prompt: also update the README')
+  expect(events).toContain('held prompt 1 (')
+  expect(events).not.toContain('also update the README')
   expect(events).not.toContain('AKIAIOSFODNN7EXAMPLE')
 
   expect(await stop($, handover(g.taskId, g.rotationId))).toEqual({})

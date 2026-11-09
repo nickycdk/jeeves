@@ -1,7 +1,7 @@
 // Review fix 1: a user's /clear pauses the task (USER_CLEAR) instead of leaving it to a session id that no longer exists.
 import type { SessionMeasureInput } from 'claude-code'
-import { expect, test } from 'claude-code/testing'
-import { bottom, engineClear, fakeGit, generating, handover, PROMPT, relay, start, stateOf, stop, submit, taskDirs, turnEnd, turnStart, until, type Kit } from './kit.ts'
+import { expect } from 'claude-code/testing'
+import { bottom, engineClear, fakeGit, generating, handover, PROMPT, relay, start, stateOf, stop, submit, taskDirs, turnEnd, turnStart, until, type Kit, test } from './kit.ts'
 import { memHost } from './memfs.ts'
 
 const measure = ($: Kit, percent: number) =>
@@ -86,7 +86,7 @@ async function autoSession($: Kit, on: Parameters<typeof memHost>[0]) {
   return { h, dir, prompts }
 }
 
-test('ST-13.7 AC 1, 2: a user /clear ends an auto task (files kept, lock given up); the next typed prompt starts a new auto task', async ($, on) => {
+test('ST-13.7 AC 1, 2: a user /clear ends an auto task (files kept, lock given up); the next typed prompt starts a new auto task', { options: { autoStart: 'on' } }, async ($, on) => {
   const { h, dir } = await autoSession($, on)
   expect(await relay($, 'status')).toContain(`Task: ${stateOf(h, dir).taskId} (auto)`)
   await engineClear($, h, 'sess-2')
@@ -102,7 +102,7 @@ test('ST-13.7 AC 1, 2: a user /clear ends an auto task (files kept, lock given u
   expect([stateOf(h, next).origin, stateOf(h, next).status, stateOf(h, next).activeSessionId]).toEqual(['auto', 'MONITORING', 'sess-2'])
 })
 
-test('ST-13.7 AC 3: /jeeves on <goal> in an auto task makes it explicit with a goal revision; a /clear then pauses it', async ($, on) => {
+test('ST-13.7 AC 3: /jeeves on <goal> in an auto task makes it explicit with a goal revision; a /clear then pauses it', { options: { autoStart: 'on' } }, async ($, on) => {
   const { h, dir } = await autoSession($, on)
   const answer = await relay($, 'on finish the CSV parser')
   expect(answer).toBe(`Task ${stateOf(h, dir).taskId} is now explicit: your goal is task revision 2, and a /clear pauses it instead of ending it.`)

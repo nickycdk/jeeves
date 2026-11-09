@@ -2,10 +2,10 @@
 // additionalContext; once /clear resolves the continuation goes out with no keystroke (CONTINUING); the first low
 // reading rearms. The restore path (/jeeves resume after the user's /clear) puts the context in the prompt itself.
 import type { SessionMeasureInput } from 'claude-code'
-import { expect, test } from 'claude-code/testing'
+import { expect } from 'claude-code/testing'
 import { FRESH_CONTINUE_MS } from '../../src/adapter/task.ts'
 import { NUDGE_PROMPT } from '../../src/core/handover/template.ts'
-import { bottom, engineClear, generating, handover, PROMPT, relay, start, stateOf, stop, submit, taskDirs, turnEnd, until, type Kit } from './kit.ts'
+import { bottom, engineClear, generating, handover, PROMPT, relay, start, stateOf, stop, submit, taskDirs, turnEnd, until, type Kit, test } from './kit.ts'
 import { memHost } from './memfs.ts'
 
 const measure = ($: Kit, percent: number) =>

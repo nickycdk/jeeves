@@ -1,8 +1,8 @@
 // ST-7.2: /jeeves history lists the last 20 state changes (time, from > to, code, %) and a rotations summary,
 // readable at 80 columns, with no secrets; it only reads, so anyone may call it.
 import type { SessionMeasureInput } from 'claude-code'
-import { expect, test } from 'claude-code/testing'
-import { bottom, engineClear, generating, handover, relay, sha256, start, stateOf, stop, turnEnd, until, type Kit } from './kit.ts'
+import { expect } from 'claude-code/testing'
+import { bottom, engineClear, generating, handover, relay, sha256, start, stateOf, stop, turnEnd, until, type Kit, test } from './kit.ts'
 import { memHost } from './memfs.ts'
 
 test('after a rotation: summary, every change in order with code and %, each line <= 80 columns', async ($, on) => {

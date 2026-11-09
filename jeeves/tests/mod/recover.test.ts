@@ -1,8 +1,8 @@
 // ST-6.1 / AC-16 (I layer): a task left by a dead session is named at the next session start and continued once by
 // /jeeves recover, from the last validated handover; never while another session's lock is live; a lost state.json is
 // rebuilt, never deleted.
-import { expect, test } from 'claude-code/testing'
-import { generating, handover, relay, start, stateOf, stop, until, type Kit } from './kit.ts'
+import { expect } from 'claude-code/testing'
+import { generating, handover, relay, start, stateOf, stop, until, type Kit, test } from './kit.ts'
 import type { MemHost } from './memfs.ts'
 
 /** A new process: new session id, session.start again (the dead process ran no session.end). */

@@ -1,9 +1,9 @@
 // ST-4.1 / AC-10: the rotation executor. After the handover turn ends, /clear runs exactly once per rotation, never
 // without a verified handover, and nothing but /clear (no --resume, --continue or fork). D-23: an idle request is nudged.
 import type { SessionMeasureInput } from 'claude-code'
-import { expect, test } from 'claude-code/testing'
+import { expect } from 'claude-code/testing'
 import { NUDGE_PROMPT } from '../../src/core/handover/template.ts'
-import { bottom, generating, handover, PROMPT, relay, start, stateOf, stop, submit, taskDirs, turnEnd, turnStart, until, type Kit } from './kit.ts'
+import { bottom, generating, handover, PROMPT, relay, start, stateOf, stop, submit, taskDirs, turnEnd, turnStart, until, type Kit, test } from './kit.ts'
 import { memHost } from './memfs.ts'
 
 const measure = ($: Kit, percent: number) =>

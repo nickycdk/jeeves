@@ -1,6 +1,6 @@
 // ST-6.2 / AC-23: classic.StopFailure pauses with the error's own code and fix; Jeeves never sends a prompt after it.
-import { expect, test } from 'claude-code/testing'
-import { generating, relay, stateOf, submit, turnEnd, until, type Kit } from './kit.ts'
+import { expect } from 'claude-code/testing'
+import { generating, relay, stateOf, submit, turnEnd, until, type Kit, test } from './kit.ts'
 
 const fail = ($: Kit, error: 'rate_limit' | 'authentication_failed' | 'overloaded', agent_id?: string) =>
   $.classic.StopFailure({ error, ...(agent_id ? { agent_id } : {}) } as never)

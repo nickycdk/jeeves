@@ -1,7 +1,7 @@
 // ST-6.6 / AC-18 (I layer): sessions in one project, in two worktrees and in two repositories never touch each other's
 // task files (path audit), and a task has one owner. Discovery reads another task's state.json and lock owner only.
-import { expect, test } from 'claude-code/testing'
-import { bottom, engineClear, fakeGit, PROMPT, relay, start, stateOf, submit, taskDirs, type Kit } from './kit.ts'
+import { expect } from 'claude-code/testing'
+import { bottom, engineClear, fakeGit, PROMPT, relay, start, stateOf, submit, taskDirs, type Kit, test } from './kit.ts'
 import { memHost, type MemHost } from './memfs.ts'
 
 const measure = ($: Kit, percent: number) => $.session.measure({ context: { window: 1_000_000, percent }, rateLimits: [], changed: ['context'] })

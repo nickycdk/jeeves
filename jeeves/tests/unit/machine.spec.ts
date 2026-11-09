@@ -576,7 +576,7 @@ test('ST-4.4: HOLD_PROMPT appends in HANDOVER_GENERATING..RESTORING only, up to 
     const o = run(st(status), { type: 'HOLD_PROMPT', text: 'hi' })
     assert.deepEqual([o.state.status, o.state.heldPrompts], [status, ['hi']], status)
     const e = o.effects.find(x => x.type === 'LOG_EVENT')
-    assert.ok(e?.type === 'LOG_EVENT' && e.detail === 'held prompt: hi' && e.from === status && e.to === status)
+    assert.ok(e?.type === 'LOG_EVENT' && e.detail === 'held prompt 1 (2 chars)' && e.from === status && e.to === status)
   }
   for (const status of ['MONITORING', 'ROTATION_REQUESTED', 'QUIESCING', 'CONTINUING', 'PAUSED'] as const) assert.ok(run(st(status), { type: 'HOLD_PROMPT', text: 'hi' }).ignored, status)
   const full = st('ROTATING', { heldPrompts: Array.from({ length: HELD_MAX }, (_, i) => `m${i}`) })

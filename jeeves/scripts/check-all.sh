@@ -10,6 +10,8 @@ out=$(mktemp); npm test > "$out" 2>&1 || { cat "$out"; exit 1; }
 grep -E '^# (tests|pass|fail)' "$out"; rm -f "$out"
 # A pipe would hide the exit code: keep the output, print the summary (and any failure), then fail on it.
 out=$(mktemp); if npm run -s test:mod > "$out" 2>&1; then tail -3 "$out"; else grep -A12 '(fail)' "$out"; tail -3 "$out"; rm -f "$out"; exit 1; fi; rm -f "$out"
+# The same suite with auto-start on (spec §9: off and on).
+out=$(mktemp); if npm run -s test:mod:on > "$out" 2>&1; then echo "auto-start on: $(tail -3 "$out" | head -1)"; else grep -A12 '(fail)' "$out"; tail -3 "$out"; rm -f "$out"; exit 1; fi; rm -f "$out"
 out=$(mktemp); npm run -s validate > "$out" 2>&1 || { cat "$out"; exit 1; }; tail -1 "$out"
 # The repository root is the marketplace (ST-8.1).
 (cd .. && claude plugin validate . > "$out" 2>&1) || { cat "$out"; exit 1; }; echo "marketplace: $(tail -1 "$out")"; rm -f "$out"

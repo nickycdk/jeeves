@@ -1,8 +1,8 @@
 // ST-4.2: the rotation boundary. Jeeves's own /clear records the source session and writes sessions/NNN.json once;
 // SessionStart(clear) gives the fresh session the task (target id, lock, RESTORING). A /clear Jeeves did not schedule
 // is the user's and never counts as a rotation.
-import { expect, test } from 'claude-code/testing'
-import { engineClear, generating, handover, PROMPT, relay, start, stateOf, stop, submit, taskDirs, turnEnd, until, bottom, type Kit } from './kit.ts'
+import { expect } from 'claude-code/testing'
+import { engineClear, generating, handover, PROMPT, relay, start, stateOf, stop, submit, taskDirs, turnEnd, until, bottom, type Kit, test } from './kit.ts'
 import { memHost } from './memfs.ts'
 
 async function rotating($: Kit, on: Parameters<typeof memHost>[0]) {

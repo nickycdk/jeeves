@@ -1,7 +1,7 @@
 // ST-3.8 / AC-08, AC-09, AC-17: the handover Stop sequence through the hooks: validate, persist write-once with a
 // verified hash before anything can clear, retries with specific errors, then NEEDS_REVIEW with nothing touched.
-import { expect, test } from 'claude-code/testing'
-import { generating, handover, sha256, stateOf, stop } from './kit.ts'
+import { expect } from 'claude-code/testing'
+import { generating, handover, sha256, stateOf, stop, test } from './kit.ts'
 
 test('AC-08: a valid handover is written once, hash-verified, copied to handover.md, and only then ROTATING; nothing is cleared yet', async ($, on) => {
   const { h, dir, clears, taskId, rotationId } = await generating($, on)

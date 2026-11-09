@@ -2,8 +2,8 @@
 // handover is due.
 // Jeeves asks only at a stop no other hook blocked, so neither block is lost and the rotation happens once.
 import type { SessionMeasureInput } from 'claude-code'
-import { expect, test } from 'claude-code/testing'
-import { bottom, engineClear, handover, PROMPT, relay, start, stateOf, stop, ROOT, submit, taskDirs, turnEnd, turnStart, until, type Kit } from './kit.ts'
+import { expect } from 'claude-code/testing'
+import { bottom, engineClear, handover, PROMPT, relay, start, stateOf, stop, ROOT, submit, taskDirs, turnEnd, turnStart, until, type Kit, test } from './kit.ts'
 import { memHost } from './memfs.ts'
 
 const OTHER = 'Other plugin: run the linter before stopping.'

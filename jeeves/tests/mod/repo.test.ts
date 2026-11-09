@@ -1,7 +1,7 @@
 // ST-6.5 / AC-23: a failed state write blocks the task (DISK) with the folder and the fix, keeping the last checkpoint;
 // a switched branch or a moved repository is never continued without the user's /jeeves recover --relink.
-import { expect, test } from 'claude-code/testing'
-import { bottom, generating, handover, PROMPT, relay, start, stateOf, stop, submit, taskDirs, until, type Kit } from './kit.ts'
+import { expect } from 'claude-code/testing'
+import { bottom, generating, handover, PROMPT, relay, start, stateOf, stop, submit, taskDirs, until, type Kit, test } from './kit.ts'
 import { projectId } from '../../src/adapter/git.ts'
 import { memHost, type MemHost } from './memfs.ts'
 

@@ -1,8 +1,8 @@
 // ST-7.1: one transcript line per state change (none per tool call), and this plugin's own status entry: context and
 // threshold while watching, a word label otherwise, at most 40 columns.
 import type { SessionMeasureInput } from 'claude-code'
-import { expect, test } from 'claude-code/testing'
-import { bottom, engineClear, generating, handover, PROMPT, relay, start, stateOf, stop, submit, turnEnd, until, type Kit } from './kit.ts'
+import { expect } from 'claude-code/testing'
+import { bottom, engineClear, generating, handover, PROMPT, relay, start, stateOf, stop, submit, turnEnd, until, type Kit, test } from './kit.ts'
 import { memHost } from './memfs.ts'
 
 const measure = ($: Kit, percent: number) =>

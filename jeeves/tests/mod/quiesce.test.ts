@@ -1,8 +1,8 @@
 // ST-3.2: one soft-quiesce note per rotation, at the first main-loop tool result after the request; never while paused.
 import type { SessionMeasureInput } from 'claude-code'
-import { expect, test } from 'claude-code/testing'
+import { expect } from 'claude-code/testing'
 import { QUIESCE_NOTE } from '../../src/core/handover/template.ts'
-import { bottom, PROMPT, relay, start, stateOf, submit, taskDirs, until, type Kit } from './kit.ts'
+import { bottom, PROMPT, relay, start, stateOf, submit, taskDirs, until, type Kit, test } from './kit.ts'
 import { memHost } from './memfs.ts'
 
 const measure = ($: Kit, percent: number) =>

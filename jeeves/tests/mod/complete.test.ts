@@ -2,8 +2,8 @@
 // evidence gets one block listing the checks; still missing -> NEEDS_REVIEW(DOD_UNMET); evidence after the last edit
 // -> COMPLETED with a summary, the lock released and no rotation after. /jeeves done is the user's own decision.
 import type { SessionMeasureInput, ToolCallResult } from 'claude-code'
-import { expect, test } from 'claude-code/testing'
-import { bottom, PROMPT, relay, start, stateOf, submit, taskDirs, until, type Kit } from './kit.ts'
+import { expect } from 'claude-code/testing'
+import { bottom, PROMPT, relay, start, stateOf, submit, taskDirs, until, type Kit, test } from './kit.ts'
 import { memHost } from './memfs.ts'
 
 const exits: Record<string, number> = {}

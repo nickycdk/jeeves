@@ -1,8 +1,8 @@
 // ST-13.5 (spec §5.5, AC-39): /jeeves later through the hooks: +10 and a new warning, the cap from auto-compaction,
 // the cap message, refused during a rotation, explicit and auto tasks, and only when the person typed it.
 import type { SessionMeasureInput } from 'claude-code'
-import { expect, test } from 'claude-code/testing'
-import { bottom, generating, PROMPT, relay, start, stateOf, submit, taskDirs, type Kit } from './kit.ts'
+import { expect } from 'claude-code/testing'
+import { bottom, generating, PROMPT, relay, start, stateOf, submit, taskDirs, type Kit, test } from './kit.ts'
 import { memHost, type MemHost } from './memfs.ts'
 
 const CAP = "Jeeves hands over at 85% (now 80%); can't postpone further. /jeeves off to keep this conversation."

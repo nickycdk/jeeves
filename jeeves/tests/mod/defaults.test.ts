@@ -1,7 +1,7 @@
 // ST-11.1: per-project defaults (ADR-009 A2): `/jeeves defaults ...`, kept in projects/<projectId>/config.json in the
 // state folder, copied into a new task at /jeeves on; a running task is never changed.
-import { expect, test } from 'claude-code/testing'
-import { bottom, PROMPT, relay, start, stateOf, submit, taskDirs } from './kit.ts'
+import { expect } from 'claude-code/testing'
+import { bottom, PROMPT, relay, start, stateOf, submit, taskDirs, test } from './kit.ts'
 import { memHost } from './memfs.ts'
 
 const configOf = (h: ReturnType<typeof memHost>) => [...h.files.keys()].find(f => /\/projects\/[^/]+\/config\.json$/.test(f))

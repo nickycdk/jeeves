@@ -1,7 +1,7 @@
 // ST-10.2 / ST-10.3: /jeeves retry after an invalid handover or a possible loop (ADR-009 A2, D-31).
-import { expect, test } from 'claude-code/testing'
+import { expect } from 'claude-code/testing'
 import { NUDGE_PROMPT } from '../../src/core/handover/template.ts'
-import { generating, handover, relay, sha256, stateOf, stop, turnEnd, until, type Kit } from './kit.ts'
+import { generating, handover, relay, sha256, stateOf, stop, turnEnd, until, type Kit, test } from './kit.ts'
 
 const BAD = 'no handover here'
 

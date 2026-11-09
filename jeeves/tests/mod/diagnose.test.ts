@@ -1,7 +1,7 @@
 // ST-8.3: /jeeves status --diagnose gives versions, probe mode, state folder (source, writable), git, task and lock,
 // with the home folder shown as ~ and secrets redacted; it only reads, so anyone may call it.
-import { expect, test } from 'claude-code/testing'
-import { bottom, fakeGit, PROMPT, relay, start, submit } from './kit.ts'
+import { expect } from 'claude-code/testing'
+import { bottom, fakeGit, PROMPT, relay, start, submit, test } from './kit.ts'
 import { memHost } from './memfs.ts'
 
 test('a running task: every line present, home as ~, no session id in full, nothing changed', async ($, on) => {

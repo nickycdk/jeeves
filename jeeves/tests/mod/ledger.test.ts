@@ -1,7 +1,7 @@
 // ST-3.1: the evidence ledger through the tool.call hook. The call's result is never changed, delayed or blocked.
 import type { ToolCallResult } from 'claude-code'
-import { expect, test } from 'claude-code/testing'
-import { bottom, PROMPT, relay, start, stateOf, submit, taskDirs, until, type Kit } from './kit.ts'
+import { expect } from 'claude-code/testing'
+import { bottom, PROMPT, relay, start, stateOf, submit, taskDirs, until, type Kit, test } from './kit.ts'
 import { memHost } from './memfs.ts'
 
 /** The engine beneath the plugin: Bash `fail*` exits 1, `deny*` is refused; everything else succeeds. */

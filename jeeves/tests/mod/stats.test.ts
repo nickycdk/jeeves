@@ -1,6 +1,6 @@
 // ST-11.4: /jeeves stats through the hooks: after a real rotation, with an unreadable task. The 50-task timing (AC-32 P) is in tests/perf/stats.test.ts.
-import { expect, test } from 'claude-code/testing'
-import { bottom, engineClear, generating, handover, relay, start, stateOf, stop, turnEnd, until } from './kit.ts'
+import { expect } from 'claude-code/testing'
+import { bottom, engineClear, generating, handover, relay, start, stateOf, stop, turnEnd, until, test } from './kit.ts'
 import { memHost } from './memfs.ts'
 
 test('after one rotation: project and task figures; an unreadable task is counted as such; anyone may read', async ($, on) => {

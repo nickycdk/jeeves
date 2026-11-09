@@ -1,9 +1,9 @@
 // ST-6.7 / AC-16 crash matrix (I layer): the process dies at each named point of a rotation (JEEVES_TEST_CRASH, test
 // only: the plugin stops dead there). A new session starts, waits out the dead session's lock and types /jeeves recover.
 // Each point must give exactly one continuation, from the right handover, and no handover written twice.
-import { expect, test } from 'claude-code/testing'
+import { expect } from 'claude-code/testing'
 import { CRASH_POINTS, type CrashPoint } from '../../src/adapter/runtime.ts'
-import { bottom, engineClear, generating, handover, PROMPT, relay, sha256, start, stateOf, stop, submit, taskDirs, turnEnd, turnStart, until, type Kit } from './kit.ts'
+import { bottom, engineClear, generating, handover, PROMPT, relay, sha256, start, stateOf, stop, submit, taskDirs, turnEnd, turnStart, until, type Kit, test } from './kit.ts'
 import { memHost, type MemHost } from './memfs.ts'
 
 const env = (point: CrashPoint) => ({ HOME: '/home/t', JEEVES_TEST: '1', JEEVES_TEST_CRASH: point })

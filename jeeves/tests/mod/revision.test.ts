@@ -1,6 +1,6 @@
 // ST-2.2: task revisions come only from commands the person types; each is a new write-once file.
-import { expect, test } from 'claude-code/testing'
-import { bottom, PROMPT, relay, start, stateOf, submit, taskDirs } from './kit.ts'
+import { expect } from 'claude-code/testing'
+import { bottom, PROMPT, relay, start, stateOf, submit, taskDirs, test } from './kit.ts'
 import { memHost } from './memfs.ts'
 
 const revFiles = (h: ReturnType<typeof memHost>, dir: string) => [...h.files.keys()].filter(f => f.startsWith(`${dir}/task-rev-`)).sort()

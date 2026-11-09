@@ -1,9 +1,9 @@
 // ST-4.7 / AC-15: /jeeves rotate runs the threshold's pipeline. One host runs a threshold rotation, then a manual one;
 // the traces (event transitions, Jeeves's prompts, Stop blocks, /clear) are identical except the trigger code.
 import type { SessionMeasureInput, ToolCallResult } from 'claude-code'
-import { expect, test } from 'claude-code/testing'
+import { expect } from 'claude-code/testing'
 import { NUDGE_PROMPT } from '../../src/core/handover/template.ts'
-import { bottom, engineClear, handover, PROMPT, relay, ROOT, start, stateOf, stop, submit, taskDirs, turnEnd, until, type Kit } from './kit.ts'
+import { bottom, engineClear, handover, PROMPT, relay, ROOT, start, stateOf, stop, submit, taskDirs, turnEnd, until, type Kit, test } from './kit.ts'
 import { memHost } from './memfs.ts'
 
 const measure = ($: Kit, percent: number) =>

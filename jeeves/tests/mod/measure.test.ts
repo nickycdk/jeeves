@@ -1,7 +1,7 @@
 // ST-2.3: the context reading is the main conversation's usage().context; unknown stays unknown; rate limits never count.
 import type { SessionMeasureInput } from 'claude-code'
-import { expect, test } from 'claude-code/testing'
-import { bottom, PROMPT, relay, start, stateOf, submit, taskDirs, type Kit } from './kit.ts'
+import { expect } from 'claude-code/testing'
+import { bottom, PROMPT, relay, start, stateOf, submit, taskDirs, type Kit, test } from './kit.ts'
 import { memHost } from './memfs.ts'
 
 const ctx = (percent?: number): SessionMeasureInput['context'] => ({ window: 1_000_000, ...(percent === undefined ? {} : { percent, tokens: percent * 10_000 }) })
@@ -53,7 +53,7 @@ test('AC-04: a rate-limit-only measure changes nothing, even with a high context
   expect(stateOf(h, dir).lastContext.percent).toBe(20)
 })
 
-test('AC-03: measures from 0 to 95% without /jeeves on leave no files and no effects', async ($, on) => {
+test('AC-03 (ADR-009 A3): not auto-watched (no git) and no /jeeves on: measures from 0 to 95% leave no files and no effects', async ($, on) => {
   const h = memHost(on)
   bottom(on)
   await start($)

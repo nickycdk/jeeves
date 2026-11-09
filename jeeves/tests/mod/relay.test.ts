@@ -1,4 +1,5 @@
-import { expect, test } from 'claude-code/testing'
+import { expect } from 'claude-code/testing'
+import { test } from './kit.ts'
 import { memHost } from './memfs.ts'
 
 const ROOT = '/home/t/.local/state/jeeves'

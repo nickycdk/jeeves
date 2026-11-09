@@ -1,6 +1,6 @@
 // ST-2.1: /jeeves on|off and verbatim capture of the first prompt, through the plugin's own hooks.
-import { expect, test } from 'claude-code/testing'
-import { bottom, PROMPT, relay, start, stateOf, submit, taskDirs, until } from './kit.ts'
+import { expect } from 'claude-code/testing'
+import { bottom, PROMPT, relay, start, stateOf, submit, taskDirs, until, test } from './kit.ts'
 import { memHost, T0 } from './memfs.ts'
 
 test('/jeeves on, then the next typed prompt is stored byte for byte as task-rev-001.md and passes unchanged', async ($, on) => {
@@ -54,7 +54,7 @@ test('/jeeves on <goal>: the goal is rev 1 as typed and is sent as the first pro
   expect(engine).toEqual([{ text: goal, origin: 'plugin' }])
 })
 
-test('AC-03: without /jeeves on there are no task files and prompts pass untouched', async ($, on) => {
+test('AC-03 (ADR-009 A3): not auto-watched (no git) and no /jeeves on: no task files, prompts pass untouched, in both suite modes', async ($, on) => {
   const h = memHost(on)
   const engine = bottom(on)
   await start($)

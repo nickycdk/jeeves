@@ -1,8 +1,8 @@
 // ST-4.6 / AC-25: assisted mode is honest. A refused /clear keeps the verified handover (NEEDS_REVIEW,
 // ROTATE_UNAVAILABLE); status says assisted and what to do; /jeeves continue works only in a fresh conversation and
 // continues there with the task and handover inside the prompt.
-import { expect, test } from 'claude-code/testing'
-import { engineClear, generating, handover, relay, stateOf, stop, turnEnd, until } from './kit.ts'
+import { expect } from 'claude-code/testing'
+import { engineClear, generating, handover, relay, stateOf, stop, turnEnd, until, test } from './kit.ts'
 
 test('AC-25: /clear refused -> assisted, status says so; continue refused with turns; after /clear it continues here', async ($, on) => {
   const g = await generating($, on)

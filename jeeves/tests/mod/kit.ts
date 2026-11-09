@@ -1,10 +1,17 @@
 // Shared helpers for the mod tests (not a *.test.ts, so the runner does not run it).
 import type { On, PromptOrigin, SessionMeasureInput, ToolCallResult } from 'claude-code'
-import { expect } from 'claude-code/testing'
-import type { Engine } from 'claude-code/testing'
+import { expect, test as kitTest } from 'claude-code/testing'
+import type { Engine, TestBody, TestOptions } from 'claude-code/testing'
 import { memHost, type MemHost } from './memfs.ts'
+import { AUTO_START } from './mode.ts'
 
 export type Kit = Engine
+
+/** The kit's `test`, under the suite's `autoStart` row (mode.ts) unless the test sets the row itself. */
+export function test(name: string, ...rest: [TestBody] | [TestOptions, TestBody]) {
+  const [opts, body] = rest.length === 1 ? [{}, rest[0]] : rest
+  kitTest(name, { ...opts, options: { autoStart: AUTO_START, ...opts.options } }, body)
+}
 export const start = ($: Kit) => $.session.start({ cwd: '/work/proj', surface: 'terminal', isInteractive: true })
 export const typed = (args: string, kind: 'composer' | 'plugin' = 'composer') => ({
   command: 'jeeves', args, origin: (kind === 'composer' ? { kind } : { kind, name: 'other' }) as PromptOrigin, presentation: { isFullscreen: false, columns: 80 },
@@ -88,9 +95,11 @@ export const stop = ($: Kit, message: string) => $.classic.Stop({ stop_hook_acti
 
 /** A task whose handover was just requested: the safe Stop already answered with the instruction. */
 /** `viaTool`: each reading comes at a main-loop tool result (as live, after a model call) instead of session.measure. */
-export async function generating($: Kit, on: Parameters<typeof memHost>[0], opts: { env?: Record<string, string>; readings?: number[]; viaTool?: boolean; git?: boolean } = {}) {
+export async function generating($: Kit, on: Parameters<typeof memHost>[0], opts: { env?: Record<string, string>; readings?: number[]; viaTool?: boolean; git?: boolean; auto?: boolean } = {}) {
   const h = memHost(on, opts.env)
-  const branch = opts.git ? fakeGit(h) : { name: 'main' }
+  const branch = opts.git || opts.auto ? fakeGit(h) : { name: 'main' }
+  // `auto`: an eligible session (git, 1M at start) whose first typed prompt starts the task; needs the row autoStart on.
+  if (opts.auto) h.usage = { window: 1_000_000 }
   const refuse: { drop?: (text: string) => boolean } = {}
   const prompts = bottom(on, refuse)
   const clears: string[] = []
@@ -106,9 +115,11 @@ export async function generating($: Kit, on: Parameters<typeof memHost>[0], opts
     ? { isError: true, result: 'Exit code 1', text: 'Exit code 1' } : { result: { stdout: '', stderr: '', interrupted: false }, text: '' }) as ToolCallResult)
   for (const f of ['src/calc.js', 'src/parse.js', 'src/tokenize.js']) h.files.set(`${ROOT}/${f}`, '// code\n')
   await start($)
-  await relay($, 'on')
+  if (!opts.auto) await relay($, 'on')
   await submit($, PROMPT)
   const dir = taskDirs(h)[0]!
+  // Past the 3-turn grace period, as a task some turns old.
+  if (opts.auto) h.files.set(`${dir}/state.json`, JSON.stringify({ ...stateOf(h, dir), graceTurns: 3 }, null, 2) + '\n')
   await $.tool.call({ tool: 'Bash', command: 'npm test' })
   await until(h, () => stateOf(h, dir).ledger.length === 1)
   // The reading comes mid-turn, so that turn's Stop asks (no nudge); tests end the turn with turnEnd.

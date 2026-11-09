@@ -2,8 +2,8 @@
 // hooks. A session's start is its first tool reading that differs from its first one (a fresh session's first response is smaller); the request comes at start + d; the fresh session
 // rearms only below the source session's last reading (the rotation freed context), else POSSIBLE_LOOP.
 import type { SessionMeasureInput } from 'claude-code'
-import { expect, test } from 'claude-code/testing'
-import { engineClear, generating, handover, relay, stateOf, stop, turnEnd, until, type Kit } from './kit.ts'
+import { expect } from 'claude-code/testing'
+import { engineClear, generating, handover, relay, stateOf, stop, turnEnd, until, type Kit, test } from './kit.ts'
 
 const ENV = { HOME: '/home/t', JEEVES_TEST: '1', JEEVES_TEST_THRESHOLD_OVERRIDE: '+0.8' }
 const measure = ($: Kit, percent: number) =>

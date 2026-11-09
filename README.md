@@ -6,7 +6,7 @@
 
 ## How it works
 
-1. You type `/jeeves on`, then your task, and work as usual.
+1. You type `/jeeves on`, then your task, and work as usual. On a new install Jeeves can also start by itself: in a git repository, on a model whose context window is above 200K tokens (1M), your first typed prompt in a fresh session becomes the task (`/jeeves auto off` turns this off; an upgrade from 0.2 keeps it off until `/jeeves auto on`). [Auto-start](jeeves/README.md#auto-start) has the details.
 2. When the context reaches your threshold (default 50%, or 40% on models with a context window above 200K), Jeeves waits until Claude has stopped with nothing still running, then asks Claude for a handover.
 3. It checks the handover against git and its own record of what ran: branch and commit match, files named really exist, no test is claimed as passed when its last run failed, no secrets. A handover that fails is sent back with the reasons; after three tries Jeeves stops and asks you.
 4. It saves the handover, runs `/clear`, and gives the fresh conversation your original task, the handover and the next steps. The task continues, without a keystroke from you.
@@ -48,14 +48,15 @@ At the threshold you'll see `Jeeves: handover requested`, then `Jeeves: handover
 | `/jeeves retry` | Try again after a handover failed its checks or a possible loop |
 | `/jeeves stats` | Rotations, context cleared, cost and stops, for this project and the current task |
 | `/jeeves history [--full]` | Recent state changes and rotations; `--full` adds each rotation's context, cost and handover file |
-| `/jeeves off` | End the task (files are kept) |
+| `/jeeves auto [on\|off]` | Show or set auto-start everywhere; `/jeeves defaults auto on\|off` sets one project |
+| `/jeeves off` | End the task (files are kept); auto-start stays off for the rest of the session |
 | `/jeeves help` | Every command |
 
 The full command list, modes, settings and FAQ are in [jeeves/README.md](jeeves/README.md).
 
 ## Your data
 
-Everything stays on your machine, in a state folder outside your repository: your task prompt, the handovers and a redacted log. Never the transcript or your file contents. Delete it any time with `/jeeves purge --all`. Details: [PRIVACY.md](jeeves/PRIVACY.md).
+Everything stays on your machine, in a state folder outside your repository: your task prompt, the handovers and a redacted log. Never the transcript or your file contents. With auto-start, recording begins at the first prompt you type in a session Jeeves watches; tasks it started by itself that never handed over are deleted after 7 days. Delete it any time with `/jeeves purge --all`. Details: [PRIVACY.md](jeeves/PRIVACY.md).
 
 ## More
 

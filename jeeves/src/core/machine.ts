@@ -567,8 +567,8 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
     case 'HOLD_PROMPT':
       if (!HELD_STATES.includes(state.status)) return ignore('no handover in flight')
       if (state.heldPrompts.length >= HELD_MAX) return ignore(`${HELD_MAX} prompts already held`)
-      // The event line gets a redacted, capped copy (storage); the full text waits in state for the continuation.
-      return edit({ heldPrompts: [...state.heldPrompts, input.text] }, `held-${state.heldPrompts.length + 1}`, `held prompt: ${input.text}`)
+      // NFR-10: the event line names the prompt, never its text; the text waits in state only until the continuation.
+      return edit({ heldPrompts: [...state.heldPrompts, input.text] }, `held-${state.heldPrompts.length + 1}`, `held prompt ${state.heldPrompts.length + 1} (${input.text.length} chars)`)
 
     case 'PAUSE':
       // VALIDATING with nothing cleared yet (a state write failed after the handover was saved): pause at once.
