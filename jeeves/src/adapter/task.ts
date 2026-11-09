@@ -415,6 +415,8 @@ export const userTyped = () => { carry = null }
 async function carryOn(rt: Runtime, own: Task, info: StopInfo): Promise<string | null> {
   if (own.state.origin !== 'auto' || (own.state.status !== 'MONITORING' && own.state.status !== 'CONTINUING') || info.backgroundTasks > 0) return null
   if (!carry || carry.sent || carry.sessionId !== await rt.port.sessionId()) return null
+  // A running subagent is work in flight, as for a handover (ADR-004): not this Stop, a later one still gets it.
+  if ((await rt.port.runningAgents().catch(() => 1)) > 0) return null
   carry.sent = true
   return CARRY_ON_PROMPT
 }

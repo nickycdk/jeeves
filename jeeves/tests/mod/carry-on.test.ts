@@ -31,3 +31,11 @@ test('an explicit task: no carry-on', async ($, on) => {
   await rotated($, on, false)
   expect(await stop($, 'Next I will wire the CSV parser into the CLI.')).toEqual({})
 })
+
+test('an auto task: no carry-on while a subagent is running; the next Stop without one gets it', { options: { autoStart: 'on' } }, async ($, on) => {
+  const g = await rotated($, on, true)
+  g.h.agents = [{ id: 'a1', status: 'running' }]
+  expect(await stop($, 'Waiting for the research agent to report back.')).toEqual({})
+  g.h.agents = [{ id: 'a1', status: 'idle' }]
+  expect(await stop($, 'Next I will wire the CSV parser into the CLI.')).toEqual({ block: CARRY_ON_PROMPT })
+})
