@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { execFileSync, spawnSync } from 'node:child_process'
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { build, FIXTURES, longTask, STEPS } from '../fixtures/build-repo.ts'
+import { build, DISTINCT, FIXTURES, longTask, STEPS } from '../fixtures/build-repo.ts'
 import { tempDir } from './node-port.ts'
 
 // verify.sh runs node --test itself: without this it would report to the outer runner instead of exiting.
@@ -55,4 +55,22 @@ test('long-task (ST-15.2): stubs fail; ./verify.sh <n> prints module n only; the
   const all = run('./verify.sh', dir)
   assert.equal(all.status, 0, all.stdout)
   assert.ok(all.stdout.split('\n').length < 10, 'summary only')
+})
+
+test('distinct-task (ST-17.2, AC-55): no two modules share a name or rule; stubs fail; every reference passes its own module', async () => {
+  assert.equal(new Set(DISTINCT.map(d => d.name)).size, DISTINCT.length)
+  assert.equal(new Set(DISTINCT.map(d => d.spec)).size, DISTINCT.length)
+  for (const d of DISTINCT) assert.ok(d.spec.startsWith(`${d.name}(`), d.name)
+  assert.ok(!DISTINCT.some(d => STEPS.some(s => s.name === d.name)), 'no function of the old cycle')
+  const n = DISTINCT.length
+  const dir = build('distinct-task', join(await tempDir(), 'distinct'), { chars: 1500, modules: n })
+  const first = run('./verify.sh', dir)
+  assert.equal(first.status, 1)
+  assert.match(first.stdout, new RegExp(`# fail ${n}`))
+  assert.equal(git(dir, 'log', '--format=%s'), 'distinct-task fixture')
+  assert.match(readFileSync(join(dir, 'SPEC.md'), 'utf8'), /40\. `src\/m40\.js`: balancedBrackets/)
+  DISTINCT.forEach((d, i) => writeFileSync(join(dir, `src/m${String(i + 1).padStart(2, '0')}.js`), `export const ${d.name} = ${d.ref.toString()}\nconst words = s => s.split(/\\s+/).filter(Boolean)\n`))
+  const all = run('./verify.sh', dir)
+  assert.equal(all.status, 0, all.stdout)
+  assert.throws(() => build('distinct-task', join(dir, '..', 'too-many'), { modules: n + 1 }), /at most 40 modules/)
 })

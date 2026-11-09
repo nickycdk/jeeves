@@ -9,6 +9,12 @@
 #   auto  fresh install again, 1M window, auto mode: nothing typed but the task; NFR-10 grep of the state folder
 #   base  the same task without Jeeves (no --plugin-dir); one conversation, auto-compaction is its outcome
 #
+#   --fixture distinct-task (default, ST-17.2) or long-task (v0.3.0's evidence, the six-function cycle).
+#   --window  the real window for the growth figures (default 200K for 200k, else 1M; ST-17.3 passes 200000 to auto).
+#   --model   passed to claude (ST-17.3 needs a real 200K window).
+#   A run is stopped as void, by itself, when one commit holds more than one module or a module is committed before
+#   any tool call named its test file (ST-17.2: a scripted run is reported in minutes, not after its cap).
+#
 # Spend is API-equivalent dollars from the transcripts (transcripts.py), checked every minute; a run past its cap is
 # killed and reported as partial. Nothing is typed into a running task: /cost would be a keystroke.
 import argparse, glob, json, os, re, shutil, signal, statistics, subprocess, sys, time
@@ -24,8 +30,8 @@ NOTICE, UPGRADE = 'Jeeveswatcheslongsessionshere', 'Jeevescannowwatch'  # the fi
 STOPS = ('POSSIBLE_LOOP', 'NEEDS_REVIEW', 'FAILED')
 
 
-def fixture(repo, modules):
-    subprocess.run([*NODE, f"{PLUGIN}/tests/fixtures/build-repo.ts", 'long-task', repo, '--modules', str(modules)], check=True, capture_output=True)
+def fixture(repo, modules, name='distinct-task'):
+    subprocess.run([*NODE, f"{PLUGIN}/tests/fixtures/build-repo.ts", name, repo, '--modules', str(modules)], check=True, capture_output=True)
     return subprocess.run([*NODE, '-e', f"import('{PLUGIN}/tests/fixtures/build-repo.ts').then(m => process.stdout.write(m.longTask({modules})))"],
                           check=True, capture_output=True, text=True).stdout
 
@@ -61,6 +67,28 @@ def commits(repo):
     return out
 
 
+def void_reason(repo, paths):
+    """ST-17.2: why the run is void (one commit with several modules, or a module committed before its test file was named in any tool call), else None."""
+    read = {}
+    for p in paths:
+        for d in transcripts.read(p):
+            if d.get('type') != 'assistant': continue
+            for b in (d.get('message') or {}).get('content') or []:
+                if not isinstance(b, dict) or b.get('type') != 'tool_use': continue
+                for n in re.findall(r'tests/m(\d\d)\.test\.js', json.dumps(b.get('input'))):
+                    at = transcripts.epoch(d.get('timestamp', ''))
+                    read[int(n)] = min(read.get(int(n), at), at)
+    log = subprocess.run(['git', 'log', '--reverse', '--format=@%h %ct', '--name-only'], cwd=repo, capture_output=True, text=True).stdout
+    for block in log.split('@')[2:]:  # the first commit is the fixture with every stub
+        head, *names = block.strip().split('\n')
+        sha, ct = head.split()
+        mods = sorted({int(m) for n in names for m in re.findall(r'^src/m(\d\d)\.js$', n)})
+        if len(mods) > 1: return f'commit {sha} holds modules {mods}'
+        for m in mods:
+            if read.get(m, float('inf')) > int(ct) + 1: return f'module {m} committed ({sha}) before its test file was read'
+    return None
+
+
 def verify(repo):
     env = {k: v for k, v in os.environ.items() if k != 'NODE_TEST_CONTEXT'}
     # A run of it once hung for 17 minutes beside Claude's own (same .verify.log): bounded, a timeout counts as a fail.
@@ -76,17 +104,20 @@ def main():
     ap.add_argument('--modules', type=int, default=1)
     ap.add_argument('--cap', type=float, required=True)
     ap.add_argument('--minutes', type=float, default=240)
+    ap.add_argument('--fixture', choices=['distinct-task', 'long-task'], default='distinct-task')
+    ap.add_argument('--window', type=int)
+    ap.add_argument('--model')
     a = ap.parse_args()
     sp, config = os.path.abspath(a.scratch), os.path.abspath(a.config_dir)
     out, repo, state = f"{sp}/evidence", f"{sp}/repo", f"{sp}/state"
     for d in (out, state): shutil.rmtree(d, ignore_errors=True); os.makedirs(d)
-    task = fixture(repo, a.modules)
-    r = {'phase': a.phase, 'modules': a.modules, 'cap': a.cap, 'claude_version': subprocess.run(['claude', '--version'], capture_output=True, text=True).stdout.strip()}
+    task = fixture(repo, a.modules, a.fixture)
+    r = {'phase': a.phase, 'fixture': a.fixture, 'modules': a.modules, 'cap': a.cap, 'claude_version': subprocess.run(['claude', '--version'], capture_output=True, text=True).stdout.strip()}
     if a.phase in ('dry', 'auto'): r['store_moved'] = [os.path.basename(x) for x in fresh_store(config, sp)]
     env = {'CLAUDE_CONFIG_DIR': config, 'JEEVES_TEST': '1', 'JEEVES_STATE_DIR': state}
     if a.phase == '200k': env['JEEVES_TEST_WINDOW_OVERRIDE'] = '200000'
     debug = f"{sp}/claude-debug.log"
-    args = ['--permission-mode', 'acceptEdits', '--allowedTools', 'Bash', '--debug-file', debug]
+    args = ['--permission-mode', 'acceptEdits', '--allowedTools', 'Bash', '--debug-file', debug] + (['--model', a.model] if a.model else [])
     c = Claude(out, None if a.phase == 'base' else PLUGIN, repo, args, env)
     r['trust'] = c.accept_trust(); c.pump(5)
     r['recorded_before_task'] = [os.path.relpath(p, state) for p in glob.glob(f"{state}/**/*", recursive=True) if os.path.isfile(p)]
@@ -116,6 +147,8 @@ def main():
             last_cost_at = time.time(); usd, _ = spend(config, repo)
             c.note('spend', f"US${usd}")
             if usd > a.cap: r['stopped'] = f'cap US${a.cap} passed (US${usd})'; break
+            why = void_reason(repo, transcripts.files(config, repo))
+            if why: r['void'] = why; r['stopped'] = f'void: {why}'; break
         done = commits(repo)
         if len(done) >= a.modules and verify(repo) == 0 and time.time() - last_change > 30:
             r['stopped'] = 'all modules committed, verify passes'; break
@@ -135,14 +168,14 @@ def main():
     events = [json.loads(l) for l in open(f"{d}/events.jsonl")] if d and os.path.exists(f"{d}/events.jsonl") else []
     st = load(f"{d}/state.json", {}) if d else {}
     recs = [load(p, {}) for p in sorted(glob.glob(f"{d}/sessions/*.json"))] if d else []
-    window = 200_000 if a.phase == '200k' else 1_000_000
+    window = a.window or (200_000 if a.phase == '200k' else 1_000_000)
     growth = [round((x['endPct'] - x['startPct']) * window / 100) for x in recs if x.get('endPct') is not None and x.get('startPct') is not None]
     done = commits(repo)
     calls = sum(x['calls'] for x in sessions)
     r.update(usd=usd, calls=calls, usd_per_call=round(usd / calls, 5) if calls else None,
              peak_prompt=max([x['peak_prompt'] for x in sessions] or [0]), conversations=len(sessions),
              rotations=sum(e['to'] == 'RESTORING' for e in events), final={k: st.get(k) for k in ('status', 'reason', 'origin', 'rotationCount', 'taskRevision')},
-             growth_tokens=growth, module_commits=done, verify_exit=verify(repo),
+             growth_tokens=growth, module_commits=done, verify_exit=verify(repo), void=void_reason(repo, transcripts.files(config, repo)),
              retries=sum(1 for x in transcripts.files(config, repo) for l in open(x, errors='replace') if 'Jeeves: the handover is invalid' in l and '"type":"user"' in l),
              stop_events=[f"{e['to']} {e['code']}" for e in events if e['to'] in STOPS],
              events=[f"{e['from']}>{e['to']} {e['code'] or ''} {e['pct']}% {e.get('detail', '')[:70]}" for e in events],

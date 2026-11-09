@@ -26,6 +26,12 @@ def message_cost(model, u):
     return usd, prompt, 'haiku' in (model or '')
 
 
+def epoch(ts):
+    """An engine timestamp ('2026-11-09T10:00:00.123Z') as seconds; '' sorts first."""
+    from datetime import datetime
+    return datetime.fromisoformat(ts.replace('Z', '+00:00')).timestamp() if ts else 0.0
+
+
 def read(path):
     rows = []
     for line in open(path, errors='replace'):

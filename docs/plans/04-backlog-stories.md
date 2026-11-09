@@ -948,7 +948,7 @@ Plan: `docs/plans/10-v0.3.x-plan.md` (approved 2026-11-09, D-53).
 - **Tests:** U: `autostart.spec.ts` at 199,999, 200,000 and 1M. I: `eligible.test.ts`, `autostart.test.ts`, hint tests; the mod suite in its three runs.
 
 ### ST-17.2 `long-task` that one script cannot solve — S
-- **Status:** Not started.
+- **Status:** Solved (2026-11-09). New fixture `distinct-task` (`tests/fixtures/build-repo.ts`, `DISTINCT`: 40 functions, each with its own name, prose rule and case table; default 18 modules, at most 40) beside the unchanged `long-task`. `tests/pty/ac41.py`: `--fixture` (default `distinct-task`), `--window`, `--model`; `void_reason` stops a run as void at the minute check when one commit holds more than one module or a module is committed before any tool call named its test file. Unit test in `build-repo.spec.ts` (names and rules distinct, stubs fail, every reference passes); `tests/pty/void_check_test.py` (in `check-all.sh`). **Not done as planned:** v0.3.0's scripted run kept only `result.json`, not its transcript, so the void check is tested against synthetic runs of the same shape (one loop script, a commit per module, no test file named), not a recording. Not tried live.
 - **Cites:** AC-41 (void 1M run: Haiku scripted the six-function cycle), AC-55.
 - **Scope:** a new fixture where each module has its own function, name, prose rule in SPEC.md and case table, with no repeating cycle; `tests/pty/ac41.py` marks a run void by itself when one commit holds more than one module, or a module is committed before its test file was read, and says so early. The old `long-task` is kept for reproducing v0.3.0's evidence.
 - **Depends on:** none.

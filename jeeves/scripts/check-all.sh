@@ -8,6 +8,8 @@ else echo 'WARNING: engine types missing, so hooks/ and src/adapter/ are NOT typ
 npm run -s lint
 out=$(mktemp); npm test > "$out" 2>&1 || { cat "$out"; exit 1; }
 grep -E '^# (tests|pass|fail)' "$out"; rm -f "$out"
+# ST-17.2: the AC-41 driver's void check.
+python3 -I tests/pty/void_check_test.py
 # A pipe would hide the exit code: keep the output, print the summary (and any failure), then fail on it.
 out=$(mktemp); if npm run -s test:mod > "$out" 2>&1; then tail -3 "$out"; else grep -A12 '(fail)' "$out"; tail -3 "$out"; rm -f "$out"; exit 1; fi; rm -f "$out"
 # The same suite with auto-start on (spec §9: off and on).
