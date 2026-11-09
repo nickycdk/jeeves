@@ -42,9 +42,10 @@ test('eligibility table: each fact alone gives its own reason; a fresh, interact
   assert.deepEqual(r({ mode: 'assisted' }), ['assisted mode'])
   assert.deepEqual(r({ turns: 1 }), ['resumed conversation'])
   assert.deepEqual(r({ git: false }), ['not a git repository'])
-  assert.deepEqual(r({ window: 200_000 }), ['200K window at start']) // "above 200K": exactly 200K is not
-  assert.deepEqual(r({ window: 200_001 }), [])
-  assert.deepEqual(r({ window: 0 }), ['200K window at start']) // unknown: the safe direction
+  assert.deepEqual(r({ window: 199_999 }), ['window below 200K at start']) // ADR-009 A4: 200K or more
+  assert.deepEqual(r({ window: 200_000 }), [])
+  assert.deepEqual(r({ window: 1_000_000 }), [])
+  assert.deepEqual(r({ window: 0 }), ['window below 200K at start']) // unknown: the safe direction
 })
 
 test('auto-start off is a reason placed by its source: session, project, everywhere (/config, auto.json), upgrade default', () => {
@@ -58,31 +59,35 @@ test('auto-start off is a reason placed by its source: session, project, everywh
 })
 
 test('reason order (spec §5.1): unfixable first, then the fixable ones easiest first; (+N more); every line fits 40 columns', () => {
-  assert.deepEqual([...NOT_WATCHED], ['-p or SDK', 'unsupported', 'assisted mode', 'this session', 'this project', 'everywhere', 'upgraded from 0.2', 'resumed conversation', 'not a git repository', '200K window at start'])
-  assert.deepEqual(ordered(['200K window at start', 'this session', 'resumed conversation', 'this session']), ['this session', 'resumed conversation', '200K window at start'])
+  assert.deepEqual([...NOT_WATCHED], ['-p or SDK', 'unsupported', 'assisted mode', 'this session', 'this project', 'everywhere', 'upgraded from 0.2', 'resumed conversation', 'not a git repository', 'window below 200K at start'])
+  assert.deepEqual(ordered(['window below 200K at start', 'this session', 'resumed conversation', 'this session']), ['this session', 'resumed conversation', 'window below 200K at start'])
   assert.equal(reasonLine([]), null)
   assert.equal(reasonLine(['not a git repository']), 'Auto off: not a git repository')
-  assert.equal(reasonLine(['200K window at start', 'not a git repository', 'assisted mode']), 'Auto off: assisted mode (+2 more)')
+  assert.equal(reasonLine(['window below 200K at start', 'not a git repository', 'assisted mode']), 'Auto off: assisted mode (+2 more)')
   for (const r of NOT_WATCHED) assert.ok(reasonLine([r, ...NOT_WATCHED])!.length <= 40, r)
 })
 
-test('model switch (AC-37): a reading with a window of 200K or less ends an auto task in MONITORING or CONTINUING, with its message', () => {
+test('model switch (AC-37, ADR-009 A4): a reading with a window below 200K ends an auto task in MONITORING or CONTINUING, with its message', () => {
   const ctx = { now: Date.parse(AT) + 1000, config: DEFAULT_CONFIG, newRotationId: 'r_new' }
   const m = (window: number) => ({ type: 'MEASURE' as const, window, percent: 30, sessionId: 'sess-a' })
   for (const status of ['MONITORING', 'CONTINUING'] as Status[]) {
-    const o = reduce(validState({ origin: 'auto', status }), m(200_000), ctx)
+    const o = reduce(validState({ origin: 'auto', status }), m(128_000), ctx)
     assert.equal(o.state.status, 'DISABLED', status)
     assert.deepEqual(o.effects.map(e => e.type), ['LOG_EVENT', 'RELEASE_LOCK', 'TOAST'])
-    assert.equal(o.effects.flatMap(e => (e.type === 'TOAST' ? [e.text] : []))[0], "Jeeves: not watching any more (this model's window is 200K); /jeeves on to watch anyway")
+    assert.equal(o.effects.flatMap(e => (e.type === 'TOAST' ? [e.text] : []))[0], "Jeeves: not watching any more (this model's window is 128K); /jeeves on to watch anyway")
+    // P-2 (D-53): a 1M auto task moved to 200K keeps watching, with its threshold.
+    const kept = reduce(validState({ origin: 'auto', status, thresholdPercent: 40 }), { ...m(200_000), percent: 10 }, ctx)
+    assert.notEqual(kept.state.status, 'DISABLED', status)
+    assert.equal(kept.state.thresholdPercent, 40)
   }
   assert.equal(windowEndText(128_000), "Jeeves: not watching any more (this model's window is 128K); /jeeves on to watch anyway")
   // Explicit tasks keep watching with their threshold; an auto task on a large window, or mid-rotation, is left alone.
-  const explicit = reduce(validState({ status: 'MONITORING' }), m(200_000), ctx)
+  const explicit = reduce(validState({ status: 'MONITORING' }), m(128_000), ctx)
   assert.equal(explicit.state.status, 'MONITORING')
   assert.equal(explicit.state.thresholdPercent, 50)
   assert.equal(reduce(validState({ origin: 'auto' }), m(1_000_000), ctx).state.status, 'MONITORING')
   assert.equal(reduce(validState({ origin: 'auto' }), m(0), ctx).state.status, 'MONITORING')
-  assert.equal(reduce(validState({ origin: 'auto', status: 'PAUSED', reason: 'USER_PAUSE' }), m(200_000), ctx).state.status, 'PAUSED')
+  assert.equal(reduce(validState({ origin: 'auto', status: 'PAUSED', reason: 'USER_PAUSE' }), m(128_000), ctx).state.status, 'PAUSED')
 })
 
 // ---- ST-13.4 (spec §5.2, AC-37): near-threshold rule and grace period ----
@@ -141,7 +146,7 @@ test('grace: a new auto task does not rotate in its first 3 main turns below thr
 test('ST-14.1: the hint only for reasons 3b and 4-6; any explicit off, -p, unsupported or assisted keeps it silent', async () => {
   const { hintable } = await import('../../src/core/autostart.ts')
   assert.equal(hintable([]), false)
-  for (const r of ['upgraded from 0.2', 'resumed conversation', 'not a git repository', '200K window at start'] as const) assert.equal(hintable([r]), true, r)
-  assert.equal(hintable(['resumed conversation', 'not a git repository', '200K window at start']), true)
+  for (const r of ['upgraded from 0.2', 'resumed conversation', 'not a git repository', 'window below 200K at start'] as const) assert.equal(hintable([r]), true, r)
+  assert.equal(hintable(['resumed conversation', 'not a git repository', 'window below 200K at start']), true)
   for (const r of ['-p or SDK', 'unsupported', 'assisted mode', 'this session', 'this project', 'everywhere'] as const) assert.equal(hintable([r, 'not a git repository']), false, r)
 })

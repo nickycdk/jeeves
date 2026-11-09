@@ -71,7 +71,7 @@ test('ST-14.2: /jeeves alone per state: not watched, watching, warning, paused',
   await start($)
   expect(shaped(await relay($, ''))).toBe([
     'Jeeves  mode: full',
-    'Auto off: not a git repository (+1 more)',
+    'Auto off: not a git repository',
     'No managed task. Start with /jeeves on',
     'Path: /home/t/.local/state/jeeves',
     'Try: /jeeves on | help',

@@ -39,15 +39,15 @@ export function resolveAutoStart(v: AutoInputs): { on: boolean; source: AutoSour
   return v.install === 'fresh' ? { on: true, source: 'fresh install' } : { on: false, source: 'upgraded from 0.2' }
 }
 
-/** D-42: auto-start only on windows above 200K tokens, at first (spec §5.1 item 4, Q8). */
+/** ADR-009 A4 (D-53, after D-42 and D-52): auto-start on windows of 200K tokens or more (spec §5.1 item 4). */
 export const AUTO_MIN_WINDOW = 200_000
-export const largeWindow = (window: number) => window > AUTO_MIN_WINDOW
+export const largeWindow = (window: number) => window >= AUTO_MIN_WINDOW
 
 /**
  * Why a session is not auto-watched (ST-13.3), in the spec §5.1 order: first what no command changes in this session,
  * then the fixable ones, easiest first. Each is also its status text (status prefixes `Auto off: `, <= 40 columns).
  */
-export const NOT_WATCHED = ['-p or SDK', 'unsupported', 'assisted mode', 'this session', 'this project', 'everywhere', 'upgraded from 0.2', 'resumed conversation', 'not a git repository', '200K window at start'] as const
+export const NOT_WATCHED = ['-p or SDK', 'unsupported', 'assisted mode', 'this session', 'this project', 'everywhere', 'upgraded from 0.2', 'resumed conversation', 'not a git repository', 'window below 200K at start'] as const
 export type NotWatched = (typeof NOT_WATCHED)[number]
 export const isNotWatched = (v: unknown): v is NotWatched => (NOT_WATCHED as readonly unknown[]).includes(v)
 
@@ -61,7 +61,7 @@ export function startReasons(f: StartFacts): NotWatched[] {
     ...(f.mode === 'unsupported' ? ['unsupported' as const] : f.mode === 'assisted' ? ['assisted mode' as const] : []),
     ...(f.turns > 0 ? ['resumed conversation' as const] : []),
     ...(f.git ? [] : ['not a git repository' as const]),
-    ...(largeWindow(f.window) ? [] : ['200K window at start' as const]),
+    ...(largeWindow(f.window) ? [] : ['window below 200K at start' as const]),
   ]
 }
 
@@ -75,7 +75,7 @@ export function autoReason(a: { on: boolean; source: AutoSource }): NotWatched |
  * ST-14.1 (spec §6.1): a session not watched only for these reasons (3b, 4-6) may get the hint. Any other one keeps it
  * silent: an explicit off at any level, -p or SDK, unsupported, assisted.
  */
-const HINTABLE: readonly NotWatched[] = ['upgraded from 0.2', 'resumed conversation', 'not a git repository', '200K window at start']
+const HINTABLE: readonly NotWatched[] = ['upgraded from 0.2', 'resumed conversation', 'not a git repository', 'window below 200K at start']
 export const hintable = (reasons: readonly NotWatched[]) => reasons.length > 0 && reasons.every(r => HINTABLE.includes(r))
 /** After this many hints in a row with no `/jeeves on` or `/jeeves auto on`, no more. */
 export const HINT_LIMIT = 3

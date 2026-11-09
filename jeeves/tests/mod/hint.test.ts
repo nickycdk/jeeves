@@ -20,7 +20,7 @@ const cases: [string, Setup, number][] = [
   ['3b: upgraded from 0.2 (1M, git)', h => { fakeGit(h); h.usage = { window: 1_000_000 } }, 35],
   ['4: resumed conversation (1M, git)', h => { fakeGit(h); h.usage = { window: 1_000_000 }; h.turns = 3 }, 35],
   ['5: not a git repository (1M)', h => { h.usage = { window: 1_000_000 } }, 35],
-  ['6: 200K window at start (git)', h => { fakeGit(h) }, 45],
+  ['6: window below 200K at start (git)', h => { fakeGit(h); h.usage = { window: 128_000 } }, 45],
 ]
 for (const [name, setup, at] of cases) {
   test(`shown for ${name}, once, at threshold - 5; no file in the state folder (AC 1, 2, 4)`, ROW, async ($, on) => {

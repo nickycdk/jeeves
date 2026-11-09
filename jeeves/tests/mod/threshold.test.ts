@@ -126,13 +126,11 @@ async function eligible1M($: Kit, on: Parameters<typeof memHost>[0], env: Record
 }
 const SIM = { HOME: '/home/t', JEEVES_TEST: '1', JEEVES_TEST_WINDOW_OVERRIDE: '200000' }
 
-test('window override 200000 on a 1M session: not auto-watched (200K at start), 50% rule, ~100K threshold, readings re-based, TEST OVERRIDE (AC 1)', { options: { autoStart: 'on' } }, async ($, on) => {
+test('window override 200000 on a 1M session: auto-watched since ADR-009 A4, /jeeves on still makes it explicit; 50% rule, ~100K threshold, readings re-based, TEST OVERRIDE (AC 1)', { options: { autoStart: 'on' } }, async ($, on) => {
   const { h } = await eligible1M($, on, SIM)
   const before = await relay($, 'status')
-  expect(before).toContain('Auto off: 200K window at start')
+  expect(before).toContain('Auto-start: on')
   expect(before).toContain('TEST OVERRIDE window 200K')
-  await submit($, 'a typed prompt')
-  expect(taskDirs(h)).toEqual([])
   await relay($, 'on')
   await submit($, PROMPT)
   const dir = taskDirs(h)[0]!

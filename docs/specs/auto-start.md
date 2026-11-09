@@ -34,7 +34,7 @@ At `session.start` Jeeves decides **once**, for the whole session, whether it is
 1. **Interactive**: `isInteractive` true. Never under `claude -p`, the SDK or background agents.
 2. **Full mode**: not assisted, not unsupported (old version or the R-25 skip). The skip is re-checked after the first answer; if it is found, the auto task ends (DISABLED, files kept) with: `Jeeves: not watching any more (this account isn't supported); /jeeves status for details`.
 3. **A git repository**: inside a git work tree; subfolders and linked worktrees count (each worktree is its own project, as today).
-4. **A large window**: `$.session.usage().window` above 200K tokens, read at `session.start` (the model setting), not at the first reading. On 200K windows a fresh conversation already fills 17–28% of the window, so a 50% threshold would rotate after only about 45–65K tokens of work. Off there until AC-41 has measured it (Q8).
+4. **A large window**: `$.session.usage().window` of 200K tokens or more (**amended by ADR-009 A4, D-53, v0.3.1**; v0.3.0: above 200K), read at `session.start` (the model setting), not at the first reading. On 200K windows a fresh conversation already fills 17–28% of the window; AC-41's simulated 200K run met D-45's bar (D-52), and the near-threshold rule ends a task whose first reading is within 10 points of 50%.
 5. **A fresh conversation**: `$.session.turns()` is 0 at `session.start`; resumed conversations (`--resume`, `--continue`) are not auto-watched.
 6. **Auto-start on** (§5.5).
 
@@ -50,7 +50,7 @@ An eligible session starts an auto task at the first typed prompt (§5.2), unles
   3. off everywhere (`/jeeves auto on`), or (3b) not turned on after an upgrade (`/jeeves auto on`)
   4. resumed conversation (start a new one)
   5. not a git repository
-  6. 200K window at start
+  6. window below 200K at start (v0.3.0: `200K window at start`)
 
 When several reasons apply, the line ends with `(+N more)`, so a fix that removes only one reason doesn't look like the whole answer (`/jeeves status --diagnose` lists all).
 
@@ -158,7 +158,7 @@ A session that is **not** auto-watched gets one hint when its context reaches th
 - When it appears: once per session, only for reason 3b (not turned on after an upgrade) and reasons 4–6 of §5.1. **Never after an explicit off at any level** (session, project, `/jeeves auto off`, the `/config` row), and never under `-p`.
 - When it stops: after 3 hints in a row that were not followed by `/jeeves on` or `/jeeves auto on` (a plugin-store counter, reset when the user acts on one). The text ends with `/jeeves auto off hides this.`
 - What it costs: no tokens, no files.
-- Why it matters: it covers the 200K windows until Q8 is decided, and it is how most people will find out what Jeeves does.
+- Why it matters: it covered the 200K windows until Q8 was decided (v0.3.1 watches them, D-53); it still covers windows below 200K, and it is how most people will find out what Jeeves does.
 
 ### 6.2 Easy to trust, easy to undo
 
@@ -215,7 +215,7 @@ The 8-line limit holds. The commands line sits with the reason line and the warn
 | AC | Requirement | Layers |
 |---|---|---|
 | AC-35 | Fresh install, eligible session: the notice shows at `session.start`; the first `composer` prompt **in that same session** creates the auto task, word for word; nothing is written before it; every other origin kind never starts one (one test per kind) | U, I, E |
-| AC-36 | Not eligible under `-p`/SDK, assisted, unsupported, outside git, 200K window (read at `session.start`, no task file written), resumed conversation; eligibility is decided once at `session.start` (a later switch to 1M does not start watching; the reason reads "200K window at start"); status shows the first reason in the §5.1 order and `(+N more)` when several apply | I |
+| AC-36 | Not eligible under `-p`/SDK, assisted, unsupported, outside git, a window below 200K (v0.3.0: 200K; ADR-009 A4) (read at `session.start`, no task file written), resumed conversation; eligibility is decided once at `session.start` (a later switch to 1M does not start watching; the reason reads "200K window at start"); status shows the first reason in the §5.1 order and `(+N more)` when several apply | I |
 | AC-37 | Near-threshold rule with its message, 3-turn grace period (ending at threshold + 10), and a model switch to a non-eligible window ending the auto task with its message | U, I |
 | AC-38 | Opt-out levels and precedence (session, project, `/config` on/off, `auto.json`, default); `/jeeves auto on/off` writes only `auto.json` and says when the `/config` row overrides it; Claude settings never written; `/jeeves on` after `/jeeves off` gives an explicit task and auto stays off for the session | U, I |
 | AC-39 | `/jeeves later` moves the threshold by 10, warns again, never past the cap (90%, or 5 points below the auto-compaction point when lower, auto-compaction off counted as no limit below 90%), says "can't postpone further" at the cap, works in auto and explicit tasks, does not stop a running rotation | U, I |
@@ -339,7 +339,7 @@ The tier is set per request by the whole prompt, cache reads and writes included
 | Resume id | Full id (prefixes are not documented); the id is already recorded at Jeeves's own `/clear`; a resumed old conversation can't drive the task (§6.2, AC-47) |
 | Wording: "the one write at session start" | "The only write to task state at session start", other writes named (§5.2, §5.9) |
 | One-line reason could mislead | `(+N more)` (§5.1, AC-36) |
-| Switch from 200K to 1M | Eligibility decided once at `session.start`; reason "200K window at start" (§5.1, AC-36) |
+| Switch from below 200K to 1M | Eligibility decided once at `session.start`; reason "window below 200K at start" (§5.1, AC-36) |
 | Cleanup age undefined | 7 days after the task ended (`updatedAt`) (§5.9, AC-44) |
 | Scope | Design frozen; further ideas go to §13 |
 
@@ -354,4 +354,4 @@ The tier is set per request by the whole prompt, cache reads and writes included
 New ideas go here, not into a new revision.
 
 - A setting for the cleanup age (Q3), if someone asks.
-- Widening auto-start to 200K windows, once AC-41 has decided Q8. If it does, that release's live run includes one auto-started 200K session, to check the real eligibility path end to end; AC-41's 200K fixture starts with `/jeeves on` and deliberately skips it (maintainer, 2026-11-08: the rotation rate and outcome don't depend on how the task started, and forcing auto-start would bend D-42 in the test kit).
+- **Planned for v0.3.1 (plan 10, D-53; ST-17.1 built):** widening auto-start to 200K windows, once AC-41 has decided Q8. If it does, that release's live run includes one auto-started 200K session, to check the real eligibility path end to end; AC-41's 200K fixture starts with `/jeeves on` and deliberately skips it (maintainer, 2026-11-08: the rotation rate and outcome don't depend on how the task started, and forcing auto-start would bend D-42 in the test kit).

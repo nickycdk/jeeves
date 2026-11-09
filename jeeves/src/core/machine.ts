@@ -262,8 +262,8 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
     }
     // Relative: a reading counts for the loop guard only once the session's start is known.
     const counts = rel === undefined || next.sessionStart?.pct != null
-    // ST-13.3 (spec §5.1, D-42): a reading showing a window auto-start would not take (`/model` to 200K) ends an auto
-    // task; explicit tasks keep their threshold. Not mid-rotation (the reading after it lands in CONTINUING), not on an unknown window (0).
+    // ST-13.3 (spec §5.1, ADR-009 A4): a reading showing a window auto-start would not take (`/model` below 200K) ends
+    // an auto task; a 1M task moved to 200K keeps its threshold, as explicit tasks do. Not mid-rotation (the reading after it lands in CONTINUING), not on an unknown window (0).
     if (state.origin === 'auto' && (state.status === 'MONITORING' || state.status === 'CONTINUING') && input.window > 0 && !largeWindow(input.window)) {
       go('DISABLED', null, { rotation: null }, `window ${input.window}`)
       effects.push({ type: 'RELEASE_LOCK', key: key('release') }, { type: 'TOAST', key: `-:window:${input.sessionId}`, text: windowEndText(input.window) })

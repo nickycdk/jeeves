@@ -6,7 +6,7 @@ import { expect } from 'claude-code/testing'
 import { bottom, engineTest as test, engineClear, fakeGit, PROMPT, relay, stateOf, stop, submit, taskDirs, turnEnd, turnStart, type Kit } from './kit.ts'
 import { memHost, type MemHost } from './memfs.ts'
 
-const SWITCHED = "Jeeves: not watching any more (this model's window is 200K); /jeeves on to watch anyway"
+const SWITCHED = "Jeeves: not watching any more (this model's window is 128K); /jeeves on to watch anyway"
 const start = ($: Kit, isInteractive = true) => $.session.start({ cwd: '/work/proj', surface: 'terminal', isInteractive })
 const taskFiles = (h: MemHost) => [...h.files.keys()].filter(f => f.includes('/tasks/'))
 const autoLine = async ($: Kit) => (await relay($, 'status')).split('\n').find(l => l.startsWith('Auto'))
@@ -41,13 +41,37 @@ test('eligible: status names where auto-start came from; diagnose says eligible;
   expect(taskFiles(h)).toEqual([])
 })
 
+test('ST-17.1 (ADR-009 A4): a 200K window at start is eligible', async ($, on) => {
+  const h = eligibleHost(on)
+  h.usage = { window: 200_000 }
+  bottom(on)
+  await start($)
+  expect(await diagnoseLine($)).toBe('Auto-start: on (fresh install); this session is eligible')
+})
+
+test('ST-17.1 (P-2): a switch from 1M to 200K keeps the auto task and its threshold; below 200K ends it', async ($, on) => {
+  const h = eligibleHost(on)
+  bottom(on)
+  await start($)
+  const dir = await autoTask($, h)
+  const threshold = stateOf(h, dir).thresholdPercent
+  await measure($, 1_000_000, 10)
+  await measure($, 200_000, 20)
+  expect(stateOf(h, dir).status).toBe('MONITORING')
+  expect(stateOf(h, dir).thresholdPercent).toBe(threshold)
+  expect(h.toasts).not.toContain(SWITCHED)
+  await measure($, 128_000, 20)
+  expect(stateOf(h, dir).status).toBe('DISABLED')
+  expect(h.toasts).toContain(SWITCHED)
+})
+
 const NOT_ELIGIBLE: [string, (h: MemHost) => void, boolean, string][] = [
   ['-p or SDK', () => {}, false, 'Auto off: -p or SDK'],
   // No process.run: git cannot answer and no state folder is made, so the upgrade check waits (off) too.
   ['assisted', h => { h.failProcess = true }, true, 'Auto off: assisted mode (+2 more)'],
   ['unsupported', h => { h.version = '2.1.300' }, true, 'Auto off: unsupported'],
   ['outside git', h => { h.git = undefined; h.dirs.delete('/work/proj/.git') }, true, 'Auto off: not a git repository'],
-  ['200K window at start', h => { h.usage = { window: 200_000 } }, true, 'Auto off: 200K window at start'],
+  ['window below 200K at start', h => { h.usage = { window: 128_000 } }, true, 'Auto off: window below 200K at start'],
   ['resumed', h => { h.turns = 4 }, true, 'Auto off: resumed conversation'],
 ]
 for (const [why, seed, interactive, line] of NOT_ELIGIBLE) {
@@ -62,17 +86,17 @@ for (const [why, seed, interactive, line] of NOT_ELIGIBLE) {
   })
 }
 
-test('decided once: a later switch to 1M does not make the session eligible; the reason stays "200K window at start" (AC 2)', async ($, on) => {
+test('decided once: a later switch to 1M does not make the session eligible; the reason stays "window below 200K at start" (AC 2)', async ($, on) => {
   const h = eligibleHost(on)
-  h.usage = { window: 200_000 }
+  h.usage = { window: 128_000 }
   await start($)
   h.usage = { window: 1_000_000, percent: 5 }
   await measure($, 1_000_000, 5)
-  expect(await autoLine($)).toBe('Auto off: 200K window at start')
+  expect(await autoLine($)).toBe('Auto off: window below 200K at start')
   // A reload reruns session.start with turns > 0: the decision of this session is kept, not made again.
   h.turns = 3
   await start($)
-  expect(await autoLine($)).toBe('Auto off: 200K window at start')
+  expect(await autoLine($)).toBe('Auto off: window below 200K at start')
 })
 
 test('a reload keeps an eligible decision; a /clear carries it to the fresh conversation; an exit forgets it', async ($, on) => {
@@ -93,15 +117,16 @@ test('a reload keeps an eligible decision; a /clear carries it to the fresh conv
 })
 
 test('several reasons: the first in the §5.1 order with (+N more); diagnose lists them all; /jeeves off adds "this session" (AC 3)', async ($, on) => {
-  const h = memHost(on) // no git, 200K window
+  const h = memHost(on) // no git
+  h.usage = { window: 128_000 }
   h.turns = 2
   bottom(on)
   await start($)
   expect(await autoLine($)).toBe('Auto off: resumed conversation (+2 more)')
-  expect(await diagnoseLine($)).toBe('Auto-start: on (fresh install); not watched: resumed conversation, not a git repository, 200K window at start')
+  expect(await diagnoseLine($)).toBe('Auto-start: on (fresh install); not watched: resumed conversation, not a git repository, window below 200K at start')
   await relay($, 'off')
   expect(await autoLine($)).toBe('Auto off: this session (+3 more)')
-  expect(await diagnoseLine($)).toBe('Auto-start: off (this session); not watched: this session, resumed conversation, not a git repository, 200K window at start')
+  expect(await diagnoseLine($)).toBe('Auto-start: off (this session); not watched: this session, resumed conversation, not a git repository, window below 200K at start')
 })
 
 test('auto-start off by level: project, everywhere; each shows its own reason', async ($, on) => {
@@ -140,7 +165,7 @@ test('model switch: a reading with a 200K window ends an auto task (DISABLED, fi
   expect(taskFiles(h).some(f => f.includes('/lock.d/'))).toBe(true)
   await measure($, 1_000_000, 10)
   expect(stateOf(h, dir).status).toBe('MONITORING')
-  await measure($, 200_000, 30)
+  await measure($, 128_000, 30)
   expect(stateOf(h, dir).status).toBe('DISABLED')
   expect(h.toasts).toContain(SWITCHED)
   expect(taskFiles(h).some(f => f.includes('/lock.d/'))).toBe(false)
@@ -153,7 +178,7 @@ test('model switch: an explicit task keeps watching with its threshold (AC 5)', 
   await start($)
   const dir = await autoTask($, h, 'explicit')
   const threshold = stateOf(h, dir).thresholdPercent
-  await measure($, 200_000, 30)
+  await measure($, 128_000, 30)
   expect(stateOf(h, dir).status).toBe('MONITORING')
   expect(stateOf(h, dir).thresholdPercent).toBe(threshold)
   expect(h.toasts).not.toContain(SWITCHED)
@@ -180,7 +205,7 @@ test('two sessions at once (one plugin store): each keeps its own decision and i
   h.sessionId = 'sess-a'
   await start($)
   h.sessionId = 'sess-b'
-  h.usage = { window: 200_000 }
+  h.usage = { window: 128_000 }
   await start($)
   await relay($, 'off')
   h.sessionId = 'sess-a'
@@ -210,7 +235,7 @@ test('after an auto task of this session ended (model switch), status says off f
   bottom(on)
   await start($)
   await autoTask($, h)
-  await measure($, 200_000, 30)
+  await measure($, 128_000, 30)
   expect(h.toasts).toContain(SWITCHED)
   expect(await autoLine($)).toBe('Auto off: this session')
 })

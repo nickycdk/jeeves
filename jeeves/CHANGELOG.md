@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased (0.3.1)
+
+- Auto-start now watches models with a context window of **200K tokens or more** (ST-17.1, ADR-009 A4); 0.3.0 watched only windows above 200K. On 200K the threshold is 50% (~100K tokens) and the grace period ends at 60%. The status reason for a smaller window is `window below 200K at start` (was `200K window at start`). A model switch ends an auto task only when the new window is below 200K; a switch from 1M to 200K keeps the task and its threshold. Upgraders are unchanged: auto-start stays off after an upgrade from 0.2 until `/jeeves auto on`. Not yet checked live on a real 200K window (ST-17.3).
+- Test kit: a `distinct-task` fixture whose modules cannot be solved by one script, and the AC-41 driver stops a scripted run as void by itself (ST-17.2).
+
 ## 0.3.0 (release candidate; dated when tagged)
 
 Release notes: `docs/release-notes/v0.3.0.md`.

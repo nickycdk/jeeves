@@ -51,7 +51,7 @@ test('fresh install, eligible: the notice at session.start, nothing written; the
 test('the notice shows once (autoNoticeShown), not in a session that is not eligible, and the /jeeves on notice stays its own', async ($, on) => {
   const h = eligibleHost(on)
   bottom(on)
-  h.usage = { window: 200_000 }
+  h.usage = { window: 128_000 }
   await start($)
   expect(h.toasts).toEqual([])
   h.sessionId = 'sess-2'
@@ -104,10 +104,10 @@ test('a slash command or a meta prompt never starts an auto task (AC 3)', async 
   expect(taskDirs(h)).toEqual([])
 })
 
-test('not eligible (200K window at start): the first typed prompt passes and nothing is written', async ($, on) => {
+test('not eligible (window below 200K at start): the first typed prompt passes and nothing is written', async ($, on) => {
   const h = eligibleHost(on)
   bottom(on)
-  h.usage = { window: 200_000 }
+  h.usage = { window: 128_000 }
   const before = stateFiles(h)
   await start($)
   await submit($, PROMPT)
@@ -214,3 +214,23 @@ test('review fix: /jeeves on does not offer back an auto task left MONITORING', 
   expect(await relay($, 'on')).toContain('Jeeves on: task')
   expect(taskDirs(h).length).toBe(2)
 })
+
+for (const first of [40, 10] as const) {
+  test(`ST-17.1: an auto task on a 200K window takes 50%; ${first === 40 ? 'a first reading at 40% ends it (near-threshold)' : 'the grace period holds until 60%'}`, async ($, on) => {
+    const h = eligibleHost(on, { autoNoticeShown: true })
+    h.usage = { window: 200_000 }
+    bottom(on)
+    await start($)
+    await submit($, PROMPT)
+    const [dir] = taskDirs(h)
+    expect([stateOf(h, dir!).origin, stateOf(h, dir!).thresholdPercent]).toEqual(['auto', 50])
+    const at200K = (percent: number) => $.session.measure({ context: { window: 200_000, percent }, rateLimits: [], changed: ['context'] } satisfies SessionMeasureInput)
+    await turnStart($, 't1')
+    await at200K(first)
+    if (first === 40) return void expect(stateOf(h, dir!).status).toBe('DISABLED')
+    await at200K(59)
+    expect(stateOf(h, dir!).status).toBe('MONITORING')
+    await at200K(60)
+    expect(stateOf(h, dir!).status).toBe('ROTATION_REQUESTED')
+  })
+}
