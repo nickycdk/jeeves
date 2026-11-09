@@ -1,0 +1,30 @@
+# Handover: M9 (v0.3), E16 turn mode: ST-16.1, probe session, ST-16.2 done
+
+**Date:** 2026-11-09 · **Claude Code:** 2.1.319 · **Branch:** `main`. `origin/main` is at `37f9cc3`; everything after it is local only. Paths are relative to the repo root. Previous handovers: `docs/done/handoffs/handoff-m9-after-e16-approval.md` (the E16 plan's approval, D-49) and `docs/done/handoffs/handoff-m9-after-gate-review-fixes.md` (its §3 code map, §4 facts and §6 rules still hold).
+
+## 1. What happened this session
+
+- **ST-16.1** (`606225a`): the Stop skip now gives turn mode. `Probe` has `boundary: 'stop' | 'turn'` (`jeeves/src/core/probe.ts`: `turnMode`, `submitRefused`); `markStopSkipped` (`jeeves/src/adapter/runtime.ts`) sets it; the runtime wraps `port.submitPrompt`/`submitPromptSoon`, so any refused submit in turn mode makes the process `unsupported` (one toast, status `off: prompt refused`). Status `mode: full (turn)`; `--diagnose` `Mode: full (turn: Stop hook skipped)`. `eligible.ts`'s `stopSkipped` and `MSG.autoUnsupported` deleted: no task is ended by the skip. `jeeves/docs/troubleshooting.md` updated.
+- **Probe session** (`bf7db95`), about US$0.04 API-equivalent of the US$1 cap (the cap is now used up; ask again for more): results in `docs/specs/team-accounts-turn-mode.md` §4 item 4 and the Verify lines of ST-16.2 … ST-16.6. A first attempt was stopped after two checks: the debug log redacts token counts, so the driver could not read it; the probe mod then wrote its own events file.
+- **ST-16.2** (`fa02380`): `jeeves/src/core/background.ts` (a record of ids, see its Status line for why ids and not a bare number); `bgStarted`/`bgNotified`/`bgReset`/`bgCount` in `runtime.ts`; `turnBoundary` in `jeeves/src/adapter/task.ts`, called from `turn.complete` in `jeeves/hooks/register.ts` after the skip check; it runs `onStop` for ROTATION_REQUESTED/QUIESCING with the record's count. **The handover instruction it returns is not sent yet** (ST-16.3). `jeeves/tests/mod/turn-boundary.test.ts`.
+- Checks at `fa02380`: 298 unit; 287 mod in both suite modes; typecheck, lint, both validates pass. `tests/perf/stats.test.ts` failed once at 102.9 ms under load and passed on the rerun (known, CI does not run it).
+
+## 2. Next, in order
+
+1. **ST-16.3** (handover by submit, read from `answer`, retried). Start from `turnBoundary`: send its return with `rt.port.submitPromptSoon` (the reducer has already set HANDOVER_GENERATING at the STOP, before the effects, as ADR-003 A2 asks); extend it to HANDOVER_GENERATING so the next answered `turn.complete` goes through `onStop` → `handoverStop` with `answer` as the message, and send the retry text the same way. An aborted request turn already pauses (`TURN_COMPLETE` aborted in HANDOVER_GENERATING → USER_INTERRUPT). Crons: `not available in turn mode` in the verified section (`jeeves/src/core/handover/`). Probe facts: `answer` holds only the final message's text (text before a tool call is not in it), 14,299 chars arrived whole.
+2. **ST-16.4**: after a plugin `/clear` **no engine `session.start` and no `classic.SessionStart` arrive**; `session.end(clear)` comes, then `$.command.run('clear')` resolves and `$.session.id()` already gives the new id. So in turn mode `runClear` (`task.ts`, after `runCommand`) continues the fresh conversation itself through `continueFresh`, with the restore path's continuation prompt (no `additionalContext`); check the id differs, else fail as today.
+3. **ST-16.5**: no reading comes right after `/compact`; the next turn's reading fell 70,222 → 57,907 (the whole conversation above a base of about 57.5K tokens of system prompt and tools); a one-turn rewind gave no reading at all. Set the amount from this (a fixed number must stay well above normal turn-to-turn changes and well below a real compaction near the threshold).
+4. **ST-16.6**: `$.session.append` reaches the model (stored with `isMeta: true`).
+5. ST-16.7 (three suite runs, texts), then **ST-16.8: estimate first, ask for go-ahead and budget**.
+6. ST-15.2 under D-49 (its own go-ahead), then ST-15.3.
+
+## 3. Facts worth keeping
+
+- **A mod test that ends a main turn without `classic.Stop` now puts the process in turn mode**, and an answered `turn.complete` then judges a waiting rotation. `rotate.test.ts`'s D-23 test was changed to send the turn's Stop first (live order). ST-16.7's turn-mode kit drops Stop on purpose; other tests that rely on a missing Stop may need the same fix.
+- In turn mode a reading that crosses the threshold after the turn ended still goes through the nudge (`nudgeIfWaiting`), then the nudge turn's `turn.complete` is the boundary: one extra short turn before the request. Allowed by ADR-004 A2 (the boundary is a `turn.complete`); not optimised.
+- On the Team account the engine prints a transcript line for each skipped hook, e.g. `turn-probe: its session.compact hook was skipped. "cc-plugin-sec-default" runs first and sent the event on past it.` Users of Jeeves will see the same for Jeeves's hooks.
+- **Probe method** (for ST-16.8 or any later live check): a throwaway mod in the scratchpad, loaded with `claude --plugin-dir <mod> --model haiku --debug-file <file>` through `jeeves/tests/pty/ptylib.py` (`Claude` drops `CLAUDE*` variables, so the default config and the Team login are used); the mod writes its events with `$.fs.write` to its own file, because the debug log shows token counts as `[REDACTED]`. API-equivalent cost from `turn.complete`'s `usage` (haiku 5.5 under 100K-token prompts: input 0.10, cache write about 0.125, cache read 0.01, output 0.50 US$/MTok). The session's base context with no conversation was about 57.5K tokens.
+
+## 4. Rules (unchanged)
+
+This repo only; one local commit per finished story or fix; push only when asked; never make the repo public, publish, post, change Claude settings or install plugins; zero runtime dependencies; no live runs without go-ahead and budget; ADR conflict → stop and ask; report honestly; before every push `git grep -n "$(whoami)" HEAD` prints nothing; load the plugin-authoring skill before touching hooks or the test kit; handover at about 35% context.
