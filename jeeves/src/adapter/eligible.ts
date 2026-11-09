@@ -2,6 +2,7 @@
 // the decision lives in the plugin store under the session id, so a reload (turns > 0 by then) keeps it.
 import { autoReason, HINT_LIMIT, hintable, isNotWatched, ordered, startReasons, type AutoRow, type NotWatched } from '../core/autostart.ts'
 import { simulateWindow, windowThreshold } from '../core/task.ts'
+import { THRESHOLD_MIN } from '../core/machine.ts'
 import { autoStartNow, sessionOffKey } from './auto.ts'
 import { readDefaults } from './defaults.ts'
 import type { Runtime } from './runtime.ts'
@@ -98,7 +99,8 @@ const NOTICE_KEY = 'autoNoticeShown'
  */
 export async function hint(rt: Runtime, row: AutoRow, raw: { percent?: number; tokens?: number; window: number }): Promise<void> {
   const c = rt.windowOverride ? simulateWindow(raw, rt.windowOverride) : raw // as measure() reads it
-  if (c.percent === undefined) return
+  // No threshold is below THRESHOLD_MIN: below that minus 5, nothing more needs reading (the usual reading).
+  if (c.percent === undefined || c.percent < THRESHOLD_MIN - 5) return
   const me = await rt.port.sessionId()
   if ((await rt.port.storeGet(hintedKey(me))) === true) return
   const n = await rt.port.storeGet(HINT_COUNT)
