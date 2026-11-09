@@ -79,7 +79,7 @@ An auto task works like any other, with these differences:
 
 ## Modes
 
-`/jeeves status` always shows the mode.
+`/jeeves status` (or `/jeeves` alone) always shows the mode, and ends with a `Try:` line naming the 2–3 commands that fit now, such as `Try: /jeeves later | off | help` during a warning.
 
 - **full**: Jeeves runs `/clear` itself after a verified handover and continues the task in the fresh conversation. No keystroke is needed.
 - **assisted**: used when this Claude Code cannot run `/clear` for a plugin (or refused it once). Jeeves never claims automatic rotation here. It saves the verified handover and asks you to run `/clear`, then `/jeeves continue`, which sends the task and handover into the fresh conversation.

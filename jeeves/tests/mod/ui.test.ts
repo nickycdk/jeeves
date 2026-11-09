@@ -2,7 +2,7 @@
 // threshold while watching, a word label otherwise, at most 40 columns.
 import type { SessionMeasureInput } from 'claude-code'
 import { expect } from 'claude-code/testing'
-import { bottom, engineClear, generating, handover, PROMPT, relay, start, stateOf, stop, submit, turnEnd, until, type Kit, test } from './kit.ts'
+import { bottom, engineClear, fakeGit, generating, handover, PROMPT, relay, start, stateOf, stop, submit, taskDirs, turnEnd, until, type Kit, test } from './kit.ts'
 import { memHost } from './memfs.ts'
 
 const measure = ($: Kit, percent: number) =>
@@ -54,4 +54,102 @@ test('tool calls and readings below the threshold add no transcript line; pause 
   await relay($, 'off')
   expect(h.notes.at(-1)).toBe('Jeeves: off (task files kept)')
   expect(h.status.at(-1)).toBe(undefined)
+})
+
+// ST-14.2 (spec §6.5): `/jeeves` alone, one snapshot per state; each fits 8 lines of 40 ASCII columns.
+const ROW = { options: { autoStart: 'default' } }
+const shaped = (text: string) => {
+  expect(text.split('\n').length).toBeLessThanOrEqual(8)
+  for (const l of text.split('\n')) expect(l.length).toBeLessThanOrEqual(40)
+  expect(/^[\x20-\x7e\n]*$/.test(text)).toBe(true)
+  return text
+}
+
+test('ST-14.2: /jeeves alone per state: not watched, watching, warning, paused', ROW, async ($, on) => {
+  const h = memHost(on)
+  bottom(on)
+  await start($)
+  expect(shaped(await relay($, ''))).toBe([
+    'Jeeves  mode: full',
+    'Auto off: not a git repository (+1 more)',
+    'No managed task. Start with /jeeves on',
+    'Path: /home/t/.local/state/jeeves',
+    'Try: /jeeves on | help',
+  ].join('\n'))
+  await relay($, 'on')
+  await submit($, PROMPT)
+  h.usage = { window: 1_000_000, percent: 20 }
+  await measure($, 20)
+  const id = stateOf(h, taskDirs(h)[0]!).taskId
+  const status = async () => shaped(await relay($, '')).replace(id, 'ID').replace(/^Path: .*$/m, 'Path: P')
+  expect(await status()).toBe([
+    'Jeeves  mode: full',
+    'Task: ID (explicit)',
+    'State: MONITORING',
+    'Context: 20%  Threshold: 50% (~500K)',
+    'Rotations: 0  Session: 1',
+    'Last: no handover yet',
+    'Path: P',
+    'Try: /jeeves help',
+  ].join('\n'))
+  h.usage = { window: 1_000_000, percent: 46 }
+  await measure($, 46)
+  expect(await status()).toBe([
+    'Jeeves  mode: full',
+    'Task: ID (explicit)',
+    'State: MONITORING',
+    'Context: 46%  Threshold: 50% (~500K)',
+    'Rotations: 0  Session: 1',
+    'Last: no handover yet',
+    'Path: P',
+    'Try: /jeeves later | off | help',
+  ].join('\n'))
+  await relay($, 'pause')
+  expect(await status()).toBe([
+    'Jeeves  mode: full',
+    'Task: ID (explicit)',
+    'State: PAUSED (USER_PAUSE)',
+    'Context: 46%  Threshold: 50% (~500K)',
+    'Rotations: 0  Session: 1',
+    'Paused by you. /jeeves resume',
+    'Last: no handover yet',
+    'Try: /jeeves resume | off | help',
+  ].join('\n'))
+})
+
+test('ST-14.2: /jeeves alone in an eligible session before its first prompt: watched, no task yet', ROW, async ($, on) => {
+  const h = memHost(on)
+  bottom(on)
+  fakeGit(h)
+  h.usage = { window: 1_000_000 }
+  await start($)
+  expect(shaped(await relay($, ''))).toBe([
+    'Jeeves  mode: full',
+    'Auto-start: on (fresh install)',
+    'No managed task. Start with /jeeves on',
+    'Path: /home/t/.local/state/jeeves',
+    'Try: /jeeves help',
+  ].join('\n'))
+})
+
+test('ST-14.2: /jeeves alone after a failed handover offers retry, and not once the retries are used up', ROW, async ($, on) => {
+  const g = await generating($, on)
+  for (let i = 0; i < 3; i++) await stop($, 'no handover here')
+  await turnEnd($)
+  expect(shaped(await relay($, ''))).toBe([
+    'Jeeves  mode: full',
+    'Task: TASK (explicit)',
+    'State: NEEDS_REVIEW (HANDOVER_INVALID)',
+    'Context: unknown  Threshold: 50% (~100K)',
+    'Rotations: 0  Session: 1',
+    'Handover invalid. Try: /jeeves retry',
+    'Last: no handover yet, error HANDOVER...',
+    'Try: /jeeves retry | off | help',
+  ].join('\n').replace('TASK', g.taskId))
+  await relay($, 'retry')
+  await $.classic.Stop({ stop_hook_active: false, last_assistant_message: 'ok', background_tasks: [], session_crons: [] })
+  for (let i = 0; i < 3; i++) await stop($, 'no handover here')
+  const used = await relay($, '')
+  expect(used).toContain('Retries used up. /jeeves off ends it')
+  expect(used.split('\n').at(-1)).toBe('Try: /jeeves help')
 })

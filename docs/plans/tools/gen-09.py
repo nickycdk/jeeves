@@ -33,7 +33,7 @@ progress=f'''**Progress** ({done} of {len(rows)} stories done; built from the St
 '''+'\n'.join(rows)
 out=f'''# 09 — v0.3 plan: auto-start
 
-**Date:** 2026-11-09 · **Spec:** `docs/specs/auto-start.md` (revision 4, approved, D-40) · **Milestone:** M9 · **Status:** in progress: ST-13.1 … ST-13.9, ST-15.1 and ST-14.1 solved (see the progress table in §4; current handover `docs/plans/handoff-m9.md`); next ST-14.2 … ST-14.5; Q-13 and Q-14 decided (D-44, D-45). Review 1 of the plan applied (gate wording for a reduced E14, ST-15.2 preconditions, dry run, stop rules and fixture sizing, the estimate checked against M4, Q-14, story fixes) and review 2 (once-per-install upgrade check, same macOS user for every AC-41 run, `/cost` polled in both 1M runs, gate items split).
+**Date:** 2026-11-09 · **Spec:** `docs/specs/auto-start.md` (revision 4, approved, D-40) · **Milestone:** M9 · **Status:** in progress: ST-13.1 … ST-13.9, ST-15.1, ST-14.1 and ST-14.2 solved (see the progress table in §4; current handover `docs/plans/handoff-m9.md`); next ST-14.3 … ST-14.5; Q-13 and Q-14 decided (D-44, D-45). Review 1 of the plan applied (gate wording for a reduced E14, ST-15.2 preconditions, dry run, stop rules and fixture sizing, the estimate checked against M4, Q-14, story fixes) and review 2 (once-per-install upgrade check, same macOS user for every AC-41 run, `/cost` polled in both 1M runs, gate items split).
 
 This file gathers the whole v0.3 plan in one place. The same text lives in the numbered plans (02 ADR-009 A3, ADR-003 A1, ADR-010 A2, 03 E13–E15, 04 ST-13.1 … ST-15.3, 05 M9, 06 AC-35 … AC-47, 07 D-40 … D-43, R-26, R-27, Q-13, Q-14); when they differ, the numbered plans win and this file is updated. Story DoD and epic DoD are the standard ones in 03 and 04.
 

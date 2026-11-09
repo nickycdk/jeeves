@@ -21,7 +21,8 @@ test('no task: says so and how to start', () => {
   shape(t)
   assert.equal(t.split('\n')[0], 'Jeeves  mode: full')
   assert.ok(t.includes('No managed task. Start with /jeeves on'))
-  assert.ok(t.split('\n').at(-1)!.startsWith('Path: ...'))
+  assert.ok(t.split('\n').at(-2)!.startsWith('Path: ...'))
+  assert.equal(t.split('\n').at(-1), 'Try: /jeeves help')
 })
 
 test('a task: mode, task, state, context or unknown, threshold, rotations, last result, path', () => {
@@ -29,7 +30,7 @@ test('a task: mode, task, state, context or unknown, threshold, rotations, last 
   const state = validState({ status: 'PAUSED', reason: 'RATE_LIMIT', lastErrorCode: 'RATE_LIMIT', rotationCount: 2, sessionSequence: 3, lastValidatedHandover: 'history/handover-002.md#sha256:ab', lastContext: { window: 1_000_000, at: '2026-11-07T08:00:00Z', percent: 18 } })
   const t = statusText(view({ task: { state, dir } }))
   shape(t)
-  for (const want of ['Task: t_20261107_k3m9qa', 'State: PAUSED (RATE_LIMIT)', 'Context: 18%  Threshold: 50%', 'Rotations: 2  Session: 3', 'Last: handover-002.md, error RATE_LIMIT', 'Path: ...']) assert.ok(t.includes(want), `missing "${want}" in\n${t}`)
+  for (const want of ['Task: t_20261107_k3m9qa', 'State: PAUSED (RATE_LIMIT)', 'Context: 18%  Threshold: 50%', 'Rotations: 2  Session: 3', 'Last: handover-002.md, error RATE_LIMIT', 'Try: /jeeves resume | off | help']) assert.ok(t.includes(want), `missing "${want}" in\n${t}`)
   const unknown = statusText(view({ task: { state: validState({ lastContext: { window: 1, at: '2026-11-07T08:00:00Z' } }), dir } }))
   assert.ok(unknown.includes('Context: unknown'), 'unknown, never 0%')
   assert.ok(!unknown.includes('0%  '))
@@ -41,7 +42,7 @@ test('unsupported and assisted modes and a broken state folder still fit', () =>
   assert.ok(uns.includes('mode: unsupported') && uns.includes('Needs 2.1.319+, this is 2.1.200'), uns)
   const unsTask = statusText(view({ probe: probe({ version: '2.1.200', primitives: all }), task: { state: validState(), dir: `${root}/projects/p/tasks/t1` } }))
   shape(unsTask)
-  assert.ok(unsTask.split('\n').at(-1)!.startsWith('Path: '), `Path line kept:\n${unsTask}`)
+  assert.ok(unsTask.split('\n').at(-1)!.startsWith('Try: '), `commands line kept:\n${unsTask}`)
   shape(statusText(view({ probe: probe({ version: '2.1.319', primitives: { ...all, 'process.run': false } }) })))
   const broken = statusText(view({ stateRoot: null, stateRootError: 'BAD_STATE_ROOT: HOME is not set; set stateDir in /config' }))
   shape(broken)
@@ -135,8 +136,27 @@ test('more than 8 lines: Path, Last, Rotations, Waiting, TEST OVERRIDE give way 
   const state = validState({ status: 'NEEDS_REVIEW', reason: 'HANDOVER_INVALID', taskRevision: 0 })
   const t = statusText(view({ probe: withoutStopHook(full), task: { state, dir: `${root}/projects/p/tasks/t1` }, defaultsError: 'bad', thresholdOverride: 30 }))
   shape(t)
-  for (const want of ['Stop hook skipped', 'Handover invalid', 'Warning: defaults unreadable', 'State: NEEDS_REVIEW']) assert.ok(t.includes(want), `missing ${want}:\n${t}`)
+  for (const want of ['Stop hook skipped', 'Handover invalid', 'Warning: defaults unreadable', 'State: NEEDS_REVIEW', 'Try: /jeeves retry | off | help']) assert.ok(t.includes(want), `missing ${want}:\n${t}`)
   assert.ok(!t.includes('Path:') && !t.includes('Last:'), t)
   const roomy = statusText(view({ task: { state: validState(), dir: `${root}/projects/p/tasks/t1` }, defaultsError: 'bad' }))
-  assert.ok(roomy.includes('Path:') && roomy.includes('Last:') && roomy.includes('Warning: defaults unreadable'), roomy)
+  assert.ok(roomy.includes('Try:') && roomy.includes('Last:') && roomy.includes('Warning: defaults unreadable'), roomy)
+})
+
+test('ST-14.2: the commands line offers what fits now and survives the 8-line rule', () => {
+  const dir = `${root}/projects/p/tasks/t1`
+  const ctx = (percent: number) => ({ lastContext: { window: 1_000_000, percent, at: '2026-11-07T08:00:00Z' } })
+  const last = (over: Partial<StatusView>) => { const t = statusText(view(over)); shape(t); return t.split('\n').at(-1) }
+  assert.equal(last({ task: { state: validState(ctx(44)), dir } }), 'Try: /jeeves help', 'below the warning')
+  assert.equal(last({ task: { state: validState(ctx(45)), dir } }), 'Try: /jeeves later | off | help', 'in the warning')
+  assert.equal(last({ task: { state: validState(ctx(50)), dir } }), 'Try: /jeeves help', 'at the threshold the handover is under way')
+  assert.equal(last({ task: { state: validState(ctx(45)), dir }, auto: 'Auto off: off everywhere' }), 'Try: /jeeves on | help', "another session's warning is not this one's")
+  assert.equal(last({ task: { state: validState({ status: 'BLOCKED', reason: 'DISK' }), dir } }), 'Try: /jeeves resume | off | help')
+  assert.equal(last({ task: { state: validState({ status: 'NEEDS_REVIEW', reason: 'POSSIBLE_LOOP' }), dir } }), 'Try: /jeeves retry | off | help')
+  assert.equal(last({ task: { state: validState({ status: 'NEEDS_REVIEW', reason: 'HANDOVER_INVALID', consecutiveFailures: 2 }), dir } }), 'Try: /jeeves help', 'retries used up')
+  assert.equal(last({ auto: 'Auto off: resumed conversation (+1 more)' }), 'Try: /jeeves on | help')
+  assert.equal(last({ auto: 'Auto-start: on (default)' }), 'Try: /jeeves help')
+  // Every test setting and warning at once: still 8 lines, the reason and the commands kept.
+  const crowded = statusText(view({ probe: withoutStopHook(full), task: { state: validState({ status: 'PAUSED', reason: 'USER_PAUSE', taskRevision: 0 }), dir }, defaultsError: 'bad', thresholdOverride: 30, windowOverride: 200_000 }))
+  shape(crowded)
+  for (const want of ['Paused by you', 'Try: /jeeves resume | off | help']) assert.ok(crowded.includes(want), crowded)
 })

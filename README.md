@@ -38,7 +38,7 @@ At the threshold you'll see `Jeeves: handover requested`, then `Jeeves: handover
 | Command | What it does |
 |---|---|
 | `/jeeves on [goal]` | Start a managed task. Without a goal, your next prompt is the task |
-| `/jeeves status` | Mode, task, context, threshold, rotations, and why it stopped if it did |
+| `/jeeves` or `/jeeves status` | Mode, task, context, threshold, rotations, why it stopped if it did, whether this session is watched, and a `Try:` line with the commands that fit now |
 | `/jeeves threshold <n>` | Hand over at n% context (20 to 90) |
 | `/jeeves defaults` | This project's defaults for new tasks: `defaults threshold <n>`, `defaults check <cmd>`, `defaults clear` |
 | `/jeeves rotate` | Hand over now, at the next safe stop |

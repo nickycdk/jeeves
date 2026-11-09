@@ -85,6 +85,24 @@ const reasonLine = (s: State) => {
   return s.reason === 'HANDOVER_INVALID' ? 'Handover invalid. Try: /jeeves retry' : 'Fresh session too full. /jeeves retry'
 }
 
+const resumable = (s: State) => s.status === 'PAUSED' || (s.status === 'BLOCKED' && s.reason === 'DISK')
+
+/**
+ * ST-14.2 (spec §6.5): the commands that fit now, at most three, `help` filling a short list. `v.auto` is set only when
+ * this session has no task of its own, so a warning and `retry` (both need the owning session) are offered without it.
+ */
+function commandsLine(v: StatusView): string {
+  const s = v.task?.state
+  const own = s && !v.auto
+  const t = s ? Number(shownThreshold(s, v.thresholdOverride, v.thresholdRelative)) : NaN
+  const pct = s?.lastContext?.percent
+  const cmds = own && s.status === 'MONITORING' && pct !== undefined && pct >= t - DEFAULT_CONFIG.warnBeforePercent && pct < t ? ['later', 'off']
+    : s && resumable(s) ? ['resume', 'off']
+    : own && s.status === 'NEEDS_REVIEW' && (s.reason === 'HANDOVER_INVALID' || s.reason === 'POSSIBLE_LOOP') && s.consecutiveFailures < DEFAULT_CONFIG.maxConsecutiveFailures ? ['retry', 'off']
+    : v.auto?.startsWith('Auto off') ? ['on'] : []
+  return `Try: /jeeves ${[...cmds, 'help'].slice(0, 3).join(' | ')}`
+}
+
 export function statusText(v: StatusView): string {
   // AC-25: a task that fell back to assisted shows it, whatever the probe said.
   const lines = [`Jeeves  mode: ${v.task?.state.mode === 'assisted' ? 'assisted' : v.probe.mode}`]
@@ -113,12 +131,14 @@ export function statusText(v: StatusView): string {
   if (v.defaultsError) lines.push('Warning: defaults unreadable')
   if (v.stateRoot) lines.push(`Path: ${fitLeft(v.task?.dir ?? v.stateRoot, WIDTH - 6)}`)
   else lines.push(`State folder: ${v.stateRootError ? 'error' : 'unset'}`, ...(v.stateRootError ? [v.stateRootError] : []))
-  // At most 8 lines: the least useful give way first, so the reason and any warning always show.
+  lines.push(commandsLine(v))
+  // At most 8 lines: the least useful give way first, so the reason, the commands and any warning always show.
   for (const prefix of ['Path: ', 'Last: ', 'Rotations: ', 'Waiting for', 'TEST OVERRIDE']) {
-    const i = lines.findIndex(l => l.startsWith(prefix))
-    if (lines.length > 8 && i >= 0) lines.splice(i, 1)
+    for (let i; lines.length > 8 && (i = lines.findIndex(l => l.startsWith(prefix))) >= 0;) lines.splice(i, 1)
   }
-  return lines.slice(0, 8).map(fit).join('\n')
+  // Still too long (test settings stacked on warnings): keep the commands line, the last.
+  if (lines.length > 8) lines.splice(7, lines.length - 8)
+  return lines.map(fit).join('\n')
 }
 
 /** The status line when Jeeves is not in full mode. */
