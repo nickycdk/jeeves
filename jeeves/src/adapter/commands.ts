@@ -143,8 +143,10 @@ async function off(rt: Runtime, tasks: Task[], me: string): Promise<string> {
   const target = ownTask(tasks, me) ?? liveTasks(tasks)[0] ?? null
   if (!target) return MSG.autoOffSession
   if (!(await claim(rt, target.dir, me))) return MSG.lockHeld(target.state.taskId)
-  await apply(rt, target.dir, { type: 'OFF', sessionId: me })
-  return MSG.turnedOff(target.state.taskId, target.dir)
+  const r = await apply(rt, target.dir, { type: 'OFF', sessionId: me })
+  // ADR-010: what was held for a fresh conversation that now never comes is shown, never dropped silently.
+  const held = r?.state.heldPrompts ?? []
+  return [MSG.turnedOff(target.state.taskId, target.dir), ...(held.length ? [MSG.heldOnOff(held)] : [])].join('\n')
 }
 
 async function pause(rt: Runtime, tasks: Task[], me: string): Promise<string> {

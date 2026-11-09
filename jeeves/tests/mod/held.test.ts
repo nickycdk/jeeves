@@ -59,3 +59,13 @@ test('a prompt from another plugin is never held, even during a handover', async
   expect(prompts.at(-1)?.text).toBe('from a plugin')
   expect(stateOf(h, dir).heldPrompts).toEqual([])
 })
+
+test('a held prompt whose handover failed is shown by /jeeves off, never dropped silently', async ($, on) => {
+  const g = await generating($, on)
+  await submit($, 'IMPORTANT: do not touch the migrations\nsecond line')
+  for (let i = 0; i < 3; i++) await stop($, 'no block here')
+  expect([stateOf(g.h, g.dir).status, stateOf(g.h, g.dir).reason]).toEqual(['NEEDS_REVIEW', 'HANDOVER_INVALID'])
+  const off = await relay($, 'off')
+  expect(stateOf(g.h, g.dir).status).toBe('DISABLED')
+  expect(off).toContain('Not delivered: 1 message(s) you typed during the handover. Type them again if they still matter:\n> IMPORTANT: do not touch the migrations\n> second line')
+})
