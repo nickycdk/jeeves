@@ -4,7 +4,7 @@ import { completionInstruction, parseComplete } from '../core/completion.ts'
 import { isCompaction, tokensOf, type Last } from '../core/compaction.ts'
 import { changedFiles, continuationPrompt, freshContext } from '../core/continuation.ts'
 import { capturedFacts, toolRecord, type ToolOutcome } from '../core/evidence.ts'
-import { parseHandover } from '../core/handover/parse.ts'
+import { hasHandoverOpen, parseHandover } from '../core/handover/parse.ts'
 import { goalLine, HANDOVER_REF_RE, handoverFile, renderHandover, roundTrips } from '../core/handover/render.ts'
 import { handoverInstruction, NUDGE_PROMPT, QUIESCE_NOTE, retryInstruction, type CapturedFacts } from '../core/handover/template.ts'
 import { mentionedPaths, validateHandover } from '../core/handover/validate.ts'
@@ -452,8 +452,9 @@ export async function onStop(rt: Runtime, info: StopInfo): Promise<string | null
  * prompt the user queued is held (ADR-010) and never runs ahead of it.
  */
 export async function turnBoundary(rt: Runtime, answer: string, foreign = false): Promise<void> {
-  // ADR-003 A2 note: while the handover is awaited, only a turn Jeeves's request opened is read as the handover.
-  if (foreign && ownTask((await projectTasks(rt)).tasks, await rt.port.sessionId())?.state.status === 'HANDOVER_GENERATING') return
+  // ADR-003 A2 note: while the handover is awaited, a turn another source opened is read as the handover only when its
+  // answer carries a handover block (the engine may merge a queued prompt with Jeeves's request into one turn).
+  if (foreign && !hasHandoverOpen(answer) && ownTask((await projectTasks(rt)).tasks, await rt.port.sessionId())?.state.status === 'HANDOVER_GENERATING') return
   // ADR-007 A1: a completion block is read here too; its missing checks go out as one prompt, as a Stop would block.
   const ask = await onStop(rt, { backgroundTasks: bgCount(), crons: null, message: answer })
   if (ask !== null) rt.port.submitPromptSoon(ask, err => rt.port.log(`jeeves: prompt not sent: ${why(err)}`))

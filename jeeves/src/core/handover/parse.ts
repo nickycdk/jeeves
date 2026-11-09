@@ -22,6 +22,8 @@ export type ParseResult = { ok: true; value: Narrative } | { ok: false; errors: 
 
 const OPEN_RE = /^\s*(?:`{3,}\w*\s*)?<<<\s*JEEVES-HANDOVER\s+v1\b(.*)$/i
 const CLOSE_RE = /^\s*JEEVES-HANDOVER\s*>>>/i
+/** The text carries a handover opening line (well formed or not). */
+export const hasHandoverOpen = (text: string) => String(text).split(/\r\n?|\n/).some(l => OPEN_RE.test(l))
 // Trailing spaces, #s and colons are dropped by key(), so the pattern needs no backtracking tail.
 const HEADING_RE = /^\s{0,3}#{2,3}\s+(.*)$/
 const ITEM_RE = /^\s*(?:([-*•+])|(\d+)[.)])\s+(.*)$/

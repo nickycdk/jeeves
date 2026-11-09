@@ -125,3 +125,14 @@ for (const origin of ['explicit', 'auto'] as const) {
     if (origin === 'auto') expect(h.toasts.some(t => t.includes('"my typed words"'))).toBe(true)
   })
 }
+
+test('code-review 2 (ADR-003 A2 note): a foreign-opened turn whose answer carries the handover block (a merged turn) is read as the handover', async ($, on) => {
+  const { h, dir, clears, taskId, rotationId } = await requested($, on)
+  // The engine merged a queued /loop prompt and Jeeves's request into one turn that turn.start names by the loop's text.
+  await submit($, 'loop prompt', { kind: 'scheduled-trigger' } as never)
+  await turnStart($, 'm1', 'loop prompt')
+  await turnEnd($, 'answer', 'm1', `loop output\n\n${handover(taskId, rotationId)}`)
+  await h.clock.settle()
+  expect(h.files.get(`${dir}/history/handover-001.md`)).toContain(handover(taskId, rotationId))
+  await until(h, () => clears.length > 0)
+})
