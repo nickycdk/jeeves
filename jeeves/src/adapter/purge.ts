@@ -1,6 +1,7 @@
 // `/jeeves purge` (ST-8.1, PRIVACY.md): deletes task files on request, in two typed steps. The first names the scope
 // and lists what would go, with a short code; `/jeeves purge confirm <code>` within 2 minutes deletes it. Only folders
 // under <state root>/projects are ever removed, never the state root itself (it may be a folder the user chose).
+import { expired } from '../core/cleanup.ts'
 import { join } from '../core/paths.ts'
 import type { Runtime } from './runtime.ts'
 
@@ -24,14 +25,7 @@ export async function purge(rt: Runtime, me: string, args: string): Promise<stri
     const scope = { paths: p.paths, what: p.what }
     const refused = await busy(rt, me, scope.paths)
     if (refused) return refused
-    const root = join(rt.stateRoot, 'projects') + '/'
-    const failed: string[] = []
-    for (const path of scope.paths) {
-      // A last guard: never delete outside <state root>/projects, whatever built the list.
-      if (!path.startsWith(root) || path.includes('/../')) { failed.push(path); continue }
-      const r = await rt.port.run(['rm', '-rf', path], { timeoutMs: 30_000 }).catch(err => ({ exitCode: -1, stderr: String(err), stdout: '' }))
-      if (r.exitCode !== 0) failed.push(path)
-    }
+    const failed = await remove(rt, scope.paths)
     return failed.length ? `Deleted ${scope.what}, except: ${failed.join(', ')}` : `Deleted ${scope.what}.`
   }
   pending = null
@@ -46,6 +40,43 @@ export async function purge(rt: Runtime, me: string, args: string): Promise<stri
     ...scope.paths.map(p => `  ${p}`),
     `To delete, type: /jeeves purge confirm ${pending.code}  (within 2 minutes)`,
   ].join('\n')
+}
+
+/** Delete folders under <state root>/projects; the ones that could not be deleted. */
+async function remove(rt: Runtime, paths: string[]): Promise<string[]> {
+  const root = join(rt.stateRoot!, 'projects') + '/'
+  const failed: string[] = []
+  for (const path of paths) {
+    // A last guard: never delete outside <state root>/projects, whatever built the list.
+    if (!path.startsWith(root) || path.includes('/../')) { failed.push(path); continue }
+    const r = await rt.port.run(['rm', '-rf', path], { timeoutMs: 30_000 }).catch(err => ({ exitCode: -1, stderr: String(err), stdout: '' }))
+    if (r.exitCode !== 0) failed.push(path)
+  }
+  return failed
+}
+
+/**
+ * ST-13.8 (spec §5.9): at session start, delete ended auto tasks without a rotation, 7 days after their last update,
+ * in every project under the resolved state folder, whatever auto-start says. A task whose state or lock cannot be
+ * read is left alone. Returns the deleted task folders.
+ */
+export async function cleanupAuto(rt: Runtime): Promise<string[]> {
+  if (!rt.stateRoot) return []
+  const projects = join(rt.stateRoot, 'projects')
+  const now = await rt.port.now()
+  const doomed: string[] = []
+  for (const p of await rt.port.listDirs(projects)) {
+    for (const id of await rt.port.listDirs(join(projects, p, 'tasks'))) {
+      const dir = join(projects, p, 'tasks', id)
+      const s = await rt.storage.readState(dir).catch(() => null)
+      if (!s?.ok) continue
+      const l = await rt.storage.readLock(dir, now).catch(() => null)
+      if (l && expired(s.value, now, l.kind === 'held' && !l.stale)) doomed.push(dir)
+    }
+  }
+  const failed = new Set(await remove(rt, doomed))
+  for (const d of failed) rt.port.log(`jeeves: cleanup could not delete ${d}`)
+  return doomed.filter(d => !failed.has(d))
 }
 
 async function targets(rt: Runtime, flag: string | undefined, value: string | undefined): Promise<{ paths: string[]; what: string } | string> {

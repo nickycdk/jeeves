@@ -3,6 +3,7 @@ import type { CommandRunInput, EngineInterface, Register, Timer, ToolCallInput, 
 import type { ToolOutcome } from '../src/core/evidence.ts'
 import { chooseCommandName, FALLBACK, PRIMARY, relay } from '../src/adapter/commands.ts'
 import { recover, recoveryNotice } from '../src/adapter/recover.ts'
+import { cleanupAuto } from '../src/adapter/purge.ts'
 import { upgradeCheck } from '../src/adapter/auto.ts'
 import { autoNotice, carryOver, decideAtStart, forget, startAuto, stopSkipped } from '../src/adapter/eligible.ts'
 import { isAutoRow } from '../src/core/autostart.ts'
@@ -64,6 +65,8 @@ export const register: Register = (on, options) => {
     await quietly($, opts, 'eligibility', rt => decideAtStart(rt, e.isInteractive))
     // ST-13.4 (spec §5.4): before any recording, so the same session is watched from its first typed prompt.
     await quietly($, opts, 'auto notice', rt => autoNotice(rt, opts.autoStart ?? 'default'))
+    // ST-13.8 (spec §5.9): ended auto tasks without a rotation go 7 days after their last update, auto-start on or off.
+    await quietly($, opts, 'cleanup', async rt => { await cleanupAuto(rt) })
     // ST-6.1: a task an earlier session left (crash, exit mid-rotation) is named once; autoRecover continues it.
     // ST-13.7 (spec §5.8): an auto task cut off mid-rotation continues by itself, but only in an interactive, full-mode,
     // fresh conversation; under -p, assisted or resumed it waits.
