@@ -157,6 +157,9 @@ export async function turnGenerating($: Kit, on: Parameters<typeof memHost>[0], 
   const h = memHost(on, opts.env)
   const prompts = bottom(on)
   const clears: string[] = []
+  /** Hidden rows Jeeves appended (`$.session.append`), in order. */
+  const rows: string[] = []
+  on('session.append', (_, e, next) => { rows.push(e.message.content.map(b => String((b as { text?: string }).text ?? '')).join('')); return next(e) })
   const ctl = { sameId: false, ids: ['sess-2', 'sess-3', 'sess-4'] }
   on('command.run', async ($e, e) => {
     clears.push(e.command)
@@ -176,7 +179,7 @@ export async function turnGenerating($: Kit, on: Parameters<typeof memHost>[0], 
   const dir = taskDirs(h)[0]!
   await $.tool.call({ tool: 'Bash', command: 'npm test' })
   await until(h, () => stateOf(h, dir).ledger.length === 1)
-  const g = { h, dir, prompts, clears, ctl, taskId: stateOf(h, dir).taskId as string, rotationId: '', request: async () => {
+  const g = { h, dir, prompts, clears, rows, ctl, taskId: stateOf(h, dir).taskId as string, rotationId: '', request: async () => {
     await turnStart($, 'boundary')
     await $.session.measure({ context: { window: 1_000_000, percent: 52 }, rateLimits: [], changed: ['context'] } satisfies SessionMeasureInput)
     await $.turn.complete({ answer: 'step done', durationMs: 1, isAborted: false, turnId: 'boundary', reason: 'answer' })

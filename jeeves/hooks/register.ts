@@ -8,7 +8,7 @@ import { upgradeCheck } from '../src/adapter/auto.ts'
 import { autoNotice, carryOver, decideAtStart, forget, hint, startAuto } from '../src/adapter/eligible.ts'
 import { isAutoRow } from '../src/core/autostart.ts'
 import { bgNotified, bgStarted, markStopSkipped, runtime, type Options } from '../src/adapter/runtime.ts'
-import { captureFirstPrompt, compacted, heartbeat, managedNow, holdPrompt, measure, nudgeIfWaiting, onFreshSession, onStop, onTurnComplete, taskSection, turnBoundary, onUserClear, recordTool, releaseOnExit, stopFailure, why } from '../src/adapter/task.ts'
+import { captureFirstPrompt, compacted, completionRow, heartbeat, managedNow, holdPrompt, measure, nudgeIfWaiting, onFreshSession, onStop, onTurnComplete, taskSection, turnBoundary, onUserClear, recordTool, releaseOnExit, stopFailure, why } from '../src/adapter/task.ts'
 import { HEARTBEAT_MS } from '../src/core/lock.ts'
 import { ARGUMENT_HINT, HELD_TEXT, MSG, offStatus } from '../src/adapter/ui.ts'
 
@@ -135,7 +135,12 @@ export const register: Register = (on, options) => {
     return r
   }).catch(($, e, next) => next(e))
   on('turn.start', async ($, e, next) => {
-    if (e.agentId === undefined) { turnOpen = true; stopSeen = false }
+    if (e.agentId === undefined) {
+      turnOpen = true
+      stopSeen = false
+      // ADR-007 A1: turn mode's completion rules, as a hidden row (no prompt.compose there).
+      await quietly($, opts, 'completion row', async rt => { if (rt.probe.boundary === 'turn' && rt.probe.mode !== 'unsupported') await completionRow(rt) })
+    }
     return next(e)
   })
   // ST-4.1: after the handover turn, /clear; an interrupt during a handover pauses; an idle request gets its nudge.

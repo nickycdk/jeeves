@@ -329,7 +329,9 @@ export async function measure(rt: Runtime, raw: { percent?: number; tokens?: num
   lastReading = tokens === null ? lastReading : { sessionId, tokens }
   if (rt.probe.boundary === 'turn' && isCompaction(last, sessionId, tokens)) {
     rt.port.log(`jeeves: context fell ${last!.tokens} -> ${tokens} tokens: compaction`)
-    return (await applyOwn(rt, { type: 'COMPACTED', trigger: 'recognised' })) ?? r
+    const c = await applyOwn(rt, { type: 'COMPACTED', trigger: 'recognised' })
+    await completionRow(rt, true)
+    return c ?? r
   }
   if (r?.state.status === 'ROTATION_REQUESTED') await crashPoint(rt, 'threshold')
   return r
@@ -425,17 +427,37 @@ export async function onStop(rt: Runtime, info: StopInfo): Promise<string | null
 }
 
 /**
- * ADR-004 A2 / ADR-003 A2: turn mode's boundary, a main-loop `turn.complete` answered and not aborted. A waiting
- * rotation is judged as at a Stop, with Jeeves's own background record for `background_tasks` and no crons
+ * ADR-004 A2 / ADR-003 A2: turn mode's boundary, a main-loop `turn.complete` answered and not aborted. It is read as
+ * a Stop's message: a waiting rotation is judged as at a Stop, with Jeeves's own background record for `background_tasks` and no crons
  * (`classic.Stop` is skipped); in HANDOVER_GENERATING the answer is the handover. What a Stop would block with (the
  * request, a retry) is submitted as a new prompt instead; the reducer has already moved to HANDOVER_GENERATING, so a
  * prompt the user queued is held (ADR-010) and never runs ahead of it.
  */
 export async function turnBoundary(rt: Runtime, answer: string): Promise<void> {
-  const own = ownTask((await projectTasks(rt)).tasks, await rt.port.sessionId())
-  if (!own || !STOP_STATES.has(own.state.status)) return
+  // ADR-007 A1: a completion block is read here too; its missing checks go out as one prompt, as a Stop would block.
   const ask = await onStop(rt, { backgroundTasks: bgCount(), crons: null, message: answer })
-  if (ask !== null) rt.port.submitPromptSoon(ask, err => rt.port.log(`jeeves: handover request not sent: ${why(err)}`))
+  if (ask !== null) rt.port.submitPromptSoon(ask, err => rt.port.log(`jeeves: prompt not sent: ${why(err)}`))
+}
+
+/** ADR-007 A1: turn mode repeats the completion rules every this many main turns of one conversation. */
+export const ROW_EVERY = 10
+// The conversation and task the last row went to, and main turns since; a reload starts over (one extra row).
+let row: { key: string; turns: number } | null = null
+
+/**
+ * ADR-007 A1: turn mode has no `prompt.compose`, so the completion rules go in as a hidden row: at the first main turn
+ * of each conversation the task runs in (its start, every continuation), every ROW_EVERY turns after, and at once
+ * after a recognised compaction (`now`).
+ */
+export async function completionRow(rt: Runtime, now = false): Promise<void> {
+  const sessionId = await rt.port.sessionId()
+  const own = ownTask((await projectTasks(rt)).tasks, sessionId)
+  if (!own || INERT.includes(own.state.status) || own.state.taskRevision < 1) return
+  const key = `${sessionId}:${own.state.taskId}`
+  if (!now && row?.key === key && ++row.turns < ROW_EVERY) return
+  row = { key, turns: 0 }
+  const { view } = await readTask(rt, own.dir, own.state)
+  await rt.port.appendHiddenNote(completionInstruction(own.state.taskId, view.checks))
 }
 
 /**
