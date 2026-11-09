@@ -87,7 +87,7 @@ An auto task works like any other, with these differences:
 
 ## What you see
 
-While a task is on, Jeeves keeps one entry under the prompt: `Jeeves 34%/50%` (context used / threshold) while it watches, or the current step in words (`Jeeves: writing handover`, `Jeeves: paused (USER_PAUSE)`). Your own status line is not changed. Each step of a handover adds one dim line to the transcript; Claude does not see these lines. Errors also show as a short notice.
+While a task is on, Jeeves keeps one entry under the prompt: `Jeeves 34%/50%` (context used / threshold) while it watches, or the current step in words (`Jeeves: writing handover`, `Jeeves: paused (USER_PAUSE)`). In an auto-started task the entry stays empty until the context is within 15 points of the threshold (from 25% with a 40% threshold); `/jeeves` shows the full picture at any time. Your own status line is not changed. Each step of a handover adds one dim line to the transcript; Claude does not see these lines. Errors also show as a short notice.
 
 ## Data and privacy
 

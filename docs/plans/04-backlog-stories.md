@@ -813,6 +813,7 @@ If v0.3 must be smaller, ST-14.1 and ST-14.2 ship first (spec §11).
 - **Depends on:** ST-13.4.
 - **AC:** (1) empty at 24% with threshold 40, shown at 25%; (2) explicit task shown from the start.
 - **Tests:** I (`ui.test.ts`).
+- **Status:** Solved (2026-11-09). `statusLine` in `src/adapter/ui.ts`: a MONITORING task with origin `auto` returns no entry unless its last reading is at least the shown threshold − 15 (`QUIET_POINTS`); an unknown reading, or a relative test threshold still `?`, stays quiet. Every other state, and every explicit task, unchanged. The entry is re-sent on every state change (each reading is one), so it appears at the reading that crosses the line and goes again if the context falls back (after a rotation, the fresh conversation's low reading empties it). I: `ui.test.ts` (AC 1 an auto task, row `on`: 10% and 24% of 40 leave the entry empty, 25% shows `Jeeves 25%/40%`, 12% empties it again; AC 2 an explicit task shows `Jeeves ?/50%` at `/jeeves on` and `Jeeves 10%/50%` at 10%). Plugin README and CHANGELOG updated. Live: none.
 
 ## E15 — v0.3 evidence and release
 

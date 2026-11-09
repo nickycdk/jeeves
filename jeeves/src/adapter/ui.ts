@@ -45,10 +45,14 @@ export const STATE_WORD: Record<Status, string> = {
 
 const pctText = (p: number | undefined) => (p === undefined ? '?' : `${Math.round(p)}%`)
 
+const QUIET_POINTS = 15
+
 /** This plugin's status entry (ST-7.1, <= 40 columns): context and threshold while watching, else the state's word. */
 export function statusLine(s: State, threshold: number | string): string | undefined {
   if (s.status === 'DISABLED') return undefined
   const mode = s.mode === 'assisted' ? ' assisted' : ''
+  // ST-14.5 (spec §6.3): an auto task's entry stays empty until the context is within 15 points of the threshold.
+  if (s.status === 'MONITORING' && s.origin === 'auto' && !((s.lastContext?.percent ?? -1) >= Number(threshold) - QUIET_POINTS)) return undefined
   if (s.status === 'MONITORING') return fit(`Jeeves ${pctText(s.lastContext?.percent)}/${threshold}%${mode}`)
   return fit(`Jeeves: ${STATE_WORD[s.status]}${s.reason && INERT.includes(s.status) ? ` (${s.reason})` : ''}`)
 }
