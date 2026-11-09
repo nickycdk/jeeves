@@ -8,7 +8,7 @@ import { upgradeCheck } from '../src/adapter/auto.ts'
 import { autoNotice, carryOver, carryUndecided, decideAtStart, forget, hint, startAuto } from '../src/adapter/eligible.ts'
 import { isAutoRow } from '../src/core/autostart.ts'
 import { bgNotified, bgStarted, markStopSkipped, runtime, type Options, type Runtime } from '../src/adapter/runtime.ts'
-import { captureFirstPrompt, compacted, completionRow, heartbeat, managedNow, holdPrompt, measure, nudgeIfWaiting, onFreshSession, onStop, onTurnComplete, taskSection, turnBoundary, onUserClear, recordTool, releaseOnExit, stopFailure, why } from '../src/adapter/task.ts'
+import { captureFirstPrompt, compacted, completionRow, heartbeat, managedNow, holdPrompt, measure, nudgeIfWaiting, onFreshSession, onStop, onTurnComplete, taskSection, turnBoundary, onUserClear, recordTool, releaseOnExit, stopFailure, userTyped, why } from '../src/adapter/task.ts'
 import { HEARTBEAT_MS } from '../src/core/lock.ts'
 import { ARGUMENT_HINT, HELD_TEXT, MSG, offStatus } from '../src/adapter/ui.ts'
 
@@ -134,6 +134,7 @@ export const register: Register = (on, options) => {
     // ADR-004 A2: a background task's notification ends it in turn mode's record (kept in every mode, it costs nothing).
     if (e.origin.kind === 'task-notification') bgNotified(e.text)
     if (e.origin.kind !== 'composer' || e.command || e.isMeta) return next(e)
+    userTyped()
     let held = false
     await quietly($, opts, 'carry-over', rt => carryUndecided(rt, endedHere))
     await quietly($, opts, 'hold', async rt => { held = await holdPrompt(rt, e.text, endedHere) })

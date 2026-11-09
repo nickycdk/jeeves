@@ -6,7 +6,7 @@ import { changedFiles, continuationPrompt, freshContext } from '../core/continua
 import { capturedFacts, toolRecord, type ToolOutcome } from '../core/evidence.ts'
 import { hasHandoverOpen, parseHandover } from '../core/handover/parse.ts'
 import { goalLine, HANDOVER_REF_RE, handoverFile, renderHandover, roundTrips } from '../core/handover/render.ts'
-import { handoverInstruction, NUDGE_PROMPT, QUIESCE_NOTE, retryInstruction, type CapturedFacts } from '../core/handover/template.ts'
+import { CARRY_ON_PROMPT, handoverInstruction, NUDGE_PROMPT, QUIESCE_NOTE, retryInstruction, type CapturedFacts } from '../core/handover/template.ts'
 import { mentionedPaths, validateHandover } from '../core/handover/validate.ts'
 import { COMPLETION_STATES, HELD_STATES, isSafe, reduce, type Input } from '../core/machine.ts'
 import { newRotationId, newTaskId } from '../core/ids.ts'
@@ -403,6 +403,22 @@ export async function onFreshSession(rt: Runtime, sessionId: string, endedHere: 
 /** `crons` null: turn mode, where they are not available (ADR-003 A2). */
 export type StopInfo = { backgroundTasks: number; crons: readonly { id: string; schedule: string; recurring: boolean; prompt: string }[] | null; message: string }
 
+/**
+ * ADR-007 A2 (run-2 stall): the conversation an automatic rotation opened for an auto task, until the user types in it.
+ * Its first Stop with no completion block and nothing in the background gets one carry-on prompt, never a second: an
+ * unattended task does not wait for a person because Claude announced its next step. A reload forgets it (no carry-on).
+ */
+let carry: { sessionId: string; sent: boolean } | null = null
+/** A typed prompt: the user is here, so no carry-on in this conversation. */
+export const userTyped = () => { carry = null }
+
+async function carryOn(rt: Runtime, own: Task, info: StopInfo): Promise<string | null> {
+  if (own.state.origin !== 'auto' || (own.state.status !== 'MONITORING' && own.state.status !== 'CONTINUING') || info.backgroundTasks > 0) return null
+  if (!carry || carry.sent || carry.sessionId !== await rt.port.sessionId()) return null
+  carry.sent = true
+  return CARRY_ON_PROMPT
+}
+
 /** Rotation states in which a Stop matters. */
 const STOP_STATES = new Set<State['status']>(['ROTATION_REQUESTED', 'QUIESCING', 'HANDOVER_GENERATING'])
 
@@ -420,7 +436,7 @@ export async function onStop(rt: Runtime, info: StopInfo): Promise<string | null
   // ST-5.2: a completion block is judged first; a rotation that has asked Claude nothing yet gives way to it.
   const complete = COMPLETION_STATES.includes(own.state.status) ? parseComplete(info.message) : null
   if (complete && (complete.taskId === null || complete.taskId === own.state.taskId)) return completionStop(rt, own, complete.blockers)
-  if (!STOP_STATES.has(own.state.status)) return null
+  if (!STOP_STATES.has(own.state.status)) return carryOn(rt, own, info)
   if (own.state.status === 'HANDOVER_GENERATING') return handoverStop(rt, own, info)
   // An agent list that cannot be read counts as one running agent: unsafe, so the quiesce limit still ends the wait.
   const runningAgents = await rt.port.runningAgents().catch(() => 1)
@@ -729,6 +745,7 @@ async function continueFresh(rt: Runtime, dir: string, withContext = false): Pro
     const { view } = await readTask(rt, dir, r.state)
     const context = withContext ? await contextFor(rt, dir, r.state, h, view) : undefined
     await rt.port.submitPrompt(await continuationFor(rt, dir, r.state, h, submit.heldPrompts, context, false, view))
+    if (r.state.origin === 'auto') carry = { sessionId: await rt.port.sessionId(), sent: false }
   } catch (err) {
     await apply(rt, dir, { type: 'SUBMIT_FAILED', heldPrompts: submit.heldPrompts })
     rt.port.log(`jeeves: continuation rejected: ${why(err)}`)

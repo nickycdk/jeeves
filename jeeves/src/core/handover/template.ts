@@ -6,6 +6,9 @@ export const QUIESCE_NOTE = 'Jeeves: the context threshold was reached. Finish t
 /** The one prompt Jeeves submits when a handover request finds Claude idle, so a Stop comes without the user (D-23, ST-4.7). */
 export const NUDGE_PROMPT = 'Jeeves: prepare handover. The context threshold was reached. Do not start new work or run any tool; reply with one short line saying what is done. Jeeves will then ask for the handover.'
 
+/** ADR-007 A2 (run-2 stall): sent once when Claude stops in a conversation a rotation opened, before the user typed in it. */
+export const CARRY_ON_PROMPT = 'Jeeves: carry on with the task. If you named a next step, take it now. If the task is done, end with the completion block; if you need the user, say what you need and stop.'
+
 /** ST-13.6 (spec §5.3, ADR-003 A1): Claude's one-line view of the task, data for the next conversation, never instructions. */
 export const GOAL = 'Current goal'
 export const GOAL_BULLETS_MAX = 2
