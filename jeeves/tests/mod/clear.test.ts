@@ -127,3 +127,15 @@ test('ST-13.7 AC 6: Jeeves\'s own /clear in an auto task rotates as before; the 
   expect([stateOf(h, dir).origin, stateOf(h, dir).activeSessionId]).toEqual(['auto', 'sess-2'])
   expect(h.toasts).not.toContain(ended)
 })
+
+test('review fix 3: after a /clear paused an explicit task in an eligible session, the next prompt starts no auto task and /jeeves resume continues it', { options: { autoStart: 'on' } }, async ($, on) => {
+  const { h, dir } = await autoSession($, on)
+  await relay($, 'on finish the CSV parser')
+  await engineClear($, h, 'sess-2')
+  expect([stateOf(h, dir).status, stateOf(h, dir).reason]).toEqual(['PAUSED', 'USER_CLEAR'])
+  await submit($, 'what next?')
+  expect(taskDirs(h)).toEqual([dir])
+  expect(await relay($, 'status')).toMatch(/^Auto off: this session/m)
+  expect(await relay($, 'resume')).toContain(stateOf(h, dir).taskId)
+  expect(stateOf(h, dir).activeSessionId).toBe('sess-2')
+})
