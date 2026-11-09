@@ -272,6 +272,7 @@ export async function holdPrompt(rt: Runtime, text: string, endedHere: ReadonlyS
 
 /** Heartbeat for the lock of the task this session owns (ADR-005). */
 export async function heartbeat(rt: Runtime): Promise<void> {
+  if (rt.probe.mode === 'unsupported') return // nothing to keep: after a refused submit the lock was given up (ADR-002 A3 note)
   const me = await rt.port.sessionId()
   const own = ownTask((await projectTasks(rt)).tasks, me)
   if (own && !(await rt.storage.heartbeat(own.dir, me, new Date(await rt.port.now()).toISOString()))) rt.port.log(`jeeves: lost the lock of ${own.state.taskId}`)
