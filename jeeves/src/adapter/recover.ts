@@ -50,11 +50,13 @@ async function candidates(rt: Runtime): Promise<Candidate[]> {
   return out
 }
 
-/** At session start: one line about a task that waits for /jeeves recover, or null. Never changes anything. */
 /** HANDOVER_GENERATING … RESTORING (spec §5.8): the rotations an auto task cleans up by itself. */
 const MID_ROTATION: readonly State['status'][] = ['HANDOVER_GENERATING', 'VALIDATING', 'ROTATING', 'RESTORING']
 
-/** `auto`: an auto task interrupted mid-rotation, which recovers without `autoRecover` in a session that passes the gates (ST-13.7). */
+/**
+ * At session start: one line about a task that waits for /jeeves recover, or null. Never changes anything.
+ * `auto`: an auto task interrupted mid-rotation, which recovers without `autoRecover` in a session that passes the gates (ST-13.7).
+ */
 export async function recoveryNotice(rt: Runtime): Promise<{ text: string; recover: boolean; auto: boolean } | null> {
   const me = await rt.port.sessionId()
   for (const c of await candidates(rt)) {

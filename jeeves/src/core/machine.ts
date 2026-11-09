@@ -109,10 +109,10 @@ export const LOOP_MARGIN = 10
 export const TEST_LOOP_MARGIN = 0.5
 /** Spec §5.2: an auto task never rotates in its first 3 main turns. */
 export const GRACE_TURNS = 3
-/** Spec §5.2: a new auto task whose first reading is this close to the threshold ends at once. */
 /** A user's /clear (spec §5.7). */
 export const USER_CLEAR_AUTO = 'Jeeves: task ended (new conversation); the next prompt starts a new one'
 export const USER_CLEAR_EXPLICIT = 'Jeeves: paused (you cleared the conversation); /jeeves resume continues the task'
+/** Spec §5.2: a new auto task whose first reading is this close to the threshold ends at once. */
 export const NEAR_MARGIN = 10
 /** `/jeeves later` (spec §5.5): each one moves the threshold up this much. */
 export const LATER_STEP = 10
