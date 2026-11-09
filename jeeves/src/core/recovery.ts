@@ -41,6 +41,8 @@ export function classify(f: Found, me: string, endedHere: (sessionId: string) =>
   const owner = f.lock.kind === 'held' ? f.lock.owner : null
   // This session runs it, except a repository mismatch it is waiting to have re-checked or relinked (ST-6.5).
   if (s.activeSessionId === me && (owner === null || owner === me)) return s.reason === 'REPO_MISMATCH' ? { kind: 'recover', gap: true, adopt: null } : { kind: 'mine' }
+  // Spec §5.8: an auto task whose session simply ended is not resumed (the next session starts its own), nor announced.
+  if (s.origin === 'auto' && s.status === 'MONITORING') return { kind: 'none', why: 'ended' }
   if (f.lock.kind === 'held' && !f.lock.stale && owner !== me && !(owner !== null && endedHere(owner))) return { kind: 'lock-held', owner }
   switch (s.status) {
     // The handover of the interrupted rotation was saved and verified before the crash: nothing after it.

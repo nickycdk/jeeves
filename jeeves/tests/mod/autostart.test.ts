@@ -166,3 +166,37 @@ test('after /jeeves off the next typed prompt starts no auto task (off for the s
   await submit($, PROMPT)
   expect(taskDirs(h)).toEqual([])
 })
+
+test('review fix: an auto task whose session simply ended is not offered back or recovered; the next session starts its own (spec §5.8)', { options: { autoStart: 'on', autoRecover: true } }, async ($, on) => {
+  const h = eligibleHost(on, { autoNoticeShown: true })
+  const got = bottom(on)
+  await start($)
+  await submit($, PROMPT)
+  const [old] = taskDirs(h)
+  await measure($, h, 10)
+  await $.session.end({ reason: 'prompt_input_exit', sessionId: 'sess-test', resume: { id: 'sess-test' } })
+  expect(stateOf(h, old!).status).toBe('MONITORING')
+  h.sessionId = 'sess-2'
+  const before = h.files.get(`${old}/state.json`)
+  await start($)
+  expect(h.toasts).toEqual([])
+  expect(got.length).toBe(1) // no continuation sent
+  await submit($, 'a new task')
+  expect(taskDirs(h).length).toBe(2)
+  expect(h.files.get(`${old}/state.json`)).toBe(before)
+  const fresh = taskDirs(h).find(d => d !== old)!
+  expect([stateOf(h, fresh).origin, stateOf(h, fresh).activeSessionId]).toEqual(['auto', 'sess-2'])
+})
+
+test('review fix: /jeeves on does not offer back an auto task left MONITORING', { options: { autoStart: 'on' } }, async ($, on) => {
+  const h = eligibleHost(on, { autoNoticeShown: true })
+  bottom(on)
+  await start($)
+  await submit($, PROMPT)
+  await $.session.end({ reason: 'prompt_input_exit', sessionId: 'sess-test', resume: { id: 'sess-test' } })
+  h.sessionId = 'sess-2'
+  h.turns = 3 // resumed: not auto-watched
+  await start($)
+  expect(await relay($, 'on')).toContain('Jeeves on: task')
+  expect(taskDirs(h).length).toBe(2)
+})

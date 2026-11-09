@@ -124,7 +124,8 @@ async function on(rt: Runtime, tasks: Task[], me: string, rest: string): Promise
   // ST-6.6 (02 §7): a task no session runs is offered back first; a running session's task stays its own, and this
   // session starts a separate one.
   const others = liveTasks(tasks)
-  for (const t of others) if (!(await heldByOther(rt, t.dir, me))) return MSG.leftBehind(t.state)
+  // Spec §5.8: an auto task left MONITORING ended with its session; it is not offered back.
+  for (const t of others) if (!(t.state.origin === 'auto' && t.state.status === 'MONITORING') && !(await heldByOther(rt, t.dir, me))) return MSG.leftBehind(t.state)
   const busy = others[0]?.state.taskId ?? null
   // The goal is everything after "on " as typed; only the separating whitespace is dropped.
   const goal = rest.replace(/^\s+/, '')
