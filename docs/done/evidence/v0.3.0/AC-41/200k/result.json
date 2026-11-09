@@ -1,0 +1,89 @@
+{
+ "phase": "200k",
+ "modules": 18,
+ "cap": 0.99,
+ "claude_version": "2.1.319 (Claude Code)",
+ "trust": true,
+ "recorded_before_task": [],
+ "on": true,
+ "stopped": "all modules committed, verify passes",
+ "keystrokes_after_task": [],
+ "usd": 0.2229,
+ "calls": 40,
+ "usd_per_call": 0.00557,
+ "peak_prompt": 133259,
+ "conversations": 3,
+ "rotations": 2,
+ "final": {
+  "status": "MONITORING",
+  "reason": null,
+  "origin": "explicit",
+  "rotationCount": 2,
+  "taskRevision": 1
+ },
+ "growth_tokens": [
+  91440,
+  76440
+ ],
+ "module_commits": {
+  "18": 1,
+  "17": 1,
+  "16": 1,
+  "15": 1,
+  "14": 1,
+  "13": 1,
+  "12": 1,
+  "11": 1,
+  "10": 1,
+  "9": 1,
+  "8": 1,
+  "7": 1,
+  "6": 1,
+  "5": 1,
+  "4": 1,
+  "3": 1,
+  "2": 1,
+  "1": 1
+ },
+ "verify_exit": 0,
+ "retries": 1,
+ "stop_events": [],
+ "events": [
+  "DISABLED>MONITORING  None% ",
+  "MONITORING>MONITORING  None% task revision 1",
+  "MONITORING>ROTATION_REQUESTED THRESHOLD 55.33% context 55.33%",
+  "ROTATION_REQUESTED>HANDOVER_GENERATING THRESHOLD 55.52% ",
+  "HANDOVER_GENERATING>VALIDATING THRESHOLD 65.69% ",
+  "VALIDATING>ROTATING THRESHOLD 65.69% history/handover-001.md#sha256:60bc2c37916f15f652932e59cbe469b46311eb2",
+  "ROTATING>RESTORING THRESHOLD 66.63% ",
+  "RESTORING>CONTINUING THRESHOLD 66.63% ",
+  "CONTINUING>MONITORING  18.07% rearmed at 18.07%",
+  "MONITORING>ROTATION_REQUESTED THRESHOLD 55.23% context 55.23%",
+  "ROTATION_REQUESTED>HANDOVER_GENERATING THRESHOLD 55.23% ",
+  "HANDOVER_GENERATING>VALIDATING THRESHOLD 55.65% ",
+  "VALIDATING>ROTATING THRESHOLD 55.65% history/handover-002.md#sha256:c7bd210c9187043ed2c96b96afa77cd0c76237a",
+  "ROTATING>RESTORING THRESHOLD 56.29% ",
+  "RESTORING>CONTINUING THRESHOLD 56.29% ",
+  "CONTINUING>MONITORING  18.49% rearmed at 18.49%"
+ ],
+ "sessions": [
+  {
+   "file": "e31de832-4ebe-401d-8f5d-24cb94f1da1c.jsonl",
+   "calls": 13,
+   "usd": 0.1385,
+   "peak_prompt": 133259
+  },
+  {
+   "file": "cdead865-3a30-4f4e-8d9a-7f8e51e58a77.jsonl",
+   "calls": 10,
+   "usd": 0.0576,
+   "peak_prompt": 112575
+  },
+  {
+   "file": "2af2b015-210c-45b3-8fc4-853a81872637.jsonl",
+   "calls": 17,
+   "usd": 0.0268,
+   "peak_prompt": 90122
+  }
+ ]
+}

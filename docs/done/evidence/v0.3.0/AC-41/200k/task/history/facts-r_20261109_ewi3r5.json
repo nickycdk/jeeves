@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "rotationId": "r_20261109_ewi3r5",
+  "capturedAt": "2026-11-09T15:14:00.613Z",
+  "git": {
+    "kind": "git",
+    "worktree": "<scratch>/200k/repo",
+    "branch": "main",
+    "detached": false,
+    "head": "d076e9d97bb40847266e6cdbd578cbdd4418992f",
+    "status": [],
+    "changedSinceStart": [
+      "src/m01.js",
+      "src/m02.js",
+      "src/m03.js",
+      "src/m04.js"
+    ]
+  },
+  "crons": null
+}

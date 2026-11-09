@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 2,
+  "taskId": "t_20261109_iuu6ug",
+  "projectId": "3adffeefd0e87d36",
+  "origin": "auto",
+  "status": "MONITORING",
+  "reason": null,
+  "mode": "full",
+  "taskRevision": 1,
+  "sessionSequence": 1,
+  "activeSessionId": "2a2bf554-d580-4875-81f5-aeea4a75c5b0",
+  "rotation": null,
+  "lastValidatedHandover": null,
+  "rotationCount": 0,
+  "consecutiveFailures": 0,
+  "thresholdPercent": 40,
+  "lastContext": {
+    "window": 1000000,
+    "at": "2026-11-09T15:12:14.468Z",
+    "percent": 5.69,
+    "tokens": 56896
+  },
+  "armedFired": false,
+  "warnedSessionId": null,
+  "heldPrompts": [],
+  "pauseRequested": false,
+  "taskStartHead": "b32ca394325cab817b3054b9f3d172b2d7ab9280",
+  "lastErrorCode": null,
+  "ledger": [
+    {
+      "kind": "cmd",
+      "command": "git status --short && git log --oneline | head -5 && ls -la && cat SPEC.md && cat verify.sh && ls src tests 2>/dev/null",
+      "ok": true,
+      "exit": 0,
+      "agent": null,
+      "at": "2026-11-09T15:12:03.523Z"
+    },
+    {
+      "kind": "cmd",
+      "command": "cat src/m01.js; echo ---; cat tests/m01.test.js; echo ---; cat package.json .gitignore",
+      "ok": true,
+      "exit": 0,
+      "agent": null,
+      "at": "2026-11-09T15:12:04.875Z"
+    },
+    {
+      "kind": "edit",
+      "path": "<scratch>/dry/repo/src/m01.js",
+      "agent": null,
+      "at": "2026-11-09T15:12:07.405Z"
+    },
+    {
+      "kind": "cmd",
+      "command": "./verify.sh 1 | tail -3",
+      "ok": true,
+      "exit": 0,
+      "agent": null,
+      "at": "2026-11-09T15:12:08.475Z"
+    },
+    {
+      "kind": "cmd",
+      "command": "git add -A && git commit -m \"module 1: double\" -m \"Co-Authored-By: Claude Haiku 5.5 <noreply@anthropic.com>\" && ./verify.sh | tail -3; echo \"exit=$?\"; git log --oneline | head -3; git status --short",
+      "ok": true,
+      "exit": 0,
+      "agent": null,
+      "at": "2026-11-09T15:12:10.492Z"
+    },
+    {
+      "kind": "cmd",
+      "command": "./verify.sh >/dev/null; echo \"verify exit=$?\"",
+      "ok": true,
+      "exit": 0,
+      "agent": null,
+      "at": "2026-11-09T15:12:12.685Z"
+    }
+  ],
+  "updatedAt": "2026-11-09T15:12:14.468Z",
+  "sessionStart": {
+    "at": "2026-11-09T15:12:00.797Z",
+    "pct": 4.16
+  },
+  "graceTurns": 1
+}

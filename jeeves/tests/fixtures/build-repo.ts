@@ -4,7 +4,7 @@ import { execFileSync } from 'node:child_process'
 import { chmodSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 
-export const FIXTURES = ['clean', 'dirty', 'detached', 'worktrees', 'failing-tests', 'no-git', 'six-steps'] as const
+export const FIXTURES = ['clean', 'dirty', 'detached', 'worktrees', 'failing-tests', 'no-git', 'six-steps', 'long-task'] as const
 export type Fixture = (typeof FIXTURES)[number]
 
 const git = (dir: string, ...args: string[]) => execFileSync('git', args, { cwd: dir, stdio: 'pipe', env: { ...process.env, LC_ALL: 'C' } }).toString()
@@ -75,7 +75,37 @@ function sixSteps(dir: string, chars: number) {
   commitAll(dir, 'six-steps fixture')
 }
 
-export function build(fixture: Fixture, dir: string, opts: { chars?: number } = {}): string {
+/** AC-41 (ST-15.2): `long-task` has `modules` numbered modules (the six functions in turn), each checked on its own. */
+export const longTask = (modules: number) => `Implement the ${modules} modules described in SPEC.md, strictly in order, one module at a time. Module 1 is src/m01.js with its tests in tests/m01.test.js, module 2 is src/m02.js with tests/m02.test.js, and so on up to src/m${pad(modules)}.js. For each module: read its test file completely (its case table shows the edge cases), implement only its source file, run ./verify.sh with the module number (for example ./verify.sh 1), then commit with: git add -A && git commit -m "module 1: <function name>" (with the number of that module). Never change a module that is already committed. When all ${modules} modules are committed and ./verify.sh with no number exits 0, the task is complete.`
+const pad = (n: number) => String(n).padStart(2, '0')
+
+// Work per module stays the same however far the task is: `./verify.sh <n>` prints one line per case of module n only.
+function longTaskRepo(dir: string, chars: number, modules: number) {
+  const mods = Array.from({ length: modules }, (_, i) => ({ n: pad(i + 1), step: STEPS[i % STEPS.length], seed: 2000 + i }))
+  const files: Record<string, string> = {
+    'package.json': '{ "name": "long-task", "private": true, "type": "module" }\n',
+    '.gitignore': '.verify.log\n',
+    'SPEC.md': ['# Long task', '', `Implement one function per module, in this order. Module n lives in \`src/mNN.js\` and has its tests in \`tests/mNN.test.js\` (NN is n with two digits), with a table of reference cases. \`./verify.sh n\` runs module n's tests and prints each case; \`./verify.sh\` runs every module and prints a summary; it exits 0 only when all ${modules} pass.`, '',
+      ...mods.map((m, i) => `${i + 1}. \`src/m${m.n}.js\`: ${m.step.spec}`), ''].join('\n'),
+    'verify.sh': ['#!/bin/sh', '# ./verify.sh <n>: module n, every case; ./verify.sh: all modules, summary only.',
+      'if [ -n "$1" ]; then f=$(printf "tests/m%02d.test.js" "$1"); node --test "$f" > .verify.log 2>&1; code=$?; grep -E "^ *(not )?ok |^# (tests|pass|fail)" .verify.log',
+      'else node --test tests/*.test.js > .verify.log 2>&1; code=$?; grep -E "^# (tests|pass|fail)" .verify.log; grep -E "^not ok " .verify.log; fi',
+      'if [ $code -eq 0 ]; then echo "verify: pass"; else echo "verify: fail"; fi', 'exit $code', ''].join('\n'),
+  }
+  for (const m of mods) {
+    files[`src/m${m.n}.js`] = `// Module ${Number(m.n)}: see SPEC.md.\nexport function ${m.step.name}() {\n  throw new Error('not implemented')\n}\n`
+    files[`tests/m${m.n}.test.js`] = [`import { test } from 'node:test'`, `import assert from 'node:assert/strict'`, `import { ${m.step.name} } from '../src/m${m.n}.js'`, '',
+      '// Reference cases: [input, expected].', 'const CASES = [', caseTable(m.step, m.seed, chars), ']', '',
+      `test('module ${Number(m.n)}: ${m.step.name}', async t => {`, `  assert.doesNotThrow(() => ${m.step.name}(CASES[0][0]), 'not implemented yet')`,
+      `  for (const [input, want] of CASES) await t.test(\`case \${JSON.stringify(input)}\`, () => assert.deepEqual(${m.step.name}(input), want))`, '})', ''].join('\n')
+  }
+  write(dir, files)
+  chmodSync(join(dir, 'verify.sh'), 0o755)
+  init(dir)
+  commitAll(dir, 'long-task fixture')
+}
+
+export function build(fixture: Fixture, dir: string, opts: { chars?: number; modules?: number } = {}): string {
   rmSync(dir, { recursive: true, force: true })
   mkdirSync(dir, { recursive: true })
   const base = { 'README.md': '# fixture\n', 'src/a.js': 'export const a = 1\n' }
@@ -93,16 +123,17 @@ export function build(fixture: Fixture, dir: string, opts: { chars?: number } = 
       write(dir, { ...base, 'package.json': '{ "name": "failing", "private": true, "scripts": { "test": "node -e \\"process.exit(1)\\"" } }\n' })
       init(dir); commitAll(dir, 'init'); break
     case 'six-steps': sixSteps(dir, opts.chars ?? 6000); break
+    case 'long-task': longTaskRepo(dir, opts.chars ?? 24000, opts.modules ?? 48); break
   }
   return dir
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   const [fixture, dir] = process.argv.slice(2)
-  const at = process.argv.indexOf('--chars')
+  const arg = (k: string) => { const at = process.argv.indexOf(k); return at > 0 ? { [k.slice(2)]: Number(process.argv[at + 1]) } : {} }
   if (!FIXTURES.includes(fixture as Fixture) || !dir) {
-    console.error(`usage: build-repo.ts <${FIXTURES.join('|')}> <dir> [--chars <case table size>]`)
+    console.error(`usage: build-repo.ts <${FIXTURES.join('|')}> <dir> [--chars <case table size>] [--modules <long-task modules>]`)
     process.exit(2)
   }
-  console.log(build(fixture as Fixture, dir, at > 0 ? { chars: Number(process.argv[at + 1]) } : {}))
+  console.log(build(fixture as Fixture, dir, { ...arg('--chars'), ...arg('--modules') }))
 }

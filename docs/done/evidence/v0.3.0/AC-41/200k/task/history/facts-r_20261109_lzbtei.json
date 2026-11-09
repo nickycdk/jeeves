@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "rotationId": "r_20261109_lzbtei",
+  "capturedAt": "2026-11-09T15:14:36.768Z",
+  "git": {
+    "kind": "git",
+    "worktree": "<scratch>/200k/repo",
+    "branch": "main",
+    "detached": false,
+    "head": "5cfd73bd798b67e39a3dbcbe6551251faabe3653",
+    "status": [
+      {
+        "xy": " M",
+        "path": "src/m08.js"
+      }
+    ],
+    "changedSinceStart": [
+      "src/m01.js",
+      "src/m02.js",
+      "src/m03.js",
+      "src/m04.js",
+      "src/m05.js",
+      "src/m06.js",
+      "src/m07.js",
+      "src/m08.js"
+    ]
+  },
+  "crons": null
+}
