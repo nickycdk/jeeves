@@ -151,10 +151,10 @@ Dependency order: E0 → E1 → E2 → E3 → E4 → E5 → (E6, E7 in parallel)
 - **Artifact:** I-layer snapshots of each message and of `/jeeves` alone at 40 columns.
 
 ## E15 — v0.3 evidence and release (P1, v0.3)
-- **Status:** Open. Owner, account and target date for ST-15.2 decided (D-44: maintainer logs in a non-Team, dollar-billed account on a separate macOS user; the agent builds and runs; target 2026-11-20); Q8's bar set (D-45). Go-ahead and US$40 budget approved (D-46), valid once E13, ST-15.1, the D-44 account and the dry run are in place.
+- **Status:** Open. Owner, account and target date for ST-15.2 decided (D-44, amended by D-49: the maintainer's Team account in turn mode, on their normal macOS user with a separate Claude config folder; the agent builds and runs; target 2026-11-20); Q8's bar set (D-45). Go-ahead and US$40 budget approved (D-46), valid once E13, ST-15.1, E16 (ST-16.8), the D-49 config folder and the dry run are in place; caps are API-equivalent dollars (D-49).
 - **Goal:** Measure what auto-start costs and how it behaves live before any cost wording ships, decide Q8, ship v0.3.0.
 - **Scope:** the test-only window override; AC-41 live: a dry run in a fresh-install state (AC-35 E), then a 1M fixture with and without Jeeves (auto mode, two rotations as the target) and a 200K simulated fixture, each under a spending cap; Q8 decided from it; README cost wording only from the measured result; v0.3.0 release prep. **Out:** widening auto-start to 200K windows in v0.3.0 (v0.3.x, spec §13).
-- **Dependencies:** ST-15.2 on E13 and ST-15.1 only (E14 changes no cost, rate or outcome), and on E16 if it runs on the Team account; ST-15.3 on everything, E16 included. **Risks:** R-15, R-25 (the maintainer's account is a Team account), Q-12, Q-13, Q-14.
+- **Dependencies:** ST-15.2 on E13 and ST-15.1 only (E14 changes no cost, rate or outcome) and on E16 (it runs on the Team account in turn mode, D-49); ST-15.3 on everything, E16 included. **Risks:** R-15, R-25 (the runs depend on turn mode), Q-12, Q-13, Q-14.
 - **Cites:** AC-41, spec §7, §11.1, Q7, Q8.
 - **AC:** AC-41 has a PASS/FAIL result with its cost, or a recorded reason it could not run; Q8 answered; release zip reproducible.
 - **Artifact:** `docs/done/evidence/v0.3.0/`, draft release v0.3.0.

@@ -52,7 +52,7 @@ ST-0.7 → ST-1.1 → ST-1.2 → ST-1.3 → ST-1.4 → ST-1.7 → ST-1.8 → ST-
 
 ## M9 order with E16 (D-48)
 
-E13, E14 and ST-15.1 are solved. Then: ST-16.1 → (one live probe session for the open checks, on go-ahead) → ST-16.2 → ST-16.3 → ST-16.4; ST-16.5 after ST-16.2; ST-16.6 after ST-16.3; ST-16.7 after all of them; ST-16.8 (live, Team account) → ST-15.2 (if it runs on the Team account) → ST-15.3.
+E13, E14 and ST-15.1 are solved. Then: ST-16.1 → (one live probe session for the open checks, on go-ahead) → ST-16.2 → ST-16.3 → ST-16.4; ST-16.5 after ST-16.2; ST-16.6 after ST-16.3; ST-16.7 after all of them; ST-16.8 (live, Team account) → ST-15.2 (on the Team account in turn mode, D-49) → ST-15.3.
 
 ## Stop/kill criteria
 
