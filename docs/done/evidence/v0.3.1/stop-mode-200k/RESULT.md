@@ -19,7 +19,7 @@
 
 ## Run 2 (2026-11-10): the 40% default and the settable limit (D-54), PASS
 
-`run2-40pct/`. Plugin at `e98b0c5`-era code (D-54: threshold 40% on every window, handover limit 30), same account, driver and settings as above; Stop mode again (no bypass line in the debug log).
+`run2-40pct/`. Plugin at `74c2de6` (D-54: threshold 40% on every window, handover limit 30), same account, driver and settings as above; Stop mode again (no bypass line in the debug log).
 
 | Check | Result |
 |---|---|
