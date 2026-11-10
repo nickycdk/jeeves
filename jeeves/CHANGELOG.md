@@ -1,13 +1,17 @@
 # Changelog
 
-## Unreleased
+## 0.3.2 (2026-11-10)
+
+Release notes: `docs/release-notes/v0.3.2.md`.
+
 
 - The handover file's verified facts now list the commits made since the task started (`git log`, oldest first, at most 200), next to the files changed since then. Jeeves runs two more read-only `git log` calls per handover (one when it records the facts, one when it checks the handover).
 - When the task follows a written plan, the handover request asks Claude to name the plan (its file, or its steps if it has none) and which steps are done, as a bullet under "Decisions and constraints". Without a plan nothing changes: no new section, and the handover format stays `v1`. The request text may now be up to 2,900 characters (was 2,500) to fit this and the next item.
 - The handover keeps reasons and dead ends. Claude is asked to carry over every decision, constraint and dead end from the previous handover that still holds, and to list each approach it tried and dropped, with why, under "Do not repeat / do not change". The fresh conversation's start prompt now also lists "Decisions and constraints" (it showed the other sections but not this one). The format is unchanged.
 - Jeeves sends a notification when a task stops by itself and waits for you (`NEEDS_REVIEW`, `FAILED`, `BLOCKED`, or a pause you did not ask for, such as the handover limit or a rate limit) and when a task completes. It goes through Claude Code's own notification setting (`$.ui.notify`, the `preferredNotifChannel` setting; turn it off there). A pause, `/clear` or interrupt you caused does not notify.
+- The line under the prompt and Jeeves's transcript lines no longer repeat the name: Claude Code already shows `jeeves:` in front of them, so `jeeves: Jeeves 12%/40%` is now `jeeves: 12%/40%`. A task that ends as `DOD_UNMET` now says `Done, unproven. /jeeves done confirms`.
 
-## 0.3.1 (release candidate; dated when tagged)
+## 0.3.1 (2026-11-10)
 
 Release notes: `docs/release-notes/v0.3.1.md`.
 

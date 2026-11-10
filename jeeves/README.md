@@ -2,7 +2,7 @@
 
 Claude Code has a context limit. Your momentum shouldn't. Jeeves is your friendly butler for long Claude Code tasks: when the context starts to fill up, he saves a verified handover, starts a fresh conversation in the same terminal and carries on with the task there. You keep building.
 
-**Status: public beta 0.3.1 (release candidate, not published yet; see the [CHANGELOG](CHANGELOG.md)).** It works on Claude Code 2.1.319 and later on macOS; see [Compatibility](docs/compatibility.md).
+**Status: public beta 0.3.2 (see the [CHANGELOG](CHANGELOG.md)).** It works on Claude Code 2.1.319 and later on macOS; see [Compatibility](docs/compatibility.md).
 
 ## The problem
 
