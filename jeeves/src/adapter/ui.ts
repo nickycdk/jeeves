@@ -136,7 +136,7 @@ export function statusText(v: StatusView): string {
       `Context: ${pct === undefined ? 'unknown' : `${Math.round(pct * 10) / 10}%`}  Threshold: ${shownThreshold(s, v.thresholdOverride, v.thresholdRelative)}%${tokensAt(s.lastContext?.window, s.thresholdPercent)}`,
       ...(v.thresholdRelative ? [`TEST OVERRIDE +${v.thresholdRelative} (task setting ${s.thresholdPercent}%)`]
         : v.thresholdOverride ? [`TEST OVERRIDE (task setting ${s.thresholdPercent}%)`] : []),
-      `Rotations: ${s.rotationCount}  Session: ${s.sessionSequence}`,
+      `Rotations: ${s.rotationCount}/${s.maxRotations ?? DEFAULT_CONFIG.maxRotationsPerTask}  Session: ${s.sessionSequence}`,
       ...(s.reason && INERT.includes(s.status) ? [reasonLine(s)] : []),
       `Last: ${s.lastValidatedHandover ? s.lastValidatedHandover.split('#')[0]!.replace(/^history\//, '') : 'no handover yet'}${s.lastErrorCode ? `, error ${s.lastErrorCode}` : ''}`,
     )
@@ -159,7 +159,7 @@ export const offStatus = (p: Probe) =>
   p.missing[0] === '$.prompt.submit' ? 'off: prompt refused' : p.mode === 'unsupported' ? `off: needs ${p.missing[0]}` : 'assisted mode'
 
 /** The `/jeeves` command menu's argument hint; a unit test keeps it in step with HELP. */
-export const ARGUMENT_HINT = 'on [goal] | off | pause | resume | rotate | later | continue | recover | done | retry | threshold <n> | defaults ... | auto [on|off] | task | dod <text> | check <cmd> | status [--diagnose] | history [--full] | handover | stats | purge | help'
+export const ARGUMENT_HINT = 'on [goal] | off | pause | resume | rotate | later | continue | recover | done | retry | threshold <n> | limit <n> | defaults ... | auto [on|off] | task | dod <text> | check <cmd> | status [--diagnose] | history [--full] | handover | stats | purge | help'
 
 export const HELP = [
   'Jeeves commands (/jeeves ...):',
@@ -174,6 +174,7 @@ export const HELP = [
   'done          confirm the task is done',
   'retry         after a failed handover',
   'threshold <n> hand over at n% (20-90)',
+  'limit <n>     most handovers (1-100)',
   'defaults ...  this project\'s defaults',
   'auto [on|off] auto-start everywhere',
   'task          original task + changes',
@@ -234,8 +235,8 @@ export const MSG = {
   rotateRequested: 'Handover requested: Jeeves asks Claude for it at the next safe stop, then starts a fresh conversation.',
   notRotatable: (status: string) => `No handover now: the task is ${status}. /jeeves status shows why.`,
   suggestedChecks: (cmds: string[]) => `Suggested checks: ${cmds.map(c => `/jeeves check ${c}`).join(', ')}`,
-  noDefaults: 'No defaults set for this project. /jeeves defaults threshold <n> or /jeeves defaults check <cmd> sets them for the next /jeeves on here.',
-  defaultsUsage: 'Usage: /jeeves defaults, /jeeves defaults threshold <20-90>, /jeeves defaults check <cmd>, /jeeves defaults auto on|off, /jeeves defaults clear',
+  noDefaults: 'No defaults set for this project. /jeeves defaults threshold <n>, limit <n> or check <cmd> sets them for the next /jeeves on here.',
+  defaultsUsage: 'Usage: /jeeves defaults, /jeeves defaults threshold <20-90>, /jeeves defaults limit <1-100>, /jeeves defaults check <cmd>, /jeeves defaults auto on|off, /jeeves defaults clear',
   defaultAutoSet: (v: 'on' | 'off') => `Auto-start for this project: ${v}. It wins over /config and /jeeves auto here; /jeeves defaults clear resets it.`,
   // ST-13.2 (spec §5.5, §5.6)
   autoState: (on: boolean, source: string) => `Auto-start: ${on ? 'on' : 'off'} (${source}).`,
@@ -270,6 +271,9 @@ export const MSG = {
   turnedOn: (taskId: string, withGoal: boolean) => withGoal
     ? `Jeeves on: task ${taskId}. Your goal is saved word for word and sent as the first prompt.`
     : `Jeeves on: task ${taskId}. Your next prompt is saved word for word as the task.`,
+  limitRange: (arg: string, min: number, max: number) => `The handover limit must be a whole number from ${min} to ${max} (got "${short(arg).slice(0, 20)}"). Example: /jeeves limit 50`,
+  limitSet: (n: number, done: number, paused: boolean) => `Handover limit set to ${n} for this task (${done} done so far).${paused ? (n > done ? ' /jeeves resume continues it.' : ' That is not above the handovers done, so the task stays paused.') : ''}`,
+  defaultLimitSet: (n: number) => `Default handover limit for this project: ${n}. It applies from the next /jeeves on here; running tasks are not changed.`,
   thresholdRange: (arg: string, min: number, max: number) => `Threshold must be a whole number from ${min} to ${max} (got "${short(arg).slice(0, 20)}"). Example: /jeeves threshold 60`,
   thresholdSet: (n: number, override: number | null) => `Threshold set to ${n}%: Jeeves warns at ${n - 5}% and hands over at ${n}%.${override ? ` TEST OVERRIDE ${override}% is active in this run.` : ''}`,
   paused: (cancelled: boolean) => `Paused: no handover until /jeeves resume.${cancelled ? ' The requested handover is cancelled.' : ''} The pause is kept across restarts.`,
@@ -295,7 +299,7 @@ export const REASON_TEXT: Record<ReasonCode, string> = {
   HANDOVER_INVALID: 'Handover invalid; nothing cleared.',
   ROTATE_UNAVAILABLE: 'Run /clear, then /jeeves continue.',
   POSSIBLE_LOOP: 'Fresh session too full: loop stopped.',
-  MAX_ROTATIONS: 'Rotation limit for this task reached.',
+  MAX_ROTATIONS: 'Limit reached. Try: /jeeves limit <n>',
   RATE_LIMIT: 'Rate limit hit. Resume when it lifts.',
   AUTH: 'Login problem. /login, then resume.',
   BILLING: 'Billing problem: check your account.',

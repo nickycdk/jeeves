@@ -1,8 +1,8 @@
 // ST-11.1 (ADR-009 A2): per-project defaults in projects/<projectId>/config.json (state folder, never the repository).
-import { isThreshold, THRESHOLD_MAX, THRESHOLD_MIN } from '../core/machine.ts'
+import { isLimit, isThreshold, LIMIT_MAX, LIMIT_MIN, THRESHOLD_MAX, THRESHOLD_MIN } from '../core/machine.ts'
 import { join } from '../core/paths.ts'
 import { defaultsVersion, parseJson } from '../core/schema.ts'
-import { DEFAULTS_CHECKS_MAX, SCHEMA_VERSION, type ProjectDefaults } from '../core/types.ts'
+import { DEFAULT_CONFIG, DEFAULTS_CHECKS_MAX, SCHEMA_VERSION, type ProjectDefaults } from '../core/types.ts'
 import type { Runtime } from './runtime.ts'
 import { MSG } from './ui.ts'
 
@@ -22,20 +22,21 @@ export async function readDefaults(rt: Runtime): Promise<DefaultsRead> {
 const write = (rt: Runtime, d: ProjectDefaults) => rt.storage.replaceFile(pathOf(rt), JSON.stringify({ ...d, schemaVersion: defaultsVersion(d) }, null, 2) + '\n')
 
 const showText = (d: ProjectDefaults | null) => {
-  if (!d || (d.thresholdPercent === undefined && d.verificationCommands.length === 0 && !d.autoStart)) return MSG.noDefaults
-  return ['Project defaults (for the next /jeeves on here):', `Threshold: ${d.thresholdPercent === undefined ? 'by context window' : `${d.thresholdPercent}%`}`,
+  if (!d || (d.thresholdPercent === undefined && d.maxRotations === undefined && d.verificationCommands.length === 0 && !d.autoStart)) return MSG.noDefaults
+  return ['Project defaults (for the next /jeeves on here):', `Threshold: ${d.thresholdPercent ?? DEFAULT_CONFIG.thresholdPercent}%${d.thresholdPercent === undefined ? ' (Jeeves default)' : ''}`,
+    `Handover limit: ${d.maxRotations ?? DEFAULT_CONFIG.maxRotationsPerTask}${d.maxRotations === undefined ? ' (Jeeves default)' : ''}`,
     ...(d.verificationCommands.length ? ['Checks:', ...d.verificationCommands.map(c => `  ${c}`)] : ['Checks: none']),
     ...(d.autoStart ? [`Auto-start: ${d.autoStart}`] : [])].join('\n')
 }
 
-/** `/jeeves defaults [threshold <n> | check <cmd> | clear]`; `userTyped` is required for every change (FR-05). */
+/** `/jeeves defaults [threshold <n> | limit <n> | check <cmd> | auto on|off | clear]`; `userTyped` is required for every change (FR-05). */
 export async function defaultsCommand(rt: Runtime, rest: string, userTyped: boolean): Promise<string> {
   const m = /^\s*(\S*)\s?([\s\S]*)$/.exec(rest)!
   const sub = m[1]!.toLowerCase(), arg = m[2]!.trim()
   if (!rt.projectDir) return MSG.noProject(rt.stateRootError)
   const cur = await readDefaults(rt)
   if (sub === '') return cur.error ? MSG.defaultsUnreadable(cur.error) : showText(cur.value)
-  if (!['threshold', 'check', 'clear', 'auto'].includes(sub)) return MSG.defaultsUsage
+  if (!['threshold', 'limit', 'check', 'clear', 'auto'].includes(sub)) return MSG.defaultsUsage
   if (!userTyped) return MSG.userOnly
   const base: ProjectDefaults = cur.value ?? { schemaVersion: SCHEMA_VERSION, verificationCommands: [] }
   if (sub === 'clear') {
@@ -55,6 +56,12 @@ export async function defaultsCommand(rt: Runtime, rest: string, userTyped: bool
     if (!isThreshold(n)) return MSG.thresholdRange(arg, THRESHOLD_MIN, THRESHOLD_MAX)
     await write(rt, { ...base, thresholdPercent: n })
     return MSG.defaultThresholdSet(n)
+  }
+  if (sub === 'limit') {
+    const n = /^\d+$/.test(arg) ? Number(arg) : NaN
+    if (!isLimit(n)) return MSG.limitRange(arg, LIMIT_MIN, LIMIT_MAX)
+    await write(rt, { ...base, maxRotations: n })
+    return MSG.defaultLimitSet(n)
   }
   // check: stored as text, never run (FR-16); as typed after "check ".
   const cmd = m[2]!.replace(/^\s+/, '').replace(/\s+$/, '')

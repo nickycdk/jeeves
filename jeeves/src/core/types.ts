@@ -68,8 +68,8 @@ export type Config = {
 }
 
 export const DEFAULT_CONFIG: Config = {
-  schemaVersion: SCHEMA_VERSION, thresholdPercent: 50, warnBeforePercent: 5,
-  maxRotationsPerTask: 10, maxHandoverRetries: 2, maxConsecutiveFailures: 2,
+  schemaVersion: SCHEMA_VERSION, thresholdPercent: 40, warnBeforePercent: 5,
+  maxRotationsPerTask: 30, maxHandoverRetries: 2, maxConsecutiveFailures: 2,
   quiesceMaxTurns: 3, quiesceMaxMinutes: 20, autoRecover: false,
   handoverMaxChars: 12000, verificationCommands: [],
 }
@@ -79,6 +79,8 @@ export type ProjectDefaults = {
   schemaVersion: number
   thresholdPercent?: number
   verificationCommands: string[]
+  /** The handover limit for new tasks here (`/jeeves defaults limit <n>`); absent = DEFAULT_CONFIG.maxRotationsPerTask. */
+  maxRotations?: number
   /** v0.3: auto-start for this project; absent = not set (spec §5.5). */
   autoStart?: OnOff
 }
@@ -134,6 +136,8 @@ export type State = {
   rotationCount: number
   consecutiveFailures: number
   thresholdPercent: number
+  /** `/jeeves limit <n>` or the project default: handovers this task may make; absent = DEFAULT_CONFIG.maxRotationsPerTask. */
+  maxRotations?: number
   lastContext: ContextReading | null
   armedFired: boolean
   /** Session in which the T−5 warning was shown (warn once per session). */

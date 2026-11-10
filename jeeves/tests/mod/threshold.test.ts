@@ -17,19 +17,19 @@ async function onTask($: Kit, on: Parameters<typeof memHost>[0], env?: Record<st
   return { h, dir: taskDirs(h)[0]! }
 }
 
-test('AC-05 through the hooks: warning at 45, nothing at 49, one request at 50, nothing more at 51, 51, 70', async ($, on) => {
+test('AC-05 through the hooks: warning at 35, nothing at 39, one request at 40, nothing more at 41, 41, 70', async ($, on) => {
   const { h, dir } = await onTask($, on)
-  await measure($, 45)
-  expect(h.toasts).toEqual(['Context at 45%. Jeeves will hand over at 50%.'])
-  await measure($, 49)
+  await measure($, 35)
+  expect(h.toasts).toEqual(['Context at 35%. Jeeves will hand over at 40%.'])
+  await measure($, 39)
   expect(stateOf(h, dir).status).toBe('MONITORING')
-  await measure($, 50)
+  await measure($, 40)
   const s = stateOf(h, dir)
   expect([s.status, s.reason, s.armedFired]).toEqual(['ROTATION_REQUESTED', 'THRESHOLD', true])
-  for (const p of [51, 51, 70]) await measure($, p)
+  for (const p of [41, 41, 70]) await measure($, p)
   const reqs = events(h, dir).filter(e => e.code === 'THRESHOLD')
   expect(reqs.length).toBe(1)
-  expect(reqs[0]).toMatchObject({ from: 'MONITORING', to: 'ROTATION_REQUESTED', pct: 50, rotationId: s.rotation.rotationId })
+  expect(reqs[0]).toMatchObject({ from: 'MONITORING', to: 'ROTATION_REQUESTED', pct: 40, rotationId: s.rotation.rotationId })
   expect(stateOf(h, dir).rotation.rotationId).toBe(s.rotation.rotationId)
   expect(h.toasts.length).toBe(1)
 })
@@ -47,7 +47,7 @@ test('/jeeves threshold: 20..90 accepted and used; anything else rejected with t
   for (const bad of ['19', '91', '50.5', 'abc', '']) {
     expect(await relay($, `threshold ${bad}`)).toContain('Threshold must be a whole number from 20 to 90')
   }
-  expect(stateOf(h, dir).thresholdPercent).toBe(50)
+  expect(stateOf(h, dir).thresholdPercent).toBe(40)
   expect(await relay($, 'threshold 60')).toBe('Threshold set to 60%: Jeeves warns at 55% and hands over at 60%.')
   await measure($, 55)
   await measure($, 59)
@@ -63,10 +63,10 @@ test('test override: only with JEEVES_TEST=1; requests at the override and statu
   h.usage = { window: 1_000_000, percent: 2 }
   const status = await relay($, 'status')
   expect(status).toContain('Threshold: 3%')
-  expect(status).toContain('TEST OVERRIDE (task setting 50%)')
+  expect(status).toContain('TEST OVERRIDE (task setting 40%)')
   await measure($, 3)
   expect(stateOf(h, dir).status).toBe('ROTATION_REQUESTED')
-  expect(stateOf(h, dir).thresholdPercent).toBe(50)
+  expect(stateOf(h, dir).thresholdPercent).toBe(40)
 })
 
 test('the override is ignored without JEEVES_TEST=1', async ($, on) => {
@@ -87,7 +87,7 @@ test('50 concurrent /jeeves threshold commands append 50 event lines, none lost,
   expect(stateOf(h, dir).thresholdPercent).toBe(69)
 })
 
-test('ST-10.1: a new task takes 40% on a 1M window, 50% on 200K or unknown; /jeeves threshold still wins; status shows tokens', async ($, on) => {
+test('ST-10.1: a new task takes 40% on a 1M window, as on any other; /jeeves threshold still wins; status shows tokens', async ($, on) => {
   const h = memHost(on)
   bottom(on)
   await start($)
@@ -104,14 +104,14 @@ test('ST-10.1: a new task takes 40% on a 1M window, 50% on 200K or unknown; /jee
   expect(stateOf(h, dir!).thresholdPercent).toBe(60)
 })
 
-for (const [window, want] of [[200_000, 50], [0, 50]] as const) {
-  test(`ST-10.1: window ${window} -> ${want}%`, async ($, on) => {
+for (const window of [200_000, 0]) {
+  test(`ST-10.1: window ${window} -> 40%`, async ($, on) => {
     const h = memHost(on)
     bottom(on)
     await start($)
     h.usage = { window }
     await relay($, 'on')
-    expect(stateOf(h, taskDirs(h)[0]!).thresholdPercent).toBe(want)
+    expect(stateOf(h, taskDirs(h)[0]!).thresholdPercent).toBe(40)
   })
 }
 
@@ -126,7 +126,7 @@ async function eligible1M($: Kit, on: Parameters<typeof memHost>[0], env: Record
 }
 const SIM = { HOME: '/home/t', JEEVES_TEST: '1', JEEVES_TEST_WINDOW_OVERRIDE: '200000' }
 
-test('window override 200000 on a 1M session: auto-watched since ADR-009 A4, /jeeves on still makes it explicit; 50% rule, ~100K threshold, readings re-based, TEST OVERRIDE (AC 1)', { options: { autoStart: 'on' } }, async ($, on) => {
+test('window override 200000 on a 1M session: auto-watched since ADR-009 A4, /jeeves on still makes it explicit; 40% rule, ~80K threshold, readings re-based, TEST OVERRIDE (AC 1)', { options: { autoStart: 'on' } }, async ($, on) => {
   const { h } = await eligible1M($, on, SIM)
   const before = await relay($, 'status')
   expect(before).toContain('Auto-start: on')
@@ -134,12 +134,12 @@ test('window override 200000 on a 1M session: auto-watched since ADR-009 A4, /je
   await relay($, 'on')
   await submit($, PROMPT)
   const dir = taskDirs(h)[0]!
-  expect([stateOf(h, dir).origin, stateOf(h, dir).thresholdPercent]).toEqual(['explicit', 50])
-  await measure($, 9) // 90K tokens of a real 1M window: 45% of 200K, the warning
-  expect(h.toasts.at(-1)).toBe('Context at 45%. Jeeves will hand over at 50%.')
-  expect(stateOf(h, dir).lastContext).toMatchObject({ percent: 45, window: 200_000, tokens: 90_000 })
-  expect(await relay($, 'status')).toContain('Threshold: 50% (~100K)')
-  await measure($, 10)
+  expect([stateOf(h, dir).origin, stateOf(h, dir).thresholdPercent]).toEqual(['explicit', 40])
+  await measure($, 7) // 70K tokens of a real 1M window: 35% of 200K, the warning
+  expect(h.toasts.at(-1)).toBe('Context at 35%. Jeeves will hand over at 40%.')
+  expect(stateOf(h, dir).lastContext).toMatchObject({ percent: 35, window: 200_000, tokens: 70_000 })
+  expect(await relay($, 'status')).toContain('Threshold: 40% (~80K)')
+  await measure($, 8)
   expect(stateOf(h, dir).status).toBe('ROTATION_REQUESTED')
   expect(await relay($, 'status --diagnose')).toContain('window 200000')
 })

@@ -215,22 +215,22 @@ test('review fix: /jeeves on does not offer back an auto task left MONITORING', 
   expect(taskDirs(h).length).toBe(2)
 })
 
-for (const first of [40, 10] as const) {
-  test(`ST-17.1: an auto task on a 200K window takes 50%; ${first === 40 ? 'a first reading at 40% ends it (near-threshold)' : 'the grace period holds until 60%'}`, async ($, on) => {
+for (const first of [30, 10] as const) {
+  test(`ST-17.1: an auto task on a 200K window takes 40%; ${first === 30 ? 'a first reading at 30% ends it (near-threshold)' : 'the grace period holds until 50%'}`, async ($, on) => {
     const h = eligibleHost(on, { autoNoticeShown: true })
     h.usage = { window: 200_000 }
     bottom(on)
     await start($)
     await submit($, PROMPT)
     const [dir] = taskDirs(h)
-    expect([stateOf(h, dir!).origin, stateOf(h, dir!).thresholdPercent]).toEqual(['auto', 50])
+    expect([stateOf(h, dir!).origin, stateOf(h, dir!).thresholdPercent]).toEqual(['auto', 40])
     const at200K = (percent: number) => $.session.measure({ context: { window: 200_000, percent }, rateLimits: [], changed: ['context'] } satisfies SessionMeasureInput)
     await turnStart($, 't1')
     await at200K(first)
-    if (first === 40) return void expect(stateOf(h, dir!).status).toBe('DISABLED')
-    await at200K(59)
+    if (first === 30) return void expect(stateOf(h, dir!).status).toBe('DISABLED')
+    await at200K(49)
     expect(stateOf(h, dir!).status).toBe('MONITORING')
-    await at200K(60)
+    await at200K(50)
     expect(stateOf(h, dir!).status).toBe('ROTATION_REQUESTED')
   })
 }

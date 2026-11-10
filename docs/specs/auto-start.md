@@ -22,7 +22,7 @@ Today a user must type `/jeeves on` before each task. They forget, and the sessi
 - With no task, nothing is recorded (PRIVACY.md, README, first-activation notice).
 - The first-activation notice is shown once per install. It is remembered in Jeeves's plugin store (`$.store` key `firstActivationShown`), **not** in the state folder.
 - Settings: `stateDir`, `autoRecover` (default off) in `/config`; per project `/jeeves defaults threshold|check|clear`.
-- The threshold is chosen when a task is created from `$.session.usage().window`, which is known before the first reading (the model setting): 40% above 200K, else 50%.
+- The threshold is chosen when a task is created from `$.session.usage().window`, which is known before the first reading (the model setting): 40% above 200K, else 50%. **Amended 2026-11-10 (maintainer, D-54): 40% on every window; the window no longer decides it.**
 - A user-typed `/clear` pauses a task (`PAUSED(USER_CLEAR)`, ADR-010). One warning 5 points before the threshold. A fresh conversation starts at about 34–57K tokens (R-15).
 - v0.2 refuses state with a newer schema (`SCHEMA_TOO_NEW`) and never rebuilds it; a `config.json` with an unknown field is "unreadable" and ignored.
 

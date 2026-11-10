@@ -22,14 +22,14 @@ async function restart($: Kit, h: ReturnType<typeof memHost>, sessionId: string)
   await start($)
 }
 
-test('AC-14: pause at 48% -> no handover at 55%; resume at 55% -> request at the next measure', async ($, on) => {
+test('AC-14: pause at 38% -> no handover at 55%; resume at 55% -> request at the next measure', async ($, on) => {
   const { h, dir } = await onTask($, on)
-  await measure($, 48)
+  await measure($, 38)
   expect(await relay($, 'pause')).toBe('Paused: no handover until /jeeves resume. The pause is kept across restarts.')
   await measure($, 55)
   await measure($, 60)
   expect([stateOf(h, dir).status, stateOf(h, dir).reason]).toEqual(['PAUSED', 'USER_PAUSE'])
-  expect(await relay($, 'resume')).toBe('Resumed: Jeeves hands over again at 50%.')
+  expect(await relay($, 'resume')).toBe('Resumed: Jeeves hands over again at 40%.')
   expect(stateOf(h, dir).status).toBe('MONITORING')
   await measure($, 55)
   expect(stateOf(h, dir).status).toBe('ROTATION_REQUESTED')

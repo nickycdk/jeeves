@@ -28,7 +28,9 @@
 
 **`PAUSED (RATE_LIMIT | OVERLOADED | API_ERROR)`, `PAUSED (AUTH | BILLING)`.** The API stopped the turn. The message says when a rate limit resets. Fix the cause (`/login` for AUTH), then `/jeeves resume`.
 
-**`PAUSED (MAX_ROTATIONS)`.** The task has rotated 10 times, the limit per task; it will not rotate again (a resume pauses again at the next threshold). Finish in this conversation, or `/jeeves off` and start the rest as a new task with `/jeeves on`.
+**`PAUSED (MAX_ROTATIONS)`.** The task has made as many handovers as its limit allows (30 by default; `/jeeves status` shows `Rotations: 30/30`). Raise it with `/jeeves limit <n>` (up to 100), then `/jeeves resume`; without a higher limit a resume pauses again at the next threshold. Or finish in this conversation. `/jeeves defaults limit <n>` sets the limit for new tasks in this project.
+
+**Handovers come very often (200K window).** A fresh conversation already holds the system prompt, `CLAUDE.md` and the tool list, and the default threshold is 40% (80K tokens), so little room is left. `/jeeves threshold 55` gives each conversation more room; keep it well under 83%, where Claude Code compacts by itself.
 
 **`NEEDS_REVIEW (HANDOVER_INVALID)`.** Claude's handover failed the checks three times (the problems are in the toast and in `events.jsonl`), or the saved handover changed on disk before use. Nothing was cleared and earlier handovers are untouched (they stay in the task's `history/` folder). Type `/jeeves retry` to ask for the handover again (Claude is asked at the next safe stop, or at once if it is waiting). A retry counts toward the limit of 2 failed handovers in a row; when that is used up, `/jeeves status` says `Retries used up` and `/jeeves off` ends the task (you can point Claude at the last handover file in a new one).
 

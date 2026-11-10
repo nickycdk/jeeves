@@ -4,9 +4,6 @@ import { STATE_SCHEMA_VERSION, type State, type TaskOrigin } from './types.ts'
 /** `task-rev-001.md`; rev 1 is the original prompt, byte for byte. */
 export const revFile = (n: number) => `task-rev-${String(n).padStart(3, '0')}.md`
 
-/** A new task's threshold when none is set (D-32): 40% above a 200K window, else 50% (also when the window is unknown). */
-export const windowThreshold = (window?: number) => (window !== undefined && window > 200_000 ? 40 : 50)
-
 /**
  * ST-15.1 (AC-41): a context reading re-based on a test-only window, so a 1M session behaves as a `window` one below it:
  * percent from tokens when known, else the engine's percent scaled; at most 100 (above it the simulated window is full).
@@ -17,12 +14,13 @@ export function simulateWindow<C extends { percent?: number; tokens?: number; wi
 }
 
 /** A DISABLED task, ready for the reducer's ON. */
-export function newTaskState(t: { taskId: string; projectId: string; thresholdPercent: number; taskStartHead: string | null; at: string; origin?: TaskOrigin }): State {
+export function newTaskState(t: { taskId: string; projectId: string; thresholdPercent: number; taskStartHead: string | null; at: string; origin?: TaskOrigin; maxRotations?: number | undefined }): State {
   return {
     schemaVersion: STATE_SCHEMA_VERSION, taskId: t.taskId, projectId: t.projectId, origin: t.origin ?? 'explicit', status: 'DISABLED', reason: null, mode: 'full',
     taskRevision: 0, sessionSequence: 1, activeSessionId: null, rotation: null, lastValidatedHandover: null,
     rotationCount: 0, consecutiveFailures: 0, thresholdPercent: t.thresholdPercent, lastContext: null, armedFired: false,
     warnedSessionId: null, heldPrompts: [], pauseRequested: false, taskStartHead: t.taskStartHead, lastErrorCode: null, ledger: [], updatedAt: t.at,
+    ...(t.maxRotations !== undefined ? { maxRotations: t.maxRotations } : {}),
   }
 }
 

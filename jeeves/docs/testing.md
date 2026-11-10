@@ -30,7 +30,7 @@ Run them in order; each takes a few minutes. After each one, note what you saw a
 **1. A task with a forced handover (the core loop)**
 
 1. `/jeeves on`, then give a task of several steps, for example "add input validation to every endpoint in src/api, with a test for each".
-2. Let Claude work for two or three turns. The entry under the prompt shows `Jeeves 12%/50%` (your numbers will differ).
+2. Let Claude work for two or three turns. The entry under the prompt shows `Jeeves 12%/40%` (your numbers will differ).
 3. Type `/jeeves rotate`.
 
 Expect: at the next point where Claude has stopped with nothing running, `Jeeves: handover requested`, then `Jeeves: handover validated, starting fresh`. The conversation clears and the task continues by itself. `/jeeves handover` shows the saved handover's goal and next actions. `/jeeves history --full` lists the rotation.

@@ -22,7 +22,7 @@ test('a context measure stores the reading; status shows usage().context.percent
   await measure($, 18)
   expect(stateOf(h, dir).lastContext).toMatchObject({ percent: 18, tokens: 180_000, window: 1_000_000 })
   h.usage = ctx(18)
-  expect(await relay($, 'status')).toContain('Context: 18%  Threshold: 50%')
+  expect(await relay($, 'status')).toContain('Context: 18%  Threshold: 40%')
   // Status reads the live figure in the owning session, so it is never older than the last turn.
   h.usage = ctx(23)
   expect(await relay($, 'status')).toContain('Context: 23%')

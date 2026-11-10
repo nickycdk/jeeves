@@ -610,6 +610,21 @@ test('ST-4.5 max rotations: rotationCount >= maxRotationsPerTask -> PAUSED(MAX_R
   assert.equal(run(st('MONITORING', { rotationCount: max - 1 }), measure(60)).state.status, 'ROTATION_REQUESTED')
 })
 
+test('SET_LIMIT: a whole number 1..100 is stored; anything else, or a DISABLED task, is ignored', () => {
+  for (const n of [1, 30, 100]) assert.equal(run(st('MONITORING'), { type: 'SET_LIMIT', max: n }).state.maxRotations, n)
+  for (const bad of [0, 101, 2.5, NaN]) assert.ok(run(st('MONITORING'), { type: 'SET_LIMIT', max: bad }).ignored, String(bad))
+  assert.ok(run(st('DISABLED'), { type: 'SET_LIMIT', max: 5 }).ignored)
+  assert.equal(run(st('PAUSED', { reason: 'MAX_ROTATIONS', rotationCount: 2, maxRotations: 2 }), { type: 'SET_LIMIT', max: 5 }).state.status, 'PAUSED')
+})
+
+test('the task limit wins over the default: maxRotations 2 pauses at 2 rotations; without it 10 rotations still request (default 30)', () => {
+  const o = run(st('MONITORING', { rotationCount: 2, maxRotations: 2 }), measure(60))
+  assert.deepEqual([o.state.status, o.state.reason], ['PAUSED', 'MAX_ROTATIONS'])
+  assert.equal(run(st('MONITORING', { rotationCount: 1, maxRotations: 2 }), measure(60)).state.status, 'ROTATION_REQUESTED')
+  assert.equal(run(st('MONITORING', { rotationCount: 10 }), measure(60)).state.status, 'ROTATION_REQUESTED')
+  assert.equal(run(st('MONITORING', { rotationCount: 30, maxRotations: 31 }), measure(60)).state.status, 'ROTATION_REQUESTED')
+})
+
 test('ST-4.5 consecutive failures: each failed rotation counts, a continued one resets; at the max the next request -> FAILED', () => {
   const max = DEFAULT_CONFIG.maxConsecutiveFailures
   const failed = run(st('HANDOVER_GENERATING', { rotation: rot({ step: 'HANDOVER_REQUESTED', retries: 2 }) }), stop(0, 0, { ok: false, errors: ['x'] }))

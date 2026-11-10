@@ -7,7 +7,7 @@
 ## How it works
 
 1. You type `/jeeves on`, then your task, and work as usual. On a new install Jeeves can also start by itself: in a git repository, on a model whose context window is 200K tokens or more (0.3.1 and later; 0.3.0: above 200K), your first typed prompt in a fresh session becomes the task (`/jeeves auto off` turns this off; an upgrade from 0.2 keeps it off until `/jeeves auto on`). [Auto-start](jeeves/README.md#auto-start) has the details.
-2. When the context reaches your threshold (default 50%, or 40% on models with a context window above 200K), Jeeves waits until Claude has stopped with nothing still running, then asks Claude for a handover.
+2. When the context reaches your threshold (default 40%; `/jeeves threshold <n>` changes it), Jeeves waits until Claude has stopped with nothing still running, then asks Claude for a handover.
 3. It checks the handover against git and its own record of what ran: branch and commit match, files named really exist, no test is claimed as passed when its last run failed, no secrets. A handover that fails is sent back with the reasons; after three tries Jeeves stops and asks you.
 4. It saves the handover, runs `/clear`, and gives the fresh conversation your original task, the handover and the next steps. The task continues, without a keystroke from you. If Claude ends that first fresh turn by only announcing its next step, an auto task gets one prompt to carry on (0.3.1).
 
@@ -32,7 +32,7 @@ The repository is private for now, so that line works only for people with acces
 ```
 /jeeves on                   start a managed task; your next prompt is saved as the task
 /jeeves check npm test       optional: a command that proves the task is done
-<your task>                  work as usual; the entry under the prompt shows "Jeeves 12%/50%"
+<your task>                  work as usual; the entry under the prompt shows "Jeeves 12%/40%"
 ```
 
 At the threshold you'll see `Jeeves: handover requested`, then `Jeeves: handover validated, starting fresh`, and the fresh conversation picks up the task.
@@ -41,8 +41,9 @@ At the threshold you'll see `Jeeves: handover requested`, then `Jeeves: handover
 |---|---|
 | `/jeeves on [goal]` | Start a managed task. Without a goal, your next prompt is the task |
 | `/jeeves` or `/jeeves status` | Mode, task, context, threshold, rotations, why it stopped if it did, whether this session is watched, and a `Try:` line with the commands that fit now |
-| `/jeeves threshold <n>` | Hand over at n% context (20 to 90) |
-| `/jeeves defaults` | This project's defaults for new tasks: `defaults threshold <n>`, `defaults check <cmd>`, `defaults clear` |
+| `/jeeves threshold <n>` | Hand over at n% context (20 to 90; default 40) |
+| `/jeeves limit <n>` | The most handovers one task may make (1 to 100; default 30) |
+| `/jeeves defaults` | This project's defaults for new tasks: `defaults threshold <n>`, `defaults limit <n>`, `defaults check <cmd>`, `defaults clear` |
 | `/jeeves rotate` | Hand over now, at the next safe stop |
 | `/jeeves later` | Skip the next handover (threshold +10, up to a cap below auto-compaction) |
 | `/jeeves pause` / `resume` | Stop handovers for a while |

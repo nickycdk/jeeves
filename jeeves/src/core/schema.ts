@@ -93,7 +93,7 @@ const stateShape = obj<State>({
   activeSessionId: nullable(str({ nonEmpty: true })), sessionStart: { optional: obj<NonNullable<State['sessionStart']>>({ at: iso, pct: nullable(num(0, 100)), firstPct: { optional: num(0, 100) } }) },
   rotation: nullable(rotation),
   lastValidatedHandover: nullable(handoverRef), rotationCount: int(0), consecutiveFailures: int(0),
-  thresholdPercent: int(20, 90), lastContext: nullable(contextReading), armedFired: bool,
+  thresholdPercent: int(20, 90), maxRotations: { optional: int(1, 100) }, lastContext: nullable(contextReading), armedFired: bool,
   warnedSessionId: nullable(str()), heldPrompts: arr(str({ max: 100_000 }), 50), completionAsked: { optional: bool }, graceTurns: { optional: int(0, 3) }, laterCapped: { optional: bool }, preUpgrade: { optional: bool },
   pendingChanges: { optional: arr(obj<NonNullable<State['pendingChanges']>[number]>({ kind: oneOf(['dod', 'check']), text: str({ nonEmpty: true, max: 100_000 }) }), 20) }, pauseRequested: bool, taskStartHead: nullable(commitHash),
   lastErrorCode: reason, ledger: arr(ledgerEntry, LEDGER_MAX), updatedAt: iso,
@@ -114,7 +114,7 @@ const config = obj<Config>({
 })
 const defaults = obj<ProjectDefaults>({
   schemaVersion: int(1, DEFAULTS_SCHEMA_VERSION), thresholdPercent: { optional: int(20, 90) }, verificationCommands: arr(str({ nonEmpty: true, max: 2000 }), DEFAULTS_CHECKS_MAX),
-  autoStart: { optional: oneOf(ON_OFF) },
+  autoStart: { optional: oneOf(ON_OFF) }, maxRotations: { optional: int(1, 100) },
 })
 const auto = obj<AutoFile>({ schemaVersion: int(1, AUTO_SCHEMA_VERSION), default: oneOf(ON_OFF), reason: { optional: str({ max: 200 }) } })
 const project = obj<ProjectRecord>({ schemaVersion: ver, repoRoot: str({ nonEmpty: true }), worktree: str({ nonEmpty: true }), createdAt: iso })
@@ -142,8 +142,8 @@ export const MIGRATIONS: { [K in Kind]: Migration[] } = {
   project: [], session: [], lock: [], event: [], auto: [],
 }
 
-/** The version a project `config.json` is written with: v2 only while `autoStart` is set, so a v0.2 build keeps the project's threshold and checks after a downgrade. */
-export const defaultsVersion = (d: ProjectDefaults) => (d.autoStart === undefined ? 1 : DEFAULTS_SCHEMA_VERSION)
+/** The version a project `config.json` is written with: v2 only while `autoStart` or `maxRotations` is set, so a v0.2 build keeps the project's threshold and checks after a downgrade. */
+export const defaultsVersion = (d: ProjectDefaults) => (d.autoStart === undefined && d.maxRotations === undefined ? 1 : DEFAULTS_SCHEMA_VERSION)
 
 /** Validate an already-current value. */
 export function check<K extends Kind>(kind: K, v: unknown): Result<Kinds[K]> {

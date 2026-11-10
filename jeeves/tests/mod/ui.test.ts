@@ -16,7 +16,7 @@ test('a full rotation: one line per transition, in order; status shows context/t
     'Jeeves: handover requested (THRESHOLD)',
     'Jeeves: asking Claude for the handover',
   ])
-  expect(h.status).toContain('Jeeves ?/50%')
+  expect(h.status).toContain('Jeeves ?/40%')
   expect(h.status).toContain('Jeeves: handover requested')
   expect(await stop($, handover(g.taskId, g.rotationId))).toEqual({})
   ctl.onClear = async () => { await engineClear($, h, 'sess-2') }
@@ -30,7 +30,7 @@ test('a full rotation: one line per transition, in order; status shows context/t
     'Jeeves: the fresh conversation continues the task',
     'Jeeves: session 2 at 4%, watching context',
   ])
-  expect(h.status.at(-1)).toBe('Jeeves 4%/50%')
+  expect(h.status.at(-1)).toBe('Jeeves 4%/40%')
   for (const s of h.status) expect((s ?? '').length).toBeLessThanOrEqual(40)
   expect(h.notes.every(n => /^[\x20-\x7e]+$/.test(n))).toBe(true)
 })
@@ -47,7 +47,7 @@ test('tool calls and readings below the threshold add no transcript line; pause 
   await $.tool.call({ tool: 'Bash', command: 'ls' })
   await $.tool.call({ tool: 'Bash', command: 'ls' })
   expect(h.notes).toEqual(['Jeeves: on, watching context'])
-  expect(h.status.at(-1)).toBe('Jeeves 30%/50%')
+  expect(h.status.at(-1)).toBe('Jeeves 30%/40%')
   await relay($, 'pause')
   expect(h.notes.at(-1)).toBe('Jeeves: paused (USER_PAUSE): Paused by you. /jeeves resume')
   expect(h.status.at(-1)).toBe('Jeeves: paused (USER_PAUSE)')
@@ -86,20 +86,20 @@ test('ST-14.2: /jeeves alone per state: not watched, watching, warning, paused',
     'Jeeves  mode: full',
     'Task: ID (explicit)',
     'State: MONITORING',
-    'Context: 20%  Threshold: 50% (~500K)',
-    'Rotations: 0  Session: 1',
+    'Context: 20%  Threshold: 40% (~400K)',
+    'Rotations: 0/30  Session: 1',
     'Last: no handover yet',
     'Path: P',
     'Try: /jeeves help',
   ].join('\n'))
-  h.usage = { window: 1_000_000, percent: 46 }
-  await measure($, 46)
+  h.usage = { window: 1_000_000, percent: 36 }
+  await measure($, 36)
   expect(await status()).toBe([
     'Jeeves  mode: full',
     'Task: ID (explicit)',
     'State: MONITORING',
-    'Context: 46%  Threshold: 50% (~500K)',
-    'Rotations: 0  Session: 1',
+    'Context: 36%  Threshold: 40% (~400K)',
+    'Rotations: 0/30  Session: 1',
     'Last: no handover yet',
     'Path: P',
     'Try: /jeeves later | off | help',
@@ -109,8 +109,8 @@ test('ST-14.2: /jeeves alone per state: not watched, watching, warning, paused',
     'Jeeves  mode: full',
     'Task: ID (explicit)',
     'State: PAUSED (USER_PAUSE)',
-    'Context: 46%  Threshold: 50% (~500K)',
-    'Rotations: 0  Session: 1',
+    'Context: 36%  Threshold: 40% (~400K)',
+    'Rotations: 0/30  Session: 1',
     'Paused by you. /jeeves resume',
     'Last: no handover yet',
     'Try: /jeeves resume | off | help',
@@ -140,8 +140,8 @@ test('ST-14.2: /jeeves alone after a failed handover offers retry, and not once 
     TURN ? 'Jeeves  mode: full (turn)' : 'Jeeves  mode: full',
     'Task: TASK (explicit)',
     'State: NEEDS_REVIEW (HANDOVER_INVALID)',
-    'Context: unknown  Threshold: 50% (~100K)',
-    'Rotations: 0  Session: 1',
+    'Context: unknown  Threshold: 40% (~80K)',
+    'Rotations: 0/30  Session: 1',
     'Handover invalid. Try: /jeeves retry',
     'Last: no handover yet, error HANDOVER...',
     'Try: /jeeves retry | off | help',
@@ -175,8 +175,8 @@ test('ST-14.5: an explicit task\'s status entry shows from the start', ROW, asyn
   bottom(on)
   await start($)
   await relay($, 'on')
-  expect(h.status.at(-1)).toBe('Jeeves ?/50%')
+  expect(h.status.at(-1)).toBe('Jeeves ?/40%')
   await submit($, PROMPT)
   await measure($, 10)
-  expect(h.status.at(-1)).toBe('Jeeves 10%/50%')
+  expect(h.status.at(-1)).toBe('Jeeves 10%/40%')
 })

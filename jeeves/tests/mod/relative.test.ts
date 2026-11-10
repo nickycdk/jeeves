@@ -20,7 +20,7 @@ const toolReading = async ($: Kit, g: G, percent: number) => {
 async function rotated($: Kit, on: Parameters<typeof generating>[1]) {
   const g = await generating($, on, { env: ENV, readings: [4, 6, 6.5, 6.8], viaTool: true })
   const { h, dir, ctl } = g
-  expect([stateOf(h, dir).sessionStart.pct, stateOf(h, dir).thresholdPercent]).toEqual([6, 50])
+  expect([stateOf(h, dir).sessionStart.pct, stateOf(h, dir).thresholdPercent]).toEqual([6, 40])
   expect(await stop($, handover(g.taskId, g.rotationId))).toEqual({})
   ctl.onClear = async () => { await engineClear($, h, 'sess-2') }
   await turnEnd($)
@@ -43,7 +43,7 @@ test('relative override: early readings are no start; the fresh session rearms o
   h.usage = { window: 1_000_000, percent: 6 }
   const status = await relay($, 'status')
   expect(status).toContain('Threshold: 7%')
-  expect(status).toContain('TEST OVERRIDE +0.8 (task setting 50%)')
+  expect(status).toContain('TEST OVERRIDE +0.8 (task setting 40%)')
   await measure($, 6.9)
   expect(stateOf(h, dir).status).toBe('MONITORING')
   await measure($, 7)

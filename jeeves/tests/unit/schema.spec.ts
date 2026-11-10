@@ -112,9 +112,11 @@ test('fuzz: random JSON and mutated samples never throw, and anything accepted r
   assert.ok(accepted > 0, 'some mutations should still be valid (e.g. same-type values)')
 })
 
-test('ST-11.1: project defaults schema: threshold optional 20..90, checks non-empty text, at most 20', () => {
+test('ST-11.1: project defaults schema: threshold optional 20..90, limit optional 1..100, checks non-empty text, at most 20', () => {
   assert.ok(check('defaults', { schemaVersion: 1, verificationCommands: [] }).ok)
   assert.ok(check('defaults', { schemaVersion: 1, thresholdPercent: 65, verificationCommands: ['npm test'] }).ok)
+  for (const n of [1, 100]) assert.ok(check('defaults', { schemaVersion: 2, maxRotations: n, verificationCommands: [] }).ok && check('state', validState({ maxRotations: n })).ok, String(n))
+  for (const n of [0, 101, 2.5]) assert.ok(!check('defaults', { schemaVersion: 2, maxRotations: n, verificationCommands: [] }).ok && !check('state', validState({ maxRotations: n })).ok, String(n))
   for (const bad of [
     { schemaVersion: 1, thresholdPercent: 95, verificationCommands: [] },
     { schemaVersion: 1, thresholdPercent: 50.5, verificationCommands: [] },

@@ -1,7 +1,8 @@
 // ST-13.3 (spec §5.1, D-42): whether this session may be auto-watched, decided once at session.start. No task file:
 // the decision lives in the plugin store under the session id, so a reload (turns > 0 by then) keeps it.
 import { autoReason, HINT_LIMIT, hintable, isNotWatched, ordered, startReasons, type AutoRow, type NotWatched } from '../core/autostart.ts'
-import { simulateWindow, windowThreshold } from '../core/task.ts'
+import { simulateWindow } from '../core/task.ts'
+import { DEFAULT_CONFIG } from '../core/types.ts'
 import { THRESHOLD_MIN } from '../core/machine.ts'
 import { autoStartNow, sessionOffKey } from './auto.ts'
 import { readDefaults } from './defaults.ts'
@@ -103,7 +104,7 @@ export async function hint(rt: Runtime, row: AutoRow, raw: { percent?: number; t
   const n = await rt.port.storeGet(HINT_COUNT)
   const shown = typeof n === 'number' ? n : 0
   if (shown >= HINT_LIMIT) return
-  const threshold = (await readDefaults(rt)).value?.thresholdPercent ?? windowThreshold(c.window)
+  const threshold = (await readDefaults(rt)).value?.thresholdPercent ?? DEFAULT_CONFIG.thresholdPercent
   if (c.percent < threshold - 5) return
   const e = await eligibility(rt, row)
   if (e.owns || !hintable(e.reasons)) return
@@ -124,7 +125,7 @@ export async function autoNotice(rt: Runtime, row: AutoRow): Promise<void> {
   const e = await eligibility(rt, row)
   if (!e.decided || e.reasons.length) return
   const window = (await rt.port.usage().catch(() => null))?.window
-  const threshold = (await readDefaults(rt)).value?.thresholdPercent ?? windowThreshold(window)
+  const threshold = (await readDefaults(rt)).value?.thresholdPercent ?? DEFAULT_CONFIG.thresholdPercent
   await rt.port.storeSet(NOTICE_KEY, true)
   rt.port.toast(MSG.autoNotice(threshold, window))
 }
@@ -146,7 +147,7 @@ export function startAuto(rt: Runtime, text: string, row: AutoRow): Promise<bool
     if (!e.decided || e.owns || e.reasons.length) return false
     const me = await rt.port.sessionId()
     const defaults = await readDefaults(rt)
-    const r = await startTask(rt, me, text, defaults.value?.thresholdPercent, 'auto')
+    const r = await startTask(rt, me, text, defaults.value?.thresholdPercent, 'auto', defaults.value?.maxRotations)
     if (r.state.status !== 'MONITORING') return false
     for (const cmd of defaults.value?.verificationCommands ?? []) await addRevision(rt, r.dir, 'check', cmd)
     return true

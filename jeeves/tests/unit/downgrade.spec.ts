@@ -31,6 +31,7 @@ test('new tasks are version 2, explicit unless told otherwise', () => {
   assert.equal(newTaskState({ ...base, origin: 'auto' }).origin, 'auto')
   assert.equal(newTaskState(base).schemaVersion, 2)
   assert.equal(newTaskState(base).preUpgrade, undefined)
+  assert.deepEqual(['maxRotations' in newTaskState(base), newTaskState({ ...base, maxRotations: 7 }).maxRotations], [false, 7])
   assert.equal(parseJson('state', json(validState({ origin: 'manual' as never }))).ok, false)
 })
 
@@ -42,10 +43,11 @@ test('a v0.2 project config.json keeps its defaults', () => {
   assert.equal(r.value.autoStart, undefined)
 })
 
-test('config.json is written as v2 only while autoStart is set', () => {
+test('config.json is written as v2 only while autoStart or maxRotations is set', () => {
   assert.equal(defaultsVersion({ schemaVersion: 2, verificationCommands: [] }), 1)
   assert.equal(defaultsVersion({ schemaVersion: 2, thresholdPercent: 60, verificationCommands: ['make test'] }), 1)
   assert.equal(defaultsVersion({ schemaVersion: 1, verificationCommands: [], autoStart: 'off' }), 2)
+  assert.equal(defaultsVersion({ schemaVersion: 1, verificationCommands: [], maxRotations: 7 }), 2)
   assert.equal(parseJson('defaults', json({ schemaVersion: 2, verificationCommands: [], autoStart: 'maybe' })).ok, false)
 })
 
@@ -67,9 +69,11 @@ test('v0.2 refuses a v0.3 task as SCHEMA_TOO_NEW and only reads text (nothing to
   assert.equal(text, before)
 })
 
-test('v0.2 ignores a config.json with autoStart, and keeps reading every other v0.3 config.json in full', () => {
+test('v0.2 ignores a config.json with autoStart or maxRotations, and keeps reading every other v0.3 config.json in full', () => {
   const withAuto = v02.parseJson('defaults', written({ schemaVersion: 2, thresholdPercent: 60, verificationCommands: ['npm test'], autoStart: 'off' }))
   assert.equal(withAuto.ok ? null : withAuto.code, 'SCHEMA_TOO_NEW')
+  const withLimit = v02.parseJson('defaults', written({ schemaVersion: 2, thresholdPercent: 60, verificationCommands: [], maxRotations: 7 }))
+  assert.equal(withLimit.ok ? null : withLimit.code, 'SCHEMA_TOO_NEW')
   // A threshold or check changed in v0.3 without autoStart: v0.2 still reads both after a downgrade.
   const plain = v02.parseJson('defaults', written({ schemaVersion: 2, thresholdPercent: 60, verificationCommands: ['npm test'] }))
   assert.ok(plain.ok, JSON.stringify(plain))

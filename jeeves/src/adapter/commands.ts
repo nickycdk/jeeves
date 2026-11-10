@@ -1,5 +1,5 @@
 // /jeeves parsing and answers (ST-1.9, E2). Commands that change a task run only when the user typed them (FR-05).
-import { capText, isThreshold, laterCap, THRESHOLD_MAX, THRESHOLD_MIN } from '../core/machine.ts'
+import { capText, isLimit, isThreshold, laterCap, LIMIT_MAX, LIMIT_MIN, THRESHOLD_MAX, THRESHOLD_MIN } from '../core/machine.ts'
 import { heldPrompt } from '../core/continuation.ts'
 import { suggestChecks } from '../core/suggest.ts'
 import { taskText } from '../core/task.ts'
@@ -40,7 +40,7 @@ export function pickTask<T extends { state: State }>(tasks: T[], sessionId: stri
  */
 export type Caller = { userTyped: boolean; idle?: boolean; endedHere: ReadonlySet<string>; autoRow?: AutoRow }
 
-const CHANGES = new Set(['purge', 'later', 'on', 'off', 'dod', 'check', 'threshold', 'pause', 'resume', 'continue', 'rotate', 'done', 'recover', 'retry'])
+const CHANGES = new Set(['purge', 'later', 'on', 'off', 'dod', 'check', 'threshold', 'limit', 'pause', 'resume', 'continue', 'rotate', 'done', 'recover', 'retry'])
 
 export async function relay(rt: Runtime, args: string, caller: Caller): Promise<string> {
   const m = /^\s*(\S*)\s?([\s\S]*)$/.exec(args)!
@@ -99,6 +99,7 @@ export async function relay(rt: Runtime, args: string, caller: Caller): Promise<
     case 'on': return on(rt, tasks, me, rest)
     case 'off': return off(rt, tasks, me)
     case 'threshold': return threshold(rt, tasks, me, rest.trim())
+    case 'limit': return limit(rt, tasks, me, rest.trim())
     case 'pause': return pause(rt, tasks, me)
     case 'resume': return resume(rt, tasks, me)
     case 'continue': return continueHere(rt, tasks, me, caller.endedHere)
@@ -131,7 +132,7 @@ async function on(rt: Runtime, tasks: Task[], me: string, rest: string): Promise
   const goal = rest.replace(/^\s+/, '')
   // ST-11.1: this project's defaults; an unreadable file is ignored and said.
   const defaults = await readDefaults(rt)
-  const r = await startTask(rt, me, goal.trim() ? goal : null, defaults.value?.thresholdPercent)
+  const r = await startTask(rt, me, goal.trim() ? goal : null, defaults.value?.thresholdPercent, 'explicit', defaults.value?.maxRotations)
   if (r.state.status !== 'MONITORING') return MSG.lockHeld(r.state.taskId)
   // As /jeeves check writes them: after the goal (rev 2..), or queued until the first prompt.
   for (const cmd of defaults.value?.verificationCommands ?? []) await addRevision(rt, r.dir, 'check', cmd)
@@ -247,6 +248,17 @@ async function threshold(rt: Runtime, tasks: Task[], me: string, arg: string): P
   if (!own) return MSG.noTask
   await apply(rt, own.dir, { type: 'SET_THRESHOLD', percent: n })
   return MSG.thresholdSet(n, rt.thresholdOverride)
+}
+
+/** This session's task, or the project's task paused at the limit (the pause gave no lock up, but a restart did). */
+async function limit(rt: Runtime, tasks: Task[], me: string, arg: string): Promise<string> {
+  const n = /^\d+$/.test(arg) ? Number(arg) : NaN
+  if (!isLimit(n)) return MSG.limitRange(arg, LIMIT_MIN, LIMIT_MAX)
+  const own = ownTask(tasks, me) ?? tasks.find(t => t.state.status === 'PAUSED' && t.state.reason === 'MAX_ROTATIONS') ?? null
+  if (!own) return MSG.noTask
+  if (!(await claim(rt, own.dir, me))) return MSG.lockHeld(own.state.taskId)
+  await apply(rt, own.dir, { type: 'SET_LIMIT', max: n })
+  return MSG.limitSet(n, own.state.rotationCount, own.state.status === 'PAUSED' && own.state.reason === 'MAX_ROTATIONS')
 }
 
 async function revise(rt: Runtime, tasks: Task[], me: string, kind: 'dod' | 'check', text: string): Promise<string> {

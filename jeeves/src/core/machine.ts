@@ -17,6 +17,8 @@ export type Input =
   | { type: 'EXPLICIT' }
   /** `/jeeves threshold <n>`, n a whole number 20..90 (FR-03). */
   | { type: 'SET_THRESHOLD'; percent: number }
+  /** `/jeeves limit <n>`, n a whole number 1..100: handovers this task may make before PAUSED(MAX_ROTATIONS). */
+  | { type: 'SET_LIMIT'; max: number }
   /** `fromTool`: read at a main-loop tool result, so after a model call (D-25 counts only those as a session's start). */
   | { type: 'MEASURE'; percent?: number; tokens?: number; window: number; sessionId: string; fromTool?: boolean }
   | { type: 'ROTATE_CMD' }
@@ -134,6 +136,9 @@ export const capText = (t: number, p: number | undefined) =>
 export const nearText = (p: number) => `Jeeves: not watching this session, context already at ${Math.round(p)}%; /jeeves on to watch anyway`
 export const THRESHOLD_MIN = 20
 export const THRESHOLD_MAX = 90
+export const LIMIT_MIN = 1
+export const LIMIT_MAX = 100
+export const isLimit = (n: number) => Number.isInteger(n) && n >= LIMIT_MIN && n <= LIMIT_MAX
 export const isThreshold = (n: number) => Number.isInteger(n) && n >= THRESHOLD_MIN && n <= THRESHOLD_MAX
 /** Where a JEEVES-COMPLETE block counts: monitoring, or a rotation that has not asked Claude for anything yet. */
 export const COMPLETION_STATES: readonly Status[] = ['MONITORING', 'CONTINUING', 'ROTATION_REQUESTED', 'QUIESCING']
@@ -236,9 +241,9 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
       effects.push({ type: 'TOAST', key: `-:failed:${state.consecutiveFailures}`, text: `Stopped: ${state.consecutiveFailures} handovers in a row failed (last ${last}). Run /jeeves status.` })
       return done()
     }
-    if (state.rotationCount >= ctx.config.maxRotationsPerTask) {
+    if (state.rotationCount >= (state.maxRotations ?? ctx.config.maxRotationsPerTask)) {
       go('PAUSED', 'MAX_ROTATIONS', { rotation: null, armedFired: false }, `${state.rotationCount} rotations`)
-      effects.push({ type: 'TOAST', key: `-:max:${state.rotationCount}`, text: `Paused: this task reached ${state.rotationCount} rotations, the limit (MAX_ROTATIONS). /jeeves off ends it.` })
+      effects.push({ type: 'TOAST', key: `-:max:${state.rotationCount}`, text: `Paused: this task reached ${state.rotationCount} rotations, the limit (MAX_ROTATIONS). /jeeves limit <n> raises it, then /jeeves resume; /jeeves off ends it.` })
       return done()
     }
     const rotation: Rotation = {
@@ -352,6 +357,11 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
       if (state.status === 'DISABLED') return ignore('no active task')
       if (!isThreshold(input.percent)) return ignore(`threshold ${input.percent} is outside ${THRESHOLD_MIN}..${THRESHOLD_MAX}`)
       return edit({ thresholdPercent: input.percent, ...(state.laterCapped ? { laterCapped: false } : {}) }, `threshold-${input.percent}`, `threshold ${input.percent}%`)
+
+    case 'SET_LIMIT':
+      if (state.status === 'DISABLED') return ignore('no active task')
+      if (!isLimit(input.max)) return ignore(`limit ${input.max} is outside ${LIMIT_MIN}..${LIMIT_MAX}`)
+      return edit({ maxRotations: input.max }, `limit-${input.max}`, `limit ${input.max} handovers`)
 
     case 'ROTATE_CMD':
     case 'COMPACTED':

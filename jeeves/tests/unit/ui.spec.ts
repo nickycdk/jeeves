@@ -30,7 +30,7 @@ test('a task: mode, task, state, context or unknown, threshold, rotations, last 
   const state = validState({ status: 'PAUSED', reason: 'RATE_LIMIT', lastErrorCode: 'RATE_LIMIT', rotationCount: 2, sessionSequence: 3, lastValidatedHandover: 'history/handover-002.md#sha256:ab', lastContext: { window: 1_000_000, at: '2026-11-07T08:00:00Z', percent: 18 } })
   const t = statusText(view({ task: { state, dir } }))
   shape(t)
-  for (const want of ['Task: t_20261107_k3m9qa', 'State: PAUSED (RATE_LIMIT)', 'Context: 18%  Threshold: 50%', 'Rotations: 2  Session: 3', 'Last: handover-002.md, error RATE_LIMIT', 'Try: /jeeves resume | off | help']) assert.ok(t.includes(want), `missing "${want}" in\n${t}`)
+  for (const want of ['Task: t_20261107_k3m9qa', 'State: PAUSED (RATE_LIMIT)', 'Context: 18%  Threshold: 50%', 'Rotations: 2/30  Session: 3', 'Last: handover-002.md, error RATE_LIMIT', 'Try: /jeeves resume | off | help']) assert.ok(t.includes(want), `missing "${want}" in\n${t}`)
   const unknown = statusText(view({ task: { state: validState({ lastContext: { window: 1, at: '2026-11-07T08:00:00Z' } }), dir } }))
   assert.ok(unknown.includes('Context: unknown'), 'unknown, never 0%')
   assert.ok(!unknown.includes('0%  '))

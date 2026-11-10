@@ -30,7 +30,7 @@ test('AC-18: two sessions in one project: separate tasks, interleaved work, no w
   bottom(on)
   const { a, b } = await twoTasks($, h)
   h.access.length = 0
-  for (const [sid, pct] of [['A', 20], ['B', 30], ['A', 46], ['B', 47], ['A', 21]] as const) { as(h, sid); await measure($, pct) }
+  for (const [sid, pct] of [['A', 20], ['B', 30], ['A', 36], ['B', 37], ['A', 21]] as const) { as(h, sid); await measure($, pct) }
   as(h, 'B')
   await relay($, 'dod tests pass')
   await relay($, 'pause')
