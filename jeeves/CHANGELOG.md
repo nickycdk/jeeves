@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- The handover file's verified facts now list the commits made since the task started (`git log`, oldest first, at most 200), next to the files changed since then. Jeeves runs one more read-only git command per handover.
+- When the task follows a written plan, the handover request asks Claude to name the plan (its file, or its steps if it has none) and which steps are done, as a bullet under "Decisions and constraints". Without a plan nothing changes: no new section, and the handover format stays `v1`. The request text may now be up to 2,700 characters (was 2,500) to fit the sentence.
+
 ## 0.3.1 (release candidate; dated when tagged)
 
 Release notes: `docs/release-notes/v0.3.1.md`.

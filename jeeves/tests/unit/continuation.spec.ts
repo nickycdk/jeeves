@@ -11,7 +11,7 @@ const narrative = (): Narrative => { const r = parseHandover(readFileSync(new UR
 const merged = (changed: string[] | null) => renderHandover({
   n: 2, taskId: 't_20261107_k3m9qa', rotationId: 'r_fixture01', trigger: 'THRESHOLD', sourceSessionId: 'sess-a', at: AT, contextPercent: 52, retries: 0,
   taskRevision: 1, dod: [], checks: ['npm test'], taskStartHead: 'a1b2c3',
-  git: { kind: 'git', worktree: '/r', branch: 'main', detached: false, head: 'a1b2c3d4', status: [], changedSinceStart: changed },
+  git: { kind: 'git', worktree: '/r', branch: 'main', detached: false, head: 'a1b2c3d4', status: [], changedSinceStart: changed, commitsSinceStart: [] },
   crons: [], ledger: [], narrative: narrative(),
 })
 const VIEW = {

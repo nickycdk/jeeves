@@ -50,6 +50,8 @@ function verified(r: RenderInput): string[] {
         ...list(g.status, e => `\`${e.xy} ${e.path}${e.origPath ? ` <- ${e.origPath}` : ''}\``, 'clean').map(l => `  ${l}`),
         `- Files changed since the task started${r.taskStartHead ? ` (${r.taskStartHead.slice(0, 12)})` : ''}:`,
         ...(g.changedSinceStart === null ? ['  - (unknown: no start commit)'] : list(g.changedSinceStart, p => `\`${p}\``, 'none').map(l => `  ${l}`)),
+        '- Commits since the task started (git log, oldest first):',
+        ...(g.commitsSinceStart === null ? ['  - (unknown: no start commit)'] : list(g.commitsSinceStart, c => oneLine(c, 160), 'none').map(l => `  ${l}`)),
       ]
     : g.kind === 'none' ? ['- Not a git repository.'] : [`- Git facts unknown: ${g.reason}`]
   const edits = [...new Set(r.ledger.flatMap(e => (e.kind === 'edit' ? [e.path] : [])))]

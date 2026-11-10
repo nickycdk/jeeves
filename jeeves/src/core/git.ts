@@ -47,6 +47,8 @@ export type GitFacts =
       status: StatusEntry[]
       /** Files changed since the task's start commit (tracked diff + untracked); null without a start commit. */
       changedSinceStart: string[] | null
+      /** `<short sha> <subject>` per commit since the task's start commit, oldest first, at most COMMITS_MAX; null without a start commit. */
+      commitsSinceStart: string[] | null
     }
   | { kind: 'none' }
   /** Git could not be asked (timeout, git missing): never shown as "clean". */
@@ -55,6 +57,8 @@ export type GitFacts =
 export type RepoIdentity =
   | { kind: 'git'; commonDir: string; worktree: string }
   | { kind: 'none'; cwd: string }
+
+export const COMMITS_MAX = 200
 
 /** A commit id as git prints it (abbreviated or full, SHA-1 or SHA-256): never an option such as "--output=..." (ST-9.1). */
 export const COMMIT_RE = /^[0-9a-f]{4,64}$/

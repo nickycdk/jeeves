@@ -8,7 +8,7 @@ import { AT } from './helpers.ts'
 
 const read = (name: string) => readFileSync(new URL(`../fixtures/handover/${name}`, import.meta.url), 'utf8')
 const cmd = (command: string, ok: boolean, exit: number | null = ok ? 0 : 1): LedgerEntry => ({ kind: 'cmd', command, ok, exit, at: AT, agent: null })
-const GIT: GitFacts = { kind: 'git', worktree: '/r', branch: 'main', detached: false, head: 'a1b2c3d4e5f60718293a4b5c6d7e8f9012345678', status: [{ xy: ' M', path: 'src/calc.js' }], changedSinceStart: ['src/calc.js'] }
+const GIT: GitFacts = { kind: 'git', worktree: '/r', branch: 'main', detached: false, head: 'a1b2c3d4e5f60718293a4b5c6d7e8f9012345678', status: [{ xy: ' M', path: 'src/calc.js' }], changedSinceStart: ['src/calc.js'], commitsSinceStart: [] }
 /** The repository the synthetic fixtures describe: lint passed, the test suite failed. */
 const facts = (over: Partial<Facts> = {}): Facts => ({
   taskId: 't_20261107_k3m9qa', rotationId: 'r_fixture01', maxChars: 12000, git: GIT, capturedBranch: 'main',

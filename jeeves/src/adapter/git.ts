@@ -1,5 +1,5 @@
 // Repo identity and git facts via host git (read-only commands only; AC-19).
-import { COMMIT_RE, parsePorcelainZ, type GitFacts, type RepoIdentity } from '../core/git.ts'
+import { COMMIT_RE, COMMITS_MAX, parsePorcelainZ, type GitFacts, type RepoIdentity } from '../core/git.ts'
 import { projectIdFromHash, projectKey } from '../core/ids.ts'
 import { join } from '../core/paths.ts'
 import type { FsPort, ProcResult } from './ports.ts'
@@ -35,7 +35,7 @@ export async function projectId(id: RepoIdentity): Promise<string> {
   return projectIdFromHash(await sha256Hex(projectKey(id.kind === 'git' ? id : { cwd: id.cwd })))
 }
 
-/** Branch, HEAD, porcelain status and files changed since `taskStartHead`. Timeouts give `unknown`, never empty facts. */
+/** Branch, HEAD, porcelain status, and the files changed and commits made since `taskStartHead`. Timeouts give `unknown`, never empty facts. */
 export async function gitFacts(port: FsPort, id: RepoIdentity | null, taskStartHead: string | null = null): Promise<GitFacts> {
   if (id === null) return { kind: 'unknown', reason: 'git could not be run' }
   if (id.kind === 'none') return { kind: 'none' }
@@ -50,14 +50,20 @@ export async function gitFacts(port: FsPort, id: RepoIdentity | null, taskStartH
       head = h.exitCode === 0 ? h.stdout.trim() : null
     }
     let changedSinceStart: string[] | null = null
+    let commitsSinceStart: string[] | null = null
     if (taskStartHead && COMMIT_RE.test(taskStartHead)) {
       const d = await git(port, cwd, ['diff', '--name-only', '-z', taskStartHead, '--'])
       if (d.exitCode === 0) {
         const untracked = p.entries.filter(e => e.xy === '??').map(e => e.path)
         changedSinceStart = [...new Set([...d.stdout.split('\0').filter(Boolean), ...untracked])].sort()
       }
+      if (head) {
+        // --reverse applies after -n: the latest COMMITS_MAX commits, oldest first.
+        const l = await git(port, cwd, ['log', '--no-color', '--format=%h %s', '--reverse', '-n', String(COMMITS_MAX), `${taskStartHead}..HEAD`, '--'])
+        if (l.exitCode === 0) commitsSinceStart = l.stdout.split('\n').filter(Boolean)
+      }
     }
-    return { kind: 'git', worktree: cwd, branch: p.branch, detached: p.detached, head, status: p.entries, changedSinceStart }
+    return { kind: 'git', worktree: cwd, branch: p.branch, detached: p.detached, head, status: p.entries, changedSinceStart, commitsSinceStart }
   } catch (err) {
     return { kind: 'unknown', reason: `git did not answer: ${err instanceof Error ? err.message.slice(0, 120) : String(err)}` }
   }

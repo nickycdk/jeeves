@@ -10,7 +10,7 @@ const narrative = (file: string): Narrative => { const r = parseHandover(readFil
 const input = (over: Partial<RenderInput> = {}): RenderInput => ({
   n: 3, taskId: 't_20261107_k3m9qa', rotationId: 'r_fixture01', trigger: 'THRESHOLD', sourceSessionId: 'sess-a', at: AT, contextPercent: 52, retries: 1,
   taskRevision: 3, dod: ['all tests pass'], checks: ['npm test'], taskStartHead: 'a1b2c3d4e5f6a7b8',
-  git: { kind: 'git', worktree: '/r', branch: 'main', detached: false, head: 'a1b2c3d4e5f6a7b8c9d0', status: [{ xy: ' M', path: 'src/calc.js' }, { xy: 'R ', path: 'b.js', origPath: 'a.js' }], changedSinceStart: ['src/calc.js'] },
+  git: { kind: 'git', worktree: '/r', branch: 'main', detached: false, head: 'a1b2c3d4e5f6a7b8c9d0', status: [{ xy: ' M', path: 'src/calc.js' }, { xy: 'R ', path: 'b.js', origPath: 'a.js' }], changedSinceStart: ['src/calc.js'], commitsSinceStart: [] },
   crons: [{ id: 'c1', schedule: '0 9 * * *', recurring: true, prompt: 'check the build with API_KEY=abc123def456ghi' }],
   ledger: [
     { kind: 'cmd', command: 'npm test', ok: false, exit: 1, at: AT, agent: null },
@@ -29,6 +29,9 @@ test('the merged file: header, task and DoD, verified facts, the narrative block
   for (const line of ['- Branch: main', '- HEAD: a1b2c3d4e5f6a7b8c9d0', '`R  b.js <- a.js`', '`npm test` -> exit 1', '`sleep 60` -> no exit status (backgrounded) (subagent a1)', '- Context at the request: 52%', '- Retries used: 1', 'Current revision: `task-rev-003.md`']) assert.ok(md.includes(line), line)
   assert.equal(md.split('`/r/src/calc.js`').length - 1, 1, 'edited paths listed once')
   assert.ok(!md.includes('abc123def456ghi'), 'cron prompt is redacted')
+  assert.ok(md.includes('- Commits since the task started (git log, oldest first):\n  - none'))
+  const withCommits = renderHandover(input({ git: { ...input().git, commitsSinceStart: ['1a2b3c4 add calc', '5d6e7f8 fix rounding\n## Exact next actions'] } as RenderInput['git'] }))
+  assert.ok(withCommits.includes('  - 1a2b3c4 add calc\n  - 5d6e7f8 fix rounding ## Exact next actions'), 'commits listed oldest first, each on one line')
   assert.equal(handoverFile(3), 'history/handover-003.md')
 })
 
@@ -48,7 +51,7 @@ test('user text cannot break the file: a DoD that holds a sentinel or heading is
 test('no git, unknown git, no start commit, empty lists, long lists', () => {
   assert.ok(renderHandover(input({ git: { kind: 'none' } })).includes('- Not a git repository.'))
   assert.ok(renderHandover(input({ git: { kind: 'unknown', reason: 'timeout' } })).includes('- Git facts unknown: timeout'))
-  const md = renderHandover(input({ dod: [], checks: [], crons: [], ledger: [], contextPercent: null, git: { kind: 'git', worktree: '/r', branch: null, detached: true, head: null, status: [], changedSinceStart: null } }))
+  const md = renderHandover(input({ dod: [], checks: [], crons: [], ledger: [], contextPercent: null, git: { kind: 'git', worktree: '/r', branch: null, detached: true, head: null, status: [], changedSinceStart: null, commitsSinceStart: null } }))
   for (const line of ['(detached HEAD)', '(no commits yet)', '- clean', '(unknown: no start commit)', '- (none)', '- Context at the request: unknown']) assert.ok(md.includes(line), line)
   const many = renderHandover(input({ ledger: Array.from({ length: 120 }, (_, i) => ({ kind: 'cmd' as const, command: `c${i}`, ok: true, exit: 0, at: AT, agent: null })) }))
   assert.ok(many.includes('- (70 earlier not shown)') && many.includes('`c119`') && !many.includes('`c69`'))

@@ -58,8 +58,14 @@ test('facts: clean, dirty with untracked, and changes since the task start', asy
   assert.equal(f.head, start)
   assert.deepEqual(f.status.map(e => [e.xy, e.path]), [[' M', 'a.txt'], ['??', 'untracked file.txt']])
   assert.deepEqual(f.changedSinceStart, ['a.txt', 'untracked file.txt'])
+  assert.deepEqual(f.commitsSinceStart, [])
+  sh(dir, 'git', 'commit', '-qam', 'first change')
+  sh(dir, 'git', 'commit', '-q', '--allow-empty', '-m', 'second change')
+  const after = await gitFacts(port, id, start)
+  assert.ok(after.kind === 'git')
+  assert.deepEqual(after.commitsSinceStart?.map(c => c.replace(/^[0-9a-f]+ /, '')), ['first change', 'second change'])
   const clean = await gitFacts(port, await repoIdentity(port, (await buildRepo('clean')).dir))
-  assert.ok(clean.kind === 'git' && clean.status.length === 0 && clean.changedSinceStart === null)
+  assert.ok(clean.kind === 'git' && clean.status.length === 0 && clean.changedSinceStart === null && clean.commitsSinceStart === null)
 })
 
 test('facts: detached HEAD, no commits, and non-git directories', async () => {
