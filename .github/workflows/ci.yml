@@ -21,9 +21,8 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
-          cache: npm
-          cache-dependency-path: jeeves/package-lock.json
-      - run: npm ci
+      # No lockfile in the plugin folder: with one, Claude Code runs npm ci on install. TypeScript is pinned exactly in package.json.
+      - run: npm install --no-package-lock
       # lint type-checks src/core; engine types are not redistributable, so the full typecheck runs locally.
       - run: npm run lint
       - run: npm test

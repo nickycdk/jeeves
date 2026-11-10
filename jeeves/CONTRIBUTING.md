@@ -8,7 +8,7 @@ Requirements: Node 22.6 or later, git, and Claude Code 2.1.319 or later on `PATH
 
 ```sh
 git clone <repo url> jeeves && cd jeeves/jeeves   # the plugin (the folder with package.json) is jeeves/ inside the clone
-npm ci
+npm install --no-package-lock
 npm test                 # unit tests: no Claude Code needed
 npm run test:mod         # the hooks in Claude Code's test kit (auto-start row off)
 npm run test:mod:on      # the same suite with auto-start on

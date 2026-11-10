@@ -1,5 +1,7 @@
 .DS_Store
 node_modules/
+# Not committed: with a lockfile in the plugin folder, Claude Code runs npm ci when the plugin is installed.
+jeeves/package-lock.json
 jeeves/.claude-plugin/types/
 jeeves/tsconfig.engine.json
 __pycache__/

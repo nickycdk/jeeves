@@ -23,7 +23,7 @@ jobs:
           node-version: 22
       - name: The tag matches every version field
         run: |
-          for f in jeeves/.claude-plugin/plugin.json jeeves/package.json jeeves/package-lock.json; do
+          for f in jeeves/.claude-plugin/plugin.json jeeves/package.json; do
             v=$(node -p "require('./$f').version")
             test "v$v" = "$GITHUB_REF_NAME" || { echo "::error::tag $GITHUB_REF_NAME, but $f says $v"; exit 1; }
           done

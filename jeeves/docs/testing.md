@@ -87,7 +87,7 @@ Don't send transcripts or the state folder. It holds your task prompts and hando
 
 ## Part 2: the automated checks
 
-Run these from `jeeves/` inside the clone (`npm ci` first). None of them calls a model or costs anything. The details of each are in [CONTRIBUTING.md](../CONTRIBUTING.md#scripts).
+Run these from `jeeves/` inside the clone (`npm install --no-package-lock` first). None of them calls a model or costs anything. The details of each are in [CONTRIBUTING.md](../CONTRIBUTING.md#scripts).
 
 | Command | What it covers |
 |---|---|

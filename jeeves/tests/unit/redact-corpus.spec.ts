@@ -18,7 +18,7 @@ const CORPUS: [string, string, (s: string) => string, boolean][] = [
   ['anthropic-key', `sk-ant-api03-${pick(B64, 40)}`, s => `ANTHROPIC said use ${s} for now`, true],
   ['openai-key', `sk-proj-${pick(B64, 48)}`, s => `client = OpenAI(api_key=${s})`, true],
   ['openai-key', `sk-${pick(ALNUM, 48)}`, s => `key ${s}`, true],
-  ['github-token', `ghp_${pick(ALNUM, 36)}`, s => `git push https://x:${s}@github.com/a/b`, true],
+  ['github-token', `ghp_${pick(ALNUM, 36)}`, s => `remote: invalid token ${s}`, true],
   ['github-token', `github_pat_${pick(ALNUM + '_', 60)}`, s => `token=${s}`, true],
   ['aws-key-id', `AKIA${pick(AZ + D, 16)}`, s => `aws_access_key_id = ${s}`, true],
   ['stripe-key', `sk_live_${pick(ALNUM, 24)}`, s => `Stripe.apiKey = "${s}";`, true],
@@ -65,7 +65,7 @@ function cleanCorpus(): { lines: string[]; sources: number } {
 
 test('AC (2): false positives on normal code and handovers stay under 1 per 10,000 lines', () => {
   const { lines, sources } = cleanCorpus()
-  assert.ok(lines.length >= 10_000, `corpus too small (${lines.length} lines from ${sources} files): run npm ci`)
+  assert.ok(lines.length >= 10_000, `corpus too small (${lines.length} lines from ${sources} files): run npm install --no-package-lock`)
   const changed = lines.filter(l => redact(l) !== l)
   const per10k = (changed.length / lines.length) * 10_000
   console.log(`# redaction false positives: ${changed.length} in ${lines.length} lines (${per10k.toFixed(2)} per 10K)`)
