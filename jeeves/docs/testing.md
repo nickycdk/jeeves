@@ -10,9 +10,9 @@ This guide covers two things: how to try Jeeves by hand in a real Claude Code se
 - A git repository you don't mind Claude editing. A scratch copy of a real project works best, because a handover needs real work to describe.
 - Every session uses your normal Claude usage. Long tasks cost money. To keep a test cheap, use `/jeeves rotate` (hand over now) instead of waiting for the context to fill.
 
-### Install from a clone
+### Install
 
-The GitHub repository is private, so `--marketplace nickycdk/jeeves` works only for people with access. A clone always works:
+At the Claude Code prompt, `/plugin install jeeves --marketplace nickycdk/jeeves`. To test a local copy instead, install from a clone:
 
 ```sh
 git clone https://github.com/nickycdk/jeeves.git ~/jeeves-test

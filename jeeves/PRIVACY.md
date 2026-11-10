@@ -24,7 +24,7 @@ Everything sits in the state folder (`/jeeves status` shows where; never inside 
 
 In Claude Code's plugin store (kept by Claude Code on this machine), Jeeves keeps a few flags: whether its notices were shown, whether this install was an upgrade from 0.2, and per running session whether it is watched (and if not, why) and whether `/jeeves off` turned auto-start off there. No prompt text.
 
-It never stores the conversation transcript, tool output, or file contents.
+It never copies the conversation transcript, tool output, or your files. A handover is Claude's own summary and can quote small parts of them (see [Residual risk](#residual-risk) below).
 
 ## How long it keeps it
 
