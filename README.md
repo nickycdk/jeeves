@@ -43,7 +43,7 @@ This adds the marketplace and the plugin in one go. A note that some options are
 | **All three:** a git repository, a 200K+ context window, a new conversation | Just type your task. Jeeves starts automatically. |
 | **Any of these:** no git repository, a smaller context window, a resumed conversation | Run `/jeeves on`, then type your task. |
 
-Once Jeeves is watching, every handover happens by itself. The line under the prompt shows how full the context is, for example `Jeeves 12%/40%`. Not sure he's watching? `/jeeves status` tells you, and if he isn't, why.
+Once Jeeves is watching, every handover happens by itself. The line under the prompt shows how full the context is, for example `jeeves: 12%/40%`. Not sure he's watching? `/jeeves status` tells you, and if he isn't, why.
 
 ## Why not just `/compact`?
 
@@ -61,7 +61,7 @@ Once Jeeves is watching, every handover happens by itself. The line under the pr
 3. He checks it: the branch and commit match, the files it names exist, no test is claimed as passing when its last run failed, and nothing in it matches a recognised secret pattern. A handover that fails goes back to Claude with the reasons. After three tries, Jeeves stops and lets you know (a notification, if yours are on).
 4. He saves it with the commits made since the task started, runs `/clear`, and gives the fresh conversation your original task, the handover and the next steps. Decisions and dead ends carry over from one handover to the next, so Claude knows what already failed.
 
-You'll see `Jeeves: handover requested`, then `Jeeves: handover validated, starting fresh`, and Claude carries on.
+You'll see `jeeves: handover requested`, then `jeeves: handover validated, starting fresh`, and Claude carries on.
 
 Jeeves never runs your commands, never changes git, never answers permission prompts for you, and never marks a task done without proof. He knows his place. And unlike a certain other assistant, he never needs a coffee break. ☕
 

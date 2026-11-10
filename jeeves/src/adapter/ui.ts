@@ -317,7 +317,7 @@ export const REASON_TEXT: Record<ReasonCode, string> = {
   STALE_LOCK: 'Its owning session stopped.',
   SCHEMA_TOO_NEW: 'Files come from a newer Jeeves version.',
   REPO_MISMATCH: 'Repository differs from the task.',
-  DOD_UNMET: 'Not done: checks are missing.',
+  DOD_UNMET: 'Done, unproven. /jeeves done confirms',
   COMPLETED: 'Task completed.',
   STATE_CORRUPT: 'state.json unreadable; kept as is.',
 }

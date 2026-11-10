@@ -37,10 +37,10 @@ or from a shell: `claude plugin install jeeves --marketplace nickycdk/jeeves`. F
 The same in Terminal, iTerm, Cursor's or VS Code's integrated terminal: Jeeves lives inside Claude Code, not in the terminal.
 
 1. Open your project and start `claude`.
-2. Type your task and work as usual. In a git repository, on a model with a context window of 200K tokens or more, Jeeves takes your first prompt as the task by itself (see [Auto-start](#auto-start)). The entry under the prompt shows `Jeeves ?/40%` until Claude's first reply, then `Jeeves 12%/40%`.
+2. Type your task and work as usual. In a git repository, on a model with a context window of 200K tokens or more, Jeeves takes your first prompt as the task by itself (see [Auto-start](#auto-start)). The entry under the prompt shows `Jeeves ?/40%` until Claude's first reply, then `jeeves: 12%/40%`.
 3. Anywhere else, type `/jeeves on` before your task. Jeeves answers `Jeeves on: task t_... Your next prompt is saved word for word as the task.` (the first time on a machine, plus three lines on where it keeps files and how to pause). Or `/jeeves on <goal>`: the goal is saved and sent as the first prompt.
 4. Optional: `/jeeves check npm test` adds a command that proves the task is done, and `/jeeves dod <text>` a done criterion. Jeeves stores them as text and never runs them; Claude does, and Jeeves checks the result.
-5. At 40% Jeeves takes over between turns: `Jeeves: handover requested`, `... validated, starting fresh. Previous conversation: claude --resume <id>`, then the fresh conversation continues. The old conversation stays in Claude Code; resumed with that command, it can be read but cannot drive the task (`/jeeves status` there says `Owned by another session`). In full mode you type nothing, unless Claude asks for a permission as it would without Jeeves.
+5. At 40% Jeeves takes over between turns: `jeeves: handover requested`, `... validated, starting fresh. Previous conversation: claude --resume <id>`, then the fresh conversation continues. The old conversation stays in Claude Code; resumed with that command, it can be read but cannot drive the task (`/jeeves status` there says `Owned by another session`). In full mode you type nothing, unless Claude asks for a permission as it would without Jeeves.
 
 `/jeeves pause` stops handovers until `/jeeves resume`; `/jeeves off` ends the task (files kept).
 
@@ -89,7 +89,7 @@ An auto task works like any other, with these differences:
 
 ## What you see
 
-While a task is on, Jeeves keeps one entry under the prompt: `Jeeves 34%/40%` (context used / threshold) while it watches, or the current step in words (`Jeeves: writing handover`, `Jeeves: paused (USER_PAUSE)`). In an auto-started task the entry stays empty until the context is within 15 points of the threshold (from 25% with a 40% threshold); `/jeeves` shows the full picture at any time. Your own status line is not changed. Each step of a handover adds one dim line to the transcript; Claude does not see these lines. Errors also show as a short notice.
+While a task is on, Jeeves keeps one entry under the prompt: `jeeves: 34%/40%` (context used / threshold) while it watches, or the current step in words (`jeeves: writing handover`, `jeeves: paused (USER_PAUSE)`). In an auto-started task the entry stays empty until the context is within 15 points of the threshold (from 25% with a 40% threshold); `/jeeves` shows the full picture at any time. Your own status line is not changed. Each step of a handover adds one dim line to the transcript; Claude does not see these lines. Errors also show as a short notice.
 
 ## Data and privacy
 

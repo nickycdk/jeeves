@@ -30,6 +30,9 @@ export function fsPort($: EngineInterface): FsPort {
   }
 }
 
+/** Claude Code already shows the plugin's name before a status or transcript line (`jeeves: ...`), so drop ours. */
+const unnamed = (text: string) => text.replace(/^Jeeves:? /, '')
+
 function refused(r: { drop?: string | undefined }): void {
   if (r.drop !== undefined) throw new Error(`prompt refused: ${r.drop}`)
 }
@@ -58,11 +61,11 @@ export function enginePort($: EngineInterface): EnginePort {
     submitPromptSoon: (text, onError) => { $.clock.after(0, () => { $.prompt.submit({ text }).then(refused).catch(onError) }) },
     appendHiddenNote: async text => { await $.session.append({ message: { type: 'user', content: [{ type: 'text', text }] } }) },
     runningAgents: async () => (await $.agent.list()).filter(a => a.status === 'running').length,
-    status: text => $.ui.status(text),
+    status: text => $.ui.status(text === undefined ? text : unnamed(text)),
     toast: text => $.ui.toast(text),
     notify: text => { $.ui.notify(text, { title: 'Jeeves' }).catch(err => $.ui.log(`jeeves: notify failed: ${String(err)}`, { to: 'debug' })) },
     log: text => $.ui.log(text, { to: 'debug' }),
-    note: text => $.ui.log(text),
+    note: text => $.ui.log(unnamed(text)),
     now: () => $.clock.now(),
     pluginVersion: () => $.fs.read(`${$.plugin.root}/.claude-plugin/plugin.json`).then(t => String(JSON.parse(t).version ?? '') || null, () => null),
     firstActivation: async () => {

@@ -93,7 +93,7 @@ test('ST-13.7 AC 1, 2: a user /clear ends an auto task (files kept, lock given u
   const s = stateOf(h, dir)
   expect([s.status, s.reason]).toEqual(['DISABLED', 'USER_CLEAR'])
   expect(h.toasts).toContain(ended)
-  expect(h.notes).toContain('Jeeves: off (task files kept)')
+  expect(h.notes).toContain('off (task files kept)')
   expect(h.files.has(`${dir}/lock.d/owner.json`)).toBe(false)
   expect(h.files.get(`${dir}/task-rev-001.md`)).toBe(PROMPT)
   await submit($, 'Now the CSV export.')

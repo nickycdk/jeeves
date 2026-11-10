@@ -12,25 +12,25 @@ test('a full rotation: one line per transition, in order; status shows context/t
   const g = await generating($, on)
   const { h, dir, ctl } = g
   expect(h.notes).toEqual([
-    'Jeeves: on, watching context',
-    'Jeeves: handover requested (THRESHOLD)',
-    'Jeeves: asking Claude for the handover',
+    'on, watching context',
+    'handover requested (THRESHOLD)',
+    'asking Claude for the handover',
   ])
-  expect(h.status).toContain('Jeeves ?/40%')
-  expect(h.status).toContain('Jeeves: handover requested')
+  expect(h.status).toContain('?/40%')
+  expect(h.status).toContain('handover requested')
   expect(await stop($, handover(g.taskId, g.rotationId))).toEqual({})
   ctl.onClear = async () => { await engineClear($, h, 'sess-2') }
   await turnEnd($)
   await until(h, () => stateOf(h, dir).status === 'CONTINUING')
   await measure($, 4)
   expect(h.notes.slice(3)).toEqual([
-    'Jeeves: checking the handover',
-    'Jeeves: handover validated (goal: Finish operator precedence in the calculator.), starting fresh. Previous conversation: claude --resume sess-test',
-    'Jeeves: restoring the task',
-    'Jeeves: the fresh conversation continues the task',
-    'Jeeves: session 2 at 4%, watching context',
+    'checking the handover',
+    'handover validated (goal: Finish operator precedence in the calculator.), starting fresh. Previous conversation: claude --resume sess-test',
+    'restoring the task',
+    'the fresh conversation continues the task',
+    'session 2 at 4%, watching context',
   ])
-  expect(h.status.at(-1)).toBe('Jeeves 4%/40%')
+  expect(h.status.at(-1)).toBe('4%/40%')
   for (const s of h.status) expect((s ?? '').length).toBeLessThanOrEqual(40)
   expect(h.notes.every(n => /^[\x20-\x7e]+$/.test(n))).toBe(true)
 })
@@ -43,16 +43,16 @@ test('tool calls and readings below the threshold add no transcript line; pause 
   await relay($, 'on')
   await submit($, PROMPT)
   for (const p of [10, 20, 30]) await measure($, p)
-  expect(h.notes).toEqual(['Jeeves: on, watching context'])
+  expect(h.notes).toEqual(['on, watching context'])
   await $.tool.call({ tool: 'Bash', command: 'ls' })
   await $.tool.call({ tool: 'Bash', command: 'ls' })
-  expect(h.notes).toEqual(['Jeeves: on, watching context'])
-  expect(h.status.at(-1)).toBe('Jeeves 30%/40%')
+  expect(h.notes).toEqual(['on, watching context'])
+  expect(h.status.at(-1)).toBe('30%/40%')
   await relay($, 'pause')
-  expect(h.notes.at(-1)).toBe('Jeeves: paused (USER_PAUSE): Paused by you. /jeeves resume')
-  expect(h.status.at(-1)).toBe('Jeeves: paused (USER_PAUSE)')
+  expect(h.notes.at(-1)).toBe('paused (USER_PAUSE): Paused by you. /jeeves resume')
+  expect(h.status.at(-1)).toBe('paused (USER_PAUSE)')
   await relay($, 'off')
-  expect(h.notes.at(-1)).toBe('Jeeves: off (task files kept)')
+  expect(h.notes.at(-1)).toBe('off (task files kept)')
   expect(h.status.at(-1)).toBe(undefined)
 })
 
@@ -165,7 +165,7 @@ test('ST-14.5: an auto task\'s status entry is empty until within 15 points of t
   for (const p of [10, 24]) await measure($, p)
   expect(h.status.filter(s => s !== undefined)).toEqual([])
   await measure($, 25)
-  expect(h.status.at(-1)).toBe('Jeeves 25%/40%')
+  expect(h.status.at(-1)).toBe('25%/40%')
   await measure($, 12)
   expect(h.status.at(-1)).toBe(undefined)
 })
@@ -175,8 +175,8 @@ test('ST-14.5: an explicit task\'s status entry shows from the start', ROW, asyn
   bottom(on)
   await start($)
   await relay($, 'on')
-  expect(h.status.at(-1)).toBe('Jeeves ?/40%')
+  expect(h.status.at(-1)).toBe('?/40%')
   await submit($, PROMPT)
   await measure($, 10)
-  expect(h.status.at(-1)).toBe('Jeeves 10%/40%')
+  expect(h.status.at(-1)).toBe('10%/40%')
 })

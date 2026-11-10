@@ -130,7 +130,7 @@ test('an interrupted turn is never nudged: the user has the floor', async ($, on
 test('ST-14.3: the rotation line names the old conversation in full; resumed, it cannot drive the task', async ($, on) => {
   const g = await rotating($, on)
   const { h, dir } = g
-  expect(h.notes).toContain(`Jeeves: handover validated (goal: Finish operator precedence in the calculator.), starting fresh. Previous conversation: claude --resume sess-test`)
+  expect(h.notes).toContain(`handover validated (goal: Finish operator precedence in the calculator.), starting fresh. Previous conversation: claude --resume sess-test`)
   g.ctl.onClear = async () => { await engineClear($, h, 'sess-2') }
   await turnEnd($)
   await until(h, () => stateOf(h, dir).status === 'CONTINUING')

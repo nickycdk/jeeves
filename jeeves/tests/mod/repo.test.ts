@@ -24,8 +24,8 @@ test('DISK: a failed state write -> BLOCKED(DISK), the toast names the folder an
   await $.session.measure({ context: { window: 1_000_000, percent: 30 }, rateLimits: [], changed: ['context'] })
   expect([stateOf(h, dir).status, stateOf(h, dir).reason]).toEqual(['BLOCKED', 'DISK'])
   expect(h.toasts.at(-1)).toContain(`Blocked (DISK): Jeeves could not write its task files in ${dir}`)
-  expect(h.notes.at(-1)).toMatch(/^Jeeves: blocked \(DISK\)/)
-  expect(h.status.at(-1)).toBe('Jeeves: blocked (DISK)')
+  expect(h.notes.at(-1)).toMatch(/^blocked \(DISK\)/)
+  expect(h.status.at(-1)).toBe('blocked (DISK)')
   expect(h.toasts.at(-1)).toContain('Free disk space or fix that folder\'s permissions, then type /jeeves resume.')
   await $.session.measure({ context: { window: 1_000_000, percent: 80 }, rateLimits: [], changed: ['context'] })
   expect(stateOf(h, dir).status).toBe('BLOCKED')
@@ -44,7 +44,7 @@ test('DISK: when even the BLOCKED write fails, the last checkpoint stays as it w
   h.failWrite = p => p.includes('state.json.tmp')
   await $.session.measure({ context: { window: 1_000_000, percent: 30 }, rateLimits: [], changed: ['context'] })
   expect(h.files.get(`${dir}/state.json`)).toBe(before)
-  expect(h.status.at(-1)).toBe('Jeeves: blocked, cannot write (DISK)')
+  expect(h.status.at(-1)).toBe('blocked, cannot write (DISK)')
 })
 
 test('REPO_MISMATCH: recover on another branch than the handover\'s -> BLOCKED, no continuation; --relink continues once', async ($, on) => {
