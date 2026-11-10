@@ -42,12 +42,12 @@ export function handoverInstruction(p: { taskId: string; rotationId: string; max
     ...HEADINGS.flatMap(h => [`## ${h}`, h === GOAL ? '- [inferred] <what the task aims at now, one line>' : h === 'Exact next actions' ? '1. [inferred] <first concrete step>' : '- [verified] <fact you checked> / [inferred] <your conclusion> / [unknown] <open question>']),
     CLOSE,
     '',
-    'If the task follows a written plan, add a "Decisions and constraints" bullet naming its file (absolute path if outside the repository) or its steps, and which are done. No plan: say nothing about one.',
+    'Carry over every decision, constraint and dead end from the previous handover in your context that still holds. Under "Do not repeat / do not change", list each approach you tried and dropped, and why. If the task follows a written plan, add a "Decisions and constraints" bullet naming its file (absolute path if outside the repository) or its steps, and which are done. No plan: say nothing about one.',
     `Every bullet starts with one tag: [verified] (you saw it in tool output this session), [inferred], or [unknown]. Every section has at least one bullet; write "- [verified] none" if empty. "Current goal": 1 or 2 bullets, each at most ${GOAL_CHARS_MAX} characters. "Exact next actions" is a numbered list with at least one item. A [verified] bullet that names a file or claims a check passed is checked against the repository and the command record: name each file by its real path from the repository root, never a placeholder such as stepN or a path starting with ../. Copy the first and last line of the block exactly.`,
   ].join('\n')
 }
 
-export const HANDOVER_INSTRUCTION_MAX = 2700
+export const HANDOVER_INSTRUCTION_MAX = 2900
 
 /** The Stop `block` text after an invalid handover: the specific errors, then the exact first line again. */
 export function retryInstruction(p: { taskId: string; rotationId: string; errors: string[] }): string {

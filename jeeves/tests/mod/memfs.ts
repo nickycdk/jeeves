@@ -4,6 +4,7 @@ import { mock, type MockClock } from 'claude-code/testing'
 
 export type MemHost = {
   toasts: string[]
+  notifications: { text: string; title?: string | undefined }[]
   commands: { name: string; description: string; source: 'builtin' | 'plugin' | 'user' | 'mcp'; plugin?: string }[]
   registered: string[]
   status: (string | undefined)[]
@@ -60,7 +61,7 @@ export const T0 = Date.parse('2026-11-07T08:00:00.000Z')
 /** `store`: what the plugin store holds at the start (a v0.2 install's keys, an earlier upgrade check). */
 export function memHost(on: On, env: Record<string, string> = { HOME: '/home/t' }, store: Readonly<Record<string, unknown>> = {}): MemHost {
   const h: MemHost = {
-    commands: [], registered: [], toasts: [], status: [], version: '2.1.319', failProcess: false, files: new Map(), dirs: new Set(['/', '/work', '/work/proj']), cwd: '/work/proj', access: [], env, argv: [], failWrite: null,
+    commands: [], registered: [], toasts: [], notifications: [], status: [], version: '2.1.319', failProcess: false, files: new Map(), dirs: new Set(['/', '/work', '/work/proj']), cwd: '/work/proj', access: [], env, argv: [], failWrite: null,
     sessionId: 'sess-test', agents: [], fills: [], turns: 0, logs: [], notes: [], clock: mock.clock(on, { now: T0 }), usage: { window: 200_000 }, rateLimits: [], store: new Map(Object.entries(store)),
   }
   // The plugin store as a Map the test can read and change (the kit's mock.store keeps a copy out of reach).
@@ -85,6 +86,7 @@ export function memHost(on: On, env: Record<string, string> = { HOME: '/home/t' 
   on('session.id', () => ({ value: h.sessionId }))
   on('session.turns', () => ({ value: h.turns }))
   on('ui.toast', (_, e) => { h.toasts.push(e.text); return { value: undefined } })
+  on('ui.notify', (_, e) => { h.notifications.push({ text: e.text, title: e.title }); return { value: { isSent: true, channel: 'terminal_bell' } as never } })
   on('ui.log', (_, e) => { (e.to === 'debug' ? h.logs : h.notes).push(e.text); return { value: undefined } })
   on('ui.status', (_, e) => { h.status.push(e.text); return { value: undefined } })
   on('fs.stat', (_, e) => {

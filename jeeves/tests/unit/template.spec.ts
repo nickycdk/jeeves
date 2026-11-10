@@ -12,7 +12,7 @@ test('ST-3.4: the instruction matches its snapshot and is the same for the same 
   assert.equal(handoverInstruction({ ...input }), handoverInstruction(input))
 })
 
-test('ST-3.4: at most 2,700 characters, even with long ids, a long branch and the largest budget', () => {
+test('ST-3.4: at most 2,900 characters, even with long ids, a long branch and the largest budget', () => {
   const worst = handoverInstruction({ taskId: 't'.repeat(100), rotationId: 'r'.repeat(100), maxChars: 100_000, facts: { branch: 'b'.repeat(250), head: 'f'.repeat(40), changedFiles: 99999, commands: 200, edits: 200 } })
   assert.ok(worst.length <= HANDOVER_INSTRUCTION_MAX, `${worst.length}`)
 })

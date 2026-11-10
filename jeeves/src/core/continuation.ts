@@ -99,6 +99,7 @@ export function continuationPrompt(c: ContinuationInput): string {
         'Completed:', ...items(n.sections['Completed since last handover']),
         files,
         'Tests and checks, with their last results:', ...items(n.sections['Tests and checks']),
+        'Decisions and constraints:', ...items(n.sections['Decisions and constraints']),
         'Do not repeat or change:', ...items(n.sections['Do not repeat / do not change']),
         'Open work and blockers:', ...items(n.sections['Open work and blockers']),
         '',

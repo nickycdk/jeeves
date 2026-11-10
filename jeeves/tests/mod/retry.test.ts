@@ -12,6 +12,7 @@ async function invalid($: Kit, on: Parameters<typeof generating>[1]) {
   for (let i = 0; i < 3; i++) await stop($, BAD)
   await turnEnd($)
   expect([stateOf(g.h, g.dir).status, stateOf(g.h, g.dir).reason]).toEqual(['NEEDS_REVIEW', 'HANDOVER_INVALID'])
+  expect(g.h.notifications.map(n => [n.title, n.text.split(':')[0]])).toEqual([['Jeeves', 'needs review (HANDOVER_INVALID)']])
   return g
 }
 

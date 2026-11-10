@@ -72,7 +72,7 @@ An auto task works like any other, with these differences:
 
 ## What it does by itself, and what it does not
 
-**It does:** watch the context figure (the one in the status line), wait for Claude to stop with nothing in flight, ask for a handover, check it (format, ids, size, no secrets, files named as verified exist, branch and HEAD match git, no "passed" claim for a command whose last run failed), save it with a SHA-256 next to the commits made since the task started, run `/clear` once, and send the continuation prompt. A message you type during a handover is held and quoted in the fresh conversation.
+**It does:** watch the context figure (the one in the status line), wait for Claude to stop with nothing in flight, ask for a handover, check it (format, ids, size, no secrets, files named as verified exist, branch and HEAD match git, no "passed" claim for a command whose last run failed), save it with a SHA-256 next to the commits made since the task started, run `/clear` once, and send the continuation prompt. A message you type during a handover is held and quoted in the fresh conversation. When a task stops and needs you, or completes, Jeeves sends a notification through Claude Code's own notification setting.
 
 **It does not:** run your commands or tests, change git (no commit, stash, checkout or reset, ever), touch your permissions or settings, send anything over the network, or answer permission prompts for you. It never claims a task is done without evidence: a task is completed only when Claude reports it with the checks you gave and Jeeves's record shows them passing, or when you confirm with `/jeeves done`.
 

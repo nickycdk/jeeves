@@ -14,7 +14,7 @@ import { join } from '../core/paths.ts'
 import { foldTask, newTaskState, simulateWindow, parseRevision, renderChange, revFile, type ChangeKind, type TaskView } from '../core/task.ts'
 import { DEFAULT_CONFIG, INERT, SCHEMA_VERSION, type ReasonCode, type State, type TaskOrigin } from '../core/types.ts'
 import { runEffects, type EffectResult } from './effects.ts'
-import { MSG, shownThreshold, statusLine, transitionLine } from './ui.ts'
+import { MSG, needsYou, shownThreshold, statusLine, transitionLine } from './ui.ts'
 import { gitFacts } from './git.ts'
 import { bgCount, bgReset, type CrashPoint, type Runtime } from './runtime.ts'
 import { carryOver } from './eligible.ts'
@@ -82,6 +82,7 @@ async function transition(rt: Runtime, dir: string, prev: State, input: Input): 
     const line = e.type === 'LOG_EVENT' ? transitionLine(e.from, e.to, e.code, state) : null
     if (line) rt.port.note(line)
   }
+  if (needsYou(prev, state)) rt.port.notify((transitionLine(prev.status, state.status, state.reason, state) ?? state.status).replace(/^Jeeves: /, ''))
   rt.port.status(statusLine(state, shownThreshold(state, rt.thresholdOverride, rt.thresholdRelative)))
   return { state, forHook: r.forHook }
 }

@@ -60,6 +60,7 @@ export function enginePort($: EngineInterface): EnginePort {
     runningAgents: async () => (await $.agent.list()).filter(a => a.status === 'running').length,
     status: text => $.ui.status(text),
     toast: text => $.ui.toast(text),
+    notify: text => { $.ui.notify(text, { title: 'Jeeves' }).catch(err => $.ui.log(`jeeves: notify failed: ${String(err)}`, { to: 'debug' })) },
     log: text => $.ui.log(text, { to: 'debug' }),
     note: text => $.ui.log(text),
     now: () => $.clock.now(),

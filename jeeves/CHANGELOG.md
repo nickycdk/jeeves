@@ -3,7 +3,9 @@
 ## Unreleased
 
 - The handover file's verified facts now list the commits made since the task started (`git log`, oldest first, at most 200), next to the files changed since then. Jeeves runs one more read-only git command per handover.
-- When the task follows a written plan, the handover request asks Claude to name the plan (its file, or its steps if it has none) and which steps are done, as a bullet under "Decisions and constraints". Without a plan nothing changes: no new section, and the handover format stays `v1`. The request text may now be up to 2,700 characters (was 2,500) to fit the sentence.
+- When the task follows a written plan, the handover request asks Claude to name the plan (its file, or its steps if it has none) and which steps are done, as a bullet under "Decisions and constraints". Without a plan nothing changes: no new section, and the handover format stays `v1`. The request text may now be up to 2,900 characters (was 2,500) to fit this and the next item.
+- The handover keeps reasons and dead ends. Claude is asked to carry over every decision, constraint and dead end from the previous handover that still holds, and to list each approach it tried and dropped, with why, under "Do not repeat / do not change". The fresh conversation's start prompt now also lists "Decisions and constraints" (it showed the other sections but not this one). The format is unchanged.
+- Jeeves sends a notification when a task stops by itself and waits for you (`NEEDS_REVIEW`, `FAILED`, `BLOCKED`, or a pause you did not ask for, such as the handover limit or a rate limit) and when a task completes. It goes through Claude Code's own notification setting (`$.ui.notify`, the `preferredNotifChannel` setting; turn it off there). A pause, `/clear` or interrupt you caused does not notify.
 
 ## 0.3.1 (release candidate; dated when tagged)
 

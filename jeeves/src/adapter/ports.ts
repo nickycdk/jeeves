@@ -52,6 +52,8 @@ export interface EnginePort extends FsPort {
   runningAgents(): Promise<number>
   status(text?: string): void
   toast(text: string): void
+  /** A native notification through the user's own notification setting (`$.ui.notify`); never throws. */
+  notify(text: string): void
   log(text: string): void
   /** One dim transcript line the user sees and the model does not (`$.ui.log`). */
   note(text: string): void

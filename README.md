@@ -58,8 +58,8 @@ Once Jeeves is watching, every handover happens by itself. The line under the pr
 
 1. Jeeves waits until Claude has stopped and nothing is still running.
 2. He asks Claude for a handover: where things stand, what comes next, and how far along the plan is, if there is one.
-3. He checks it: the branch and commit match, the files it names exist, no test is claimed as passing when its last run failed, and nothing in it matches a recognised secret pattern. A handover that fails goes back to Claude with the reasons. After three tries, Jeeves stops and asks you.
-4. He saves it with the commits made since the task started, runs `/clear`, and gives the fresh conversation your original task, the handover and the next steps.
+3. He checks it: the branch and commit match, the files it names exist, no test is claimed as passing when its last run failed, and nothing in it matches a recognised secret pattern. A handover that fails goes back to Claude with the reasons. After three tries, Jeeves stops and sends you a notification.
+4. He saves it with the commits made since the task started, runs `/clear`, and gives the fresh conversation your original task, the handover and the next steps. Decisions and dead ends carry over from one handover to the next, so Claude doesn't retry what already failed.
 
 You'll see `Jeeves: handover requested`, then `Jeeves: handover validated, starting fresh`, and Claude carries on.
 

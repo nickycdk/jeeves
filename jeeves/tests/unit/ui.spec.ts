@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { chooseCommandName, pickTask } from '../../src/adapter/commands.ts'
-import { ARGUMENT_HINT, firstActivationText, HELP, statusText, WIDTH, type StatusView } from '../../src/adapter/ui.ts'
+import { ARGUMENT_HINT, firstActivationText, HELP, needsYou, statusText, WIDTH, type StatusView } from '../../src/adapter/ui.ts'
 import { probe, submitRefused, turnMode } from '../../src/core/probe.ts'
 import { validState } from './helpers.ts'
 
@@ -160,4 +160,20 @@ test('ST-14.2: the commands line offers what fits now and survives the 8-line ru
   const crowded = statusText(view({ probe: submitRefused(turnMode(full)), task: { state: validState({ status: 'PAUSED', reason: 'USER_PAUSE', taskRevision: 0 }), dir }, defaultsError: 'bad', thresholdOverride: 30, windowOverride: 200_000 }))
   shape(crowded)
   for (const want of ['Paused by you', 'Try: /jeeves resume | off | help']) assert.ok(crowded.includes(want), crowded)
+})
+
+test('needsYou: a stop the user did not cause, or a finished task, notifies once; their own stops and rotations do not', () => {
+  const on = validState({ status: 'MONITORING', reason: null })
+  const at = (status: Parameters<typeof validState>[0]['status'], reason: Parameters<typeof validState>[0]['reason'] = null) => validState({ status, reason })
+  assert.equal(needsYou(on, at('NEEDS_REVIEW', 'HANDOVER_INVALID')), true)
+  assert.equal(needsYou(on, at('PAUSED', 'MAX_ROTATIONS')), true)
+  assert.equal(needsYou(on, at('PAUSED', 'RATE_LIMIT')), true)
+  assert.equal(needsYou(on, at('BLOCKED', 'DISK')), true)
+  assert.equal(needsYou(on, at('FAILED', 'API_ERROR')), true)
+  assert.equal(needsYou(on, at('COMPLETED', 'COMPLETED')), true)
+  assert.equal(needsYou(on, at('PAUSED', 'USER_PAUSE')), false)
+  assert.equal(needsYou(on, at('PAUSED', 'USER_CLEAR')), false)
+  assert.equal(needsYou(on, at('PAUSED', 'USER_INTERRUPT')), false)
+  assert.equal(needsYou(on, at('ROTATING')), false)
+  assert.equal(needsYou(at('NEEDS_REVIEW', 'HANDOVER_INVALID'), at('NEEDS_REVIEW', 'HANDOVER_INVALID')), false)
 })

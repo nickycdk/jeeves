@@ -24,6 +24,8 @@ Everything sits in the state folder (`/jeeves status` shows where; never inside 
 
 In Claude Code's plugin store (kept by Claude Code on this machine), Jeeves keeps a few flags: whether its notices were shown, whether this install was an upgrade from 0.2, and per running session whether it is watched (and if not, why) and whether `/jeeves off` turned auto-start off there. No prompt text.
 
+A notification (a task stopped and needs you, or completed) carries only the state and its reason, never prompt or file text, and goes wherever your Claude Code notification setting and `Notification` hooks send it.
+
 It never copies the conversation transcript, tool output, or your files. A handover is Claude's own summary and can quote small parts of them (see [Residual risk](#residual-risk) below).
 
 ## How long it keeps it

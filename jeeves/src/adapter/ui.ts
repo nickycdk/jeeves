@@ -83,6 +83,13 @@ const tokensAt = (window: number | undefined, pct: number) => {
   return k >= 1 ? ` (~${k}K)` : ''
 }
 
+const USER_STOPS = new Set<ReasonCode>(['USER_PAUSE', 'USER_CLEAR', 'USER_INTERRUPT'])
+/** The task just stopped by itself and waits for the user, or finished: worth a notification, since they may be away. */
+export const needsYou = (prev: State, next: State) =>
+  (next.status !== prev.status || next.reason !== prev.reason) &&
+  (next.status === 'NEEDS_REVIEW' || next.status === 'FAILED' || next.status === 'BLOCKED' || next.status === 'COMPLETED' ||
+    (next.status === 'PAUSED' && next.reason !== null && !USER_STOPS.has(next.reason)))
+
 /** `/jeeves resume` applies (FR-11). */
 export const resumable = (s: State) => s.status === 'PAUSED' || (s.status === 'BLOCKED' && s.reason === 'DISK')
 /** `/jeeves retry` applies (ST-10.2, ST-10.3), until the failure limit is used up. */
