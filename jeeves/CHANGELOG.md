@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.3.4 (2026-11-10)
+
+Release notes: `docs/release-notes/v0.3.4.md`.
 
 - The README says what the mod does on your machine: the programs it runs, the files it writes, the slash command and prompts it sends, and what its hooks change. For the Claude plugin directory's review.
 - `package-lock.json` is no longer in the plugin folder: with it, Claude Code runs `npm ci` when the plugin is installed, which downloaded TypeScript (a development-only tool) to every install. TypeScript stays pinned exactly in `package.json`; developers run `npm install --no-package-lock`.
