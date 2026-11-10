@@ -20,7 +20,7 @@ test('a running task: every line present, home as ~, no session id in full, noth
   expect(lines).toContain('OS: Linux')
   expect(lines).toContain('State folder: ~/.local/state/jeeves (os-default), writable: yes')
   expect(text).toMatch(/\nGit: not found; this folder: repository, project [0-9a-f]{16}\n/)
-  expect(text).toMatch(/\nTask: t_\d{8}_[a-z0-9]{6} MONITORING, mode full, schema 2, rotations 0, session 1\n/)
+  expect(text).toMatch(/\nTask: t_\d{8}_[a-z0-9]{6} MONITORING, mode full, schema 3, rotations 0, session 1\n/)
   expect(lines).toContain('Lock: this session')
   expect(lines.at(-1)).toBe('Last error: none')
   expect(text).not.toContain('/home/t')

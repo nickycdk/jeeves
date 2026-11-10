@@ -102,7 +102,7 @@ async function blockOnDisk(rt: Runtime, dir: string, prev: State, to: State['sta
     for (const e of out.effects) { const line = e.type === 'LOG_EVENT' ? transitionLine(e.from, e.to, e.code, out.state) : null; if (line) rt.port.note(line) }
     rt.port.status(statusLine(out.state, shownThreshold(out.state, rt.thresholdOverride, rt.thresholdRelative)))
   } catch {
-    rt.port.status('Jeeves: blocked, cannot write (DISK)')
+    rt.port.status('Jeeves: blocked, cannot write to disk')
   }
 }
 

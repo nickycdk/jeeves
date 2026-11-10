@@ -47,6 +47,8 @@ writeFileSync(join(PLUGIN, 'docs/compatibility.md'), [
   '',
   ...rows.filter(r => !r.validate).flatMap(r => [`- ${r.v}: validate says \`${r.why}\``]),
   '',
+  '**Failed Bash output** (checked live on 2.1.322, `docs/done/evidence/failed-output/` at the repository root): the hook gets stdout and stderr merged in print order, after an `Exit code N` line. Output above about 30,000 characters is cut by Claude Code before the hook sees it, so the output lines Jeeves keeps for a failed command are then the last ones Claude saw, not the real end.',
+  '',
 ].join('\n'))
 
 function cmp(a, b) {

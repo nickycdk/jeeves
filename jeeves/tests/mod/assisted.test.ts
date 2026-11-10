@@ -16,7 +16,7 @@ test('AC-25: /clear refused -> assisted, status says so; continue refused with t
 
   const status = await relay($, 'status')
   expect(status.split('\n')[0]).toBe(TURN ? 'Jeeves  mode: assisted (turn)' : 'Jeeves  mode: assisted')
-  expect(status).toContain('State: NEEDS_REVIEW (ROTATE_UNAVAILABLE)')
+  expect(status).toContain('State: waiting for you')
   expect(status).toContain('Run /clear, then /jeeves continue.')
   expect(status).not.toMatch(/automatic|by itself/i)
 

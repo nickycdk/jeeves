@@ -12,7 +12,7 @@ test('a rate limit during the handover: PAUSED(RATE_LIMIT) with the reset time; 
   await fail($, 'rate_limit')
   const s = stateOf(h, dir)
   expect([s.status, s.reason, s.consecutiveFailures]).toEqual(['PAUSED', 'RATE_LIMIT', 0])
-  expect(h.toasts.at(-1)).toBe('Paused (RATE_LIMIT): the usage limit is reached. It resets at 2026-11-07 14:00 UTC. Then type /jeeves resume.')
+  expect(h.toasts.at(-1)).toBe('Paused: the usage limit is reached. It resets at 2026-11-07 14:00 UTC. Then type /jeeves resume.')
   await turnEnd($)
   await h.clock.advance(5_000)
   await until(h, () => true)

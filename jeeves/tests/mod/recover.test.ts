@@ -21,7 +21,7 @@ test('AC 1-3: crash in ROTATING -> notice, LOCK_HELD while the lock is live, the
   await restart($, h)
   expect(h.toasts.at(-1)).toBe(`Task ${g.taskId} is ROTATING in another session. If that session stopped, /jeeves recover takes it over once it has been silent for 2 minutes.`)
   const live = await relay($, 'recover')
-  expect(live).toContain('(LOCK_HELD)')
+  expect(live).toContain('Another')
   expect(live).toMatch(/try again in \d+ s/)
   expect(stateOf(h, dir).status).toBe('ROTATING')
 
@@ -43,7 +43,7 @@ test('AC 1-3: crash in ROTATING -> notice, LOCK_HELD while the lock is live, the
   expect(await relay($, 'recover')).toBe('This session runs the task already: nothing to recover. /jeeves status shows it.')
   // From yet another session, while this one is alive: refused.
   h.sessionId = 'sess-3'
-  expect(await relay($, 'recover')).toContain('(LOCK_HELD)')
+  expect(await relay($, 'recover')).toContain('Another')
   await h.clock.settle()
   expect(continuations(prompts).length).toBe(1)
 })

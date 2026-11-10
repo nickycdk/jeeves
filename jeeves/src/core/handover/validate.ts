@@ -4,6 +4,7 @@
 // Reading of 02 §6.4 (D-20): file paths, branch/HEAD and "passed" claims are checked in [verified] bullets, plus
 // every bullet under "Tests and checks". [inferred]/[unknown] bullets are labelled guesses ("check for a
 // `package.json`"), and checking them would make valid handovers fail.
+import { LOOKUP } from '../evidence.ts'
 import type { GitFacts } from '../git.ts'
 import { normalize } from '../paths.ts'
 import { findSecrets } from '../redact.ts'
@@ -74,7 +75,6 @@ const BRANCH_CLAIMS = [/\b(?:on|current|working)\s+branch\s*(?:is\s+|:\s*|=\s*)?
 const HEAD_CLAIM = /\bHEAD\s*(?:is|at|=|:)?\s*`?([0-9a-f]{7,40})\b/gi
 const PASS = /\b(pass(es|ed|ing)?|green|succeed(s|ed)?|successful(ly)?|ok|works)\b/i
 const NOT_PASS = /\b(fail(s|ed|ing|ure)?|not\s+pass|doesn't\s+pass|does\s+not\s+pass|broken|red|errors?|untested|not\s+run)\b/i
-const LOOKUP = /^(grep|egrep|fgrep|rg|diff|test|ls|cat|find)\s/
 const flat = (s: string) => s.replace(/\s+/g, ' ').trim().toLowerCase()
 
 /** Parse, then check against the facts. Errors are written for Claude: each names what to fix. */

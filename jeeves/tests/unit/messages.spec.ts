@@ -40,7 +40,7 @@ test('ST-6.2 AC 1: each StopFailure code has its own reason and its own fix; pla
   const codes = ['RATE_LIMIT', 'AUTH', 'BILLING', 'OVERLOADED', 'API_ERROR'] as const
   const texts = codes.map(c => stopFailureText(c, 'x'))
   assert.equal(new Set(texts).size, codes.length)
-  for (const [i, c] of codes.entries()) assert.ok(texts[i]!.startsWith(`Paused (${c}): `), texts[i])
+  for (const [i, c] of codes.entries()) assert.ok(texts[i]!.startsWith('Paused: ') && !texts[i]!.includes(c), texts[i])
   assert.match(stopFailureText('AUTH', 'authentication_failed'), /\/login/)
   for (const t of texts) assert.match(t, /^[\x20-\x7e]+$/)
   assert.match(stopFailureText('RATE_LIMIT', 'rate_limit', 'not a date'), /reached\. Then/)

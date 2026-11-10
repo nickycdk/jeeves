@@ -1,7 +1,7 @@
 // The state machine (02 §4): reduce(state, input, ctx) -> { state, effects }. Pure: time and IDs come in through ctx.
 import { largeWindow } from './autostart.ts'
 import { evaluate } from './completion.ts'
-import type { LedgerRecord } from './evidence.ts'
+import { pruneTails, type LedgerRecord } from './evidence.ts'
 import { INERT, LEDGER_MAX, ROTATION_STATES, SCHEMA_VERSION, type Config, type Mode, type ReasonCode, type Rotation, type RotationStep, type SessionRecord, type State, type Status, type Trigger } from './types.ts'
 
 export type Input =
@@ -162,17 +162,17 @@ export const recoverable = (s: State) =>
 
 /** ST-6.5 / AC-23: a failed task-file write names the folder and the fix. */
 export const diskText = (path: string, error: string) =>
-  `Blocked (DISK): Jeeves could not write its task files in ${path} (${error.slice(0, 120)}). The last saved state is kept. Free disk space or fix that folder's permissions, then type /jeeves resume.`
+  `Blocked: Jeeves could not write its task files in ${path} (${error.slice(0, 120)}). The last saved state is kept. Free disk space or fix that folder's permissions, then type /jeeves resume.`
 
 /** What the user should do about each StopFailure code (ST-6.2, AC-23). Jeeves never retries by itself. */
 export function stopFailureText(code: ReasonCode, error: string, resetsAt?: string): string {
   const reset = resetsAt && !Number.isNaN(Date.parse(resetsAt)) ? new Date(resetsAt).toISOString().slice(0, 16).replace('T', ' ') + ' UTC' : null
   switch (code) {
-    case 'RATE_LIMIT': return `Paused (RATE_LIMIT): the usage limit is reached.${reset ? ` It resets at ${reset}.` : ''} Then type /jeeves resume.`
-    case 'AUTH': return `Paused (AUTH): Claude Code is not logged in (${error}). Run /login, then /jeeves resume.`
-    case 'BILLING': return `Paused (BILLING): your account has a billing problem (${error}). Fix it, then /jeeves resume.`
-    case 'OVERLOADED': return 'Paused (OVERLOADED): the API is overloaded. Wait a few minutes, then /jeeves resume.'
-    default: return `Paused (API_ERROR): the API returned an error (${error}). /jeeves resume tries again.`
+    case 'RATE_LIMIT': return `Paused: the usage limit is reached.${reset ? ` It resets at ${reset}.` : ''} Then type /jeeves resume.`
+    case 'AUTH': return `Paused: Claude Code is not logged in (${error}). Run /login, then /jeeves resume.`
+    case 'BILLING': return `Paused: your account has a billing problem (${error}). Fix it, then /jeeves resume.`
+    case 'OVERLOADED': return 'Paused: the API is overloaded. Wait a few minutes, then /jeeves resume.'
+    default: return `Paused: the API returned an error (${error}). /jeeves resume tries again.`
   }
 }
 
@@ -243,7 +243,7 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
     }
     if (state.rotationCount >= (state.maxRotations ?? ctx.config.maxRotationsPerTask)) {
       go('PAUSED', 'MAX_ROTATIONS', { rotation: null, armedFired: false }, `${state.rotationCount} rotations`)
-      effects.push({ type: 'TOAST', key: `-:max:${state.rotationCount}`, text: `Paused: this task reached ${state.rotationCount} rotations, the limit (MAX_ROTATIONS). /jeeves limit <n> raises it, then /jeeves resume; /jeeves off ends it.` })
+      effects.push({ type: 'TOAST', key: `-:max:${state.rotationCount}`, text: `Paused: this task reached ${state.rotationCount} rotations, the limit. /jeeves limit <n> raises it, then /jeeves resume; /jeeves off ends it.` })
       return done()
     }
     const rotation: Rotation = {
@@ -388,7 +388,10 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
         return { state: t.state, effects: [...m.effects, ...t.effects] }
       }
       // Recorded without an event line: the ledger is evidence, not a transition.
-      if (input.entry) next = { ...next, ledger: [...state.ledger, { ...input.entry, at }].slice(-LEDGER_MAX), updatedAt: at }
+      if (input.entry) {
+        const ledger = [...state.ledger, { ...input.entry, at }].slice(-LEDGER_MAX)
+        next = { ...next, ledger: input.entry.kind === 'cmd' ? pruneTails(ledger) : ledger, updatedAt: at }
+      }
       if (input.main && state.status === 'ROTATION_REQUESTED' && !state.rotation!.noteAppended) {
         setRotation({ noteAppended: true })
         effects.push({ type: 'APPEND_NOTE', key: key('note') })
@@ -445,7 +448,7 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
       if (state.status !== 'VALIDATING') return ignore('no handover being persisted')
       if (!input.ok || !input.ref) {
         go('NEEDS_REVIEW', 'DISK', { rotation: null }, 'handover could not be saved and verified')
-        effects.push({ type: 'TOAST', key: key('disk'), text: 'Could not save the handover (DISK). Nothing was cleared.' })
+        effects.push({ type: 'TOAST', key: key('disk'), text: 'Could not save the handover to disk. Nothing was cleared.' })
         return done()
       }
       // The ref in the event keeps every handover's hash, for /jeeves history --full (ST-11.3).

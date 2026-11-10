@@ -72,7 +72,7 @@ An auto task works like any other, with these differences:
 
 ## What it does by itself, and what it does not
 
-**It does:** watch the context figure (the one in the status line), wait for Claude to stop with nothing in flight, ask for a handover, check it (format, ids, size, no secrets, files named as verified exist, branch and HEAD match git, no "passed" claim for a command whose last run failed), save it with a SHA-256 next to the commits made since the task started, run `/clear` once, and send the continuation prompt. A message you type during a handover is held and quoted in the fresh conversation. When a task stops and needs you, or completes, Jeeves sends a notification through Claude Code's own notification setting.
+**It does:** watch the context figure (the one in the status line), wait for Claude to stop with nothing in flight, ask for a handover, check it (format, ids, size, no secrets, files named as verified exist, branch and HEAD match git, no "passed" claim for a command whose last run failed), save it with a SHA-256 next to the commits made since the task started and the last output lines of commands that failed and have not passed since, run `/clear` once, and send the continuation prompt. A message you type during a handover is held and quoted in the fresh conversation. When a task stops and needs you, or completes, Jeeves sends a notification through Claude Code's own notification setting.
 
 **It does not:** run your commands or tests, change git (no commit, stash, checkout or reset, ever), touch your permissions or settings, send anything over the network, or answer permission prompts for you. It never claims a task is done without evidence: a task is completed only when Claude reports it with the checks you gave and Jeeves's record shows them passing, or when you confirm with `/jeeves done`.
 
@@ -89,11 +89,11 @@ An auto task works like any other, with these differences:
 
 ## What you see
 
-While a task is on, Jeeves keeps one entry under the prompt: `jeeves: 34%/40%` (context used / threshold) while it watches, or the current step in words (`jeeves: writing handover`, `jeeves: paused (USER_PAUSE)`). In an auto-started task the entry stays empty until the context is within 15 points of the threshold (from 25% with a 40% threshold); `/jeeves` shows the full picture at any time. Your own status line is not changed. Each step of a handover adds one dim line to the transcript; Claude does not see these lines. Errors also show as a short notice.
+While a task is on, Jeeves keeps one entry under the prompt: `jeeves: 34%/40%` (context used / threshold) while it watches, or the current step in words (`jeeves: writing handover`, `jeeves: Paused by you. /jeeves resume`). In an auto-started task the entry stays empty until the context is within 15 points of the threshold (from 25% with a 40% threshold); `/jeeves` shows the full picture at any time. Your own status line is not changed. Each step of a handover adds one dim line to the transcript; Claude does not see these lines. Errors also show as a short notice.
 
 ## Data and privacy
 
-Everything stays on your machine, in the state folder (`/jeeves status` shows it; never inside your repository unless you set `stateDir` there): your task prompt, the handovers with a git facts snapshot each, a redacted log of state changes and of the last 200 commands and edited file paths. Never the transcript or file contents. With auto-start, recording begins at the first prompt you type in a watched session (on an upgrade from 0.2, only once you turn auto-start on). Known secret formats are masked. The full list, and what masking catches and misses, is in [PRIVACY.md](PRIVACY.md). Delete it with `/jeeves purge --all` (or `--task`, `--project`) or by deleting the folder.
+Everything stays on your machine, in the state folder (`/jeeves status` shows it; never inside your repository unless you set `stateDir` there): your task prompt, the handovers with a git facts snapshot each, a redacted log of state changes and of the last 200 commands and edited file paths, and the last output lines (redacted) of up to 3 commands that failed and have not passed since. Never the transcript or file contents. With auto-start, recording begins at the first prompt you type in a watched session (on an upgrade from 0.2, only once you turn auto-start on). Known secret formats are masked. The full list, and what masking catches and misses, is in [PRIVACY.md](PRIVACY.md). Delete it with `/jeeves purge --all` (or `--task`, `--project`) or by deleting the folder.
 
 ## Commands
 
@@ -113,8 +113,8 @@ All are `/jeeves <command>`. Only commands you type yourself change a task; anyt
 | `task` | Show the original prompt, every change since and the Definition of Done. |
 | `dod <text>` | Add a done criterion (a new task revision, never an edit). |
 | `check <cmd>` | Add a verification command (stored as text, never run by Jeeves). |
-| `done` | Confirm by hand a task stopped as `DOD_UNMET` (recorded as your decision). |
-| `retry` | After `NEEDS_REVIEW (HANDOVER_INVALID)`: ask for the handover again. After `NEEDS_REVIEW (POSSIBLE_LOOP)`: keep working in this conversation without a handover in it. Counts toward the 2 failed handovers in a row. |
+| `done` | Confirm by hand a task Claude says is done but Jeeves could not prove (`Claude says done. Confirm: /jeeves done`; recorded as your decision). |
+| `retry` | After `Handover failed checks`: ask for the handover again. After `Fresh session too full`: keep working in this conversation without a handover in it. Counts toward the 2 failed handovers in a row. |
 | `continue` | Assisted mode: after `/clear`, continue the task in the fresh conversation. |
 | `recover [--relink]` | Continue a task an earlier session left interrupted (crash, closed terminal). `--relink` continues after a branch switch or a moved folder. |
 | `status [--diagnose]` | Mode, task (`auto` or `explicit`), state, context, threshold, rotations, state folder; with no task of this session's own, whether auto-start watches it and if not why. `--diagnose`: a redacted report for a bug report, with every reason. |

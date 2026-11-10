@@ -18,7 +18,7 @@ test('ST-3.4: at most 2,900 characters, even with long ids, a long branch and th
 })
 
 test('the facts line: detached HEAD, no git, unknown git, singulars', () => {
-  assert.equal(factsLine({ branch: null, head: 'abc', changedFiles: 1, commands: 1, edits: 0 }), 'Jeeves already recorded: a detached HEAD at abc, 1 changed file, 1 command with exit codes, 0 edits.')
+  assert.equal(factsLine({ branch: null, head: 'abc', changedFiles: 1, commands: 1, edits: 0 }), 'Jeeves already recorded: a detached HEAD at abc, 1 changed file, 1 command with exit codes and failure output, 0 edits.')
   const ledger = [{ kind: 'cmd' as const, command: 'x', ok: true, exit: 0, at: '', agent: null }, { kind: 'edit' as const, path: '/a', at: '', agent: null }]
   assert.deepEqual(capturedFacts({ kind: 'none' }, ledger), { branch: null, head: null, changedFiles: null, commands: 1, edits: 1 })
   assert.equal(capturedFacts({ kind: 'unknown', reason: 'timeout' }, ledger), null)

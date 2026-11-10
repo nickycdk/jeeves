@@ -23,11 +23,11 @@ export type CapturedFacts = { branch: string | null; head: string | null; change
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`
 
 export function factsLine(f: CapturedFacts | null): string {
-  if (!f) return 'Jeeves records git status, branch, HEAD, edited files and command exit codes itself.'
+  if (!f) return 'Jeeves records git status, branch, HEAD, edited files, command exit codes and failure output itself.'
   const where = f.branch ? `branch ${f.branch}` : 'a detached HEAD'
   const head = f.head ? ` at ${f.head.slice(0, 12)}` : ''
   const changed = f.changedFiles === null ? '' : `, ${plural(f.changedFiles, 'changed file')}`
-  return `Jeeves already recorded: ${where}${head}${changed}, ${plural(f.commands, 'command')} with exit codes, ${plural(f.edits, 'edit')}.`
+  return `Jeeves already recorded: ${where}${head}${changed}, ${plural(f.commands, 'command')} with exit codes and failure output, ${plural(f.edits, 'edit')}.`
 }
 
 /** The Stop `block` text that asks Claude for the handover (ST-3.4, ADR-003). Deterministic; at most HANDOVER_INSTRUCTION_MAX characters. */

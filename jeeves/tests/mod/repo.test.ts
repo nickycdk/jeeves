@@ -23,9 +23,9 @@ test('DISK: a failed state write -> BLOCKED(DISK), the toast names the folder an
   h.failWrite = p => p.includes('state.json.tmp') && failures-- > 0
   await $.session.measure({ context: { window: 1_000_000, percent: 30 }, rateLimits: [], changed: ['context'] })
   expect([stateOf(h, dir).status, stateOf(h, dir).reason]).toEqual(['BLOCKED', 'DISK'])
-  expect(h.toasts.at(-1)).toContain(`Blocked (DISK): Jeeves could not write its task files in ${dir}`)
-  expect(h.notes.at(-1)).toMatch(/^blocked \(DISK\)/)
-  expect(h.status.at(-1)).toBe('blocked (DISK)')
+  expect(h.toasts.at(-1)).toContain(`Blocked: Jeeves could not write its task files in ${dir}`)
+  expect(h.notes.at(-1)).toMatch(/^Could not save task files to disk/)
+  expect(h.status.at(-1)).toBe('Could not save task files to disk.')
   expect(h.toasts.at(-1)).toContain('Free disk space or fix that folder\'s permissions, then type /jeeves resume.')
   await $.session.measure({ context: { window: 1_000_000, percent: 80 }, rateLimits: [], changed: ['context'] })
   expect(stateOf(h, dir).status).toBe('BLOCKED')
@@ -44,7 +44,7 @@ test('DISK: when even the BLOCKED write fails, the last checkpoint stays as it w
   h.failWrite = p => p.includes('state.json.tmp')
   await $.session.measure({ context: { window: 1_000_000, percent: 30 }, rateLimits: [], changed: ['context'] })
   expect(h.files.get(`${dir}/state.json`)).toBe(before)
-  expect(h.status.at(-1)).toBe('blocked, cannot write (DISK)')
+  expect(h.status.at(-1)).toBe('blocked, cannot write to disk')
 })
 
 test('REPO_MISMATCH: recover on another branch than the handover\'s -> BLOCKED, no continuation; --relink continues once', async ($, on) => {
@@ -55,9 +55,9 @@ test('REPO_MISMATCH: recover on another branch than the handover\'s -> BLOCKED, 
   g.branch.name = 'feature/x'
   await restart($, h)
   const said = await relay($, 'recover')
-  expect(said).toBe('Blocked (REPO_MISMATCH): the handover was written on branch main, but the repository is on feature/x. Nothing was continued. Switch back to main and type /jeeves recover, or type /jeeves recover --relink to continue on feature/x.')
+  expect(said).toBe('Blocked: the handover was written on branch main, but the repository is on feature/x. Nothing was continued. Switch back to main and type /jeeves recover, or type /jeeves recover --relink to continue on feature/x.')
   expect([stateOf(h, dir).status, stateOf(h, dir).reason, stateOf(h, dir).activeSessionId]).toEqual(['BLOCKED', 'REPO_MISMATCH', 'sess-2'])
-  expect(await relay($, 'recover')).toContain('(REPO_MISMATCH)')
+  expect(await relay($, 'recover')).toContain('Blocked: the handover was written on branch')
   await h.clock.settle()
   expect(continuations(prompts).length).toBe(0)
   expect(await relay($, 'recover --relink')).toContain('Recovering task')
@@ -73,7 +73,7 @@ test('REPO_MISMATCH: switching back to the handover\'s branch lets a plain /jeev
   expect(await stop($, handover(g.taskId, g.rotationId))).toEqual({})
   g.branch.name = 'other'
   await restart($, h)
-  expect(await relay($, 'recover')).toContain('(REPO_MISMATCH)')
+  expect(await relay($, 'recover')).toContain('Blocked: the handover was written on branch')
   g.branch.name = 'main'
   expect(await relay($, 'recover')).toContain('Recovering task')
   await until(h, () => continuations(prompts).length === 1)
@@ -87,7 +87,7 @@ test('moved repository: the task is found by its old folder, named with the fix,
   h.dirs.add('/work/moved')
   h.cwd = '/work/moved'
   await restart($, h)
-  expect(await relay($, 'recover')).toBe(`Task ${g.taskId} was started in /work/proj, which no longer exists (REPO_MISMATCH). If you moved the repository here, type /jeeves recover --relink to continue it here.`)
+  expect(await relay($, 'recover')).toBe(`Task ${g.taskId} was started in /work/proj, which no longer exists. If you moved the repository here, type /jeeves recover --relink to continue it here.`)
   expect(h.files.has(`${dir}/state.json`)).toBe(true)
   const said = await relay($, 'recover --relink')
   expect(said).toContain(`Task ${g.taskId} moved here from /work/proj.`)

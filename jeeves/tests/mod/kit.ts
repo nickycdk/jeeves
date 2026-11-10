@@ -185,7 +185,7 @@ export async function generating($: Kit, on: Parameters<typeof memHost>[0], opts
     return { text: '' }
   })
   on('tool.call', (_, e) => (((e as { command?: string }).command ?? '').startsWith('npm test')
-    ? { isError: true, result: 'Exit code 1', text: 'Exit code 1' } : { result: { stdout: '', stderr: '', interrupted: false }, text: '' }) as ToolCallResult)
+    ? { isError: true, result: 'Error: Exit code 1\nFAIL src/calc.test.js', text: 'Exit code 1\nFAIL src/calc.test.js' } : { result: { stdout: '', stderr: '', interrupted: false }, text: '' }) as ToolCallResult)
   for (const f of ['src/calc.js', 'src/parse.js', 'src/tokenize.js']) h.files.set(`${ROOT}/${f}`, '// code\n')
   await start($)
   if (!opts.auto) await relay($, 'on')
@@ -243,7 +243,7 @@ export async function turnGenerating($: Kit, on: Parameters<typeof memHost>[0], 
     return { text: '' }
   })
   on('tool.call', (_, e) => ((e as { command?: string }).command === 'npm test'
-    ? { isError: true, result: 'Exit code 1', text: 'Exit code 1' } : { result: {}, text: '' }) as ToolCallResult)
+    ? { isError: true, result: 'Error: Exit code 1\nFAIL src/calc.test.js', text: 'Exit code 1\nFAIL src/calc.test.js' } : { result: {}, text: '' }) as ToolCallResult)
   for (const f of ['src/calc.js', 'src/parse.js', 'src/tokenize.js']) h.files.set(`${ROOT}/${f}`, '// code\n')
   await start($)
   await wholeTurn($)

@@ -15,8 +15,8 @@ Jeeves runs on your machine and sends nothing anywhere. It has no server, no tel
 Everything sits in the state folder (`/jeeves status` shows where; never inside your repository unless you set `stateDir` there):
 
 - your original task prompt, word for word (`task-rev-001.md`): the prompt after `/jeeves on`, or the first prompt you typed in a session Jeeves watches by itself; and each `/jeeves dod` and `/jeeves check` you type later, and a goal you give with `/jeeves on <goal>` in a task Jeeves started by itself;
-- `state.json`: the task's state, whether it started by `/jeeves on` or by itself, the last context reading, and the evidence ledger: the last 200 commands Claude ran (redacted, at most 300 characters each, with exit status) and the paths of files it edited;
-- handovers Claude writes at each rotation (`history/handover-NNN.md`) and a facts snapshot per rotation (branch, HEAD, `git status` entries, scheduled crons; no crons in turn mode, where Jeeves cannot see them);
+- `state.json`: the task's state, whether it started by `/jeeves on` or by itself, the last context reading, and the evidence ledger: the last 200 commands Claude ran (redacted, at most 300 characters each, with exit status) and the paths of files it edited; and, for at most 3 commands that failed and have not passed since, the last output lines of the failed run (redacted, at most 20 lines and 1,200 characters each, one per command, removed when that command passes);
+- handovers Claude writes at each rotation (`history/handover-NNN.md`) and a facts snapshot per rotation (branch, HEAD, `git status` entries, scheduled crons; no crons in turn mode, where Jeeves cannot see them). The handover file also holds the failed-command output lines the ledger held when it was written, and keeps them until you purge it;
 - a message you type while a handover is under way, word for word, in `state.json` until the fresh conversation receives it, then removed;
 - `events.jsonl`: one short, redacted line per state change (a held message is named by its length there, never quoted);
 - per project, if you set them with `/jeeves defaults`: a default threshold, the default check commands you typed, as text, and auto-start on or off (`projects/<project>/config.json`). Jeeves never runs the commands;
@@ -26,7 +26,7 @@ In Claude Code's plugin store (kept by Claude Code on this machine), Jeeves keep
 
 A notification (a task stopped and needs you, or completed) carries only the state and its reason, never prompt or file text, and goes wherever your Claude Code notification setting and `Notification` hooks send it.
 
-It never copies the conversation transcript, tool output, or your files. A handover is Claude's own summary and can quote small parts of them (see [Residual risk](#residual-risk) below).
+It never copies the conversation transcript or your files, and of tool output only the last lines of failed commands (above). A handover is Claude's own summary and can quote small parts of them (see [Residual risk](#residual-risk) below).
 
 ## How long it keeps it
 
@@ -39,7 +39,7 @@ Uninstalling Jeeves does not delete the state folder. To delete:
 
 ## Redaction
 
-Before a command enters the ledger or a line enters the event log, Jeeves masks these formats: private key blocks, Anthropic, OpenAI, GitHub, AWS access key IDs, Stripe, Slack, JWTs, credentials in URLs, `Bearer` tokens, and values after key-like names (`API_KEY=…`, `aws_secret_access_key = …`, `"client_secret": "…"`, `password: '…'`). A handover that contains a high-confidence secret (any of the named formats) is rejected and Claude is asked to remove it.
+Before a command or a failed command's output lines enter the ledger, or a line enters the event log, Jeeves masks these formats: private key blocks, Anthropic, OpenAI, GitHub, AWS access key IDs, Stripe, Slack, JWTs, credentials in URLs, `Bearer` tokens, and values after key-like names (`API_KEY=…`, `aws_secret_access_key = …`, `"client_secret": "…"`, `password: '…'`). A handover that contains a high-confidence secret (any of the named formats) is rejected and Claude is asked to remove it.
 
 ## Residual risk
 
@@ -48,8 +48,9 @@ Redaction is pattern matching. It misses:
 - a secret with no known prefix that is not assigned to a key-like name (a bare random string in prose);
 - a secret Claude paraphrases or splits across lines;
 - a value after a key-like name that looks like code: a plain lowercase word in quotes, or a bare value with no digit (`password = hunter`);
-- secrets inside file paths or command arguments that look like ordinary words.
+- secrets inside file paths or command arguments that look like ordinary words;
+- a secret a failing command prints in no known format (a test that dumps an unlabelled token). For proportion: Claude Code's own transcript files on this machine already hold the full output; the ledger keeps a smaller, redacted copy of its last lines.
 
-Handovers are written by Claude from its own context. Anything in that context, including text other hooks inject, can end up in a handover; only the formats above are blocked. Treat the state folder like your shell history: keep it on your own machine and do not share it.
+Handovers are written by Claude from its own context. Anything in that context, including text other hooks inject, can end up in a handover; only the formats above are blocked. Treat the state folder like your shell history: keep it on your own machine and do not share it. If you set `stateDir` inside a repository, add it to `.gitignore`.
 
 False positives were measured at 0.23 changed lines per 10,000 on TypeScript's own type libraries, this repo's source and its handover fixtures (`tests/unit/redact-corpus.spec.ts`).

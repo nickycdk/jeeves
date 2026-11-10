@@ -1,6 +1,6 @@
 Jeeves: this conversation will be replaced by a fresh one to free context. Write a handover so the next conversation can continue the task without repeating work.
 Rules: do not run any new tool or command now; summarise only. Write only task-relevant facts. Never include secrets, tokens, passwords or .env contents.
-Jeeves already recorded: branch main at a1b2c3d4e5f6, 3 changed files, 7 commands with exit codes, 1 edit. Do not restate raw diffs or command output; name files and commands instead, in `backticks`.
+Jeeves already recorded: branch main at a1b2c3d4e5f6, 3 changed files, 7 commands with exit codes and failure output, 1 edit. Do not restate raw diffs or command output; name files and commands instead, in `backticks`.
 Reply with exactly one block in this exact format, nothing inside it but the seven sections, at most 12000 characters:
 
 <<<JEEVES-HANDOVER v1 task=t_20261107_k3m9qa rotation=r_20261107080000_abcdef

@@ -55,8 +55,8 @@ test('AC-18: same task twice -> LOCK_HELD for every change from the other sessio
   const before = h.files.get(`${a}/state.json`)
   as(h, 'B')
   await relay($, 'off')
-  expect(await relay($, 'off')).toContain('(LOCK_HELD)')
-  expect(await relay($, 'recover')).toContain('(LOCK_HELD)')
+  expect(await relay($, 'off')).toContain('Another')
+  expect(await relay($, 'recover')).toContain('Another')
   expect(h.files.get(`${a}/state.json`)).toBe(before)
 })
 
@@ -89,7 +89,7 @@ test('AC-18: two worktrees of one repository and a second repository get separat
   h.cwd = '/work/wt'
   as(h, 'B')
   await start($)
-  expect(await relay($, 'on')).not.toContain('LOCK_HELD')
+  expect(await relay($, 'on')).not.toContain('Another running session')
   // A second repository.
   h.dirs.add('/work/other')
   h.git = undefined

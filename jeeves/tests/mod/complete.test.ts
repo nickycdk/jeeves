@@ -49,7 +49,7 @@ test('AC-13: "done" alone does nothing; a block before the check runs is blocked
   // COMPLETED stops all rotation, and the session may start a new task.
   await $.session.measure({ context: { window: 1_000_000, percent: 90 }, rateLimits: [], changed: ['context'] } satisfies SessionMeasureInput)
   expect(stateOf(h, dir).status).toBe('COMPLETED')
-  expect(await relay($, 'status')).toContain('State: COMPLETED')
+  expect(await relay($, 'status')).toContain('State: done')
   expect(await relay($, 'on')).toContain('Jeeves on: task')
 })
 
@@ -109,7 +109,7 @@ test('review fix 2: /jeeves done from another live session is LOCK_HELD; after t
   await stopWith($, complete(taskId))
   expect(stateOf(h, dir).reason).toBe('DOD_UNMET')
   h.sessionId = 'sess-other-process'
-  expect(await relay($, 'done')).toBe(`Another running session owns task ${taskId} here (LOCK_HELD). /jeeves status shows it read-only.`)
+  expect(await relay($, 'done')).toBe(`Another running session owns task ${taskId} here. /jeeves status shows it read-only.`)
   expect(stateOf(h, dir).status).toBe('NEEDS_REVIEW')
   h.sessionId = 'sess-test'
   await $.session.end({ reason: 'clear', sessionId: 'sess-test', resume: { id: 'sess-test' } })

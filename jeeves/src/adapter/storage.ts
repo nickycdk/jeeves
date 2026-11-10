@@ -2,7 +2,7 @@
 import { isStale, STALE_MS } from '../core/lock.ts'
 import { isInside, join } from '../core/paths.ts'
 import { eventDetail } from '../core/redact.ts'
-import { check, parseJson, type Result } from '../core/schema.ts'
+import { check, parseJson, stateVersion, type Result } from '../core/schema.ts'
 import { SCHEMA_VERSION, type EventLine, type LockOwner, type State } from '../core/types.ts'
 import type { FsPort } from './ports.ts'
 
@@ -143,7 +143,7 @@ export function createStorage(port: FsPort, opts: { eventLogMaxBytes?: number } 
     writeState: (taskDir: string, state: State) => enqueue(async () => {
       const valid = check('state', state)
       if (!valid.ok) throw new StorageError('INVALID', `refusing to write an invalid state: ${valid.errors.slice(0, 3).join('; ')}`)
-      await swap(join(taskDir, 'state.json'), JSON.stringify(state, null, 2) + '\n')
+      await swap(join(taskDir, 'state.json'), JSON.stringify({ ...state, schemaVersion: stateVersion(state) }, null, 2) + '\n')
     }),
 
     /** Replace a mutable convenience file (handover.md) by the same tmp + hash check + `mv -f` swap as state.json. */

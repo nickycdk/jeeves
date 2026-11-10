@@ -30,7 +30,7 @@ test('a task: mode, task, state, context or unknown, threshold, rotations, last 
   const state = validState({ status: 'PAUSED', reason: 'RATE_LIMIT', lastErrorCode: 'RATE_LIMIT', rotationCount: 2, sessionSequence: 3, lastValidatedHandover: 'history/handover-002.md#sha256:ab', lastContext: { window: 1_000_000, at: '2026-11-07T08:00:00Z', percent: 18 } })
   const t = statusText(view({ task: { state, dir } }))
   shape(t)
-  for (const want of ['Task: t_20261107_k3m9qa', 'State: PAUSED (RATE_LIMIT)', 'Context: 18%  Threshold: 50%', 'Rotations: 2/30  Session: 3', 'Last: handover-002.md, error RATE_LIMIT', 'Try: /jeeves resume | off | help']) assert.ok(t.includes(want), `missing "${want}" in\n${t}`)
+  for (const want of ['Task: t_20261107_k3m9qa', 'State: paused', 'Rate limit hit. /jeeves resume later', 'Context: 18%  Threshold: 50%', 'Rotations: 2/30  Session: 3', 'Last: handover-002.md', 'Try: /jeeves resume | off | help']) assert.ok(t.includes(want), `missing "${want}" in\n${t}`)
   const unknown = statusText(view({ task: { state: validState({ lastContext: { window: 1, at: '2026-11-07T08:00:00Z' } }), dir } }))
   assert.ok(unknown.includes('Context: unknown'), 'unknown, never 0%')
   assert.ok(!unknown.includes('0%  '))
@@ -78,11 +78,12 @@ test('ST-7.3: every reason code has a plain one-line message that fits the statu
   }
 })
 
-test('status of a stopped task names the reason code and explains it', () => {
+test('status of a stopped task says the state and the reason in words, never the code', () => {
   const state = validState({ status: 'PAUSED', reason: 'USER_PAUSE' })
   const t = statusText(view({ task: { state, dir: '/x' } }))
   shape(t)
-  assert.ok(t.includes('State: PAUSED (USER_PAUSE)'))
+  assert.ok(t.includes('State: paused'))
+  assert.ok(!t.includes('USER_PAUSE'))
   assert.ok(t.includes('Paused by you. /jeeves resume'))
 })
 
@@ -106,8 +107,10 @@ test('ST-7.1: every state has a word label; status entries fit 40 columns, ASCII
       const s = validState({ status, reason, lastContext: { window: 200_000, percent: 99.6, at: '2026-11-07T10:00:00.000Z' } })
       const line = statusLine(s, 50)
       if (status === 'DISABLED') { assert.equal(line, undefined); continue }
-      assert.ok(line!.length <= WIDTH && /^[\x20-\x7e]+$/.test(line!), `bad status "${line}"`)
-      assert.ok(line!.startsWith('Jeeves'))
+      // Claude Code shows `jeeves:` and the port drops our own `Jeeves: ` (engine-mod.ts): the rest fits the width.
+      const shown = line!.replace(/^Jeeves:? /, '')
+      assert.ok(shown.length <= WIDTH && /^[\x20-\x7e]+$/.test(shown), `bad status "${line}"`)
+      assert.ok(line!.startsWith('Jeeves') && !(reason && line!.includes(reason)), `code shown: "${line}"`)
       for (const from of STATUSES) {
         const t = transitionLine(from, status, reason, s)
         if (from === status) assert.equal(t, null)
@@ -136,7 +139,7 @@ test('more than 8 lines: Path, Last, Rotations, Waiting, TEST OVERRIDE give way 
   const state = validState({ status: 'NEEDS_REVIEW', reason: 'HANDOVER_INVALID', taskRevision: 0 })
   const t = statusText(view({ probe: submitRefused(turnMode(full)), task: { state, dir: `${root}/projects/p/tasks/t1` }, defaultsError: 'bad', thresholdOverride: 30 }))
   shape(t)
-  for (const want of ['mode: unsupported (turn)', 'Stop hook skipped and a prompt refused', 'Handover invalid', 'Warning: defaults unreadable', 'State: NEEDS_REVIEW', 'Try: /jeeves retry | off | help']) assert.ok(t.includes(want), `missing ${want}:\n${t}`)
+  for (const want of ['mode: unsupported (turn)', 'Stop hook skipped and a prompt refused', 'Handover failed checks', 'Warning: defaults unreadable', 'State: waiting for you', 'Try: /jeeves retry | off | help']) assert.ok(t.includes(want), `missing ${want}:\n${t}`)
   assert.ok(!t.includes('Path:') && !t.includes('Last:'), t)
   const roomy = statusText(view({ task: { state: validState(), dir: `${root}/projects/p/tasks/t1` }, defaultsError: 'bad' }))
   assert.ok(roomy.includes('Try:') && roomy.includes('Last:') && roomy.includes('Warning: defaults unreadable'), roomy)

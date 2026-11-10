@@ -114,7 +114,7 @@ async function busy(rt: Runtime, me: string, paths: string[]): Promise<string | 
       const l = await rt.storage.readLock(dir, await rt.port.now()).catch(() => null)
       if (!l) return `The lock of task ${id} could not be read, so nothing was deleted. /jeeves status --diagnose shows the folder.`
       if (l.kind !== 'held' || l.stale) continue
-      return l.owner?.ownerSessionId === me ? `Task ${id} is still running in this session: /jeeves off first. Nothing was deleted.` : `Task ${id} is held by a running session (LOCK_HELD). Nothing was deleted.`
+      return l.owner?.ownerSessionId === me ? `Task ${id} is still running in this session: /jeeves off first. Nothing was deleted.` : `Task ${id} is held by a running session. Nothing was deleted.`
     }
   }
   return null

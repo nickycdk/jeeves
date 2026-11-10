@@ -34,7 +34,7 @@ test("/jeeves status reads another session's task state through $.fs (its stored
   await startSession($)
   const text = (await $.command.run(typed('jeeves', ''))).text ?? ''
   expect(text).toContain('Task: t_20261107_k3m9qa')
-  expect(text).toContain('State: MONITORING')
+  expect(text).toContain('State: on')
   expect(text).toContain('Context: 18%  Threshold: 50%')
 })
 

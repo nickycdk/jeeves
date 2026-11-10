@@ -22,8 +22,8 @@ test('after /clear: task PAUSED(USER_CLEAR), lock given up, said plainly; off wo
   expect(h.toasts).toContain('Jeeves: paused (you cleared the conversation); /jeeves resume continues the task')
 
   const status = await relay($, 'status')
-  expect(status).toContain('State: PAUSED (USER_CLEAR)')
-  expect(status).toContain('You cleared the conversation.')
+  expect(status).toContain('State: paused')
+  expect(status).toContain('Paused after your /clear. /jeeves resume')
   await measure($, 80)
   expect(stateOf(h, dir!).status).toBe('PAUSED')
   expect(await relay($, 'on')).toBe(`Task ${stateOf(h, dir!).taskId} from an earlier session is PAUSED here. /jeeves resume continues it, or /jeeves off ends it.`)

@@ -12,7 +12,7 @@ async function invalid($: Kit, on: Parameters<typeof generating>[1]) {
   for (let i = 0; i < 3; i++) await stop($, BAD)
   await turnEnd($)
   expect([stateOf(g.h, g.dir).status, stateOf(g.h, g.dir).reason]).toEqual(['NEEDS_REVIEW', 'HANDOVER_INVALID'])
-  expect(g.h.notifications.map(n => [n.title, n.text.split(':')[0]])).toEqual([['Jeeves', 'needs review (HANDOVER_INVALID)']])
+  expect(g.h.notifications.map(n => [n.title, n.text.split(':')[0]])).toEqual([['Jeeves', 'Handover failed checks. /jeeves retry']])
   return g
 }
 
@@ -49,11 +49,11 @@ test('AC 2, 4: retry from another session or typed by Claude changes nothing', a
   const before = h.files.get(`${dir}/state.json`)
   expect(await relay($, 'retry', 'plugin')).toContain('Only you can')
   h.sessionId = 'sess-other'
-  expect(await relay($, 'retry')).toContain('LOCK_HELD')
+  expect(await relay($, 'retry')).toContain('Another running session')
   expect(h.files.get(`${dir}/state.json`)).toBe(before)
 })
 
 test('retry with nothing to retry says what it applies to', async ($, on) => {
   await generating($, on)
-  expect(await relay($, 'retry')).toContain('after an invalid handover')
+  expect(await relay($, 'retry')).toContain('after a handover failed its checks')
 })

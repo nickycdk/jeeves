@@ -52,7 +52,7 @@ Expect: once per machine, a notice that Jeeves watches long sessions. `/jeeves s
 **4. Your own `/clear`**
 
 1. In an auto task, type `/clear`. Expect: `Jeeves: task ended (new conversation); the next prompt starts a new one`, and your next prompt starts a new auto task.
-2. Start a task with `/jeeves on`, then type `/clear`. Expect: `Jeeves: paused (you cleared the conversation); /jeeves resume continues the task`. `/jeeves status` says `Auto off: this session`.
+2. Start a task with `/jeeves on`, then type `/clear`. Expect: `Paused after your /clear. /jeeves resume`. `/jeeves status` says `Auto off: this session`.
 3. Quit and start a new `claude` in the same repository. Expect: the new session is watched again, while the paused task waits for `/jeeves resume`.
 
 **5. Recovery after a crash**

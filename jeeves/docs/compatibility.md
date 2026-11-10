@@ -15,3 +15,4 @@ Each version was installed from npm into a scratch folder and ran `claude plugin
 | 2.1.321 | pass | pass (335) | yes |
 | 2.1.322 | pass | pass (335) | yes |
 
+**Failed Bash output** (checked live on 2.1.322, `docs/done/evidence/failed-output/` at the repository root): the hook gets stdout and stderr merged in print order, after an `Exit code N` line. Output above about 30,000 characters is cut by Claude Code before the hook sees it, so the output lines Jeeves keeps for a failed command are then the last ones Claude saw, not the real end.

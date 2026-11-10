@@ -3,7 +3,8 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { check, defaultsVersion, parseJson } from '../../src/core/schema.ts'
+import { check, defaultsVersion, parseJson, stateVersion } from '../../src/core/schema.ts'
+import { pruneTails } from '../../src/core/evidence.ts'
 import { newTaskState } from '../../src/core/task.ts'
 import type { ProjectDefaults } from '../../src/core/types.ts'
 import * as v02 from '../fixtures/v0.2-core/schema.ts'
@@ -15,21 +16,21 @@ const json = (v: unknown) => JSON.stringify(v, null, 2) + '\n'
 const written = (d: ProjectDefaults) => json({ ...d, schemaVersion: defaultsVersion(d) })
 const v02State = () => { const { origin: _, ...s } = validState(); return { ...s, schemaVersion: 1 } }
 
-test('a v0.2 state.json reads as an explicit task at version 2', () => {
+test('a v0.2 state.json reads as an explicit task at the current version', () => {
   const r = parseJson('state', json(v02State()))
   assert.ok(r.ok, JSON.stringify(r))
   assert.equal(r.value.origin, 'explicit')
-  assert.equal(r.value.schemaVersion, 2)
+  assert.equal(r.value.schemaVersion, 3)
   // ST-13.6: a v0.2 task keeps accepting six-heading handovers.
   assert.equal(r.value.preUpgrade, true)
   assert.equal(check('state', r.value).ok, true)
 })
 
-test('new tasks are version 2, explicit unless told otherwise', () => {
+test('new tasks are the current version, explicit unless told otherwise', () => {
   const base = { taskId: 't_20261108_aaaaaa', projectId: 'p1', thresholdPercent: 40, taskStartHead: null, at: '2026-11-08T08:00:00.000Z' }
   assert.equal(newTaskState(base).origin, 'explicit')
   assert.equal(newTaskState({ ...base, origin: 'auto' }).origin, 'auto')
-  assert.equal(newTaskState(base).schemaVersion, 2)
+  assert.equal(newTaskState(base).schemaVersion, 3)
   assert.equal(newTaskState(base).preUpgrade, undefined)
   assert.deepEqual(['maxRotations' in newTaskState(base), newTaskState({ ...base, maxRotations: 7 }).maxRotations], [false, 7])
   assert.equal(parseJson('state', json(validState({ origin: 'manual' as never }))).ok, false)
@@ -49,6 +50,22 @@ test('config.json is written as v2 only while autoStart or maxRotations is set',
   assert.equal(defaultsVersion({ schemaVersion: 1, verificationCommands: [], autoStart: 'off' }), 2)
   assert.equal(defaultsVersion({ schemaVersion: 1, verificationCommands: [], maxRotations: 7 }), 2)
   assert.equal(parseJson('defaults', json({ schemaVersion: 2, verificationCommands: [], autoStart: 'maybe' })).ok, false)
+})
+
+test('state.json is written as v3 only while a ledger command holds a tail; a v2 file reads as v3', () => {
+  const cmd = { kind: 'cmd' as const, command: 'npm test', ok: false, exit: 1, at: '2026-11-08T08:00:00.000Z', agent: null }
+  const plain = validState({ ledger: [cmd] })
+  const tailed = validState({ ledger: [{ ...cmd, tail: 'FAIL a.spec.ts' }] })
+  assert.deepEqual([stateVersion(plain), stateVersion(tailed)], [2, 3])
+  const r = parseJson('state', json({ ...plain, schemaVersion: 2 }))
+  assert.ok(r.ok, JSON.stringify(r))
+  assert.equal(r.value.schemaVersion, 3)
+  // A file without a tail holds nothing 0.3.2 does not know; one with a tail is too new for older readers.
+  const pruned = validState({ ledger: pruneTails([{ ...cmd, tail: 'x' }, { ...cmd, ok: true, exit: 0 }]) })
+  assert.equal(json({ ...pruned, schemaVersion: stateVersion(pruned) }).includes('"tail"'), false)
+  assert.equal(stateVersion(pruned), 2)
+  const old = v02.parseJson('state', json({ ...tailed, schemaVersion: stateVersion(tailed) }))
+  assert.equal(old.ok ? null : old.code, 'SCHEMA_TOO_NEW')
 })
 
 test('auto.json: valid files read, anything else is refused (ignored by the caller)', () => {

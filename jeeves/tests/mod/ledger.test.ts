@@ -4,13 +4,17 @@ import { expect } from 'claude-code/testing'
 import { bottom, PROMPT, relay, start, stateOf, submit, taskDirs, until, type Kit, test } from './kit.ts'
 import { memHost } from './memfs.ts'
 
-/** The engine beneath the plugin: Bash `fail*` exits 1, `deny*` is refused; everything else succeeds. */
+/** `flaky` fails while this holds. */
+const flaky = { fails: true }
+
+/** The engine beneath the plugin: Bash `fail*` (and `flaky` while it fails) exits 1, `deny*` is refused; everything else succeeds. */
 function tools(on: Parameters<typeof memHost>[0]) {
   const answers: ToolCallResult[] = []
   on('tool.call', (_, e) => {
     const cmd = (e as { command?: string }).command ?? ''
     const r = (cmd.startsWith('deny') ? { deny: 'not allowed' }
-      : cmd.startsWith('fail') ? { isError: true, result: 'Exit code 1', text: 'Exit code 1\nFAIL' }
+      // As live (docs/compatibility.md): `Exit code N`, then stdout and stderr merged in print order.
+      : cmd.startsWith('fail') || (cmd === 'flaky' && flaky.fails) ? { isError: true, result: 'Error: Exit code 1\n> jest\nFAIL a.spec.js', text: 'Exit code 1\n> jest\nFAIL a.spec.js' }
       : { result: { stdout: 'ok', stderr: '', interrupted: false }, text: 'ok' }) as ToolCallResult
     answers.push(r)
     return r
@@ -27,7 +31,7 @@ async function onTask($: Kit, on: Parameters<typeof memHost>[0]) {
   await submit($, PROMPT)
   return { h, dir: taskDirs(h)[0]!, answers }
 }
-const ledger = (h: ReturnType<typeof memHost>, dir: string) => stateOf(h, dir).ledger as { kind: string; command?: string; path?: string; ok?: boolean; exit?: number | null; agent: string | null }[]
+const ledger = (h: ReturnType<typeof memHost>, dir: string) => stateOf(h, dir).ledger as { kind: string; command?: string; path?: string; ok?: boolean; exit?: number | null; agent: string | null; tail?: string }[]
 
 test('success, failure and deny are recorded as they ended; edits by path; subagent calls tagged', async ($, on) => {
   const { h, dir } = await onTask($, on)
@@ -39,7 +43,7 @@ test('success, failure and deny are recorded as they ended; edits by path; subag
   await until(h, () => ledger(h, dir).length === 5)
   expect(ledger(h, dir).map(({ at: _at, ...e }: Record<string, unknown>) => e)).toEqual([
     { kind: 'cmd', command: 'npm test', ok: true, exit: 0, agent: null },
-    { kind: 'cmd', command: 'fail npm test', ok: false, exit: 1, agent: null },
+    { kind: 'cmd', command: 'fail npm test', ok: false, exit: 1, agent: null, tail: '> jest\nFAIL a.spec.js' },
     { kind: 'cmd', command: 'deny rm -rf /', ok: false, exit: null, agent: null },
     { kind: 'edit', path: '/work/proj/a.ts', agent: null },
     { kind: 'edit', path: '/work/proj/b.ts', agent: 'agent-1' },
@@ -86,3 +90,21 @@ test('NFR-03: the ledger write is off the call path: the call returns before its
   // A sanity bound only: this machine runs at load averages of 30+ (handoff-m3 §5.5); the strict budget is the unit micro-benchmark.
   expect(times[47]!).toBeLessThan(150)
 })
+
+test('plan 11: a failed run keeps its last output lines until the same command passes; state.json is v3 only meanwhile', async ($, on) => {
+  const { h, dir } = await onTask($, on)
+  await $.tool.call({ tool: 'Bash', command: 'flaky' })
+  await until(h, () => ledger(h, dir).length === 1)
+  expect(ledger(h, dir)[0]!.tail).toBe('> jest\nFAIL a.spec.js')
+  expect(stateOf(h, dir).schemaVersion).toBe(3)
+  await $.tool.call({ tool: 'Bash', command: 'npm test' })
+  await $.tool.call({ tool: 'Bash', command: 'flaky', agentId: 'a1' })
+  await until(h, () => ledger(h, dir).length === 3)
+  expect(ledger(h, dir).map(e => e.tail ?? null)).toEqual([null, null, '> jest\nFAIL a.spec.js'])
+  flaky.fails = false
+  await $.tool.call({ tool: 'Bash', command: 'flaky' })
+  await until(h, () => ledger(h, dir).length === 4)
+  expect(ledger(h, dir).some(e => e.tail !== undefined)).toBe(false)
+  expect(stateOf(h, dir).schemaVersion).toBe(2)
+})
+

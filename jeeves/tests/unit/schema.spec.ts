@@ -127,3 +127,9 @@ test('ST-11.1: project defaults schema: threshold optional 20..90, limit optiona
   const r = parseJson('defaults', '{"schemaVersion": 9, "verificationCommands": []}')
   assert.equal(r.ok ? null : r.code, 'SCHEMA_TOO_NEW')
 })
+
+test('a ledger command may hold a tail of at most 1,200 characters', () => {
+  const cmd = { kind: 'cmd' as const, command: 'npm test', ok: false, exit: 1, at: '2026-11-08T08:00:00.000Z', agent: null }
+  assert.ok(check('state', validState({ ledger: [{ ...cmd, tail: 'x'.repeat(1200) }] })).ok)
+  assert.ok(!check('state', validState({ ledger: [{ ...cmd, tail: 'x'.repeat(1201) }] })).ok)
+})

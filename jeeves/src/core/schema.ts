@@ -1,6 +1,6 @@
 // Runtime guards and migrations for every persisted contract (02 §6). Hand-written: no runtime deps (ADR-008).
 import {
-  AUTO_SCHEMA_VERSION, DEFAULTS_CHECKS_MAX, DEFAULTS_SCHEMA_VERSION, LEDGER_COMMAND_MAX, LEDGER_MAX, MODES, ON_OFF, ORIGINS, REASON_CODES, ROTATION_STATES, ROTATION_STEPS,
+  AUTO_SCHEMA_VERSION, DEFAULTS_CHECKS_MAX, DEFAULTS_SCHEMA_VERSION, LEDGER_COMMAND_MAX, LEDGER_MAX, LEDGER_TAIL_MAX, MODES, ON_OFF, ORIGINS, REASON_CODES, ROTATION_STATES, ROTATION_STEPS,
   SCHEMA_VERSION, STATE_SCHEMA_VERSION, STATUSES, TRIGGERS, type AutoFile, type CommandEntry, type Config, type EditEntry, type EventLine, type LockOwner, type ProjectDefaults, type ProjectRecord, type SessionRecord, type State,
 } from './types.ts'
 import { COMMIT_RE } from './git.ts'
@@ -80,6 +80,7 @@ const rotation = obj<NonNullable<State['rotation']>>({
 const reason = nullable(oneOf(REASON_CODES))
 const cmdEntry = obj<CommandEntry>({
   kind: oneOf(['cmd']), command: str({ max: LEDGER_COMMAND_MAX }), ok: bool, exit: nullable(int()), at: iso, agent: nullable(str()),
+  tail: { optional: str({ max: LEDGER_TAIL_MAX }) },
 })
 const editEntry = obj<EditEntry>({ kind: oneOf(['edit']), path: str({ nonEmpty: true, max: 4096 }), at: iso, agent: nullable(str()) })
 const ledgerEntry: Guard = (v, p, e) => {
@@ -137,13 +138,19 @@ const VERSION_FIELD: { [K in Kind]: string } = { state: 'schemaVersion', config:
 type Migration = (old: Record<string, unknown>) => Record<string, unknown>
 /** MIGRATIONS[kind][n - 1] turns version n into n + 1; a kind's current version is its length + 1. */
 export const MIGRATIONS: { [K in Kind]: Migration[] } = {
-  state: [old => ({ ...old, origin: 'explicit', preUpgrade: true })], // v1 → v2 (v0.3): every v0.2 task was started by /jeeves on, with six-heading handovers
+  state: [
+    old => ({ ...old, origin: 'explicit', preUpgrade: true }), // v1 → v2 (v0.3): every v0.2 task was started by /jeeves on, with six-heading handovers
+    old => old, // v2 → v3: only adds the optional ledger `tail`
+  ],
   config: [], defaults: [old => old], // v1 → v2 (v0.3): only adds the optional autoStart
   project: [], session: [], lock: [], event: [], auto: [],
 }
 
 /** The version a project `config.json` is written with: v2 only while `autoStart` or `maxRotations` is set, so a v0.2 build keeps the project's threshold and checks after a downgrade. */
 export const defaultsVersion = (d: ProjectDefaults) => (d.autoStart === undefined && d.maxRotations === undefined ? 1 : DEFAULTS_SCHEMA_VERSION)
+
+/** The version a `state.json` is written with: v3 only while a ledger command holds a tail, so an older build refuses only such a file, as too new. */
+export const stateVersion = (s: State) => (s.ledger.some(e => e.kind === 'cmd' && e.tail !== undefined) ? STATE_SCHEMA_VERSION : 2)
 
 /** Validate an already-current value. */
 export function check<K extends Kind>(kind: K, v: unknown): Result<Kinds[K]> {

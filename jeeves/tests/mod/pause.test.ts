@@ -63,7 +63,7 @@ test('a pause survives a restart: still paused in the new process, and resume th
   expect(h.files.has(`${dir}/lock.d/owner.json`)).toBe(false)
 
   await restart($, h, 'sess-2')
-  expect(await relay($, 'status')).toContain('State: PAUSED (USER_PAUSE)')
+  expect(await relay($, 'status')).toContain('State: paused')
   await measure($, 70)
   expect(stateOf(h, dir).status).toBe('PAUSED')
   expect(await relay($, 'on')).toContain('/jeeves resume continues it')
@@ -80,7 +80,7 @@ test('after a crash (no clean exit) the old lock blocks resume until it is stale
   const { h, dir } = await onTask($, on)
   await relay($, 'pause')
   await restart($, h, 'sess-2')
-  expect(await relay($, 'resume')).toContain('(LOCK_HELD)')
+  expect(await relay($, 'resume')).toContain('Another')
   expect(stateOf(h, dir).status).toBe('PAUSED')
   await h.clock.advance(121_000)
   expect(await relay($, 'resume')).toContain('Resumed')
@@ -105,7 +105,7 @@ test('resume from another session while the owner is alive: LOCK_HELD, and the o
   const before = h.files.get(`${dir}/state.json`)
   const toasts = h.toasts.length
   h.sessionId = 'sess-other'
-  expect(await relay($, 'resume')).toContain('(LOCK_HELD)')
+  expect(await relay($, 'resume')).toContain('Another')
   expect(h.files.get(`${dir}/state.json`)).toBe(before)
   expect(h.toasts.length).toBe(toasts)
 })

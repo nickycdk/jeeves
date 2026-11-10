@@ -40,30 +40,30 @@ export const STATE_WORD: Record<Status, string> = {
   DISABLED: 'off', MONITORING: 'on', ROTATION_REQUESTED: 'handover requested', QUIESCING: 'finishing the turn',
   HANDOVER_GENERATING: 'writing handover', VALIDATING: 'checking handover', ROTATING: 'starting fresh',
   RESTORING: 'restoring task', CONTINUING: 'continuing', PAUSED: 'paused', BLOCKED: 'blocked',
-  NEEDS_REVIEW: 'needs review', FAILED: 'failed', COMPLETED: 'done',
+  NEEDS_REVIEW: 'waiting for you', FAILED: 'failed', COMPLETED: 'done',
 }
 
 const pctText = (p: number | undefined) => (p === undefined ? '?' : `${Math.round(p)}%`)
 
 const QUIET_POINTS = 15
 
-/** This plugin's status entry (ST-7.1, <= 40 columns): context and threshold while watching, else the state's word. */
+/** This plugin's status entry (ST-7.1): context and threshold while watching; a stopped task's plain reason, else the state's word.
+ *  The text after `Jeeves: ` fits 40 columns; Claude Code shows the plugin's name instead of ours (engine-mod.ts). */
 export function statusLine(s: State, threshold: number | string): string | undefined {
   if (s.status === 'DISABLED') return undefined
   const mode = s.mode === 'assisted' ? ' assisted' : ''
   // ST-14.5 (spec §6.3): an auto task's entry stays empty until the context is within 15 points of the threshold.
   if (s.status === 'MONITORING' && s.origin === 'auto' && !((s.lastContext?.percent ?? -1) >= Number(threshold) - QUIET_POINTS)) return undefined
   if (s.status === 'MONITORING') return fit(`Jeeves ${pctText(s.lastContext?.percent)}/${threshold}%${mode}`)
-  return fit(`Jeeves: ${STATE_WORD[s.status]}${s.reason && INERT.includes(s.status) ? ` (${s.reason})` : ''}`)
+  return `Jeeves: ${fit(s.reason && INERT.includes(s.status) ? reasonLine(s) : STATE_WORD[s.status])}`
 }
 
 /** One transcript line per state change (ST-7.1); null for a change not worth a line. Never per tool call. */
 export function transitionLine(from: Status, to: Status, code: ReasonCode | null, s: State): string | null {
   if (from === to) return null
-  const why = code ? ` (${code})` : ''
   switch (to) {
     case 'MONITORING': return from === 'DISABLED' ? 'Jeeves: on, watching context' : from === 'CONTINUING' ? `Jeeves: session ${s.sessionSequence} at ${pctText(s.lastContext?.percent)}, watching context` : 'Jeeves: watching context again'
-    case 'ROTATION_REQUESTED': return `Jeeves: handover requested${why}`
+    case 'ROTATION_REQUESTED': return `Jeeves: handover requested${code ? `. ${REASON_TEXT[code]}` : ''}`
     case 'QUIESCING': return 'Jeeves: letting the current turn finish'
     case 'HANDOVER_GENERATING': return 'Jeeves: asking Claude for the handover'
     case 'VALIDATING': return 'Jeeves: checking the handover'
@@ -73,7 +73,7 @@ export function transitionLine(from: Status, to: Status, code: ReasonCode | null
     case 'CONTINUING': return 'Jeeves: the fresh conversation continues the task'
     case 'DISABLED': return 'Jeeves: off (task files kept)'
     case 'COMPLETED': return 'Jeeves: task completed'
-    default: return `Jeeves: ${STATE_WORD[to]}${why}${code ? `: ${REASON_TEXT[code]}` : ''}`
+    default: return `Jeeves: ${!code ? STATE_WORD[to] : code === s.reason ? reasonLine(s) : REASON_TEXT[code]}`
   }
 }
 
@@ -99,7 +99,7 @@ export const retryable = (s: State) => s.status === 'NEEDS_REVIEW' && (s.reason 
 const reasonLine = (s: State) => {
   if (!retryable(s)) return REASON_TEXT[s.reason!]
   if (s.consecutiveFailures >= DEFAULT_CONFIG.maxConsecutiveFailures) return 'Retries used up. /jeeves off ends it'
-  return s.reason === 'HANDOVER_INVALID' ? 'Handover invalid. Try: /jeeves retry' : 'Fresh session too full. /jeeves retry'
+  return s.reason === 'HANDOVER_INVALID' ? 'Handover failed checks. /jeeves retry' : 'Fresh session too full. /jeeves retry'
 }
 
 
@@ -139,13 +139,13 @@ export function statusText(v: StatusView): string {
       `Task: ${s.taskId} (${s.origin})`,
       // ST-14.3: `auto` is set only when this session has no task of its own, so this task runs elsewhere.
       ...(v.auto && s.activeSessionId ? ['Owned by another session'] : []),
-      `State: ${s.status}${s.reason ? ` (${s.reason})` : ''}`,
+      `State: ${STATE_WORD[s.status]}`,
       `Context: ${pct === undefined ? 'unknown' : `${Math.round(pct * 10) / 10}%`}  Threshold: ${shownThreshold(s, v.thresholdOverride, v.thresholdRelative)}%${tokensAt(s.lastContext?.window, s.thresholdPercent)}`,
       ...(v.thresholdRelative ? [`TEST OVERRIDE +${v.thresholdRelative} (task setting ${s.thresholdPercent}%)`]
         : v.thresholdOverride ? [`TEST OVERRIDE (task setting ${s.thresholdPercent}%)`] : []),
       `Rotations: ${s.rotationCount}/${s.maxRotations ?? DEFAULT_CONFIG.maxRotationsPerTask}  Session: ${s.sessionSequence}`,
       ...(s.reason && INERT.includes(s.status) ? [reasonLine(s)] : []),
-      `Last: ${s.lastValidatedHandover ? s.lastValidatedHandover.split('#')[0]!.replace(/^history\//, '') : 'no handover yet'}${s.lastErrorCode ? `, error ${s.lastErrorCode}` : ''}`,
+      `Last: ${s.lastValidatedHandover ? s.lastValidatedHandover.split('#')[0]!.replace(/^history\//, '') : 'no handover yet'}`,
     )
   }
   if (v.defaultsError) lines.push('Warning: defaults unreadable')
@@ -215,16 +215,16 @@ export const MSG = {
     : 'Jeeves could not tell which project this is (git did not answer). Try again.',
   madeExplicit: (taskId: string, n: number) => `Task ${taskId} is now explicit: your goal is task revision ${n}, and a /clear pauses it instead of ending it.`,
   alreadyOn: (s: State) => `Already on: task ${s.taskId} (${s.status}). /jeeves status shows it.`,
-  lockHeld: (taskId: string) => `Another running session owns task ${taskId} here (LOCK_HELD). /jeeves status shows it read-only.`,
-  separateTask: (taskId: string) => `Another running session owns task ${taskId} here (LOCK_HELD); it stays that session's. Starting a separate task for this session.`,
+  lockHeld: (taskId: string) => `Another running session owns task ${taskId} here. /jeeves status shows it read-only.`,
+  separateTask: (taskId: string) => `Another running session owns task ${taskId} here; it stays that session's. Starting a separate task for this session.`,
   leftBehind: (s: State) => `Task ${s.taskId} from an earlier session is ${s.status} here. ${s.status === 'PAUSED' ? '/jeeves resume continues it, or ' : recoverable(s) ? '/jeeves recover continues it here, or ' : ''}/jeeves off ends it.`,
   interrupted: (taskId: string, status: string) => `Task ${taskId} was left ${status} by an earlier session. /jeeves recover continues it here.`,
   corrupt: (taskId: string) => `Task ${taskId}: its state.json is unreadable. /jeeves recover rebuilds it from the task's files (nothing is deleted).`,
   recovered: (taskId: string, rebuilt: boolean) => `Recovering task ${taskId} here${rebuilt ? ' (state.json rebuilt; the old file is kept)' : ''}: Jeeves sends the task and its last validated handover as the next prompt.`,
-  recoverHeld: (taskId: string, wait: number | null) => `Another session owns task ${taskId} and is still running (LOCK_HELD), so nothing was changed.${wait !== null ? ` If that session is gone, try again in ${wait} s.` : ''}`,
+  recoverHeld: (taskId: string, wait: number | null) => `Another session owns task ${taskId} and is still running, so nothing was changed.${wait !== null ? ` If that session is gone, try again in ${wait} s.` : ''}`,
   heldElsewhere: (taskId: string, status: string) => `Task ${taskId} is ${status} in another session. If that session stopped, /jeeves recover takes it over once it has been silent for 2 minutes.`,
-  repoMismatch: (expected: string, actual: string) => `Blocked (REPO_MISMATCH): the handover was written on branch ${expected}, but the repository is on ${actual}. Nothing was continued. Switch back to ${expected} and type /jeeves recover, or type /jeeves recover --relink to continue on ${actual}.`,
-  moved: (taskId: string, oldPath: string) => `Task ${taskId} was started in ${oldPath}, which no longer exists (REPO_MISMATCH). If you moved the repository here, type /jeeves recover --relink to continue it here.`,
+  repoMismatch: (expected: string, actual: string) => `Blocked: the handover was written on branch ${expected}, but the repository is on ${actual}. Nothing was continued. Switch back to ${expected} and type /jeeves recover, or type /jeeves recover --relink to continue on ${actual}.`,
+  moved: (taskId: string, oldPath: string) => `Task ${taskId} was started in ${oldPath}, which no longer exists. If you moved the repository here, type /jeeves recover --relink to continue it here.`,
   relinked: (taskId: string, oldPath: string) => `Task ${taskId} moved here from ${oldPath}.`,
   relinkExists: (target: string) => `Not relinked: ${target} already exists. Nothing was changed.`,
   relinkFailed: (dir: string, err: string) => `Not relinked: moving ${dir} failed (${err}). Nothing else was changed.`,
@@ -232,7 +232,7 @@ export const MSG = {
   notRebuilt: (taskId: string) => `Task ${taskId}: its state.json can be read again (or could not be read at all), so nothing was rebuilt. Type /jeeves recover again; /jeeves status shows it.`,
   recoverMine: 'This session runs the task already: nothing to recover. /jeeves status shows it.',
   recoverMineOther: (mine: string, other: string) => `This session runs task ${mine}, so task ${other} was not taken over. To continue it instead: /jeeves off ends ${mine}, then /jeeves recover.`,
-  recoverTooNew: (taskId: string) => `Task ${taskId} was saved by a newer Jeeves (SCHEMA_TOO_NEW). Update Jeeves; nothing was changed.`,
+  recoverTooNew: (taskId: string) => `Task ${taskId} was saved by a newer Jeeves. Update Jeeves; nothing was changed.`,
   recoverPaused: 'The task is paused, not interrupted: /jeeves resume continues it.',
   nothingToRecover: 'Nothing to recover: no task here was interrupted. /jeeves status shows the task.',
   restored: (taskId: string) => `Continuing task ${taskId} here: Jeeves sends the task and its latest handover as the next prompt.`,
@@ -269,7 +269,7 @@ export const MSG = {
   retryRequested: 'Handover requested again: Jeeves asks Claude for it at the next safe stop. Earlier handovers are kept as they are.',
   retryWatching: 'Watching again in this session, without a handover here. The next fresh session rotates as usual. A higher /jeeves threshold or a shorter task avoids another loop.',
   retryUsedUp: (n: number) => `No retry: ${n} handovers in a row failed, the limit. /jeeves off ends the task (files kept).`,
-  nothingToRetry: '/jeeves retry works only after an invalid handover (HANDOVER_INVALID) or a possible loop (POSSIBLE_LOOP).',
+  nothingToRetry: '/jeeves retry works only after a handover failed its checks, or after a fresh conversation started too full.',
   nothingToConfirm: 'Nothing waits for /jeeves done: only a task stopped as DOD_UNMET can be confirmed by hand.',
   confirmedDone: (taskId: string) => `Task ${taskId} marked done by you (recorded as your decision, not verified by checks).`,
   nothingToContinue: 'No handover is waiting for /jeeves continue. /jeeves status shows the task.',
@@ -294,32 +294,33 @@ export const MSG = {
   submitFailed: (err: unknown) => `Jeeves could not send your goal (${short(String(err))}). Type it as your next prompt.`,
 }
 
-/** One line (<= 40 columns) per reason code, shown in status beside the code (AC-23). Every code has one. */
+/** One plain line (<= 40 columns) per reason code (AC-23): the status entry, transcript line and notification of a stopped task.
+ *  It stands alone (no code beside it) and says what to do when there is something to do. Codes stay in history and --diagnose. */
 export const REASON_TEXT: Record<ReasonCode, string> = {
   THRESHOLD: 'Context reached the threshold.',
   MANUAL: 'You asked for a handover.',
   COMPACTED: 'Context was compacted; handing over.',
-  UNSAFE_BOUNDARY: 'No safe point to hand over.',
-  USER_INTERRUPT: 'You interrupted the handover.',
-  USER_CLEAR: 'You cleared the conversation.',
+  UNSAFE_BOUNDARY: 'Paused: no safe point to hand over.',
+  USER_INTERRUPT: 'Paused: you interrupted the handover.',
+  USER_CLEAR: 'Paused after your /clear. /jeeves resume',
   USER_PAUSE: 'Paused by you. /jeeves resume',
-  HANDOVER_INVALID: 'Handover invalid; nothing cleared.',
+  HANDOVER_INVALID: 'Handover failed its checks.',
   ROTATE_UNAVAILABLE: 'Run /clear, then /jeeves continue.',
-  POSSIBLE_LOOP: 'Fresh session too full: loop stopped.',
-  MAX_ROTATIONS: 'Limit reached. Try: /jeeves limit <n>',
-  RATE_LIMIT: 'Rate limit hit. Resume when it lifts.',
+  POSSIBLE_LOOP: 'Fresh conversation started too full.',
+  MAX_ROTATIONS: 'Handover limit hit. /jeeves limit <n>',
+  RATE_LIMIT: 'Rate limit hit. /jeeves resume later',
   AUTH: 'Login problem. /login, then resume.',
   BILLING: 'Billing problem: check your account.',
-  OVERLOADED: 'API overloaded. Resume in a while.',
+  OVERLOADED: 'API busy. /jeeves resume in a while',
   API_ERROR: 'API error. /jeeves resume to retry.',
-  DISK: 'Could not write task files (disk).',
-  LOCK_HELD: 'Another session owns this task.',
-  STALE_LOCK: 'Its owning session stopped.',
-  SCHEMA_TOO_NEW: 'Files come from a newer Jeeves version.',
-  REPO_MISMATCH: 'Repository differs from the task.',
-  DOD_UNMET: 'Done, unproven. /jeeves done confirms',
+  DISK: 'Could not save task files to disk.',
+  LOCK_HELD: 'Another session runs this task.',
+  STALE_LOCK: 'The session running it stopped.',
+  SCHEMA_TOO_NEW: 'Saved by a newer Jeeves. Update Jeeves',
+  REPO_MISMATCH: 'Task belongs to another repository.',
+  DOD_UNMET: 'Claude says done. Confirm: /jeeves done',
   COMPLETED: 'Task completed.',
-  STATE_CORRUPT: 'state.json unreadable; kept as is.',
+  STATE_CORRUPT: 'Task file unreadable. /jeeves recover',
 }
 
 /**

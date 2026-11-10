@@ -2,8 +2,8 @@
 
 /** Current version of the files that have not changed since v0.1 (config, project, session, lock, event). */
 export const SCHEMA_VERSION = 1
-/** v0.3 (ST-13.1): `state.json` gains `origin`. */
-export const STATE_SCHEMA_VERSION = 2
+/** v0.3 (ST-13.1): `state.json` gains `origin`. v3: ledger commands may hold `tail`; written as v2 while none does (`stateVersion`). */
+export const STATE_SCHEMA_VERSION = 3
 /** v0.3 (ST-13.1): project `config.json` gains `autoStart`; written as v2 only while it is set, so v0.2 keeps reading the others. */
 export const DEFAULTS_SCHEMA_VERSION = 2
 /** v0.3 (ST-13.1): `auto.json` in the state root. */
@@ -162,13 +162,18 @@ export type State = {
   updatedAt: Iso
 }
 
-/** A finished Bash call. `ok`: it did not fail or get denied; `exit` is known only when the call ran to an end (null: denied, backgrounded). */
-export type CommandEntry = { kind: 'cmd'; command: string; ok: boolean; exit: number | null; at: Iso; agent: string | null }
+/** A finished Bash call. `ok`: it did not fail or get denied; `exit` is known only when the call ran to an end (null: denied, backgrounded).
+ *  `tail`: the last output lines of a failed run, redacted; kept only on the newest run of a command not seen passing since (`pruneTails`). */
+export type CommandEntry = { kind: 'cmd'; command: string; ok: boolean; exit: number | null; at: Iso; agent: string | null; tail?: string }
 /** A successful Edit/Write/NotebookEdit. `agent`: the subagent's id, null on the main loop. */
 export type EditEntry = { kind: 'edit'; path: string; at: Iso; agent: string | null }
 export type LedgerEntry = CommandEntry | EditEntry
 export const LEDGER_MAX = 200
 export const LEDGER_COMMAND_MAX = 300
+export const LEDGER_TAIL_MAX = 1200
+export const LEDGER_TAIL_LINES = 20
+/** How many ledger commands may hold a tail at once. */
+export const LEDGER_TAILS = 3
 
 export type ProjectRecord = {
   schemaVersion: number

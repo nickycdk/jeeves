@@ -13,7 +13,7 @@ test('a full rotation: one line per transition, in order; status shows context/t
   const { h, dir, ctl } = g
   expect(h.notes).toEqual([
     'on, watching context',
-    'handover requested (THRESHOLD)',
+    'handover requested. Context reached the threshold.',
     'asking Claude for the handover',
   ])
   expect(h.status).toContain('?/40%')
@@ -49,8 +49,8 @@ test('tool calls and readings below the threshold add no transcript line; pause 
   expect(h.notes).toEqual(['on, watching context'])
   expect(h.status.at(-1)).toBe('30%/40%')
   await relay($, 'pause')
-  expect(h.notes.at(-1)).toBe('paused (USER_PAUSE): Paused by you. /jeeves resume')
-  expect(h.status.at(-1)).toBe('paused (USER_PAUSE)')
+  expect(h.notes.at(-1)).toBe('Paused by you. /jeeves resume')
+  expect(h.status.at(-1)).toBe('Paused by you. /jeeves resume')
   await relay($, 'off')
   expect(h.notes.at(-1)).toBe('off (task files kept)')
   expect(h.status.at(-1)).toBe(undefined)
@@ -85,7 +85,7 @@ test('ST-14.2: /jeeves alone per state: not watched, watching, warning, paused',
   expect(await status()).toBe([
     'Jeeves  mode: full',
     'Task: ID (explicit)',
-    'State: MONITORING',
+    'State: on',
     'Context: 20%  Threshold: 40% (~400K)',
     'Rotations: 0/30  Session: 1',
     'Last: no handover yet',
@@ -97,7 +97,7 @@ test('ST-14.2: /jeeves alone per state: not watched, watching, warning, paused',
   expect(await status()).toBe([
     'Jeeves  mode: full',
     'Task: ID (explicit)',
-    'State: MONITORING',
+    'State: on',
     'Context: 36%  Threshold: 40% (~400K)',
     'Rotations: 0/30  Session: 1',
     'Last: no handover yet',
@@ -108,7 +108,7 @@ test('ST-14.2: /jeeves alone per state: not watched, watching, warning, paused',
   expect(await status()).toBe([
     'Jeeves  mode: full',
     'Task: ID (explicit)',
-    'State: PAUSED (USER_PAUSE)',
+    'State: paused',
     'Context: 36%  Threshold: 40% (~400K)',
     'Rotations: 0/30  Session: 1',
     'Paused by you. /jeeves resume',
@@ -139,11 +139,11 @@ test('ST-14.2: /jeeves alone after a failed handover offers retry, and not once 
   expect(shaped(await relay($, ''))).toBe([
     TURN ? 'Jeeves  mode: full (turn)' : 'Jeeves  mode: full',
     'Task: TASK (explicit)',
-    'State: NEEDS_REVIEW (HANDOVER_INVALID)',
+    'State: waiting for you',
     'Context: unknown  Threshold: 40% (~80K)',
     'Rotations: 0/30  Session: 1',
-    'Handover invalid. Try: /jeeves retry',
-    'Last: no handover yet, error HANDOVER...',
+    'Handover failed checks. /jeeves retry',
+    'Last: no handover yet',
     'Try: /jeeves retry | off | help',
   ].join('\n').replace('TASK', g.taskId))
   await relay($, 'retry')

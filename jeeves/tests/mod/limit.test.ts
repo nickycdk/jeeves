@@ -38,7 +38,7 @@ test('a task paused at its limit continues after a higher /jeeves limit and /jee
   await measure($, 52)
   const s = stateOf(h, dir)
   expect([s.status, s.reason, s.rotationCount, s.rotation]).toEqual(['PAUSED', 'MAX_ROTATIONS', 1, null])
-  expect(h.toasts.at(-1)).toBe('Paused: this task reached 1 rotations, the limit (MAX_ROTATIONS). /jeeves limit <n> raises it, then /jeeves resume; /jeeves off ends it.')
+  expect(h.toasts.at(-1)).toBe('Paused: this task reached 1 rotations, the limit. /jeeves limit <n> raises it, then /jeeves resume; /jeeves off ends it.')
   expect(await relay($, 'status')).toContain('Rotations: 1/1  Session: 2')
   expect(await relay($, 'limit 1')).toBe('Handover limit set to 1 for this task (1 done so far). That is not above the handovers done, so the task stays paused.')
   expect(await relay($, 'limit 3')).toBe('Handover limit set to 3 for this task (1 done so far). /jeeves resume continues it.')

@@ -1,0 +1,6 @@
+[    0.0s] spawn claude --plugin-dir <scratch>/mod --model haiku --permission-mode acceptEdits --allowedTools Bash(sh:*)
+[    1.0s] key Down
+[    2.0s] trust dialog selected 'Yes,Itrustthisfolder'
+[    2.0s] key Enter
+[    9.4s] type 'Run these two Bash commands one after the other, as separate tool calls, exactly'
+[   11.4s] key Enter
