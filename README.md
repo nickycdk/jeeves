@@ -6,7 +6,7 @@
 
 **Claude Code has a context limit. Your momentum shouldn't.**
 
-[![Version](https://img.shields.io/badge/version-0.3.2_beta-111?style=flat-square)](jeeves/CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.3.3_beta-111?style=flat-square)](jeeves/CHANGELOG.md)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-2.1.319%2B-d97757?style=flat-square)](jeeves/docs/compatibility.md)
 [![macOS](https://img.shields.io/badge/macOS-supported-555?style=flat-square)](jeeves/docs/compatibility.md)
 [![License: MIT](https://img.shields.io/badge/license-MIT-2ea44f?style=flat-square)](LICENSE)
@@ -24,7 +24,7 @@ No interruptions. No copy-pasting. No explaining the same task twice. Finish you
 You keep building. Jeeves takes care of the rest. 🎩
 
 > [!NOTE]
-> **Public beta 0.3.2.** Needs Claude Code 2.1.319 or later on macOS. Works in any terminal, including Cursor's and VS Code's. No API key, no server, and Jeeves itself makes no network requests. Not made by or affiliated with Anthropic.
+> **Public beta 0.3.3.** Needs Claude Code 2.1.319 or later on macOS. Works in any terminal, including Cursor's and VS Code's. No API key, no server, and Jeeves itself makes no network requests. Not made by or affiliated with Anthropic.
 
 ## Get started
 

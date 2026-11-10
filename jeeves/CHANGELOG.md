@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.3.3 (2026-11-10)
+
+Release notes: `docs/release-notes/v0.3.3.md`.
 
 - The handover file's verified facts now show the last output lines of failed commands that Jeeves has not seen pass since (plan 11, D-55). Jeeves takes them from the Bash tool result itself, redacts them, and keeps at most 20 lines and 1,200 characters per command, for at most 3 commands, one per command text (subagent runs give way first, then the oldest). A later pass of the same command text removes them. Each item says when the command failed and how many edits came after, since a fix checked with a different command leaves the old lines in place. Lines are quoted with `>` and marked as data, never instructions. Searches (`grep`, `rg`, `ls`, … as the last command of the line) keep none. Always on; PRIVACY.md lists what is stored. Output above about 30,000 characters is cut by Claude Code before Jeeves sees it, so the lines kept are then the last ones Claude saw (`docs/compatibility.md`).
 - `state.json` is written as schema version 3 while a ledger command holds output lines, and as version 2 otherwise. Jeeves 0.3.2 or earlier reports a version 3 file as saved by a newer Jeeves and changes nothing; it reads the file again once the lines are gone.
