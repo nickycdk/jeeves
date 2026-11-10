@@ -11,11 +11,88 @@ import { bgNotified, bgStarted, markStopSkipped, runtime, type Options, type Run
 import { captureFirstPrompt, compacted, completionRow, heartbeat, managedNow, holdPrompt, measure, nudgeIfWaiting, onFreshSession, onStop, onTurnComplete, taskSection, turnBoundary, onUserClear, recordTool, releaseOnExit, stopFailure, userTyped, why } from '../src/adapter/task.ts'
 import { HEARTBEAT_MS } from '../src/core/lock.ts'
 import { ARGUMENT_HINT, HELD_TEXT, MSG, offStatus } from '../src/adapter/ui.ts'
+import type { EnginePort, FsPort } from '../src/adapter/ports.ts'
 
+// The ports are built here because the plugin directory reads `$` only in the file that declares the hooks.
+function fsPort($: EngineInterface): FsPort {
+  return {
+    read: path => $.fs.read(path),
+    write: (path, text) => $.fs.write(path, text),
+    exists: path => $.fs.exists(path),
+    listDirs: path => $.fs.list(path).then(es => es.filter(e => e.kind === 'dir').map(e => e.name), () => []),
+    listFiles: path => $.fs.list(path).then(es => es.filter(e => e.kind === 'file').map(e => e.name), () => []),
+    realPath: path => $.fs.stat(path, { resolve: true }).then(st => st.realPath ?? null, () => null),
+    mtimeMs: path => $.fs.stat(path).then(st => st.mtimeMs, () => null),
+    run: async (argv, opts = {}) => {
+      const r = await $.process.run(argv, { timeoutMs: opts.timeoutMs ?? 10_000, ...(opts.cwd ? { cwd: opts.cwd } : {}), ...(opts.env ? { env: opts.env } : {}) })
+      return { exitCode: r.exitCode, stdout: r.stdout, stderr: r.stderr }
+    },
+    env: name => {
+      switch (name) {
+        case 'HOME': return $.env.get('HOME')
+        case 'XDG_STATE_HOME': return $.env.get('XDG_STATE_HOME')
+        case 'CLAUDE_PLUGIN_DATA': return $.env.get('CLAUDE_PLUGIN_DATA')
+        case 'JEEVES_TEST': return $.env.get('JEEVES_TEST')
+        case 'JEEVES_STATE_DIR': return $.env.get('JEEVES_STATE_DIR')
+        case 'JEEVES_TEST_THRESHOLD_OVERRIDE': return $.env.get('JEEVES_TEST_THRESHOLD_OVERRIDE')
+        case 'JEEVES_TEST_WINDOW_OVERRIDE': return $.env.get('JEEVES_TEST_WINDOW_OVERRIDE')
+        case 'JEEVES_TEST_CRASH': return $.env.get('JEEVES_TEST_CRASH')
+      }
+    },
+  }
+}
+
+/** Claude Code already shows the plugin's name before a status or transcript line (`jeeves: ...`), so drop ours. */
+const unnamed = (text: string) => text.replace(/^Jeeves:? /, '')
+
+function refused(r: { drop?: string | undefined }): void {
+  if (r.drop !== undefined) throw new Error(`prompt refused: ${r.drop}`)
+}
+
+function enginePort($: EngineInterface): EnginePort {
+  return {
+    ...fsPort($),
+    version: () => $.session.version(),
+    sessionId: () => $.session.id(),
+    cwd: () => $.session.cwd(),
+    turns: () => $.session.turns(),
+    usage: async () => {
+      const c = (await $.session.usage()).context
+      return { window: c.window, ...(c.percent !== undefined ? { percent: c.percent } : {}), ...(c.tokens !== undefined ? { tokens: c.tokens } : {}) }
+    },
+    autoCompactTokens: () => $.session.usage({ breakdown: 'summary', columns: 80 }).then(u => {
+      const b = u.context.breakdown
+      return b?.isAutoCompactEnabled && b.autoCompactThreshold !== undefined ? b.autoCompactThreshold : null
+    }, () => null),
+    rateLimitReset: () => $.session.usage().then(u => [...u.rateLimits].sort((a, b) => b.percentUsed - a.percentUsed).find(w => w.resetsAt)?.resetsAt ?? null, () => null),
+    costUsd: () => $.session.usage().then(u => u.cost?.usd ?? null, () => null),
+    runCommand: async name => { await $.command.run({ command: name, args: '' }) },
+    after: (ms, fn) => { $.clock.after(ms, fn) },
+    // A refused prompt resolves { drop } rather than rejecting: count it as a failure.
+    submitPrompt: async text => { refused(await $.prompt.submit({ text })) },
+    submitPromptSoon: (text, onError) => { $.clock.after(0, () => { $.prompt.submit({ text }).then(refused).catch(onError) }) },
+    appendHiddenNote: async text => { await $.session.append({ message: { type: 'user', content: [{ type: 'text', text }] } }) },
+    runningAgents: async () => (await $.agent.list()).filter(a => a.status === 'running').length,
+    status: text => $.ui.status(text === undefined ? text : unnamed(text)),
+    toast: text => $.ui.toast(text),
+    notify: text => { $.ui.notify(text, { title: 'Jeeves' }).catch(err => $.ui.log(`jeeves: notify failed: ${String(err)}`, { to: 'debug' })) },
+    log: text => $.ui.log(text, { to: 'debug' }),
+    note: text => $.ui.log(unnamed(text)),
+    now: () => $.clock.now(),
+    pluginVersion: () => $.fs.read(`${$.plugin.root}/.claude-plugin/plugin.json`).then(t => String(JSON.parse(t).version ?? '') || null, () => null),
+    firstActivation: async () => {
+      if ((await $.store.get('firstActivationShown')) === true || (await $.store.get('activationNoticeShown')) === true) return false
+      await $.store.set('activationNoticeShown', true)
+      return true
+    },
+    storeGet: key => $.store.get(key),
+    storeSet: async (key, value) => { await $.store.set(key, value) },
+  }
+}
 
 async function answer($: EngineInterface, opts: Options, e: CommandRunInput, idle: boolean, endedHere: ReadonlySet<string>) {
   await quietly($, opts, 'carry-over', rt => carryUndecided(rt, endedHere))
-  try { return { text: await relay(await runtime($, opts), e.args, { userTyped: e.origin.kind === 'composer', idle, endedHere, autoRow: opts.autoStart ?? 'default' }) } } catch (err) {
+  try { return { text: await relay(await runtime(enginePort($), opts), e.args, { userTyped: e.origin.kind === 'composer', idle, endedHere, autoRow: opts.autoStart ?? 'default' }) } } catch (err) {
     return { text: `Jeeves could not answer: ${why(err)}` }
   }
 }
@@ -32,7 +109,7 @@ function outcome(e: ToolCallInput, r: ToolCallResult): ToolOutcome {
 
 /** Never throws into the hook: a failure is logged and the event goes on unchanged. */
 async function quietly($: EngineInterface, opts: Options, what: string, work: (rt: Awaited<ReturnType<typeof runtime>>) => Promise<unknown>) {
-  try { await work(await runtime($, opts)) } catch (err) { $.ui.log(`jeeves: ${what} failed: ${why(err)}`, { to: 'debug' }) }
+  try { await work(await runtime(enginePort($), opts)) } catch (err) { $.ui.log(`jeeves: ${what} failed: ${why(err)}`, { to: 'debug' }) }
 }
 
 export const register: Register = (on, options) => {
@@ -67,7 +144,7 @@ export const register: Register = (on, options) => {
   const endedHere = new Set<string>()
 
   on('session.start', async ($, e, next) => {
-    const rt = await runtime($, opts, true)
+    const rt = await runtime(enginePort($), opts, true)
     commandName = chooseCommandName(await $.command.list())
     await $.command.register({ name: commandName, description: 'Jeeves: keep a long task going across fresh conversations', argumentHint: ARGUMENT_HINT })
     if (commandName === FALLBACK) $.ui.toast('/jeeves is taken by another command, so Jeeves uses /relay.')

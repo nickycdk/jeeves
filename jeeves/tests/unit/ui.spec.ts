@@ -107,7 +107,7 @@ test('ST-7.1: every state has a word label; status entries fit 40 columns, ASCII
       const s = validState({ status, reason, lastContext: { window: 200_000, percent: 99.6, at: '2026-11-07T10:00:00.000Z' } })
       const line = statusLine(s, 50)
       if (status === 'DISABLED') { assert.equal(line, undefined); continue }
-      // Claude Code shows `jeeves:` and the port drops our own `Jeeves: ` (engine-mod.ts): the rest fits the width.
+      // Claude Code shows `jeeves:` and the port drops our own `Jeeves: ` (hooks/register.ts): the rest fits the width.
       const shown = line!.replace(/^Jeeves:? /, '')
       assert.ok(shown.length <= WIDTH && /^[\x20-\x7e]+$/.test(shown), `bad status "${line}"`)
       assert.ok(line!.startsWith('Jeeves') && !(reason && line!.includes(reason)), `code shown: "${line}"`)

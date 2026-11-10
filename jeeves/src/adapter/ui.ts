@@ -48,7 +48,7 @@ const pctText = (p: number | undefined) => (p === undefined ? '?' : `${Math.roun
 const QUIET_POINTS = 15
 
 /** This plugin's status entry (ST-7.1): context and threshold while watching; a stopped task's plain reason, else the state's word.
- *  The text after `Jeeves: ` fits 40 columns; Claude Code shows the plugin's name instead of ours (engine-mod.ts). */
+ *  The text after `Jeeves: ` fits 40 columns; Claude Code shows the plugin's name instead of ours (hooks/register.ts). */
 export function statusLine(s: State, threshold: number | string): string | undefined {
   if (s.status === 'DISABLED') return undefined
   const mode = s.mode === 'assisted' ? ' assisted' : ''

@@ -11,7 +11,7 @@ src/core/              pure TypeScript: the state machine, handover template/par
 ```
 
 - **core** has no `$`, no I/O and no clock (`npm run lint` enforces it). Everything here is unit-tested with `node:test`.
-- **adapter** implements the ports (`ports.ts`: files, processes, prompts, `/clear`, status, toasts) with `$` (`engine-mod.ts`) and runs one cycle per input: read `state.json` → `reduce` → write `state.json` → run the effects (`task.ts` `transition`). All cycles go through one serial queue per process, so two hooks never act on the same old state.
+- **adapter** implements the ports (`ports.ts`: files, processes, prompts, `/clear`, status, toasts) with `$` (built in `hooks/register.ts`, the only file that touches `$`) and runs one cycle per input: read `state.json` → `reduce` → write `state.json` → run the effects (`task.ts` `transition`). All cycles go through one serial queue per process, so two hooks never act on the same old state.
 - **hooks** only route: `session.start` (probe, command registration, auto-start eligibility and notices, cleanup, startup recovery notice), `prompt.submit` (the first prompt, held prompts, the turn's opener), `turn.start`/`turn.complete` (turn mode's boundary), `command.run` (`/jeeves`), `session.measure` and `tool.call` (context readings, evidence ledger), `classic.Stop` (handover request and capture), `turn.complete` (`/clear` after a verified handover), `classic.SessionStart` (inject the task into the fresh conversation), `prompt.submit` (capture the task prompt, hold messages during a handover), `prompt.compose` (the completion block), `session.compact`, `classic.StopFailure`, `session.end`.
 
 ## The state machine

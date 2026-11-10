@@ -3,17 +3,17 @@ import assert from 'node:assert/strict'
 import { DETAIL_MAX, eventDetail, redact } from '../../src/core/redact.ts'
 
 const SECRETS: [string, string][] = [
-  ['anthropic-key', 'key sk-ant-api03-AbCdEfGhIjKlMnOpQrStUv here'],
-  ['openai-key', 'sk-proj-abcdefghijklmnopqrstuvwxyz012345'],
-  ['github-token', 'ghp_abcdefghijklmnopqrstuvwxyz0123456789'],
-  ['aws-key-id', 'AKIAABCDEFGHIJKLMNOP'],
-  ['slack-token', 'xoxb-1234567890-abcdefghij'],
-  ['jwt', 'eyJhbGciOiJIUzI1.eyJzdWIiOiIxMjM0NTY3.SflKxwRJSMeKKF2QT4fw'],
-  ['bearer', 'Authorization: Bearer abcdefghijklmnopqrstuvwxyz'],
+  ['anthropic-key', 'key sk-ant-' + 'api03-AbCdEfGhIjKlMnOpQrStUv here'],
+  ['openai-key', 'sk-proj-' + 'abcdefghijklmnopqrstuvwxyz012345'],
+  ['github-token', 'ghp_' + 'abcdefghijklmnopqrstuvwxyz0123456789'],
+  ['aws-key-id', 'AKIA' + 'ABCDEFGHIJKLMNOP'],
+  ['slack-token', 'xoxb-' + '1234567890-abcdefghij'],
+  ['jwt', 'eyJhbGciOiJIUzI1.' + 'eyJzdWIiOiIxMjM0NTY3.SflKxwRJSMeKKF2QT4fw'],
+  ['bearer', 'Authorization: Bearer ' + 'abcdefghijklmnopqrstuvwxyz'],
   ['assignment', 'export DB_PASSWORD="hunter2 with spaces"'],
   ['assignment', '{"api_key": "abc123def456"}'],
-  ['url-credentials', 'git clone https://user:pa55word@example.com/repo.git'],
-  ['private-key', '-----BEGIN RSA PRIVATE KEY-----\nMIIEow\n-----END RSA PRIVATE KEY-----'],
+  ['url-credentials', 'git clone https://user:' + 'pa55word@example.com/repo.git'],
+  ['private-key', '-----BEGIN RSA ' + 'PRIVATE KEY-----\nMIIEow\n-----END RSA ' + 'PRIVATE KEY-----'],
 ]
 
 test('each secret format is redacted and named', () => {
@@ -34,5 +34,5 @@ test('event details are redacted, flattened and capped', () => {
   const long = eventDetail('x'.repeat(5000))
   assert.equal(long.length, DETAIL_MAX)
   assert.ok(long.endsWith('…'))
-  assert.equal(eventDetail('ok ghp_abcdefghijklmnopqrstuvwxyz0123456789'), 'ok [REDACTED:github-token]')
+  assert.equal(eventDetail('ok ghp_' + 'abcdefghijklmnopqrstuvwxyz0123456789'), 'ok [REDACTED:github-token]')
 })

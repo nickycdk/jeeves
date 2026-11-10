@@ -18,7 +18,7 @@ test('T6: processes start only from the allowed programs, as argv arrays, never 
   for (const st of starts) assert.ok(PROGRAMS.has(st.prog), `${st.file} starts ${st.prog}`)
   // Calls with a variable argv are the port and thin wrappers whose callers pass literal arrays (checked above and below).
   const dynamic = sources.flatMap(s => [...s.text.matchAll(/\b(?:port\.run|process\.run|rt\.port\.run|run)\(\s*(?!\[)([A-Za-z_]\w*)/g)].map(m => `${s.file}: ${m[1]}`))
-  assert.deepEqual(dynamic.sort(), ['src/adapter/diagnose.ts: argv', 'src/adapter/engine-mod.ts: argv', 'src/adapter/ports.ts: argv', 'src/adapter/recover.ts: argv', 'src/adapter/storage.ts: argv'])
+  assert.deepEqual(dynamic.sort(), ['hooks/register.ts: argv', 'src/adapter/diagnose.ts: argv', 'src/adapter/ports.ts: argv', 'src/adapter/recover.ts: argv', 'src/adapter/storage.ts: argv'])
   for (const s of sources) assert.doesNotMatch(s.text, /['"](sh|bash|zsh)['"]|['"]-c['"]\s*,\s*['"][^'"]*\s/, s.file)
 })
 

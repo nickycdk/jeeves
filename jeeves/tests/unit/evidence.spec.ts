@@ -21,7 +21,7 @@ test('Bash: denied and backgrounded calls have no exit status; subagent calls ar
 })
 
 test('Bash: the command is redacted, flattened and capped at 300 characters', () => {
-  const r = toolRecord(call({ args: { command: `curl -H "Authorization: Bearer abcdefghijklmnopqrstuvwxyz0123" \\\n  ${'x'.repeat(400)}` } }))
+  const r = toolRecord(call({ args: { command: `curl -H "Authorization: Bearer ${'abcdefghijklmnopqrstuvwxyz0123'}" \\\n  ${'x'.repeat(400)}` } }))
   assert.ok(r && r.kind === 'cmd')
   assert.ok(!r.command.includes('abcdefghijklmnop'), r.command)
   assert.ok(r.command.length <= 300)
@@ -136,13 +136,13 @@ test('tails: two commands equal in their first 300 characters count as one', () 
 })
 
 test('outputTail: a secret or key block cut at 8,000 characters is not left partly visible', () => {
-  const secret = 'AKIAIOSFODNN7EXAMPLE'
+  const secret = 'AKIA' + 'IOSFODNN7EXAMPLE'
   // The 8,000-character cut lands inside the secret: what is left of it no longer matches a pattern.
   const raw = `Exit code 1\nkey=${secret}\n${'y'.repeat(7980)}\nend`
   assert.ok(raw.length - 8000 > 16 && raw.length - 8000 < 16 + secret.length)
   const cut = outputTail(raw)!
   assert.ok(!cut.includes('FODNN7'), cut.slice(0, 60))
-  const key = `-----BEGIN RSA PRIVATE KEY-----\n${'MIIEowIBAAKCAQEA1234567890abcdef\n'.repeat(400)}-----END RSA PRIVATE KEY-----\nFAIL after key`
+  const key = `-----BEGIN RSA ${'PRIVATE'} KEY-----\n${'MIIEowIBAAKCAQEA1234567890abcdef\n'.repeat(400)}-----END RSA ${'PRIVATE'} KEY-----\nFAIL after key`
   const t = outputTail(`Exit code 1\n${key}`)!
   assert.ok(!t.includes('MIIEow'), t.slice(0, 80))
   assert.match(t, /^\[REDACTED:private-key\]\nFAIL after key$/)

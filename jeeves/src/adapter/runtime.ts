@@ -1,8 +1,6 @@
 // Per-process context, rebuilt after every reload (no state lives only in memory; this is all derived).
-import type { EngineInterface } from 'claude-code'
 import { submitRefused, turnMode, type Probe } from '../core/probe.ts'
 import { notified, started, type Background } from '../core/background.ts'
-import { enginePort } from './engine-mod.ts'
 import type { EnginePort } from './ports.ts'
 import type { AutoRow } from '../core/autostart.ts'
 import type { RepoIdentity } from '../core/git.ts'
@@ -68,15 +66,14 @@ export const bgReset = () => { background = [] }
 export const bgCount = () => background.length
 
 /** One storage (one write queue) per process. Reset by `session.start` so a reload re-probes. */
-export function runtime($: EngineInterface, options: Options, refresh = false): Promise<Runtime> {
-  if (!current || refresh) current = build($, options)
+export function runtime(port: EnginePort, options: Options, refresh = false): Promise<Runtime> {
+  if (!current || refresh) current = build(port, options)
   return current
 }
 
-async function build($: EngineInterface, options: Options): Promise<Runtime> {
-  const port = enginePort($)
+async function build(port: EnginePort, options: Options): Promise<Runtime> {
   const storage = createStorage(port)
-  const probe = await runProbe($).then(p => lens(stopSkipped ? turnMode(p) : p))
+  const probe = await runProbe(port).then(p => lens(stopSkipped ? turnMode(p) : p))
   let stateRoot: string | null = null, stateRootError: string | null = null, stateRootSource: StateRootSource | null = null
   const id = await port.cwd().then(cwd => repoIdentity(port, cwd)).catch(() => null)
   try {
