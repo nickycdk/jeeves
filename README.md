@@ -6,7 +6,7 @@
 
 **Claude Code has a context limit. Your momentum shouldn't.**
 
-[![Version](https://img.shields.io/badge/version-0.3.4_beta-111?style=flat-square)](jeeves/CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.3.5_beta-111?style=flat-square)](jeeves/CHANGELOG.md)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-2.1.319%2B-d97757?style=flat-square)](jeeves/docs/compatibility.md)
 [![macOS](https://img.shields.io/badge/macOS-supported-555?style=flat-square)](jeeves/docs/compatibility.md)
 [![License: MIT](https://img.shields.io/badge/license-MIT-2ea44f?style=flat-square)](LICENSE)
@@ -24,7 +24,7 @@ No interruptions. No copy-pasting. No explaining the same task twice. Finish you
 You keep building. Jeeves takes care of the rest. 🎩
 
 > [!NOTE]
-> **Public beta 0.3.4.** Needs Claude Code 2.1.319 or later on macOS. Works in any terminal, including Cursor's and VS Code's. No API key, no server, and Jeeves itself makes no network requests. Not made by or affiliated with Anthropic.
+> **Public beta 0.3.5.** Needs Claude Code 2.1.319 or later on macOS. Works in any terminal, including Cursor's and VS Code's. No API key, no server, and Jeeves itself makes no network requests. Not made by or affiliated with Anthropic.
 
 ## Get started
 
@@ -86,7 +86,7 @@ Jeeves never runs your commands, never changes git, never answers permission pro
 |---|---|
 | `/jeeves threshold <n>` | Hand over at n% context (20 to 90, default 40) |
 | `/jeeves limit <n>` | The most handovers one task may make (1 to 100, default 30) |
-| `/jeeves check <cmd>` | A command that proves the task is done. Claude runs it, Jeeves checks the result |
+| `/jeeves check <cmd>` | A command that proves the task is done. Claude runs it, Jeeves checks the result. `/jeeves on` suggests some for JS, Python, Rust and Go projects |
 | `/jeeves defaults` | This project's defaults for new tasks (`threshold`, `limit`, `check`, `auto`) |
 | `/jeeves auto [on\|off]` | Show or set auto-start everywhere |
 | `/jeeves later` | Skip the next handover (threshold +10) |
@@ -98,7 +98,7 @@ Jeeves never runs your commands, never changes git, never answers permission pro
 
 </details>
 
-Settings, modes, updating, uninstalling and the FAQ are in the [full README](jeeves/README.md). On a Claude Team account, Jeeves runs in turn mode with a few limits. See [Requirements](jeeves/README.md#requirements).
+Settings, modes, updating, uninstalling and the FAQ are in the [full README](jeeves/README.md). On a Claude Team account, Jeeves runs in turn mode with a few limits. See [Turn mode](jeeves/docs/turn-mode.md).
 
 ## Your data
 

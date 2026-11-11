@@ -127,6 +127,17 @@ test('ST-11.2: /jeeves on suggests checks from package.json and Makefile when no
   expect(stateOf(h, taskDirs(h)[0]!).pendingChanges ?? []).toEqual([])
 })
 
+test('ST-11.2: the lockfile picks the runner; Go and Python with uv are suggested too', async ($, on) => {
+  const h = await setup(on)
+  h.files.set('/work/proj/package.json', JSON.stringify({ scripts: { test: 'vitest' } }))
+  h.files.set('/work/proj/pnpm-lock.yaml', 'lockfileVersion: 9')
+  h.files.set('/work/proj/go.mod', 'module x')
+  h.files.set('/work/proj/pyproject.toml', 'dev = ["pytest"]')
+  h.files.set('/work/proj/uv.lock', '')
+  await start($)
+  expect(await relay($, 'on')).toContain('Suggested checks: /jeeves check pnpm test, /jeeves check uv run pytest, /jeeves check go test ./..., /jeeves check go vet ./...')
+})
+
 test('ST-11.2: no suggestion line when defaults set checks, or the repository has nothing to suggest', async ($, on) => {
   const h = await setup(on)
   await start($)

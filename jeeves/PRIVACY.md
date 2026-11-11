@@ -26,7 +26,9 @@ In Claude Code's plugin store (kept by Claude Code on this machine), Jeeves keep
 
 A notification (a task stopped and needs you, or completed) carries only the state and its reason, never prompt or file text, and goes wherever your Claude Code notification setting and `Notification` hooks send it.
 
-It never copies the conversation transcript or your files, and of tool output only the last lines of failed commands (above). A handover is Claude's own summary and can quote small parts of them (see [Residual risk](#residual-risk) below).
+It never copies the conversation transcript or your files, and of tool output only the last lines of failed commands (above).
+
+To suggest check commands at `/jeeves on`, when a task starts with none, Jeeves reads `package.json`, `Makefile`, `justfile` (or `Justfile`, `.justfile`) and `pyproject.toml` at the top of the repository, up to 256 KB each, and checks whether `pnpm-lock.yaml`, `yarn.lock`, `bun.lock`, `bun.lockb`, `uv.lock`, `poetry.lock`, `Cargo.toml` and `go.mod` exist, without opening them. Nothing from these files is stored; only the suggestion line is shown to you. A handover is Claude's own summary and can quote small parts of them (see [Residual risk](#residual-risk) below).
 
 ## How long it keeps it
 

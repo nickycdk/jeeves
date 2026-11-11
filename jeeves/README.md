@@ -2,7 +2,7 @@
 
 Claude Code has a context limit. Your momentum shouldn't. Jeeves is your friendly butler for long Claude Code tasks: when the context starts to fill up, he saves a verified handover, starts a fresh conversation in the same terminal and carries on with the task there. You keep building.
 
-**Status: public beta 0.3.4 (see the [CHANGELOG](CHANGELOG.md)).** It works on Claude Code 2.1.319 and later on macOS; see [Compatibility](docs/compatibility.md).
+**Status: public beta 0.3.5 (see the [CHANGELOG](https://github.com/nickycdk/jeeves/blob/main/jeeves/CHANGELOG.md)).** It works on Claude Code 2.1.319 and later on macOS; see [Compatibility](https://github.com/nickycdk/jeeves/blob/main/jeeves/docs/compatibility.md).
 
 ## The problem
 
@@ -12,11 +12,9 @@ Jeeves takes that job off your hands, inside your normal terminal session. When 
 
 ## Requirements
 
-- Claude Code 2.1.319 or later (`claude --version`).
-- macOS. Linux should work but is untested.
-- Claude accounts in a Team organization work in **turn mode**: on Claude Code 2.1.319 a built-in plugin there runs before every installed plugin and skips the hooks Jeeves normally hands over with (Stop, SessionStart, compaction, system prompt). Jeeves notices after the first answer and uses the end of each answered turn instead (`/jeeves status`: `mode: full (turn)`). What turn mode does not give: the handover's facts have no scheduled crons (`not available in turn mode`); compaction ahead of time cannot be skipped, and a compaction is recognised only from the next context reading (a fall of more than 10,000 tokens), then handed over at the next turn end; the completion rules reach Claude as a hidden row in the conversation (at the task's first turn, after each continuation and compaction, and every 10 turns) instead of in the system prompt; on 2.1.319 that row can be missing from a turn's last request and from the first turn after `claude` starts, so a "done" claim may come a turn later (a wrong claim still never completes a task). See [Troubleshooting](docs/troubleshooting.md).
-- Claude Code must let plugins run `/clear`. On 2.1.319 this works and is part of the typed plugin API, but it is not documented as a supported use and could change. If it stops working, Jeeves falls back to assisted mode (you type `/clear`, then `/jeeves continue`) and says so.
+- Claude Code 2.1.319 or later (`claude --version`), on macOS. Linux should work but is untested.
 - Nothing else: no API key, no server, no other software. Jeeves makes no network calls.
+- On a Claude account in a Team organization, Jeeves runs in **turn mode**, with a few limits: see [Turn mode](https://github.com/nickycdk/jeeves/blob/main/jeeves/docs/turn-mode.md).
 
 ## Install
 
@@ -39,36 +37,18 @@ The same in Terminal, iTerm, Cursor's or VS Code's integrated terminal: Jeeves l
 1. Open your project and start `claude`.
 2. Type your task and work as usual. In a git repository, on a model with a context window of 200K tokens or more, Jeeves takes your first prompt as the task by itself (see [Auto-start](#auto-start)). The entry under the prompt shows `Jeeves ?/40%` until Claude's first reply, then `jeeves: 12%/40%`.
 3. Anywhere else, type `/jeeves on` before your task. Jeeves answers `Jeeves on: task t_... Your next prompt is saved word for word as the task.` (the first time on a machine, plus three lines on where it keeps files and how to pause). Or `/jeeves on <goal>`: the goal is saved and sent as the first prompt.
-4. Optional: `/jeeves check npm test` adds a command that proves the task is done, and `/jeeves dod <text>` a done criterion. Jeeves stores them as text and never runs them; Claude does, and Jeeves checks the result.
+4. Optional: `/jeeves check npm test` adds a command that proves the task is done, and `/jeeves dod <text>` a done criterion. Jeeves stores them as text and never runs them; Claude does, and Jeeves checks the result. When a task starts with none, `/jeeves on` suggests some from your repository (see [Checks](#checks)).
 5. At 40% Jeeves takes over between turns: `jeeves: handover requested`, `... validated, starting fresh. Previous conversation: claude --resume <id>`, then the fresh conversation continues. The old conversation stays in Claude Code; resumed with that command, it can be read but cannot drive the task (`/jeeves status` there says `Owned by another session`). In full mode you type nothing, unless Claude asks for a permission as it would without Jeeves.
 
-`/jeeves pause` stops handovers until `/jeeves resume`; `/jeeves off` ends the task (files kept).
+**Pause or stop:** `/jeeves pause` stops handovers until `/jeeves resume`; `/jeeves off` ends the task (files kept); `/jeeves auto off` stops Jeeves from watching sessions by itself.
+
+## What you see
+
+While a task is on, Jeeves keeps one entry under the prompt: `jeeves: 34%/40%` (context used / threshold) while it watches, or the current step in words (`jeeves: writing handover`, `jeeves: Paused by you. /jeeves resume`). In an auto-started task the entry stays empty until the context is within 15 points of the threshold (from 25% with a 40% threshold); `/jeeves` shows the full picture at any time. Your own status line is not changed. Each step of a handover adds one dim line to the transcript; Claude does not see these lines. Errors also show as a short notice.
 
 ## Auto-start
 
-On a new install (0.3 and later) you can skip `/jeeves on`. Jeeves watches a session by itself when auto-start is on (below; a change applies at once) and all of these hold, checked once when the session starts:
-
-- an interactive session (not `claude -p`, the SDK or a background agent), in full mode;
-- inside a git repository (subfolders and linked worktrees count);
-- a model whose context window is 200K tokens or more (since 0.3.1; 0.3.0 watched only windows above 200K). On a 200K window the default threshold of 40% is about 80K tokens, and a fresh conversation can already fill a fifth of the window: if the first reading is within 10 points of the threshold, the near-threshold rule below applies;
-- a fresh conversation (not `--resume` or `--continue`).
-
-The first such session shows once: `Jeeves watches long sessions here. At 40% context (~400K tokens) it saves a handover and continues in a fresh conversation.` Nothing is recorded until you type your first prompt; that prompt becomes the task, word for word, as after `/jeeves on`. Prompts from other plugins, the SDK or scheduled triggers never start one. `/jeeves status` shows `(auto)` for such a task, and for a session that is not watched the reason, such as `Auto off: not a git repository` (`--diagnose` lists them all).
-
-An auto task works like any other, with these differences:
-- if its first context reading is already within 10 points of the threshold (a large CLAUDE.md, a pasted log), Jeeves stops watching this session and says so; `/jeeves on` watches anyway;
-- it does not hand over in its first 3 turns, unless the context is already 10 points past the threshold (50% with the default threshold);
-- switching to a model with a window below 200K ends it, with a message (a switch from 1M to 200K keeps it, with its threshold);
-- a `/clear` you type ends it (files kept) and your next prompt starts a new one; in a task you started with `/jeeves on`, `/clear` pauses as before, and no auto task starts for the rest of that session (a later session is watched again; the paused task waits for `/jeeves resume`). `/jeeves on <goal>` makes an auto task yours: the goal is saved as a new revision and `/clear` then pauses it;
-- after a handover, if Claude ends the first turn of the fresh conversation by announcing its next step instead of taking it, Jeeves asks it once to carry on (or to say it is done, or what it needs from you). Only once per conversation, never after you typed in it, and never in a task you started with `/jeeves on`;
-- if a session closes in the middle of a handover, the next fresh interactive session continues it by itself, whatever `autoRecover` says;
-- if it ended without a single handover, its folder is deleted at a later session start, 7 days after its last change.
-
-**Turning it off:** `/jeeves off` for the rest of this session, `/jeeves defaults auto off` for this project, `/jeeves auto off` everywhere (kept in the state folder, never in your Claude settings), or `/config` → Jeeves → Auto-start → `off`. The session wins over the project, the project over `/config`, `/config` (when set to `on` or `off`) over `/jeeves auto`. `/jeeves auto` shows the setting and which of these decided it. `/jeeves on` always works.
-
-**A hint instead of silence:** a session Jeeves does not watch only because it was not turned on after an upgrade, is a resumed conversation, is outside git or started on a 200K window gets one line when its context reaches the point a watched one would be warned (35% with the default threshold): `Jeeves: this session is at 45%. /jeeves on would hand it over to a fresh conversation before it fills up. /jeeves auto off hides this.` Once per session; never under `-p` or after you turned auto-start off anywhere; after 3 hints in a row with no `/jeeves on` or `/jeeves auto on`, no more. No tokens, no files.
-
-**Upgrading from 0.2:** nothing changes. Jeeves says once that it can now watch long sessions by itself, and keeps auto-start off until you type `/jeeves auto on`.
+On a new install Jeeves watches an interactive session by itself when it runs in a git repository, on a model with a window of 200K tokens or more, in a fresh conversation. Your first prompt becomes the task, word for word; nothing is recorded before it. Turn it off with `/jeeves off` (this session), `/jeeves defaults auto off` (this project) or `/jeeves auto off` (everywhere). The full rules, how an auto task differs and the one-time hint are in [Auto-start](https://github.com/nickycdk/jeeves/blob/main/jeeves/docs/auto-start.md).
 
 ## What it does by itself, and what it does not
 
@@ -86,7 +66,7 @@ Jeeves is one Claude Code mod (`hooks/register.ts`); every use of Claude Code's 
 - **Files it writes** (`fs.write`): only in its state folder (`~/Library/Application Support/Jeeves` on macOS, `~/.local/state/jeeves` on Linux, or the `stateDir` you set). It never writes build, start-up, settings or instruction files. It also keeps a few flags in Claude Code's plugin store (`store.set`).
 - **Slash command it runs** (`command.run`): `/clear`, once after a verified handover in full mode, to start the fresh conversation. Nothing else.
 - **Prompts it submits** (`prompt.submit`): the continuation prompt for the fresh conversation (your task prompt, the saved handover, and any message you typed during the handover), the handover request and a short "carry on" nudge (fixed texts), and the goal you give with `/jeeves on <goal>`. They go to the Claude Code session you are in, like a prompt you type. Two notes are added to the conversation the same way (`session.append`): the "finish what is in flight" note before a handover and how to report completion.
-- **What it reads:** the context usage figure, the session id and turn count (`session.*`), the result of each tool call for its ledger, and its own state files. It does not read your files' contents or the transcript.
+- **What it reads:** the context usage figure, the session id and turn count (`session.*`), the result of each tool call for its ledger, and its own state files. It does not read the transcript. Of your repository's files it reads only these, and only at `/jeeves on` when the task has no checks, to suggest some: `package.json`, `Makefile`, `justfile` (or `Justfile`, `.justfile`) and `pyproject.toml`, up to 256 KB each. It checks whether `pnpm-lock.yaml`, `yarn.lock`, `bun.lock`, `bun.lockb`, `uv.lock`, `poetry.lock`, `Cargo.toml` and `go.mod` exist, without opening them. Nothing from these files is stored.
 - **Hooks that see other calls:** `tool.call` records how each tool call ended and returns the call unchanged. `prompt.compose` adds one section to the system prompt while a task runs (how to report completion). `classic.SessionStart` adds the saved handover as context to the fresh conversation after Jeeves's own `/clear`, and otherwise passes the event on unchanged. `classic.Stop` may ask Claude for the handover before it stops. `session.compact` skips automatic compaction while a task is managed (Jeeves hands over instead). `prompt.submit` holds a message you type during a handover. None of them answers a permission prompt, changes a permission mode or edits settings.
 - **Network:** none. Nothing is sent off your machine. Notifications go through Claude Code's own `ui.notify` (your notification setting decides where).
 - **Development files:** `package.json` lists TypeScript as a development dependency only, for type checks; Jeeves has no runtime dependencies and runs from its TypeScript source. `scripts/` and `tests/` are run by developers by hand, never by the plugin. `scripts/compat.mjs` installs Claude Code versions from npm into a scratch folder to test compatibility, with a logged-out, empty configuration.
@@ -97,48 +77,28 @@ Jeeves is one Claude Code mod (`hooks/register.ts`); every use of Claude Code's 
 
 - **full**: Jeeves runs `/clear` itself after a verified handover and continues the task in the fresh conversation. No keystroke is needed.
 - **assisted**: used when this Claude Code cannot run `/clear` for a plugin (or refused it once). Jeeves never claims automatic rotation here. It saves the verified handover and asks you to run `/clear`, then `/jeeves continue`, which sends the task and handover into the fresh conversation.
-- **full (turn)**: full, on an account where another plugin skips Jeeves's Stop hook (a Team account, see Requirements): the turn's end is the handover point, and the handover is asked for and the task continued with prompts Jeeves sends.
+- **full (turn)**: full, on an account where another plugin skips Jeeves's Stop hook (a Team account, see [Turn mode](https://github.com/nickycdk/jeeves/blob/main/jeeves/docs/turn-mode.md)): the turn's end is the handover point, and the handover is asked for and the task continued with prompts Jeeves sends.
 - **unsupported**: this Claude Code version is too old, or in turn mode Claude Code refused a prompt Jeeves sent; Jeeves stays off and says why.
-
-## What you see
-
-While a task is on, Jeeves keeps one entry under the prompt: `jeeves: 34%/40%` (context used / threshold) while it watches, or the current step in words (`jeeves: writing handover`, `jeeves: Paused by you. /jeeves resume`). In an auto-started task the entry stays empty until the context is within 15 points of the threshold (from 25% with a 40% threshold); `/jeeves` shows the full picture at any time. Your own status line is not changed. Each step of a handover adds one dim line to the transcript; Claude does not see these lines. Errors also show as a short notice.
 
 ## Data and privacy
 
-Everything stays on your machine, in the state folder (`/jeeves status` shows it; never inside your repository unless you set `stateDir` there): your task prompt, the handovers with a git facts snapshot each, a redacted log of state changes and of the last 200 commands and edited file paths, and the last output lines (redacted) of up to 3 commands that failed and have not passed since. Never the transcript or file contents. With auto-start, recording begins at the first prompt you type in a watched session (on an upgrade from 0.2, only once you turn auto-start on). Known secret formats are masked. The full list, and what masking catches and misses, is in [PRIVACY.md](PRIVACY.md). Delete it with `/jeeves purge --all` (or `--task`, `--project`) or by deleting the folder.
+Everything stays on your machine, in the state folder (`/jeeves status` shows it; never inside your repository unless you set `stateDir` there): your task prompt, the handovers with a git facts snapshot each, a redacted log of state changes and of the last 200 commands and edited file paths, and the last output lines (redacted) of up to 3 commands that failed and have not passed since. Never the transcript or file contents. With auto-start, recording begins at the first prompt you type in a watched session (on an upgrade from 0.2, only once you turn auto-start on). Known secret formats are masked. The full list, and what masking catches and misses, is in [PRIVACY.md](https://github.com/nickycdk/jeeves/blob/main/jeeves/PRIVACY.md). Delete it with `/jeeves purge --all` (or `--task`, `--project`) or by deleting the folder.
 
 ## Commands
 
-All are `/jeeves <command>`. Only commands you type yourself change a task; anything may read.
+All are `/jeeves <command>`. The ones you will use most:
 
 | Command | What it does |
 |---|---|
-| `on [goal]` | Start a managed task in this project. Without a goal, your next prompt is the task. In an auto task, `on <goal>` makes it yours: the goal is a new revision and a `/clear` then pauses it. |
-| `off` | End the task and release it. Nothing is deleted. Auto-start stays off for the rest of this session. |
-| `auto [on\|off]` | Show whether auto-start is on and which setting decided it; `on`/`off` sets it everywhere (in `auto.json` in the state folder, never in Claude settings). Says so when the `/config` row overrides it. |
-| `pause` / `resume` | No handover until `resume`. Kept across restarts. `resume` also continues after a `/clear` you typed, a rate limit or a disk error. |
+| `on [goal]` | Start a managed task in this project. Without a goal, your next prompt is the task. |
+| `off` | End the task and release it. Nothing is deleted. |
+| `status` | Mode, task, state, context, threshold, rotations, state folder. `status --diagnose` gives a redacted report for a bug report. |
+| `pause` / `resume` | No handover until `resume`. Kept across restarts. |
 | `rotate` | Hand over now, at the next safe stop. |
-| `later` | Skip the next handover: the threshold moves up 10 points and the warning comes again 5 points before. Repeatable up to 90%, or 5 points below the point where Claude Code would compact, when that is lower. A handover already under way goes on (`/jeeves pause` stops it). |
-| `threshold <n>` | Hand over at n% context (20 to 90; default 40). Warns 5 points before. |
-| `limit <n>` | The most handovers this task may make (1 to 100; default 30). At the limit the task pauses; a higher limit and `/jeeves resume` continue it. |
-| `defaults` | This project's defaults for new tasks. `defaults threshold <n>`, `defaults limit <n>`, `defaults check <cmd>` (add one; up to 20), `defaults auto on\|off` (auto-start for this project), `defaults clear`. Applied at the next `/jeeves on` in this project (auto-start at once); running tasks are not changed. Kept in the state folder, never in your repository. |
-| `task` | Show the original prompt, every change since and the Definition of Done. |
-| `dod <text>` | Add a done criterion (a new task revision, never an edit). |
 | `check <cmd>` | Add a verification command (stored as text, never run by Jeeves). |
-| `done` | Confirm by hand a task Claude says is done but Jeeves could not prove (`Claude says done. Confirm: /jeeves done`; recorded as your decision). |
-| `retry` | After `Handover failed checks`: ask for the handover again. After `Fresh session too full`: keep working in this conversation without a handover in it. Counts toward the 2 failed handovers in a row. |
-| `continue` | Assisted mode: after `/clear`, continue the task in the fresh conversation. |
-| `recover [--relink]` | Continue a task an earlier session left interrupted (crash, closed terminal). `--relink` continues after a branch switch or a moved folder. |
-| `status [--diagnose]` | Mode, task (`auto` or `explicit`), state, context, threshold, rotations, state folder; with no task of this session's own, whether auto-start watches it and if not why. `--diagnose`: a redacted report for a bug report, with every reason. |
-| `stats` | For this project and the current task: tasks, rotations, sessions, average context at rotation, context cleared by rotations (points, and tokens when the window is known), cost where Claude Code reports it (else "unknown"), and stops by reason. Reads only. |
-| `handover` | The last handover of the task status shows: its file, Current goal and first 3 next actions, at 40 columns. Reads only; a missing or changed file is said, not printed. |
-| `history [--full]` | The last 20 state changes and a rotations summary. `--full` adds, per rotation, the session's context at start and end, its cost when known, why it ended, and the handover file with its first next actions (a missing or changed file is said, not printed). |
-| `purge --task <id> \| --project \| --all` | List the task folders that would be deleted and give a code. A running task is never deleted. |
-| `purge confirm <code>` | Delete them (within 2 minutes; a wrong code cancels). |
-| `help` | The command list. |
+| `done` | Confirm by hand a task Claude says is done but Jeeves could not prove. |
 
-If another plugin already owns `/jeeves`, Jeeves registers `/relay` instead and says so.
+The rest (`later`, `threshold`, `limit`, `defaults`, `auto`, `task`, `dod`, `retry`, `continue`, `recover`, `history`, `handover`, `stats`, `purge`, `help`) are in [Commands](https://github.com/nickycdk/jeeves/blob/main/jeeves/docs/commands.md). `/jeeves help` lists them all, the everyday ones first.
 
 ## Settings
 
@@ -148,9 +108,18 @@ In Claude Code: `/plugin configure jeeves@jeeves`. From a shell: `claude plugin 
 |---|---|---|
 | `stateDir` | empty: `~/Library/Application Support/Jeeves` (Linux: `~/.local/state/jeeves`) | Absolute path for task state and handovers. The default is never inside a repository (Jeeves refuses one that would be); a path you set is used as given. |
 | `autoRecover` | off | At session start, continue an interrupted task by itself instead of asking you to type `/jeeves recover`. Auto tasks do this whatever the setting says. |
-| `autoStart` (Auto-start) | `default` | `default` follows `/jeeves auto` (on for a new install, off after an upgrade from 0.2); `on` or `off` wins over `/jeeves auto`. A project's `/jeeves defaults auto` and `/jeeves off` in a session still win. See [Auto-start](#auto-start). |
+| `autoStart` (Auto-start) | `default` | `default` follows `/jeeves auto` (on for a new install, off after an upgrade from 0.2); `on` or `off` wins over `/jeeves auto`. A project's `/jeeves defaults auto` and `/jeeves off` in a session still win. See [Auto-start](https://github.com/nickycdk/jeeves/blob/main/jeeves/docs/auto-start.md). |
 
-**Checks.** Verification commands (`/jeeves check npm test`) are what Claude must have run, with success, before Jeeves accepts the task as done. Jeeves stores them as text and never runs them. When a task starts with none, `/jeeves on` suggests up to 4 from your repository: `package.json` scripts named `test`, `lint`, `typecheck` or `check` (or `test:unit` and the like), and `test`/`lint` targets in a top-level `Makefile`. Nothing is added until you type the command. Other ecosystems (pyproject, Cargo) are not read yet.
+### Checks
+
+Verification commands (`/jeeves check npm test`) are what Claude must have run, with success, before Jeeves accepts the task as done. Jeeves stores them as text and never runs them. When a task starts with none, `/jeeves on` suggests up to 4 from your repository, at most 2 from each source, in this order:
+
+- `test` and `lint` targets in a top-level `Makefile` (`make test`) and recipes in a `justfile` (`just test`);
+- `package.json` scripts named `test`, `lint`, `typecheck` or `check` (or `test:unit` and the like), run with the package manager your lockfile or `packageManager` field names: `npm test`, `pnpm test`, `yarn test` or `bun run test`;
+- `pytest`, `ruff check .` and `mypy` when `pyproject.toml` lists them as dependencies (an optional extra does not count: `uv run` does not install extras), run through `uv run` (with `uv.lock`) or `poetry run` (with `poetry.lock`). Without either lockfile nothing is suggested for Python: the tools usually sit in a virtualenv that is not active, and a check that fails blocks "done";
+- `cargo test` and `cargo clippy` with a `Cargo.toml`, `go test ./...` and `go vet ./...` with a `go.mod`.
+
+Nothing is added until you type the command.
 
 ### Threshold and handover limit
 
@@ -186,22 +155,22 @@ Per project you can also keep check commands: `/jeeves defaults check <cmd>` add
 
 ## Troubleshooting
 
-To try Jeeves by hand, scenario by scenario, see [docs/testing.md](docs/testing.md). The common cases, with what to type, are in [docs/troubleshooting.md](docs/troubleshooting.md). For a bug report, paste the output of `/jeeves status --diagnose`.
+To try Jeeves by hand, scenario by scenario, see the [testing guide](https://github.com/nickycdk/jeeves/blob/main/jeeves/docs/testing.md). The common cases, with what to type, are in [Troubleshooting](https://github.com/nickycdk/jeeves/blob/main/jeeves/docs/troubleshooting.md). For a bug report, paste the output of `/jeeves status --diagnose`.
 
 ## FAQ
 
 **Does it work with `--resume`, `--continue` or forks?** Jeeves never uses them; it only runs `/clear` in your current session. You can still use them yourself; a task belongs to one session at a time.
 
-**What if Claude Code updates and breaks something?** Jeeves checks the version and its capabilities at every start. If `/clear` stops working for plugins it falls back to assisted mode and says so; it never pretends to rotate.
+**What if Claude Code updates and breaks something?** Jeeves checks the version and its capabilities at every start. Running `/clear` from a plugin works on 2.1.319 and is part of the typed plugin API, but it is not documented as a supported use and could change. If it stops working, Jeeves falls back to assisted mode (you type `/clear`, then `/jeeves continue`) and says so; it never pretends to rotate.
 
-**Will the fresh conversation redo work?** The continuation prompt lists what is done, which files changed, which checks ran with what result and what not to repeat. In the M4 gate runs a six-step task completed across 5 rotations with no step done twice ([evidence](../docs/done/evidence/m0-m7/m4-e2e/RESULT.md)).
+**Will the fresh conversation redo work?** The continuation prompt lists what is done, which files changed, which checks ran with what result and what not to repeat. In the M4 gate runs a six-step task completed across 5 rotations with no step done twice ([evidence](https://github.com/nickycdk/jeeves/blob/main/docs/done/evidence/m0-m7/m4-e2e/RESULT.md)).
 
 **Two terminals in the same project?** Each session gets its own task; one session cannot change another's (`LOCK_HELD`).
 
 **Does it cost anything?** Jeeves itself is free and makes no model calls. A handover is one extra Claude turn.
 
-**Can I see how it works?** [docs/architecture.md](docs/architecture.md) and the state machine in [docs/state-machine.md](docs/state-machine.md).
+**Can I see how it works?** [Architecture](https://github.com/nickycdk/jeeves/blob/main/jeeves/docs/architecture.md) and the [state machine](https://github.com/nickycdk/jeeves/blob/main/jeeves/docs/state-machine.md).
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). Licence: MIT. Jeeves is not made by or affiliated with Anthropic.
+See [CONTRIBUTING.md](https://github.com/nickycdk/jeeves/blob/main/jeeves/CONTRIBUTING.md). Licence: MIT. Jeeves is not made by or affiliated with Anthropic.

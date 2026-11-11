@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3.5 (2026-11-11)
+
+Release notes: `docs/release-notes/v0.3.5.md`.
+
+- Check suggestions at `/jeeves on` for more projects: the package manager comes from the `packageManager` field or the lockfile (`pnpm test`, `yarn test`, `bun run test`; was always `npm`); Python through `uv run` or `poetry run` when `pyproject.toml` lists `pytest`, `ruff` or `mypy` as dependencies (not only in `[project.optional-dependencies]`, which `uv run` does not install) and the lockfile exists (nothing without one, since bare tools usually sit in an inactive virtualenv); `cargo test`/`cargo clippy` with `Cargo.toml`; `go test ./...`/`go vet ./...` with `go.mod`; `just test`/`just lint` from a justfile. Up to 4, at most 2 per source, Makefile and justfile first. Lockfiles, `Cargo.toml` and `go.mod` are only checked for existence; the four text files are read up to 256 KB each. Nothing is stored.
+- A Makefile variable (`test := ...`, `lint ::= ...`) is no longer read as a target; `test::` still is.
+- README and PRIVACY.md now name the repository files Jeeves reads to suggest checks (the README said it read no file contents, already untrue of `package.json` and `Makefile`).
+- Shorter README: turn mode, the auto-start rules and the full command table moved to `docs/turn-mode.md`, `docs/auto-start.md` and `docs/commands.md`. Links from the plugin README are absolute GitHub URLs, so they work wherever it is shown.
+- `/jeeves help` lists the 8 everyday commands first, then the rest under `More:`.
+- Tests: a relative `XDG_STATE_HOME` is ignored (XDG spec); the version in `package.json`, `plugin.json`, the root README (badge and text) and the plugin README must match; every help command has a row in `docs/commands.md` and the everyday ones a row in the README.
+
 ## 0.3.4 (2026-11-10)
 
 Release notes: `docs/release-notes/v0.3.4.md`.

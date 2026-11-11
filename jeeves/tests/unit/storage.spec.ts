@@ -82,6 +82,8 @@ test('state root: config override, plugin data dir, then OS default', async () =
   assert.deepEqual(await resolveStateRoot(fakePort({ HOME: '/Users/u' }, 'Darwin')), { root: '/Users/u/Library/Application Support/Jeeves', source: 'os-default' })
   assert.deepEqual(await resolveStateRoot(fakePort({ HOME: '/home/u' }, 'Linux')), { root: '/home/u/.local/state/jeeves', source: 'os-default' })
   assert.deepEqual(await resolveStateRoot(fakePort({ HOME: '/home/u', XDG_STATE_HOME: '/xdg' }, 'Linux')), { root: '/xdg/jeeves', source: 'os-default' })
+  // The XDG spec calls a relative path invalid; it is ignored.
+  assert.deepEqual(await resolveStateRoot(fakePort({ HOME: '/home/u', XDG_STATE_HOME: 'rel/state' }, 'Linux')), { root: '/home/u/.local/state/jeeves', source: 'os-default' })
 })
 
 test('state root: the env override needs JEEVES_TEST=1', async () => {

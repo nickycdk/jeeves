@@ -1,7 +1,7 @@
 // /jeeves parsing and answers (ST-1.9, E2). Commands that change a task run only when the user typed them (FR-05).
 import { capText, isLimit, isThreshold, laterCap, LIMIT_MAX, LIMIT_MIN, THRESHOLD_MAX, THRESHOLD_MIN } from '../core/machine.ts'
 import { heldPrompt } from '../core/continuation.ts'
-import { suggestChecks } from '../core/suggest.ts'
+import { detectPm, suggestChecks } from '../core/suggest.ts'
 import { taskText } from '../core/task.ts'
 import { join } from '../core/paths.ts'
 import { DEFAULT_CONFIG, ROTATION_STATES, type State } from '../core/types.ts'
@@ -274,8 +274,21 @@ async function revise(rt: Runtime, tasks: Task[], me: string, kind: 'dod' | 'che
 async function suggestions(rt: Runtime, checks: number): Promise<string[]> {
   if (checks > 0 || !rt.identity) return []
   const root = rt.identity.kind === 'git' ? rt.identity.worktree : rt.identity.cwd
-  const read = (f: string) => rt.port.read(join(root, f)).catch(() => null)
-  const s = suggestChecks(await read('package.json'), await read('Makefile'))
+  // shortcut: reads the whole file, then cuts it; the port has no stat. Fine for build files.
+  const read = (f: string) => rt.port.read(join(root, f)).then(t => t.slice(0, 256 * 1024), () => null)
+  const has = (f: string) => rt.port.exists(join(root, f)).catch(() => false)
+  const packageJson = await read('package.json')
+  const s = suggestChecks({
+    packageJson,
+    makefile: await read('Makefile'),
+    justfile: (await read('justfile')) ?? (await read('Justfile')) ?? (await read('.justfile')),
+    pyproject: await read('pyproject.toml'),
+    cargo: await has('Cargo.toml'),
+    goMod: await has('go.mod'),
+    uvLock: await has('uv.lock'),
+    poetryLock: await has('poetry.lock'),
+    pm: detectPm(packageJson, { pnpmLock: await has('pnpm-lock.yaml'), yarnLock: await has('yarn.lock'), bunLock: (await has('bun.lock')) || (await has('bun.lockb')) }),
+  })
   return s.length ? [MSG.suggestedChecks(s)] : []
 }
 

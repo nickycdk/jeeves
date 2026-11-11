@@ -1,5 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import { chooseCommandName, pickTask } from '../../src/adapter/commands.ts'
 import { ARGUMENT_HINT, firstActivationText, HELP, needsYou, statusText, WIDTH, type StatusView } from '../../src/adapter/ui.ts'
 import { probe, submitRefused, turnMode } from '../../src/core/probe.ts'
@@ -131,8 +132,24 @@ test('diagnose: the home folder becomes ~ only as a whole path segment', async (
 })
 
 test('the command menu hint names every command in help', () => {
-  for (const cmd of HELP.split('\n').slice(1).map(l => l.split(' ')[0])) assert.ok(ARGUMENT_HINT.split(' ').includes(cmd), `missing ${cmd}`)
+  for (const cmd of helpCommands()) assert.ok(ARGUMENT_HINT.split(' ').includes(cmd), `missing ${cmd}`)
   assert.ok(ARGUMENT_HINT.includes('--full') && ARGUMENT_HINT.includes('--diagnose'))
+})
+
+const helpCommands = () => HELP.split('\n').slice(1).filter(l => l !== 'More:').map(l => l.split(' ')[0]!)
+// The first cell of each table row that starts with a code span, e.g. "| `pause` / `resume`".
+const commandCells = (p: string) => readFileSync(new URL(p, import.meta.url), 'utf8').split('\n')
+  .filter(l => l.startsWith('| `')).map(l => l.split(' | ')[0]!)
+const inTable = (cells: string[], cmd: string) => cells.some(c => c.includes(`\`${cmd}\``) || c.includes(`\`${cmd} `))
+
+test('docs: every help command has a row in docs/commands.md; the everyday ones (before More:) also in the README', () => {
+  const table = commandCells('../../docs/commands.md')
+  for (const cmd of helpCommands()) assert.ok(inTable(table, cmd), `docs/commands.md has no row for ${cmd}`)
+  const readme = commandCells('../../README.md')
+  const everyday = HELP.split('\n').slice(1, HELP.split('\n').indexOf('More:')).map(l => l.split(' ')[0]!)
+  assert.equal(everyday.length, 8)
+  for (const cmd of everyday) assert.ok(inTable(readme, cmd), `README has no row for ${cmd}`)
+  assert.ok(!inTable(['| `autoStart` (Auto-start)'], 'on'), 'a mention outside the first cell does not count')
 })
 
 test('more than 8 lines: Path, Last, Rotations, Waiting, TEST OVERRIDE give way in that order; the reason and the defaults warning always show', () => {
