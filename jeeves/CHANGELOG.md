@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.6 (2026-11-11)
+
+Release notes: `docs/release-notes/v0.3.6.md`.
+
+- A summary when a task finishes (plan 12, D-56): `Jeeves: task completed in 3h 20m: 6 handovers, 14 commits, 2/2 checks passed.` in place of `Jeeves: task completed`, then `Jeeves: context cleared 180 points (~360K tokens). Cost: $4.10 (1 session unknown).` when there is something to say. The notification says the first line. The time is wall time from the task's first recorded event; commits are left out when git cannot say; `/jeeves done` says `confirmed by you`. If the figures cannot be read, the old line shows; completion never waits on them. The toast `Task … completed after n rotation(s) …` is gone, since the summary says more; the same text stays in `events.jsonl`.
+- A hint when a fresh conversation after a handover leaves fewer than 20 points under the threshold: once per task, a toast and a transcript line name a threshold with about 30 points of room (`/jeeves threshold 60`), within the `/jeeves later` cap. The "shown" flag is in Claude Code's plugin store, not in `state.json`, so the state schema is unchanged. Not under the test threshold overrides.
+
 ## 0.3.5 (2026-11-11)
 
 Release notes: `docs/release-notes/v0.3.5.md`.

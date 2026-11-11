@@ -3,7 +3,7 @@
 // -> COMPLETED with a summary, the lock released and no rotation after. /jeeves done is the user's own decision.
 import type { SessionMeasureInput, ToolCallResult } from 'claude-code'
 import { expect } from 'claude-code/testing'
-import { bottom, PROMPT, relay, start, stateOf, stop, submit, taskDirs, TURN, until, type Kit, test } from './kit.ts'
+import { bottom, fakeGit, PROMPT, relay, start, stateOf, stop, submit, taskDirs, TURN, until, type Kit, test } from './kit.ts'
 import { memHost } from './memfs.ts'
 
 const exits: Record<string, number> = {}
@@ -11,8 +11,9 @@ const stopWith = ($: Kit, message: string, active = false) => stop($, message, {
 const complete = (taskId: string, blockers = '- none') => `Finished.\n<<<JEEVES-COMPLETE v1 task=${taskId}\n## Summary\n- all six steps\n## Checks run\n- \`npm test\`\n## Blockers\n${blockers}\nJEEVES-COMPLETE>>>`
 const compose = ($: Kit) => $.prompt.compose({ model: 'm', promptModel: 'm', surfaces: ['terminal'], tools: [], outputStyle: null, traits: [] })
 
-async function task($: Kit, on: Parameters<typeof memHost>[0], check: string | null = 'npm test') {
+async function task($: Kit, on: Parameters<typeof memHost>[0], check: string | null = 'npm test', setup?: (h: ReturnType<typeof memHost>) => void) {
   const h = memHost(on)
+  setup?.(h)
   bottom(on)
   on('tool.call', (_, e) => {
     const code = exits[(e as { command?: string }).command ?? ''] ?? 0
@@ -45,7 +46,8 @@ test('AC-13: "done" alone does nothing; a block before the check runs is blocked
   const s = stateOf(h, dir)
   expect([s.status, s.reason]).toEqual(['COMPLETED', 'COMPLETED'])
   expect(h.files.has(`${dir}/lock.d/owner.json`)).toBe(false)
-  expect(h.toasts.at(-1)).toBe(`Task ${taskId} completed after 0 rotation(s) in 1 session(s); checks passed: \`npm test\`.`)
+  expect(h.toasts.some(t => t.includes('completed'))).toBe(false)
+  expect(h.notes.at(-1)).toBe('task completed in <1m: no handovers, 1/1 checks passed.')
   // COMPLETED stops all rotation, and the session may start a new task.
   await $.session.measure({ context: { window: 1_000_000, percent: 90 }, rateLimits: [], changed: ['context'] } satisfies SessionMeasureInput)
   expect(stateOf(h, dir).status).toBe('COMPLETED')
@@ -69,6 +71,7 @@ test('AC-13: an edit after the passing check invalidates it; still missing after
 
   expect(await relay($, 'done', 'plugin')).toBe('Only you can change a Jeeves task: type the /jeeves command yourself.')
   expect(await relay($, 'done')).toBe(`Task ${taskId} marked done by you (recorded as your decision, not verified by checks).`)
+  expect(h.notes.at(-1)).toBe('task completed in <1m: no handovers, confirmed by you.')
   const last = h.files.get(`${dir}/events.jsonl`)!.trim().split('\n').map(l => JSON.parse(l)).at(-1)
   expect([last.from, last.to, last.code, last.detail]).toEqual(['NEEDS_REVIEW', 'COMPLETED', 'COMPLETED', 'approved by the user with /jeeves done (not verified by checks)'])
   expect(await relay($, 'done')).toBe('Nothing waits for /jeeves done: only a task stopped as DOD_UNMET can be confirmed by hand.')
@@ -115,4 +118,43 @@ test('review fix 2: /jeeves done from another live session is LOCK_HELD; after t
   await $.session.end({ reason: 'clear', sessionId: 'sess-test', resume: { id: 'sess-test' } })
   h.sessionId = 'sess-2'
   expect(await relay($, 'done')).toBe(`Task ${taskId} marked done by you (recorded as your decision, not verified by checks).`)
+})
+
+/** A git repository whose `git log <start>..HEAD` lists `commits`, or fails (exit 1) when null. */
+const gitWith = (commits: string[] | null) => (h: ReturnType<typeof memHost>) => {
+  fakeGit(h)
+  const base = h.git!
+  h.git = args => (args[0] === 'log' && commits ? { exitCode: 0, stdout: commits.join('\n') + '\n' } : base(args))
+}
+async function completeWithCheck($: Kit, on: Parameters<typeof memHost>[0], setup: (h: ReturnType<typeof memHost>) => void) {
+  const t = await task($, on, 'npm test', setup)
+  await $.tool.call({ tool: 'Bash', command: 'npm test' })
+  await until(t.h, () => ledgerLen(t.h, t.dir) === 1)
+  return t
+}
+
+test('plan 12: a passing completion block shows the summary in the transcript and the notification', async ($, on) => {
+  const { h, dir, taskId } = await completeWithCheck($, on, h => { gitWith(['a1 one', 'b2 two'])(h); h.costUsd = 0.5 })
+  expect(await stopWith($, complete(taskId))).toEqual({})
+  expect(stateOf(h, dir).status).toBe('COMPLETED')
+  expect(h.notes.slice(-2)).toEqual(['task completed in <1m: no handovers, 2 commits, 1/1 checks passed.', 'Cost: $0.50.'])
+  expect(h.notes).not.toContain('task completed')
+  expect(h.notifications.at(-1)?.text).toBe('task completed in <1m: no handovers, 2 commits, 1/1 checks passed.')
+})
+
+test('plan 12: git log failing leaves the commits out; the task still completes', async ($, on) => {
+  const { h, dir, taskId } = await completeWithCheck($, on, gitWith(null))
+  expect(await stopWith($, complete(taskId))).toEqual({})
+  expect(stateOf(h, dir).status).toBe('COMPLETED')
+  expect(h.notes.at(-1)).toBe('task completed in <1m: no handovers, 1/1 checks passed.')
+})
+
+test('plan 12: a summary whose data cannot be read falls back to "task completed"', async ($, on) => {
+  const { h, dir, taskId } = await completeWithCheck($, on, gitWith(null))
+  h.failRead = path => path.endsWith('/events.jsonl')
+  expect(await stopWith($, complete(taskId))).toEqual({})
+  h.failRead = undefined
+  expect(stateOf(h, dir).status).toBe('COMPLETED')
+  expect(h.notes.at(-1)).toBe('task completed')
+  expect(h.notifications.at(-1)?.text).toBe('task completed')
 })

@@ -59,6 +59,44 @@ export function aggregate(tasks: readonly TaskFiles[], unreadable = 0): Stats {
 const k = (n: number) => (n >= 1000 ? `~${Math.round(n / 1000)}K` : `~${Math.round(n)}`)
 const one = (n: number) => `${Math.round(n * 10) / 10}`
 
+/** Wall time as `<1m`, `45m`, `3h 20m` or `2d 4h`. */
+export function duration(ms: number): string {
+  const m = Math.floor(ms / 60_000), h = Math.floor(m / 60), d = Math.floor(h / 24)
+  if (d) return `${d}d ${h % 24}h`
+  if (h) return `${h}h ${m % 60}m`
+  return m ? `${m}m` : '<1m'
+}
+
+export type CompletionInput = TaskFiles & {
+  /** The live conversation's cost; it has no session record until it ends. */
+  liveCostUsd: number | null
+  /** Commits since the task started; null when git could not say. */
+  commits: number | null
+  how: 'checks' | 'user'
+  checks: number
+  now: number
+}
+
+/** The completion summary (plan 12): what the task took, in one or two transcript lines. */
+export function completionSummary(c: CompletionInput): string[] {
+  const s = aggregate([c])
+  const start = [c.events[0]?.at, ...c.sessions.map(x => x.startedAt), c.state.sessionStart?.at].filter(x => x !== undefined).sort()[0]
+  const n = c.state.rotationCount
+  const parts = [
+    n ? `${n} handover${n === 1 ? '' : 's'}` : 'no handovers',
+    ...(c.commits === null ? [] : [`${c.commits} commit${c.commits === 1 ? '' : 's'}`]),
+    c.how === 'checks' ? `${c.checks}/${c.checks} checks passed` : c.checks ? 'confirmed by you' : 'no checks set, confirmed by you',
+  ]
+  const lines = [`Jeeves: task completed${start ? ` in ${duration(c.now - Date.parse(start))}` : ''}: ${parts.join(', ')}.`]
+  const known = s.costKnown + (c.liveCostUsd === null ? 0 : 1), unknown = s.costUnknown + (c.liveCostUsd === null ? 1 : 0)
+  const second = [
+    ...(s.clearedPoints > 0 ? [`context cleared ${one(s.clearedPoints)} points${s.clearedTokens !== null ? ` (${k(s.clearedTokens)} tokens)` : ''}.`] : []),
+    ...(known ? [`Cost: $${(s.costUsd + (c.liveCostUsd ?? 0)).toFixed(2)}${unknown ? ` (${unknown} session${unknown === 1 ? '' : 's'} unknown)` : ''}.`] : []),
+  ]
+  if (second.length) lines.push(`Jeeves: ${second.join(' ')}`)
+  return lines
+}
+
 export function statsLines(title: string, s: Stats): string[] {
   return [
     title,

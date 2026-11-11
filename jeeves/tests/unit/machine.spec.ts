@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { HELD_MAX, isSafe, reduce, stopFailureCode, type Ctx, type Effect, type Input } from '../../src/core/machine.ts'
+import { HELD_MAX, isSafe, reduce, roomHint, stopFailureCode, type Ctx, type Effect, type Input } from '../../src/core/machine.ts'
 import { check } from '../../src/core/schema.ts'
 import { DEFAULT_CONFIG, INERT, ROTATION_STATES, STATUSES, type Rotation, type State, type Status } from '../../src/core/types.ts'
 import { AT, prng, validState } from './helpers.ts'
@@ -319,8 +319,9 @@ test('rows 24-25: MONITORING/CONTINUING + COMPLETE block -> COMPLETED with evide
     const ok = run(st(status, { ledger: ran, rotationCount: 2, sessionSequence: 3, ...(status === 'CONTINUING' ? { rotation: rot({ step: 'CONTINUED' }) } : {}) }), { type: 'COMPLETE_BLOCK', commands: ['npm test'], blockers: [] })
     assert.deepEqual([ok.state.status, ok.state.reason, ok.state.rotation], ['COMPLETED', 'COMPLETED', null], status)
     assert.ok(types(ok.effects).includes('RELEASE_LOCK'))
-    const t = ok.effects.find(e => e.type === 'TOAST')
-    assert.equal(t?.type === 'TOAST' && t.text, `Task t_20261107_k3m9qa completed after 2 rotation(s) in 3 session(s); checks passed: \`npm test\`.`)
+    assert.deepEqual(types(ok.effects).filter(t => t === 'TOAST'), [], 'the summary is the notification, not a toast')
+    const ev = ok.effects.find(e => e.type === 'LOG_EVENT' && e.to === 'COMPLETED')
+    assert.equal(ev?.type === 'LOG_EVENT' && ev.detail, 'completed after 2 rotation(s) in 3 session(s); checks passed: `npm test`')
   }
   const ask = run(st('MONITORING'), { type: 'COMPLETE_BLOCK', commands: ['npm test'], blockers: [] })
   assert.deepEqual([ask.state.status, ask.state.completionAsked], ['MONITORING', true])
@@ -782,4 +783,18 @@ test('review fix: a continued rotation paused and resumed resets the failure cou
   assert.equal(run({ ...unsafe, status: 'MONITORING', reason: null, rotation: null }, measure(60)).state.status, 'ROTATION_REQUESTED')
   // a pause in MONITORING keeps the count (only a continued rotation proves success)
   assert.equal(run(st('MONITORING', { consecutiveFailures: 1 }), { type: 'PAUSE' }).state.consecutiveFailures, 1)
+})
+
+test('roomHint: a hint only when the room is under 20 and the new threshold is worth typing', () => {
+  assert.equal(roomHint(15, 40, 90), null, 'room 25')
+  assert.equal(roomHint(20, 40, 90), null, 'room exactly 20')
+  assert.equal(roomHint(27, 40, 90), 60)
+  assert.equal(roomHint(27, 40, 50), 50, 'capped, still 10 above T')
+  assert.equal(roomHint(27, 40, 45), null, 'the cap leaves too little gain')
+  assert.equal(roomHint(27, 40, 77), 60)
+  assert.equal(roomHint(55, 70, 77), null, 'a cap of 77 suggests 75 at most')
+  for (let p = 0; p < 90; p += 0.7) for (const T of [20, 40, 60, 80]) for (const cap of [45, 77, 90]) {
+    const n = roomHint(p, T, cap)
+    if (n !== null) assert.ok(n % 5 === 0 && n <= cap && n >= T + 10, `p ${p} T ${T} cap ${cap} -> ${n}`)
+  }
 })

@@ -8,7 +8,7 @@ import { hasHandoverOpen, parseHandover } from '../core/handover/parse.ts'
 import { goalLine, HANDOVER_REF_RE, handoverFile, renderHandover, roundTrips } from '../core/handover/render.ts'
 import { CARRY_ON_PROMPT, handoverInstruction, NUDGE_PROMPT, QUIESCE_NOTE, retryInstruction, type CapturedFacts } from '../core/handover/template.ts'
 import { mentionedPaths, validateHandover } from '../core/handover/validate.ts'
-import { COMPLETION_STATES, HELD_STATES, isSafe, reduce, type Input } from '../core/machine.ts'
+import { COMPLETION_STATES, HELD_STATES, isSafe, laterCap, reduce, roomHint, type Input } from '../core/machine.ts'
 import { newRotationId, newTaskId } from '../core/ids.ts'
 import { join } from '../core/paths.ts'
 import { foldTask, newTaskState, simulateWindow, parseRevision, renderChange, revFile, type ChangeKind, type TaskView } from '../core/task.ts'
@@ -16,6 +16,7 @@ import { DEFAULT_CONFIG, INERT, SCHEMA_VERSION, type ReasonCode, type State, typ
 import { runEffects, type EffectResult } from './effects.ts'
 import { MSG, needsYou, shownThreshold, statusLine, transitionLine } from './ui.ts'
 import { gitFacts } from './git.ts'
+import { completionLines } from './history.ts'
 import { bgCount, bgReset, type CrashPoint, type Runtime } from './runtime.ts'
 import { carryOver } from './eligible.ts'
 import { sessionOffKey } from './auto.ts'
@@ -78,13 +79,50 @@ async function transition(rt: Runtime, dir: string, prev: State, input: Input): 
   const state = out.state
   const r = await runEffects(out.effects, { port: rt.port, storage: rt.storage, taskDir: dir, state })
   for (const f of r.failed) rt.port.log(`jeeves: effect ${f.effect.type} failed: ${f.error}`)
+  const summary = prev.status !== 'COMPLETED' && state.status === 'COMPLETED' ? await completedLines(rt, dir, state, input) : null
   for (const e of out.effects) {
     const line = e.type === 'LOG_EVENT' ? transitionLine(e.from, e.to, e.code, state) : null
-    if (line) rt.port.note(line)
+    if (summary && e.type === 'LOG_EVENT' && e.to === 'COMPLETED') summary.forEach(l => rt.port.note(l))
+    else if (line) rt.port.note(line)
   }
-  if (needsYou(prev, state)) rt.port.notify((transitionLine(prev.status, state.status, state.reason, state) ?? state.status).replace(/^Jeeves: /, ''))
+  if (needsYou(prev, state)) rt.port.notify((summary?.[0] ?? transitionLine(prev.status, state.status, state.reason, state) ?? state.status).replace(/^Jeeves: /, ''))
+  // The rearm (CONTINUING > MONITORING) comes from a reading, usually inside a TOOL_RESULT rather than a MEASURE.
+  if (prev.status === 'CONTINUING' && state.status === 'MONITORING' && !rt.thresholdOverride && !rt.thresholdRelative) await showRoomHint(rt, state)
   rt.port.status(statusLine(state, shownThreshold(state, rt.thresholdOverride, rt.thresholdRelative)))
   return { state, forHook: r.forHook }
+}
+
+/** Plan 12: the completion summary, or null (the plain "task completed" line) when its data cannot be read. */
+async function completedLines(rt: Runtime, dir: string, state: State, input: Input): Promise<string[] | null> {
+  try {
+    const checks = input.type === 'COMPLETE_BLOCK' ? input.commands.length : (await readTask(rt, dir, state)).view.checks.length
+    return await completionLines(rt, dir, state, input.type === 'DONE_CMD' ? 'user' : 'checks', checks)
+  } catch (err) {
+    rt.port.log(`jeeves: completion summary failed: ${err instanceof Error ? err.message : String(err)}`)
+    return null
+  }
+}
+
+/**
+ * Plan 12: once per task, a fresh conversation that starts with little room under the threshold names a better one.
+ * Only after a handover: a task turned on mid-conversation has no "start" reading. The flag lives in the plugin store,
+ * since an unknown state.json field makes older Jeeves versions call the task unreadable.
+ */
+async function showRoomHint(rt: Runtime, state: State): Promise<void> {
+  const p = state.lastContext?.percent
+  if (p === undefined) return
+  try {
+    const key = `roomHint:${state.taskId}`
+    if (await rt.port.storeGet(key)) return
+    const next = roomHint(p, state.thresholdPercent, laterCap(state.lastContext!.window, await rt.port.autoCompactTokens()))
+    if (next === null) return
+    await rt.port.storeSet(key, true)
+    const text = MSG.roomHint(p, state.thresholdPercent, next)
+    rt.port.note(text)
+    rt.port.toast(text.replace(/^Jeeves: /, ''))
+  } catch (err) {
+    rt.port.log(`jeeves: room hint failed: ${err instanceof Error ? err.message : String(err)}`)
+  }
 }
 
 /**

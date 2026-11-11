@@ -7,7 +7,8 @@ import { parseJson } from '../core/schema.ts'
 import type { EventLine, State } from '../core/types.ts'
 import type { Runtime } from './runtime.ts'
 import { sha256Hex } from './storage.ts'
-import { aggregate, statsLines } from '../core/stats.ts'
+import { aggregate, completionSummary, statsLines } from '../core/stats.ts'
+import { gitFacts } from './git.ts'
 import { fit, fitLeft, WIDTH } from './ui.ts'
 
 const COLS = 50
@@ -95,6 +96,16 @@ export async function handoverText(rt: Runtime, dir: string, s: State): Promise<
   const goal = p.ok ? goalLine(p.value) : null
   const next = p.ok ? p.value.sections['Exact next actions'].slice(0, 3).map((a, i) => `${i + 1}. ${untag(a.text)}`) : []
   return [head, `Goal: ${goal ?? 'none recorded'}`, ...(next.length ? ['Next:', ...next] : [])].map(l => fit(ascii(l))).join('\n')
+}
+
+/** Plan 12: the completion summary's lines for the task in `dir`. Reads only; may throw (the caller falls back). */
+export async function completionLines(rt: Runtime, dir: string, state: State, how: 'checks' | 'user', checks: number): Promise<string[]> {
+  const [recs, events, git, liveCostUsd, now] = await Promise.all([
+    readSessions(rt, dir), rt.storage.readEvents(dir).then(parseEvents), gitFacts(rt.port, rt.identity, state.taskStartHead), rt.port.costUsd(), rt.port.now(),
+  ])
+  const sessions = recs.flatMap(({ r }) => (r?.ok ? [r.value] : []))
+  const commits = git.kind === 'git' && git.commitsSinceStart ? git.commitsSinceStart.length : null
+  return completionSummary({ state, sessions, events, liveCostUsd, commits, how, checks, now })
 }
 
 /** ST-11.4: `/jeeves stats`, for this project and the task status shows. Reads only. */

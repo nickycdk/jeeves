@@ -207,6 +207,8 @@ export const MSG = {
   userOnly: 'Only you can change a Jeeves task: type the /jeeves command yourself.',
   unsupported: 'This Claude Code version is not supported, so Jeeves stays off.',
   noTask: 'No managed task. Start with /jeeves on',
+  roomHint: (p: number, t: number, next: number) =>
+    `Jeeves: this conversation started at ${Math.round(p)}%, leaving ${Math.round(t - p)} points before the ${t}% handover. /jeeves threshold ${next} gives more room (/jeeves defaults threshold ${next} for this project).`,
   waitingForPrompt: 'The task has no original prompt yet: type it as your next prompt first.',
   reviseUsage: (kind: 'dod' | 'check') => kind === 'dod' ? 'Usage: /jeeves dod <what must be true when the task is done>' : 'Usage: /jeeves check <command that verifies the task, e.g. npm test>',
   revisePending: (kind: 'dod' | 'check') => `Noted (${kind === 'dod' ? 'Definition of Done' : 'verification command, stored as text, never run by Jeeves'}). It is saved as a task revision right after your first prompt.`,

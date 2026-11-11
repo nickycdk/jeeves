@@ -6,7 +6,7 @@
 
 **Claude Code has a context limit. Your momentum shouldn't.**
 
-[![Version](https://img.shields.io/badge/version-0.3.5_beta-111?style=flat-square)](jeeves/CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.3.6_beta-111?style=flat-square)](jeeves/CHANGELOG.md)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-2.1.319%2B-d97757?style=flat-square)](jeeves/docs/compatibility.md)
 [![macOS](https://img.shields.io/badge/macOS-supported-555?style=flat-square)](jeeves/docs/compatibility.md)
 [![License: MIT](https://img.shields.io/badge/license-MIT-2ea44f?style=flat-square)](LICENSE)
@@ -24,7 +24,7 @@ No interruptions. No copy-pasting. No explaining the same task twice. Finish you
 You keep building. Jeeves takes care of the rest. 🎩
 
 > [!NOTE]
-> **Public beta 0.3.5.** Needs Claude Code 2.1.319 or later on macOS. Works in any terminal, including Cursor's and VS Code's. No API key, no server, and Jeeves itself makes no network requests. Not made by or affiliated with Anthropic.
+> **Public beta 0.3.6.** Needs Claude Code 2.1.319 or later on macOS. Works in any terminal, including Cursor's and VS Code's. No API key, no server, and Jeeves itself makes no network requests. Not made by or affiliated with Anthropic.
 
 ## Get started
 
@@ -61,7 +61,7 @@ Once Jeeves is watching, every handover happens by itself. The line under the pr
 3. He checks it: the branch and commit match, the files it names exist, no test is claimed as passing when its last run failed, and nothing in it matches a recognised secret pattern. A handover that fails goes back to Claude with the reasons. After three tries, Jeeves stops and lets you know (a notification, if yours are on).
 4. He saves it with the commits made since the task started, runs `/clear`, and gives the fresh conversation your original task, the handover and the next steps. Decisions and dead ends carry over from one handover to the next, so Claude knows what already failed.
 
-You'll see `jeeves: handover requested`, then `jeeves: handover validated, starting fresh`, and Claude carries on.
+You'll see `jeeves: handover requested`, then `jeeves: handover validated, starting fresh`, and Claude carries on. When the task is done, Jeeves tells you what it took.
 
 Jeeves never runs your commands, never changes git, never answers permission prompts for you, and never marks a task done without proof. He knows his place. And unlike a certain other assistant, he never needs a coffee break. ☕
 

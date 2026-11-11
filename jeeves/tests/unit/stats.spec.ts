@@ -1,7 +1,7 @@
 // ST-11.4: the /jeeves stats aggregator over a fixture with known sessions.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { aggregate, statsLines, type TaskFiles } from '../../src/core/stats.ts'
+import { aggregate, completionSummary, duration, statsLines, type CompletionInput, type TaskFiles } from '../../src/core/stats.ts'
 import type { EventLine, SessionRecord } from '../../src/core/types.ts'
 import { validState } from './helpers.ts'
 
@@ -45,4 +45,42 @@ test('AC 2: a session without cost is unknown, not $0; wording says context clea
 
 test('nothing yet: no rotations, no failures', () => {
   assert.deepEqual(statsLines('Stats', aggregate([])).slice(1), ['Tasks: 0', 'Rotations: 0  Sessions: 0', 'Avg context at rotation: none yet', 'Context cleared: 0 points', 'Cost: unknown', 'Failures: none'])
+})
+
+const START = Date.parse('2026-11-08T10:00:00.000Z')
+const done = (over: Partial<CompletionInput> = {}): CompletionInput => ({
+  state: validState({ rotationCount: 6, lastContext: { window: 200_000, at: '2026-11-08T13:20:00Z', percent: 30 } }),
+  sessions: [sess(1, 10, 100, 'clear', 1), sess(2, 10, 100, 'clear', 2), sess(3, 10, null, null)],
+  events: [ev('MONITORING', null, 'DISABLED')],
+  liveCostUsd: 1.1, commits: 14, how: 'checks', checks: 2, now: START + (3 * 60 + 20) * 60_000, ...over,
+})
+
+test('completion summary: the full two lines', () => {
+  assert.deepEqual(completionSummary(done()), [
+    'Jeeves: task completed in 3h 20m: 6 handovers, 14 commits, 2/2 checks passed.',
+    'Jeeves: context cleared 180 points (~360K tokens). Cost: $4.10 (1 session unknown).',
+  ])
+})
+
+test('completion summary: handovers, commits and checks wording', () => {
+  const first = (o: Partial<CompletionInput>) => completionSummary(done(o))[0]
+  assert.match(first({ state: validState({ rotationCount: 0 }) }), /: no handovers,/)
+  assert.match(first({ state: validState({ rotationCount: 1 }) }), /: 1 handover,/)
+  assert.equal(first({ commits: null }), 'Jeeves: task completed in 3h 20m: 6 handovers, 2/2 checks passed.')
+  assert.match(first({ commits: 0 }), / 0 commits,/)
+  assert.match(first({ commits: 1 }), / 1 commit,/)
+  assert.match(first({ how: 'user' }), /, confirmed by you\.$/)
+  assert.match(first({ how: 'user', checks: 0 }), /, no checks set, confirmed by you\.$/)
+})
+
+test('completion summary: durations', () => {
+  assert.deepEqual([30_000, 45 * 60_000, 200 * 60_000, (52 * 60 + 5) * 60_000].map(duration), ['<1m', '45m', '3h 20m', '2d 4h'])
+})
+
+test('completion summary: cost and context cleared', () => {
+  const second = (o: Partial<CompletionInput>) => completionSummary(done(o))[1]
+  assert.equal(second({ sessions: [sess(1, 10, 100, 'clear'), sess(2, 10, null, null)], liveCostUsd: null }), 'Jeeves: context cleared 90 points (~180K tokens).', 'no cost known: no cost part')
+  assert.equal(second({ sessions: [sess(1, 10, 100, 'clear', 1), sess(2, 10, null, null, 2)] }), 'Jeeves: context cleared 90 points (~180K tokens). Cost: $4.10.', 'live cost added')
+  assert.equal(second({ sessions: [sess(1, 10, 100, 'clear'), sess(2, 10, null, null)] }), 'Jeeves: context cleared 90 points (~180K tokens). Cost: $1.10 (2 sessions unknown).')
+  assert.equal(completionSummary(done({ sessions: [], liveCostUsd: null })).length, 1, 'nothing cleared and no cost: one line')
 })

@@ -22,7 +22,7 @@ Everything sits in the state folder (`/jeeves status` shows where; never inside 
 - per project, if you set them with `/jeeves defaults`: a default threshold, the default check commands you typed, as text, and auto-start on or off (`projects/<project>/config.json`). Jeeves never runs the commands;
 - `auto.json`: auto-start on or off everywhere, as `/jeeves auto on|off` set it (or `off` with the reason "upgraded from 0.2").
 
-In Claude Code's plugin store (kept by Claude Code on this machine), Jeeves keeps a few flags: whether its notices were shown, whether this install was an upgrade from 0.2, and per running session whether it is watched (and if not, why) and whether `/jeeves off` turned auto-start off there. No prompt text.
+In Claude Code's plugin store (kept by Claude Code on this machine), Jeeves keeps a few flags: whether its notices were shown, whether this install was an upgrade from 0.2, and per running session whether it is watched (and if not, why) and whether `/jeeves off` turned auto-start off there, and per task whether the threshold hint was shown. No prompt text.
 
 A notification (a task stopped and needs you, or completed) carries only the state and its reason, never prompt or file text, and goes wherever your Claude Code notification setting and `Notification` hooks send it.
 

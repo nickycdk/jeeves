@@ -129,6 +129,15 @@ export function laterCap(window: number, autoCompactTokens: number | null): numb
   if (autoCompactTokens === null || window <= 0) return LATER_MAX
   return Math.min(LATER_MAX, Math.floor((autoCompactTokens / window) * 100) - 5)
 }
+/** Plan 12: a fresh conversation with less room than ROOM_MIN points gets a hint naming a threshold with about ROOM_TARGET. */
+export const ROOM_MIN = 20
+export const ROOM_TARGET = 30
+/** The threshold to suggest when a conversation starting at `p` has little room under `T`, or null when none is worth typing. */
+export function roomHint(p: number, T: number, cap: number): number | null {
+  if (T - p >= ROOM_MIN) return null
+  const next = Math.min(Math.floor(cap / 5) * 5, Math.ceil((p + ROOM_TARGET) / 5) * 5)
+  return next >= T + 10 ? next : null
+}
 /** The warning and the `/jeeves later` answer once the cap is reached (spec §5.5). */
 export const capText = (t: number, p: number | undefined) =>
   `Jeeves hands over at ${t}% (now ${p === undefined ? '?' : Math.round(p)}%); can't postpone further. /jeeves off to keep this conversation.`
@@ -651,7 +660,8 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
       if (ev.ok) {
         const summary = `completed after ${state.rotationCount} rotation(s) in ${state.sessionSequence} session(s); checks passed: ${input.commands.map(c => `\`${c}\``).join(', ')}`
         go('COMPLETED', 'COMPLETED', { rotation: null, completionAsked: false }, summary)
-        effects.push({ type: 'RELEASE_LOCK', key: key('release') }, { type: 'TOAST', key: key('completed'), text: `Task ${state.taskId} ${summary}.` })
+        // No toast: the adapter's completion summary goes to the transcript and the notification (plan 12).
+        effects.push({ type: 'RELEASE_LOCK', key: key('release') })
         return done()
       }
       if (!state.completionAsked) {
