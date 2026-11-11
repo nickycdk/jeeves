@@ -68,6 +68,13 @@ test('a continuation line joins its bullet; an unknown heading does not swallow 
   assert.deepEqual(r.value.sections['Open work and blockers'].map(i => i.text), ['[verified] Operator precedence in `src/parse.js` is not implemented.', '[unknown] Whether unary minus is in scope.'])
 })
 
+test('an untagged sub-bullet joins the tagged bullet above it; a tagged one or one at the top level stays its own', () => {
+  const r = parseHandover(read('valid.md').replace('- [unknown] Whether unary minus is in scope.', '- [verified] New files:\n  - `src/a.js`\n  - [inferred] maybe `src/b.js`'))
+  assert.ok(r.ok, JSON.stringify(!r.ok && r.errors))
+  assert.deepEqual(r.value.sections['Open work and blockers'].map(i => i.text), ['[verified] Operator precedence in `src/parse.js` is not implemented.', '[verified] New files: - `src/a.js`', '[inferred] maybe `src/b.js`'])
+  const flat = parseHandover(read('valid.md').replace('- [unknown] Whether unary minus is in scope.', '- untagged'))
+  assert.equal(!flat.ok && flat.errors[0]!.code, 'UNTAGGED')
+})
 test('errors are specific and several are reported at once', () => {
   const r = parseHandover(`${OPEN} task=t rotation=r\n## Tests and checks\n\n${CLOSE}`)
   assert.ok(!r.ok)

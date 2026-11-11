@@ -88,12 +88,15 @@ export function parseHandover(text: string, opts: { requireGoal?: boolean } = {}
   return { ok: true, value: { taskId: attr(header, 'task'), rotationId: attr(header, 'rotation'), body: bodyLines.join('\n'), sections: out } }
 }
 
-/** Bullet and numbered lines; an indented or plain line after one continues it. */
+/** Bullet and numbered lines; a plain line, or an untagged sub-bullet indented under one, continues it. */
 function toItems(lines: string[]): Item[] {
   const items: Item[] = []
+  let top = -1 // indent of the section's first item
   for (const line of lines) {
     const m = ITEM_RE.exec(line)
-    if (m) {
+    const indent = line.length - line.trimStart().length
+    if (m && (top < 0 || indent <= top || TAG_RE.test(m[3]!))) {
+      if (top < 0) top = indent
       const text = m[3]!.trim()
       const tag = TAG_RE.exec(text)?.[1]?.toLowerCase() as Tag | undefined
       items.push({ tag: tag ?? null, text, numbered: m[2] !== undefined })

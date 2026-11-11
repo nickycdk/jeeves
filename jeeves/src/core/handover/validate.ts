@@ -71,7 +71,8 @@ const repoRelative = (p: string, worktree: string) => {
   return n.startsWith(`${worktree}/`) ? n.slice(worktree.length + 1) : n.replace(/^\.\//, '')
 }
 
-const BRANCH_CLAIMS = [/\b(?:on|current|working)\s+branch\s*(?:is\s+|:\s*|=\s*)?`?([\w./-]*[\w-])`?(?=[\s,.;)]|$)/gi, /\bbranch\s+`([\w./-]+)`/gi]
+// "branch `x` was pushed" names another branch; only "branch `x` is the working/current branch" claims the checkout.
+const BRANCH_CLAIMS = [/\b(?:on|current|working)\s+branch\s*(?:is\s+|:\s*|=\s*)?`?([\w./-]*[\w-])`?(?=[\s,.;)]|$)/gi, /\bbranch\s+`([\w./-]+)`\s+is\s+(?:the\s+)?(?:current|working|checked[- ]out)\b/gi]
 const HEAD_CLAIM = /\bHEAD\s*(?:is|at|=|:)?\s*`?([0-9a-f]{7,40})\b/gi
 const PASS = /\b(pass(es|ed|ing)?|green|succeed(s|ed)?|successful(ly)?|ok|works)\b/i
 const NOT_PASS = /\b(fail(s|ed|ing|ure)?|not\s+pass|doesn't\s+pass|does\s+not\s+pass|broken|red|errors?|untested|not\s+run)\b/i

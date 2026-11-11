@@ -80,6 +80,9 @@ test('branch and HEAD: a wrong claim is REPO_MISMATCH; a right one is fine; a br
   const on = (b: string) => read('valid.md').replace('Branch `main` is the working branch', `The current branch is ${b}; branch \`${b}\` is the working branch`)
   assert.ok(validateHandover(on('feat/parser'), facts({ capturedBranch: 'feat/parser', git: { ...GIT, branch: 'feat/parser' } })).ok)
   assert.deepEqual(codes(validateHandover(on('feat/parser'), facts())), ['REPO_MISMATCH'])
+  // Naming another branch is no claim about the checkout (a live handover lost its retries to "PR branch `fix/x` is pushed").
+  const other = read('valid.md').replace('nothing is committed yet', 'the PR branch `fix/captcha` is pushed')
+  assert.ok(validateHandover(other, facts()).ok)
   const head = (h: string) => read('valid.md').replace('nothing is committed yet', `HEAD is ${h}`)
   assert.ok(validateHandover(head('a1b2c3d'), facts()).ok)
   assert.deepEqual(codes(validateHandover(head('deadbee'), facts())), ['REPO_MISMATCH'])

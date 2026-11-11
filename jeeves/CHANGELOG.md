@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.7 (2026-11-11)
+
+Release notes: `docs/release-notes/v0.3.7.md`.
+
+- Handover parser: an untagged sub-bullet indented under a bullet continues that bullet instead of counting as an untagged bullet (a live handover was sent back for 22 of them). A tagged sub-bullet is still its own item.
+- Handover validator: only "on/current/working branch x" and "branch `x` is the current/working/checked-out branch" are branch claims; "the PR branch `fix/x` was pushed" no longer gives REPO_MISMATCH.
+- The pop-up after a handover fails its checks on every try names the last problem and `/jeeves retry` (was `Handover was invalid after retries. Nothing was cleared. Run /jeeves status.`).
+
 ## 0.3.6 (2026-11-11)
 
 Release notes: `docs/release-notes/v0.3.6.md`.

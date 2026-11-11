@@ -447,7 +447,7 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
           return done()
         }
         go('NEEDS_REVIEW', 'HANDOVER_INVALID', { rotation: null, armedFired: true }, h.errors.slice(0, 3).join('; '))
-        effects.push({ type: 'TOAST', key: key('invalid'), text: 'Handover was invalid after retries. Nothing was cleared. Run /jeeves status.' })
+        effects.push({ type: 'TOAST', key: key('invalid'), text: `Handover failed its checks ${r.retries + 1} times. Last problem: ${h.errors[0] ?? 'see /jeeves status'}. Nothing was cleared. /jeeves retry` })
         return done()
       }
       return ignore('nothing to do at this stop')
