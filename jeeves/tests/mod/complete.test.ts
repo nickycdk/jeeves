@@ -158,3 +158,47 @@ test('plan 12: a summary whose data cannot be read falls back to "task completed
   expect(h.notes.at(-1)).toBe('task completed')
   expect(h.notifications.at(-1)?.text).toBe('task completed')
 })
+
+/** A git repository where `src/a.js` changed since the task started; its blob id is `blob.id` (hash-object answers it). */
+const gitWithFile = (blob: { id: string }) => (h: ReturnType<typeof memHost>) => {
+  fakeGit(h)
+  const base = h.git!
+  h.files.set('/work/proj/src/a.js', 'export const a = 2\n')
+  h.git = args => args[0] === 'diff' && args.includes('--name-only') ? { exitCode: 0, stdout: 'src/a.js\0' }
+    : args[0] === 'hash-object' ? { exitCode: 0, stdout: `${blob.id}\n` }
+    : base(args)
+}
+
+test('a file changed outside Edit/Write after the passing check (sed via Bash) invalidates it; a rerun completes', async ($, on) => {
+  const blob = { id: 'a'.repeat(40) }
+  const { h, dir, taskId } = await completeWithCheck($, on, gitWithFile(blob))
+  expect(stateOf(h, dir).ledger[0].tree).toMatch(/^[0-9a-f]{64}$/)
+  await $.tool.call({ tool: 'Bash', command: "sed -i '' s/2/3/ src/a.js" })
+  await until(h, () => ledgerLen(h, dir) === 2)
+  expect(stateOf(h, dir).ledger[1].tree).toBeUndefined()
+  blob.id = 'b'.repeat(40)
+  expect((await stopWith($, complete(taskId))).block).toContain('- `npm test`: files changed since it passed (not through Edit/Write)')
+  expect(stateOf(h, dir).status).toBe('MONITORING')
+  await $.tool.call({ tool: 'Bash', command: 'npm test' })
+  await until(h, () => ledgerLen(h, dir) === 3)
+  expect(await stopWith($, complete(taskId), true)).toEqual({})
+  expect(stateOf(h, dir).status).toBe('COMPLETED')
+})
+
+test('without a stamped check run, completion makes no git calls for a stamp', async ($, on) => {
+  const { h, taskId } = await completeWithCheck($, on, () => {})
+  const before = h.argv.length
+  expect(await stopWith($, complete(taskId))).toEqual({})
+  expect(h.argv.slice(before).some(a => a[0] === 'git' && a.includes('hash-object'))).toBe(false)
+  expect(h.argv.slice(before).some(a => a[0] === 'git' && a.includes('diff'))).toBe(false)
+})
+
+test('code review 1+2: the stamp is the files as the check left them, even when they change before the ledger write and Stop follows at once', async ($, on) => {
+  const blob = { id: 'a'.repeat(40) }
+  const { h, dir, taskId } = await task($, on, 'npm test', gitWithFile(blob))
+  await $.tool.call({ tool: 'Bash', command: 'npm test' })
+  // Changed before the ledger entry is written (no settling in between), as Claude's next call would.
+  blob.id = 'b'.repeat(40)
+  expect((await stopWith($, complete(taskId))).block).toContain('- `npm test`: files changed since it passed (not through Edit/Write)')
+  expect(stateOf(h, dir).ledger[0].tree).toMatch(/^[0-9a-f]{64}$/)
+})

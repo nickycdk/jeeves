@@ -1,8 +1,8 @@
 // Completion (ST-5.1, FR-10, ADR-007): Claude's JEEVES-COMPLETE block and the machine evidence it is checked against.
 // "Done" text alone never completes: only a block, and only when every verification command ran with exit 0 after
-// the last edit and no blocker is open. Pure.
+// the last edit, with the files unchanged since, and no blocker is open. Pure.
 import { ledgerCommand } from './evidence.ts'
-import type { LedgerEntry } from './types.ts'
+import type { CommandEntry, LedgerEntry } from './types.ts'
 
 export const COMPLETE_OPEN = '<<<JEEVES-COMPLETE v1'
 export const COMPLETE_CLOSE = 'JEEVES-COMPLETE>>>'
@@ -39,25 +39,45 @@ export function parseComplete(text: string): CompleteBlock | null {
   }
 }
 
+/** Whether a ledger entry is a run of one of the verification commands (by exact ledger text). The gate and the stamp share it. */
+export const isCheckRun = (commands: readonly string[], e: { kind: string; command?: string }): boolean =>
+  commands.some(c => isRunOf(ledgerCommand(c), e))
+/** The same test against a command already in ledger form (redaction done once per command, not per entry). */
+const isRunOf = (form: string, e: { kind: string; command?: string }) => e.kind === 'cmd' && e.command === form
+
 export type Missing = { command: string; why: string }
 export type Evidence = { ok: boolean; missing: Missing[]; blockers: string[] }
 
 /**
  * ADR-007: each verification command needs its latest ledger run, by exact command text, to have exited 0 after
  * the last edit. Order is the ledger's own (oldest first), so ties in the clock cannot reorder an edit and a run.
+ * `tree`: the stamp of the files now; a passing run whose own stamp differs saw other files (a change through Bash,
+ * an editor, another check). Either stamp missing (not git, an older entry, git did not answer): only the order counts.
  */
-export function evaluate(commands: readonly string[], ledger: readonly LedgerEntry[], blockers: readonly string[]): Evidence {
+export function evaluate(commands: readonly string[], ledger: readonly LedgerEntry[], blockers: readonly string[], tree: string | null = null): Evidence {
   const lastEdit = ledger.findLastIndex(e => e.kind === 'edit')
   const missing: Missing[] = []
   for (const command of commands) {
     const want = ledgerCommand(command)
-    const i = ledger.findLastIndex(e => e.kind === 'cmd' && e.command === want)
+    const i = ledger.findLastIndex(e => isRunOf(want, e))
     const run = i >= 0 ? ledger[i] : undefined
     if (!run || run.kind !== 'cmd') missing.push({ command, why: 'never run (run it exactly as written)' })
     else if (run.exit !== 0) missing.push({ command, why: run.exit === null ? 'did not finish' : `last run exited ${run.exit}` })
     else if (i < lastEdit) missing.push({ command, why: `ran before the last edit (${(ledger[lastEdit] as { path: string }).path})` })
+    else if (run.tree !== undefined && tree !== null && run.tree !== tree) missing.push({ command, why: changedSince(commands, ledger, i) })
   }
   return { ok: commands.length > 0 && missing.length === 0 && blockers.length === 0, missing, blockers: [...blockers] }
+}
+
+/** Why a passing run's stamp no longer matches: names the first later check run that saw other files, when only check runs came between. */
+function changedSince(commands: readonly string[], ledger: readonly LedgerEntry[], i: number): string {
+  const run = ledger[i] as CommandEntry
+  const forms = commands.map(ledgerCommand)
+  for (const e of ledger.slice(i + 1)) {
+    if (e.kind !== 'cmd' || !forms.some(f => isRunOf(f, e))) break
+    if (e.tree !== undefined && e.tree !== run.tree) return `files changed since it passed (\`${e.command}\` ran in between: if a check writes files, gitignore its outputs)`
+  }
+  return 'files changed since it passed (not through Edit/Write)'
 }
 
 /** The system-prompt section that tells Claude how to finish a managed task (ST-5.2). Deterministic. */

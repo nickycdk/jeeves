@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.8 (2026-11-11)
+
+Release notes: `docs/release-notes/v0.3.8.md`.
+
+- Completion gate: a passing check no longer counts once files changed after it ran in a way Jeeves cannot see as an edit: through Bash (`sed -i`, `cat >`, a formatter, `git checkout -- f`, `git stash pop`), in your editor, or by a background process. When a check passes, Jeeves stamps the content of every file changed since the task started (tracked and untracked; ignored files, any `.claude/` folder and Jeeves's own state folder left out) before the result goes back to Claude, so a passing check's result arrives a git call later and compares it with a fresh stamp when Claude writes the JEEVES-COMPLETE block. A mismatch reads `` `npm test`: files changed since it passed (not through Edit/Write) ``; when another check ran in between and changed files, it names that check and says to gitignore its outputs. Committing or stash-and-pop of the same content keeps the stamp. Read-only: `git status`/`git diff` with `--no-optional-locks` and `git hash-object` without `-w`. Not git, no start commit, git not answering or more than 2000 changed paths: no stamp, and only the edit order counts, as before.
+- `state.json` is v4 while a ledger command holds a stamp, which is nearly every task in a git repository, so 0.3.7 and older refuse such a task as too new.
+- Known limits: changes to ignored files, permission-only changes (`chmod +x`), files outside the repository, changes under `.claude/`, a submodule moving to another commit and a change behind a symbolic link (it counts by where it leads) are not caught; two checks that each rewrite non-ignored files on every run never settle (the message names the other check).
+
 ## 0.3.7 (2026-11-11)
 
 Release notes: `docs/release-notes/v0.3.7.md`.

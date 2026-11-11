@@ -1,5 +1,5 @@
 // FsPort on real Node fs + processes: the storage/process (P) test layer.
-import { mkdir, readFile, writeFile, access, mkdtemp, stat, realpath, readdir } from 'node:fs/promises'
+import { mkdir, readFile, writeFile, access, mkdtemp, stat, lstat, realpath, readdir } from 'node:fs/promises'
 import { execFile } from 'node:child_process'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
@@ -14,6 +14,12 @@ export function nodePort(env: Record<string, string | undefined> = {}): FsPort {
     listFiles: path => readdir(path, { withFileTypes: true }).then(es => es.filter(e => e.isFile()).map(e => e.name), () => []),
     realPath: path => realpath(path).then(p => p, () => null),
     mtimeMs: path => stat(path).then(st => st.mtimeMs, () => null),
+    stat: async path => {
+      const l = await lstat(path).catch(() => null)
+      if (!l) return null
+      const s = await stat(path).catch(() => null)
+      return { kind: s?.isFile() ? 'file' : s?.isDirectory() ? 'dir' : 'other', isLink: l.isSymbolicLink(), realPath: await realpath(path).catch(() => null) }
+    },
     run: (argv, opts = {}) => new Promise((resolve, reject) => {
       execFile(argv[0]!, argv.slice(1), { cwd: opts.cwd, timeout: opts.timeoutMs ?? 10_000, env: { ...process.env, ...opts.env } }, (err, stdout, stderr) => {
         if (err?.killed) return reject(new Error(`${argv[0]} timed out`))

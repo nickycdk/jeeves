@@ -58,8 +58,9 @@ export type Input =
   | { type: 'CONTINUE_CMD'; sessionId: string }
   /** classic.StopFailure on the main loop (ST-6.2). `resetsAt`: when the exhausted rate-limit window resets, if known. */
   | { type: 'STOP_FAILURE'; error: string; resetsAt?: string }
-  /** Claude's JEEVES-COMPLETE block at a main-loop Stop: the task's verification commands and the block's blockers (ST-5.2). */
-  | { type: 'COMPLETE_BLOCK'; commands: string[]; blockers: string[] }
+  /** Claude's JEEVES-COMPLETE block at a main-loop Stop: the task's verification commands and the block's blockers (ST-5.2).
+   *  `tree`: the stamp of the files now, or null when no passing check holds one (or git did not answer). */
+  | { type: 'COMPLETE_BLOCK'; commands: string[]; blockers: string[]; tree?: string | null }
   /** `/jeeves done`: the user confirms a completion Jeeves could not verify (ADR-007). */
   | { type: 'DONE_CMD'; sessionId: string }
   /**
@@ -655,7 +656,7 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
         effects.push({ type: 'TOAST', key: key('dod-none'), text: 'Claude says the task is done. It has no verification commands, so confirm with /jeeves done.' })
         return done()
       }
-      const ev = evaluate(input.commands, state.ledger, input.blockers)
+      const ev = evaluate(input.commands, state.ledger, input.blockers, input.tree ?? null)
       const missing = [...ev.missing.map(m => `\`${m.command}\`: ${m.why}`), ...ev.blockers.map(b => `blocker: ${b}`)]
       if (ev.ok) {
         const summary = `completed after ${state.rotationCount} rotation(s) in ${state.sessionSequence} session(s); checks passed: ${input.commands.map(c => `\`${c}\``).join(', ')}`

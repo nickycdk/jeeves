@@ -38,7 +38,7 @@
 
 **`Run /clear, then /jeeves continue.`** (`ROTATE_UNAVAILABLE`). `/clear` was refused or the continuation prompt could not be sent. Run `/clear`, then `/jeeves continue`.
 
-**`Claude says done. Confirm: /jeeves done`** (`DOD_UNMET`). Claude reported the task done, and Jeeves cannot prove it: either the task has no check commands (common for a task Jeeves started by itself), or the checks you set (`/jeeves check`) have not passed in Jeeves's record since the last edit. Nothing is wrong. If the work is done, type `/jeeves done` (recorded as your decision); otherwise tell Claude what is left, or ask it to run the checks. Jeeves does not end a task on Claude's word alone, so a file in the repository cannot trick Claude into ending it.
+**`Claude says done. Confirm: /jeeves done`** (`DOD_UNMET`). Claude reported the task done, and Jeeves cannot prove it: either the task has no check commands (common for a task Jeeves started by itself), or the checks you set (`/jeeves check`) have not passed in Jeeves's record since the last edit or since files changed (also through Bash or your editor). Nothing is wrong. If the work is done, type `/jeeves done` (recorded as your decision); otherwise tell Claude what is left, or ask it to run the checks. Jeeves does not end a task on Claude's word alone, so a file in the repository cannot trick Claude into ending it.
 
 **`failed`** (`FAILED`). Two rotations in a row ended in an error, so Jeeves stopped before a third. The task is over; `/jeeves history` and `/jeeves status --diagnose` show what failed, and `/jeeves on` starts a new task.
 

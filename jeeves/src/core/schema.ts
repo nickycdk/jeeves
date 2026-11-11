@@ -80,7 +80,7 @@ const rotation = obj<NonNullable<State['rotation']>>({
 const reason = nullable(oneOf(REASON_CODES))
 const cmdEntry = obj<CommandEntry>({
   kind: oneOf(['cmd']), command: str({ max: LEDGER_COMMAND_MAX }), ok: bool, exit: nullable(int()), at: iso, agent: nullable(str()),
-  tail: { optional: str({ max: LEDGER_TAIL_MAX }) },
+  tail: { optional: str({ max: LEDGER_TAIL_MAX }) }, tree: { optional: str({ nonEmpty: true, max: 64 }) },
 })
 const editEntry = obj<EditEntry>({ kind: oneOf(['edit']), path: str({ nonEmpty: true, max: 4096 }), at: iso, agent: nullable(str()) })
 const ledgerEntry: Guard = (v, p, e) => {
@@ -141,6 +141,7 @@ export const MIGRATIONS: { [K in Kind]: Migration[] } = {
   state: [
     old => ({ ...old, origin: 'explicit', preUpgrade: true }), // v1 → v2 (v0.3): every v0.2 task was started by /jeeves on, with six-heading handovers
     old => old, // v2 → v3: only adds the optional ledger `tail`
+    old => old, // v3 → v4: only adds the optional ledger `tree`
   ],
   config: [], defaults: [old => old], // v1 → v2 (v0.3): only adds the optional autoStart
   project: [], session: [], lock: [], event: [], auto: [],
@@ -149,8 +150,12 @@ export const MIGRATIONS: { [K in Kind]: Migration[] } = {
 /** The version a project `config.json` is written with: v2 only while `autoStart` or `maxRotations` is set, so a v0.2 build keeps the project's threshold and checks after a downgrade. */
 export const defaultsVersion = (d: ProjectDefaults) => (d.autoStart === undefined && d.maxRotations === undefined ? 1 : DEFAULTS_SCHEMA_VERSION)
 
-/** The version a `state.json` is written with: v3 only while a ledger command holds a tail, so an older build refuses only such a file, as too new. */
-export const stateVersion = (s: State) => (s.ledger.some(e => e.kind === 'cmd' && e.tail !== undefined) ? STATE_SCHEMA_VERSION : 2)
+/** The version a `state.json` is written with: the lowest one its ledger needs (v4 for a `tree`, v3 for a `tail`, else v2), so an older
+ *  build refuses only such a file, as too new. Nearly every task in a git repository holds a stamp, so most files are v4. */
+export const stateVersion = (s: State) => {
+  const cmds = s.ledger.filter(e => e.kind === 'cmd')
+  return cmds.some(e => e.tree !== undefined) ? 4 : cmds.some(e => e.tail !== undefined) ? 3 : 2
+}
 
 /** Validate an already-current value. */
 export function check<K extends Kind>(kind: K, v: unknown): Result<Kinds[K]> {

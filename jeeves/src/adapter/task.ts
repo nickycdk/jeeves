@@ -1,6 +1,6 @@
 // Managed-task wiring (02 §3): find the task, then read state -> reduce -> write state -> run effects.
 // Task state lives only in files; every cycle re-reads state.json inside the runtime's serial queue.
-import { completionInstruction, parseComplete } from '../core/completion.ts'
+import { completionInstruction, isCheckRun, parseComplete } from '../core/completion.ts'
 import { isCompaction, tokensOf, type Last } from '../core/compaction.ts'
 import { changedFiles, continuationPrompt, freshContext } from '../core/continuation.ts'
 import { capturedFacts, toolRecord, type ToolOutcome } from '../core/evidence.ts'
@@ -15,7 +15,7 @@ import { foldTask, newTaskState, simulateWindow, parseRevision, renderChange, re
 import { DEFAULT_CONFIG, INERT, SCHEMA_VERSION, type ReasonCode, type State, type TaskOrigin } from '../core/types.ts'
 import { runEffects, type EffectResult } from './effects.ts'
 import { MSG, needsYou, shownThreshold, statusLine, transitionLine } from './ui.ts'
-import { gitFacts } from './git.ts'
+import { gitFacts, treeStamp } from './git.ts'
 import { completionLines } from './history.ts'
 import { bgCount, bgReset, type CrashPoint, type Runtime } from './runtime.ts'
 import { carryOver } from './eligible.ts'
@@ -175,9 +175,11 @@ export async function applyOwn(rt: Runtime, input: Input): Promise<Applied | nul
   })
 }
 
-/** `tool.call` finished: its ledger entry, and the main loop's soft-quiesce point (ST-3.1, ST-3.2). */
-export async function recordTool(rt: Runtime, o: ToolOutcome): Promise<Applied | null> {
-  const entry = toolRecord(o)
+/** `tool.call` finished: its ledger entry, and the main loop's soft-quiesce point (ST-3.1, ST-3.2).
+ *  `tree`: the stamp `checkStamp` took before the call's result went back to Claude. */
+export async function recordTool(rt: Runtime, o: ToolOutcome, tree: string | null = null): Promise<Applied | null> {
+  const record = toolRecord(o)
+  const entry = record?.kind === 'cmd' && tree !== null ? { ...record, tree } : record
   const main = o.agentId === undefined
   // Nothing to record and not a quiesce point: skip the disk reads entirely.
   if (!entry && !main) return null
@@ -189,6 +191,30 @@ export async function recordTool(rt: Runtime, o: ToolOutcome): Promise<Applied |
   if (r?.forHook.some(f => f.type === 'APPEND_NOTE')) await rt.port.appendHiddenNote(QUIESCE_NOTE)
   return r
 }
+
+/**
+ * The stamp of the files as a passing run of one of the own task's checks left them, or null for any other call.
+ * Awaited by the tool hook before the result goes back to Claude, so Claude's next call cannot change files first.
+ */
+export async function checkStamp(rt: Runtime, o: ToolOutcome): Promise<string | null> {
+  const e = toolRecord(o)
+  if (e?.kind !== 'cmd' || e.exit !== 0) return null
+  const own = ownTask((await projectTasks(rt)).tasks, await rt.port.sessionId())
+  // No revisions means no checks.
+  if (!own || own.state.taskRevision === 0 || !isCheckRun(await checksOf(rt, own), e)) return null
+  return stampNow(rt, own.state)
+}
+
+// Revisions are append-only, so a task's checks are fixed for a given revision number. Reset on reload.
+let checksCache: { dir: string; rev: number; checks: string[] } | null = null
+async function checksOf(rt: Runtime, own: Task): Promise<string[]> {
+  if (checksCache?.dir !== own.dir || checksCache.rev !== own.state.taskRevision) {
+    checksCache = { dir: own.dir, rev: own.state.taskRevision, checks: (await readTask(rt, own.dir, own.state)).view.checks }
+  }
+  return checksCache.checks
+}
+
+const stampNow = (rt: Runtime, s: State) => treeStamp(rt.port, rt.identity, s.taskStartHead, rt.stateRoot ? [rt.stateRoot] : [])
 
 /** Own the task's lock: take it when free or stale (owner silent past STALE_MS). False when another live session holds it. */
 export async function claim(rt: Runtime, dir: string, sessionId: string): Promise<boolean> {
@@ -550,7 +576,9 @@ export async function completionRow(rt: Runtime, now = false): Promise<boolean> 
  */
 async function completionStop(rt: Runtime, own: Task, blockers: string[]): Promise<string | null> {
   const { view } = await readTask(rt, own.dir, own.state)
-  const r = await applyOwn(rt, { type: 'COMPLETE_BLOCK', commands: view.checks, blockers })
+  // Not decided from `own.state.ledger`: the last check's entry may still be on its way into the queue.
+  const tree = view.checks.length ? await stampNow(rt, own.state) : null
+  const r = await applyOwn(rt, { type: 'COMPLETE_BLOCK', commands: view.checks, blockers, tree })
   const ask = r?.forHook.find(f => f.type === 'BLOCK_STOP' && f.kind === 'completion-missing')
   if (ask?.type !== 'BLOCK_STOP') return null
   return [

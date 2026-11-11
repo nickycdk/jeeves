@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { completionInstruction, evaluate, parseComplete } from '../../src/core/completion.ts'
+import { completionInstruction, evaluate, isCheckRun, parseComplete } from '../../src/core/completion.ts'
 import { toolRecord } from '../../src/core/evidence.ts'
 import type { LedgerEntry } from '../../src/core/types.ts'
 import { AT } from './helpers.ts'
@@ -35,6 +35,35 @@ test('AC 3: an edit after the passing run invalidates it; a later passing run co
   const stale = evaluate(['./verify.sh'], [edit('/r/a.js'), pass, edit('/r/b.js')], [])
   assert.deepEqual(stale.missing, [{ command: './verify.sh', why: 'ran before the last edit (/r/b.js)' }])
   assert.equal(evaluate(['./verify.sh'], [pass, edit('/r/b.js'), cmd('./verify.sh', 0)], []).ok, true)
+})
+
+test('a passing run whose stamp differs from the files now is stale; no stamp on either side falls back to order', () => {
+  const pass = (tree?: string) => ({ ...cmd('npm test', 0), ...(tree ? { tree } : {}) }) as LedgerEntry
+  assert.equal(evaluate(['npm test'], [pass('A')], [], 'A').ok, true)
+  assert.deepEqual(evaluate(['npm test'], [pass('A')], [], 'B').missing, [{ command: 'npm test', why: 'files changed since it passed (not through Edit/Write)' }])
+  assert.equal(evaluate(['npm test'], [pass('A')], [], null).ok, true)
+  assert.equal(evaluate(['npm test'], [pass()], [], 'B').ok, true)
+  // An edit after the run is reported as before, not as a stamp mismatch.
+  assert.deepEqual(evaluate(['npm test'], [pass('A'), edit('/r/a.js')], [], 'B').missing, [{ command: 'npm test', why: 'ran before the last edit (/r/a.js)' }])
+  // A later passing run with the files as they are counts again.
+  assert.equal(evaluate(['npm test'], [pass('A'), cmd('sed -i s/a/b/ a.js', 0), pass('B')], [], 'B').ok, true)
+})
+
+test('two checks that each write files name each other, so the loop can be acted on', () => {
+  const run = (command: string, tree: string) => ({ ...cmd(command, 0), tree }) as LedgerEntry
+  const e = evaluate(['npm run lint', 'npm test'], [run('npm run lint', 'A'), run('npm test', 'B')], [], 'B')
+  assert.deepEqual(e.missing, [{ command: 'npm run lint', why: 'files changed since it passed (`npm test` ran in between: if a check writes files, gitignore its outputs)' }])
+  // Another command in between: the blame is unknown.
+  const other = evaluate(['npm run lint', 'npm test'], [run('npm run lint', 'A'), cmd('touch x', 0), run('npm test', 'B')], [], 'B')
+  assert.equal(other.missing[0]!.why, 'files changed since it passed (not through Edit/Write)')
+})
+
+test('isCheckRun matches the ledger form of a check, for a stored entry and a fresh record alike', () => {
+  const rec = toolRecord({ tool: 'Bash', args: { command: 'npm  test' }, denied: false, isError: false, backgrounded: false })!
+  assert.equal(isCheckRun(['npm test'], rec), true)
+  assert.equal(isCheckRun(['npm test'], { ...rec, at: AT } as LedgerEntry), true)
+  assert.equal(isCheckRun(['npm test'], edit('/r/npm test')), false)
+  assert.equal(isCheckRun(['npm run lint'], rec), false)
 })
 
 test('the latest run decides; exact text only (trimmed); blockers or no commands never pass', () => {

@@ -4,7 +4,7 @@ Budgets come from NFR-03. Numbers are from this repo's own tests on the maintain
 
 ## Evidence ledger (ST-3.1)
 
-The `tool.call` hook waits for the tool's answer, hands it back unchanged, and records the ledger entry after the hook has returned. The disk write (read state, write, rename) never delays the call.
+The `tool.call` hook waits for the tool's answer, hands it back unchanged, and records the ledger entry after the hook has returned. The disk write (read state, write, rename) never delays the call. One exception: a Bash call that exits 0 waits while Jeeves reads the task's state to see whether it is a verification command, and a passing check also waits for the completion stamp (`git status`, `git diff`, `git hash-object` on the files changed since the task started). Taken later, Claude's next call could already have changed the files.
 
 | Measure | p95 | Budget | Test |
 |---|---|---|---|

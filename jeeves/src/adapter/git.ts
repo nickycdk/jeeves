@@ -1,7 +1,7 @@
 // Repo identity and git facts via host git (read-only commands only; AC-19).
 import { COMMIT_RE, COMMITS_MAX, parsePorcelainZ, type GitFacts, type RepoIdentity } from '../core/git.ts'
 import { projectIdFromHash, projectKey } from '../core/ids.ts'
-import { join } from '../core/paths.ts'
+import { isInside, join } from '../core/paths.ts'
 import type { FsPort, ProcResult } from './ports.ts'
 import { sha256Hex } from './storage.ts'
 
@@ -73,6 +73,59 @@ export async function gitFacts(port: FsPort, id: RepoIdentity | null, taskStartH
 export async function hasCommit(port: FsPort, worktree: string, sha: string): Promise<boolean> {
   if (!COMMIT_RE.test(sha)) return false
   return (await git(port, worktree, ['cat-file', '-e', `${sha}^{commit}`]).catch(() => null))?.exitCode === 0
+}
+
+// shortcut: past this many changed paths no stamp is taken (the gate falls back to edit order); raise it if real tasks hit it.
+export const STAMP_PATHS_MAX = 2000
+const HASH_CHUNK = 200
+
+/**
+ * A stamp of the content of every file changed since `taskStartHead` (tracked diff plus untracked, ignored files left
+ * out), so committing or stashing and popping the same content keeps it. Read-only: `hash-object` without `-w`.
+ * Paths are repository-root relative and every call runs from the root. Never counted: any `.claude/` folder (Claude
+ * Code writes it) and `exclude`, absolute paths (Jeeves's own state, written while a check is recorded). A symbolic
+ * link counts by where it leads, not by what the file there holds. Null when there
+ * is nothing to compare against: no git, no start commit, git did not answer, or too many paths.
+ */
+export async function treeStamp(port: FsPort, id: RepoIdentity | null, taskStartHead: string | null, exclude: readonly string[] = []): Promise<string | null> {
+  if (id?.kind !== 'git' || !taskStartHead || !COMMIT_RE.test(taskStartHead)) return null
+  const root = id.worktree
+  try {
+    // The root is a real path; an exclude may reach the same folder through a link (macOS /var is /private/var).
+    const skip = await Promise.all(exclude.map(async x => (await port.realPath(x)) ?? x))
+    const [st, d] = await Promise.all([
+      git(port, root, ['status', '--porcelain=v1', '-z', '--untracked-files=all', '--no-renames']),
+      git(port, root, ['diff', '--name-only', '-z', '--no-renames', taskStartHead, '--']),
+    ])
+    if (st.exitCode !== 0 || d.exitCode !== 0) return null
+    const untracked = parsePorcelainZ(st.stdout).entries.filter(e => e.xy === '??').map(e => e.path)
+    const paths = [...new Set([...d.stdout.split('\0').filter(Boolean), ...untracked])]
+      // Claude Code writes a .claude/ folder wherever it runs, which may be a subfolder of the repository.
+      .filter(p => !p.split('/').includes('.claude') && !skip.some(x => isInside(join(root, p), x))).sort()
+    if (paths.length > STAMP_PATHS_MAX) return null
+    const value = new Map<string, string>()
+    const files: string[] = []
+    // The disk decides, not git's flags: `git rm --cached f` lists f as deleted and as untracked.
+    const stats = await Promise.all(paths.map(p => port.stat(join(root, p))))
+    for (const [k, p] of paths.entries()) {
+      const s = stats[k]
+      if (!s) value.set(p, 'deleted')
+      else if (s.isLink) value.set(p, `link:${s.realPath ?? 'dangling'}`)
+      else if (s.kind === 'file') files.push(p)
+      else value.set(p, s.kind) // a submodule, a directory, a socket
+    }
+    for (let i = 0; i < files.length; i += HASH_CHUNK) {
+      const chunk = files.slice(i, i + HASH_CHUNK)
+      // Paths as argv, after --: a name with a newline or a leading - stays one path.
+      const h = await git(port, root, ['hash-object', '--no-filters', '--', ...chunk])
+      const ids = h.stdout.split('\n').filter(Boolean)
+      if (h.exitCode !== 0 || ids.length !== chunk.length) return null
+      chunk.forEach((p, j) => value.set(p, ids[j]!))
+    }
+    return await sha256Hex(paths.map(p => `${p}\0${value.get(p)}`).join('\n'))
+  } catch {
+    return null
+  }
 }
 
 /** The project folder under the state root. */

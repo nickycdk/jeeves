@@ -8,7 +8,7 @@ import { upgradeCheck } from '../src/adapter/auto.ts'
 import { autoNotice, carryOver, carryUndecided, decideAtStart, forget, hint, startAuto } from '../src/adapter/eligible.ts'
 import { isAutoRow } from '../src/core/autostart.ts'
 import { bgNotified, bgStarted, markStopSkipped, runtime, type Options, type Runtime } from '../src/adapter/runtime.ts'
-import { captureFirstPrompt, compacted, completionRow, heartbeat, managedNow, holdPrompt, measure, nudgeIfWaiting, onFreshSession, onStop, onTurnComplete, taskSection, turnBoundary, onUserClear, recordTool, releaseOnExit, stopFailure, userTyped, why } from '../src/adapter/task.ts'
+import { captureFirstPrompt, checkStamp, compacted, completionRow, heartbeat, managedNow, holdPrompt, measure, nudgeIfWaiting, onFreshSession, onStop, onTurnComplete, taskSection, turnBoundary, onUserClear, recordTool, releaseOnExit, stopFailure, userTyped, why } from '../src/adapter/task.ts'
 import { HEARTBEAT_MS } from '../src/core/lock.ts'
 import { ARGUMENT_HINT, HELD_TEXT, MSG, offStatus } from '../src/adapter/ui.ts'
 import type { EnginePort, FsPort } from '../src/adapter/ports.ts'
@@ -23,6 +23,7 @@ function fsPort($: EngineInterface): FsPort {
     listFiles: path => $.fs.list(path).then(es => es.filter(e => e.kind === 'file').map(e => e.name), () => []),
     realPath: path => $.fs.stat(path, { resolve: true }).then(st => st.realPath ?? null, () => null),
     mtimeMs: path => $.fs.stat(path).then(st => st.mtimeMs, () => null),
+    stat: path => $.fs.stat(path, { resolve: true }).then(st => ({ kind: st.kind, isLink: st.isLink, realPath: st.realPath ?? null }), () => null),
     run: async (argv, opts = {}) => {
       const r = await $.process.run(argv, { timeoutMs: opts.timeoutMs ?? 10_000, ...(opts.cwd ? { cwd: opts.cwd } : {}), ...(opts.env ? { env: opts.env } : {}) })
       return { exitCode: r.exitCode, stdout: r.stdout, stderr: r.stderr }
@@ -225,12 +226,16 @@ export const register: Register = (on, options) => {
     return { drop: HELD_TEXT }
   }).catch(($, e, next) => next(e))
   // Subscribed now, forwarded unchanged until the stories that use them (M3-M5).
-  // ST-3.1: record after the tool answered; the write runs after the hook returns, so it never delays, changes or blocks the call.
+  // ST-3.1: record after the tool answered; the write runs after the hook returns, so it never changes or blocks the call.
+  // Only a passing check waits, for its stamp: taken later, Claude's next call could already have changed the files.
   on('tool.call', async ($, e, next) => {
     const r = await next(e)
     const bg = (r.result as { backgroundTaskId?: unknown } | undefined)?.backgroundTaskId
     if (e.agentId === undefined && typeof bg === 'string') bgStarted(bg)
-    void quietly($, opts, 'ledger', async rt => { await recordTool(rt, outcome(e, r)); if (e.agentId === undefined) await sendRow(rt) })
+    const out = outcome(e, r)
+    const stamp: { tree: string | null } = { tree: null }
+    if (e.tool === 'Bash') await quietly($, opts, 'stamp', async rt => { stamp.tree = await checkStamp(rt, out) })
+    void quietly($, opts, 'ledger', async rt => { await recordTool(rt, out, stamp.tree); if (e.agentId === undefined) await sendRow(rt) })
     return r
   }).catch(($, e, next) => next(e))
   on('turn.start', async ($, e, next) => {

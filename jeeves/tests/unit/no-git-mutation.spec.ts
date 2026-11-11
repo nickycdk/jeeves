@@ -6,7 +6,7 @@ import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 const ROOT = join(import.meta.dirname, '../..')
-const READ_ONLY = new Set(['rev-parse', 'status', 'diff', 'cat-file', 'log', '--version'])
+const READ_ONLY = new Set(['rev-parse', 'status', 'diff', 'cat-file', 'log', '--version', 'hash-object'])
 const sources = ['src', 'hooks'].flatMap(d => readdirSync(join(ROOT, d), { recursive: true, encoding: 'utf8' })
   .filter(f => f.endsWith('.ts')).map(f => ({ file: `${d}/${f}`, text: readFileSync(join(ROOT, d, f), 'utf8') })))
 
@@ -21,6 +21,8 @@ test('AC-19: every git call is a read-only subcommand (no commit, push, reset, s
   assert.ok(calls.length >= 5, `found only ${calls.length} git calls: the pattern no longer matches the helper's callers`)
   for (const c of calls) assert.ok(READ_ONLY.has(c.split(': ')[1]!), `not read-only: ${c}`)
   for (const s of sources) assert.doesNotMatch(s.text, /'(commit|push|reset|stash|checkout|switch|merge|rebase|restore)'/, s.file)
+  // hash-object only computes ids; -w would write objects into the repository.
+  for (const s of sources) assert.doesNotMatch(s.text, /'hash-object'[^\]]*'-w'/, s.file)
 })
 
 test('AC-19: no source names a Claude Code settings file (permissions stay the user\'s)', () => {

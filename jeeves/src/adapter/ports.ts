@@ -1,6 +1,7 @@
 // The seams the adapter needs from the engine (02 §3). Storage only uses FsPort, so it also runs on real Node fs in tests.
 
 export type ProcResult = { exitCode: number; stdout: string; stderr: string }
+export type PathStat = { kind: 'file' | 'dir' | 'other'; isLink: boolean; realPath: string | null }
 export type RunOptions = { cwd?: string; timeoutMs?: number; env?: Record<string, string> }
 
 /** The only environment variables Jeeves reads (the engine wants literal names). */
@@ -20,6 +21,9 @@ export interface FsPort {
   realPath(path: string): Promise<string | null>
   /** Last modification in ms, or null when the path does not exist. */
   mtimeMs(path: string): Promise<number | null>
+  /** What the path leads to (a link followed; `other` for a dangling link or a socket), whether it is itself a symbolic
+   *  link, and where it lands; null when nothing is there. */
+  stat(path: string): Promise<PathStat | null>
   /** A host command by argv, no shell. */
   run(argv: string[], opts?: RunOptions): Promise<ProcResult>
   env(name: EnvName): Promise<string | undefined>

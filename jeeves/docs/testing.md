@@ -40,7 +40,7 @@ Expect: at the next point where Claude has stopped with nothing running, `jeeves
 1. `/jeeves on`, then `/jeeves check <your test command>` (for example `npm test`), then a small task.
 2. Let Claude finish.
 
-Expect: the task becomes COMPLETED only after the check command ran with exit 0 after the last edit. If Claude claims it's done without running it, Jeeves asks Claude to run it.
+Expect: the task becomes COMPLETED only after the check command ran with exit 0 after the last edit, with no file changed since. If Claude claims it's done without running it, Jeeves asks Claude to run it.
 
 **3. Auto-start (no `/jeeves on`)**
 
