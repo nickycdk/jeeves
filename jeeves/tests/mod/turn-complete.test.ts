@@ -1,5 +1,5 @@
 // ST-16.6 / ADR-007 A1: in turn mode the completion rules go in as a hidden row, and the completion block is read
-// from turn.complete's answer; missing checks go out as one prompt, then NEEDS_REVIEW as in Stop mode.
+// from turn.complete's answer; missing checks go out as one prompt, then a toast as in Stop mode; the task keeps running.
 import type { SessionMeasureInput } from 'claude-code'
 import { expect } from 'claude-code/testing'
 import { ROW_EVERY } from '../../src/adapter/task.ts'
@@ -50,7 +50,7 @@ test('AC 1: a row at the task\'s first turn, again after 10 turns, at once after
   expect(rules(rows)).toBe(4)
 })
 
-test('AC 2: a claimed completion without its check gets one prompt listing it; claimed again still missing -> NEEDS_REVIEW', async ($, on) => {
+test('AC 2: a claimed completion without its check gets one prompt listing it; claimed again still missing -> a toast, still watching', async ($, on) => {
   const g = await turnGenerating($, on, { ask: false })
   await relay($, 'check npm run lint')
   await wholeTurn($, complete(g.taskId))
@@ -61,7 +61,7 @@ test('AC 2: a claimed completion without its check gets one prompt listing it; c
   expect(stateOf(g.h, g.dir).status).toBe('MONITORING')
   await wholeTurn($, complete(g.taskId))
   await g.h.clock.settle()
-  expect([stateOf(g.h, g.dir).status, stateOf(g.h, g.dir).reason]).toEqual(['NEEDS_REVIEW', 'DOD_UNMET'])
+  expect([stateOf(g.h, g.dir).status, stateOf(g.h, g.dir).reason]).toEqual(['MONITORING', null])
   expect(g.prompts.filter(p => p.text.startsWith('Jeeves: not marked done yet.')).length).toBe(1)
 })
 

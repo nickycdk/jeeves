@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.4.0 (2026-11-27)
+
+Release notes: `docs/release-notes/v0.4.0.md`.
+
+- Plan and progress: at a task's start Jeeves asks Claude to write its plan as one numbered list in a `JEEVES-PLAN` block (a single step for a small task), and to write `<<<JEEVES-PROGRESS done=N>>>` as soon as a step is finished. Jeeves reads both from every main-loop model response (`turn.step`), mid-turn included, so a turn that works through every step without stopping is counted too; a subagent's response never counts, and the handover answer only ticks. A new plan replaces the old one and keeps the ticks of steps with the same text; only items like the first step (same indent, same kind of marker) are steps. The status entry (`jeeves: 27%/40%, 3/7 tasks done`), `/jeeves status` (`Plan: 3/7 tasks done`) and the completion summary show the count, and the fresh conversation after a handover gets the list with its ticks, so the count goes on. The system-prompt section carries only whether a plan exists, never the ticks, so the prompt cache is not invalidated at every step. Display only: completion is still decided by your checks or `/jeeves done`.
+- An unproven "done" no longer stops Jeeves: a JEEVES-COMPLETE block without verification commands, or with checks still missing after the one ask, shows a toast and the task keeps running (and handing over at the threshold), instead of stopping as NEEDS_REVIEW(DOD_UNMET). A requested handover still goes ahead at that Stop. `/jeeves done` marks this session's running or paused task done, a task this process ended with your `/clear`, or a task an older Jeeves stopped as DOD_UNMET; never a running task another session left behind.
+- An auto-started task's status entry reads `jeeves: on` below the quiet band (until 15 points under the threshold), instead of nothing, so you can see Jeeves is watching.
+- `state.json` is v5 once a task has a plan, which is nearly every task after Claude's first answer, so 0.3.8 and older refuse such a task as too new.
+- PTY end-to-end driver: the status-entry and transition-line checks match how Claude Code 2.1.332 draws them (no `Jeeves ` prefix on the entry, `jeeves:` in lower case on the lines).
+
 ## 0.3.8 (2026-11-11)
 
 Release notes: `docs/release-notes/v0.3.8.md`.

@@ -3,8 +3,8 @@
 /** Current version of the files that have not changed since v0.1 (config, project, session, lock, event). */
 export const SCHEMA_VERSION = 1
 /** v0.3 (ST-13.1): `state.json` gains `origin`. v3: ledger commands may hold `tail`. v4: ledger commands may hold `tree`.
- *  Written at the lowest version its fields need (`stateVersion`). */
-export const STATE_SCHEMA_VERSION = 4
+ *  v5: `plan`. Written at the lowest version its fields need (`stateVersion`). */
+export const STATE_SCHEMA_VERSION = 5
 /** v0.3 (ST-13.1): project `config.json` gains `autoStart`; written as v2 only while it is set, so v0.2 keeps reading the others. */
 export const DEFAULTS_SCHEMA_VERSION = 2
 /** v0.3 (ST-13.1): `auto.json` in the state root. */
@@ -152,6 +152,8 @@ export type State = {
   preUpgrade?: boolean
   /** `/jeeves later` reached its cap (ST-13.5): the warning says no further postponing is possible. */
   laterCapped?: boolean
+  /** Claude's JEEVES-PLAN steps and which are done (JEEVES-PROGRESS); shown as "X/Y tasks done". Display only. */
+  plan?: PlanStep[]
   /** A completion block already got its one "run the missing checks" Stop block in this session (ST-5.2). */
   completionAsked?: boolean
   /** `/jeeves pause` during a handover: pause once the fresh conversation has its task (ST-2.5). */
@@ -162,6 +164,10 @@ export type State = {
   ledger: LedgerEntry[]
   updatedAt: Iso
 }
+
+export type PlanStep = { text: string; done: boolean }
+export const PLAN_MAX = 30
+export const PLAN_STEP_MAX = 200
 
 /** A finished Bash call. `ok`: it did not fail or get denied; `exit` is known only when the call ran to an end (null: denied, backgrounded).
  *  `tail`: the last output lines of a failed run, redacted; kept only on the newest run of a command not seen passing since (`pruneTails`).

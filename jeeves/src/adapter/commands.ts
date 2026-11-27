@@ -1,5 +1,5 @@
 // /jeeves parsing and answers (ST-1.9, E2). Commands that change a task run only when the user typed them (FR-05).
-import { capText, isLimit, isThreshold, laterCap, LIMIT_MAX, LIMIT_MIN, THRESHOLD_MAX, THRESHOLD_MIN } from '../core/machine.ts'
+import { capText, confirmable, isLimit, isThreshold, laterCap, LIMIT_MAX, LIMIT_MIN, THRESHOLD_MAX, THRESHOLD_MIN } from '../core/machine.ts'
 import { heldPrompt } from '../core/continuation.ts'
 import { detectPm, suggestChecks } from '../core/suggest.ts'
 import { taskText } from '../core/task.ts'
@@ -223,10 +223,17 @@ async function retry(rt: Runtime, tasks: Task[], me: string, idle: boolean): Pro
   return MSG.retryRequested
 }
 
-/** ST-5.2 / ADR-007: the user confirms a completion that checks could not verify (recorded as the user's decision). */
+/** ST-5.2 / ADR-007: the user marks the task done, whether or not checks verified it (recorded as the user's decision). */
 async function confirmDone(rt: Runtime, tasks: Task[], me: string, endedHere: ReadonlySet<string>): Promise<string> {
-  const target = tasks.find(t => t.state.status === 'NEEDS_REVIEW' && t.state.reason === 'DOD_UNMET')
-  if (!target) return MSG.nothingToConfirm
+  const own = ownTask(tasks, me)
+  // Besides this session's own task: one this process ended (a /clear), or one an older Jeeves stopped as DOD_UNMET.
+  // Never a running task some other session left behind, even when its lock went stale.
+  const mine = (t: Task) => endedHere.has(t.state.activeSessionId ?? '') || t.state.status === 'NEEDS_REVIEW'
+  const target = own && confirmable(own.state) ? own : tasks.find(t => t !== own && confirmable(t.state) && mine(t))
+  if (!target) {
+    const other = tasks.find(t => t !== own && confirmable(t.state))
+    return other && (await heldByOther(rt, other.dir, me)) ? MSG.lockHeld(other.state.taskId) : MSG.nothingToConfirm
+  }
   if (!(await takeLock(rt, target.dir, target.state.activeSessionId, me, endedHere))) return MSG.lockHeld(target.state.taskId)
   const r = await apply(rt, target.dir, { type: 'DONE_CMD', sessionId: me })
   return r?.state.status === 'COMPLETED' ? MSG.confirmedDone(target.state.taskId) : MSG.nothingToConfirm

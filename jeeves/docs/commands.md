@@ -10,7 +10,7 @@ All are `/jeeves <command>`. Only commands you type yourself change a task; anyt
 | `pause` / `resume` | No handover until `resume`. Kept across restarts. `resume` also continues after a `/clear` you typed, a rate limit or a disk error. |
 | `rotate` | Hand over now, at the next safe stop. |
 | `check <cmd>` | Add a verification command (stored as text, never run by Jeeves). |
-| `done` | Confirm by hand a task Claude says is done but Jeeves could not prove (`Claude says done. Confirm: /jeeves done`; recorded as your decision). |
+| `done` | Mark the running or paused task done by hand, typically one Claude says is done but Jeeves could not prove (recorded as your decision). Until you do, Jeeves keeps watching and handing over. |
 | `later` | Skip the next handover: the threshold moves up 10 points and the warning comes again 5 points before. Repeatable up to 90%, or 5 points below the point where Claude Code would compact, when that is lower. A handover already under way goes on (`/jeeves pause` stops it). |
 | `continue` | Assisted mode: after `/clear`, continue the task in the fresh conversation. |
 | `recover [--relink]` | Continue a task an earlier session left interrupted (crash, closed terminal). `--relink` continues after a branch switch or a moved folder. |

@@ -1,4 +1,5 @@
 // The state machine (02 §4): reduce(state, input, ctx) -> { state, effects }. Pure: time and IDs come in through ctx.
+import { applyPlan, planText } from './plan.ts'
 import { largeWindow } from './autostart.ts'
 import { evaluate } from './completion.ts'
 import { pruneTails, type LedgerRecord } from './evidence.ts'
@@ -61,6 +62,8 @@ export type Input =
   /** Claude's JEEVES-COMPLETE block at a main-loop Stop: the task's verification commands and the block's blockers (ST-5.2).
    *  `tree`: the stamp of the files now, or null when no passing check holds one (or git did not answer). */
   | { type: 'COMPLETE_BLOCK'; commands: string[]; blockers: string[]; tree?: string | null }
+  /** Claude's JEEVES-PLAN steps (null: none in this message) and JEEVES-PROGRESS step numbers from a main-loop answer. */
+  | { type: 'PLAN'; steps: string[] | null; done: number[] }
   /** `/jeeves done`: the user confirms a completion Jeeves could not verify (ADR-007). */
   | { type: 'DONE_CMD'; sessionId: string }
   /**
@@ -152,6 +155,9 @@ export const isLimit = (n: number) => Number.isInteger(n) && n >= LIMIT_MIN && n
 export const isThreshold = (n: number) => Number.isInteger(n) && n >= THRESHOLD_MIN && n <= THRESHOLD_MAX
 /** Where a JEEVES-COMPLETE block counts: monitoring, or a rotation that has not asked Claude for anything yet. */
 export const COMPLETION_STATES: readonly Status[] = ['MONITORING', 'CONTINUING', 'ROTATION_REQUESTED', 'QUIESCING']
+/** A task `/jeeves done` may mark done: running (not mid-handover), paused, or stopped as DOD_UNMET by an older Jeeves. */
+export const confirmable = (s: State) =>
+  COMPLETION_STATES.includes(s.status) || s.status === 'PAUSED' || (s.status === 'NEEDS_REVIEW' && s.reason === 'DOD_UNMET')
 export const HELD_STATES: readonly Status[] = ['HANDOVER_GENERATING', 'VALIDATING', 'ROTATING', 'RESTORING']
 /** The schema's cap on held prompts; past it a prompt goes through to the conversation instead. */
 export const HELD_MAX = 50
@@ -651,9 +657,10 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
     case 'COMPLETE_BLOCK': {
       // A requested rotation that has asked Claude nothing yet gives way: a finished task needs no handover.
       if (!COMPLETION_STATES.includes(state.status)) return ignore('completion only while monitoring or before a handover is asked')
+      // An unproven claim keeps the task running (and rotating at the threshold) until the user types /jeeves done.
       if (input.commands.length === 0) {
-        go('NEEDS_REVIEW', 'DOD_UNMET', { rotation: null }, 'Claude reports done; the task has no verification commands')
-        effects.push({ type: 'TOAST', key: key('dod-none'), text: 'Claude says the task is done. It has no verification commands, so confirm with /jeeves done.' })
+        edit({}, 'claimed', 'Claude reports done; the task has no verification commands')
+        effects.push({ type: 'TOAST', key: key('dod-none'), text: 'Claude says the task is done. It has no verification commands: /jeeves done confirms; Jeeves keeps watching until then.' })
         return done()
       }
       const ev = evaluate(input.commands, state.ledger, input.blockers, input.tree ?? null)
@@ -670,8 +677,8 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
         effects.push({ type: 'BLOCK_STOP', key: key('complete-ask'), kind: 'completion-missing', errors: missing })
         return done()
       }
-      go('NEEDS_REVIEW', 'DOD_UNMET', { rotation: null }, `missing: ${missing.join('; ')}`)
-      effects.push({ type: 'TOAST', key: key('dod'), text: `Not marked done: ${missing.length} check(s) missing or failing. /jeeves status shows the task; /jeeves done confirms by hand.` })
+      edit({}, 'claimed', `Claude reports done; missing: ${missing.join('; ')}`)
+      effects.push({ type: 'TOAST', key: key('dod'), text: `Not marked done: ${missing.length} check(s) missing or failing. /jeeves done confirms by hand; Jeeves keeps watching until then.` })
       return done()
     }
 
@@ -709,9 +716,16 @@ export function reduce(state: State, input: Input, ctx: Ctx): Output {
       if (state.projectId === input.projectId) return ignore('already in this project')
       return edit({ projectId: input.projectId }, 'relinked', `relinked to project ${input.projectId}`)
 
+    case 'PLAN': {
+      if (!ACTIVE(state.status)) return ignore('no running task')
+      const plan = applyPlan(state.plan, input.steps, input.done)
+      if (JSON.stringify(plan) === JSON.stringify(state.plan)) return ignore('plan unchanged')
+      return edit({ plan }, 'plan', `plan: ${planText(plan) ?? 'none'}`)
+    }
+
     case 'DONE_CMD':
-      if (state.status !== 'NEEDS_REVIEW' || state.reason !== 'DOD_UNMET') return ignore('nothing waits for /jeeves done')
-      // A user approval, logged apart from evidence-based completion (from NEEDS_REVIEW, detail says who decided).
+      if (!confirmable(state)) return ignore('nothing to mark done')
+      // A user approval, logged apart from evidence-based completion (detail says who decided).
       go('COMPLETED', 'COMPLETED', { rotation: null, activeSessionId: input.sessionId }, 'approved by the user with /jeeves done (not verified by checks)')
       effects.push({ type: 'RELEASE_LOCK', key: key('release') })
       return done()

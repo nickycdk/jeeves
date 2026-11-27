@@ -188,7 +188,9 @@ States (PRD §7 plus explicit `QUIESCING` substates kept as data): `DISABLED, MO
 | PAUSED | `/relay resume` | lock ok | MONITORING (or RESTORING if USER_CLEAR) | — |
 | any active | StopFailure(rate_limit/auth/billing/…) | — | PAUSED(<code>) | distinct reason codes |
 | MONITORING/CONTINUING | COMPLETE block | evidence ok | COMPLETED | summary, stop rotation |
-| MONITORING/CONTINUING | COMPLETE block | evidence missing | NEEDS_REVIEW(DOD_UNMET) | list missing checks |
+| MONITORING/CONTINUING | COMPLETE block | evidence missing | NEEDS_REVIEW(DOD_UNMET) | list missing checks | *(until v0.3.8; from v0.4.0 the rows below)*
+| MONITORING/CONTINUING/ROTATION_REQUESTED/QUIESCING | COMPLETE block (v0.4.0) | evidence missing after the one ask, or no checks | same status | toast `/jeeves done confirms`; monitoring and any requested rotation go on |
+| MONITORING/CONTINUING/ROTATION_REQUESTED/QUIESCING/PAUSED/NEEDS_REVIEW | `/jeeves done` (v0.4.0) | lock ok; NEEDS_REVIEW only for DOD_UNMET | COMPLETED | logged as the user's approval, lock released |
 | any | `/relay off` | — | DISABLED | state kept, lock released |
 | any | session.end(clear) | not ROTATING (from v0.3: explicit task) | PAUSED(USER_CLEAR) | toast `Jeeves: paused (you cleared the conversation); /jeeves resume continues the task`, lock released |
 | any active or PAUSED, origin auto | session.end(clear) (v0.3, ADR-010 A2) | not Jeeves's own /clear | DISABLED(USER_CLEAR) | toast `Jeeves: task ended (new conversation); the next prompt starts a new one`, files kept, lock released; the next typed prompt of an eligible session starts a new auto task |

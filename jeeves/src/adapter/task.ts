@@ -1,6 +1,7 @@
 // Managed-task wiring (02 §3): find the task, then read state -> reduce -> write state -> run effects.
 // Task state lives only in files; every cycle re-reads state.json inside the runtime's serial queue.
 import { completionInstruction, isCheckRun, parseComplete } from '../core/completion.ts'
+import { parsePlan, parseProgress } from '../core/plan.ts'
 import { isCompaction, tokensOf, type Last } from '../core/compaction.ts'
 import { changedFiles, continuationPrompt, freshContext } from '../core/continuation.ts'
 import { capturedFacts, toolRecord, type ToolOutcome } from '../core/evidence.ts'
@@ -497,16 +498,33 @@ const STOP_STATES = new Set<State['status']>(['ROTATION_REQUESTED', 'QUIESCING',
 export const factsFile = (rotationId: string) => `history/facts-${rotationId}.json`
 
 /**
+ * One main-loop model response (`turn.step`), mid-turn included: Claude writes the plan and its ticks as it works, often
+ * in a turn that runs every step without stopping, so the turn's last message alone would miss them (live run).
+ * The handover answer only ticks: a plan block there would be quoted.
+ */
+export async function onAnswer(rt: Runtime, text: string): Promise<void> {
+  const own = ownTask((await projectTasks(rt)).tasks, await rt.port.sessionId())
+  if (!own || INERT.includes(own.state.status)) return
+  const steps = own.state.status === 'HANDOVER_GENERATING' ? null : parsePlan(text), done = parseProgress(text)
+  if (steps || done.length) await applyOwn(rt, { type: 'PLAN', steps, done })
+}
+
+/**
  * classic.Stop (ST-3.3): at a safe boundary ask for the handover; otherwise count the wait (QUIESCING) until the
  * quiesce limit pauses the task. Returns the Stop `block` text, or null to let Claude stop. Throws only on failure:
  * the hook then lets Claude stop (fail open for the user) and nothing advances (fail closed for the rotation).
  */
 export async function onStop(rt: Runtime, info: StopInfo): Promise<string | null> {
-  const own = ownTask((await projectTasks(rt)).tasks, await rt.port.sessionId())
+  let own = ownTask((await projectTasks(rt)).tasks, await rt.port.sessionId())
   if (!own) return null
-  // ST-5.2: a completion block is judged first; a rotation that has asked Claude nothing yet gives way to it.
+  // ST-5.2: a completion block is judged first; a rotation that has asked Claude nothing yet gives way to a proven one.
   const complete = COMPLETION_STATES.includes(own.state.status) ? parseComplete(info.message) : null
-  if (complete && (complete.taskId === null || complete.taskId === own.state.taskId)) return completionStop(rt, own, complete.blockers)
+  if (complete && (complete.taskId === null || complete.taskId === own.state.taskId)) {
+    const ask = await completionStop(rt, own, complete.blockers)
+    // An unproven claim leaves the task running: a requested rotation still goes ahead at this Stop.
+    own = ownTask((await projectTasks(rt)).tasks, await rt.port.sessionId())
+    if (ask !== null || !own || !STOP_STATES.has(own.state.status)) return ask
+  }
   if (!STOP_STATES.has(own.state.status)) return carryOn(rt, own, info)
   if (own.state.status === 'HANDOVER_GENERATING') return handoverStop(rt, own, info)
   // An agent list that cannot be read counts as one running agent: unsafe, so the quiesce limit still ends the wait.
@@ -561,18 +579,19 @@ export async function completionRow(rt: Runtime, now = false): Promise<boolean> 
   const sessionId = await rt.port.sessionId()
   const own = ownTask((await projectTasks(rt)).tasks, sessionId)
   if (!own || INERT.includes(own.state.status) || own.state.taskRevision < 1) return false
-  const key = `${sessionId}:${own.state.taskId}`
+  // The planned flag in the key: the row switches from "write the plan" to "Jeeves holds it" at once.
+  const key = `${sessionId}:${own.state.taskId}:${own.state.plan !== undefined}`
   if (!now && row?.key === key && ++row.turns < ROW_EVERY) return true
   row = { key, turns: 0 }
   const { view } = await readTask(rt, own.dir, own.state)
-  await rt.port.appendHiddenNote(completionInstruction(own.state.taskId, view.checks))
+  await rt.port.appendHiddenNote(completionInstruction(own.state.taskId, view.checks, own.state.plan !== undefined))
   return true
 }
 
 /**
  * The Stop that carries Claude's JEEVES-COMPLETE block (ST-5.2, ADR-007). The reducer checks it against the ledger
  * inside the serial queue (a check's entry lands before the Stop is applied). Missing evidence: one block listing
- * the checks to run; still missing: NEEDS_REVIEW(DOD_UNMET); passing: COMPLETED with a summary and the lock released.
+ * the checks to run; still missing: a toast, the task keeps running; passing: COMPLETED with a summary and the lock released.
  */
 async function completionStop(rt: Runtime, own: Task, blockers: string[]): Promise<string | null> {
   const { view } = await readTask(rt, own.dir, own.state)
@@ -592,7 +611,7 @@ export async function taskSection(rt: Runtime): Promise<string | null> {
   const own = ownTask((await projectTasks(rt)).tasks, await rt.port.sessionId())
   if (!own || INERT.includes(own.state.status) || own.state.taskRevision < 1) return null
   const { view } = await readTask(rt, own.dir, own.state)
-  return completionInstruction(own.state.taskId, view.checks)
+  return completionInstruction(own.state.taskId, view.checks, own.state.plan !== undefined)
 }
 
 export const why = (err: unknown) => (err instanceof Error ? err.message : String(err)).slice(0, 200)
@@ -706,7 +725,7 @@ async function latestHandover(rt: Runtime, dir: string, s: State): Promise<Lates
 /** What the fresh conversation is given (ST-4.3). Its session number counts this new one (`sessionSequence` moves on at rearm). */
 async function contextFor(rt: Runtime, dir: string, s: State, h: Latest, read?: TaskView): Promise<string> {
   const view = read ?? (await readTask(rt, dir, s)).view
-  return freshContext({ taskId: s.taskId, session: s.sessionSequence + 1, view, handover: h.file && h.text ? { file: h.file, text: h.text } : null })
+  return freshContext({ taskId: s.taskId, session: s.sessionSequence + 1, view, handover: h.file && h.text ? { file: h.file, text: h.text } : null, plan: s.plan })
 }
 
 /** The continuation prompt (ST-4.3, D-23): generated from the validated handover, plus the prompts held during rotation. */

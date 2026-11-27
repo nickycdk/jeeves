@@ -68,15 +68,19 @@ test('state.json is written as v3 only while a ledger command holds a tail; a v2
   assert.equal(old.ok ? null : old.code, 'SCHEMA_TOO_NEW')
 })
 
-test('state.json is written as v4 only while a ledger command holds a tree stamp; a v3 file reads as v4', () => {
+test('state.json is written as v5 only with a plan, v4 only while a ledger command holds a tree stamp; a v3 file reads as current', () => {
   const cmd = { kind: 'cmd' as const, command: 'npm test', ok: true, exit: 0, at: '2026-11-08T08:00:00.000Z', agent: null }
   const stamped = validState({ ledger: [{ ...cmd, tree: 'a'.repeat(64) }, { ...cmd, ok: false, exit: 1, tail: 'x' }] })
   assert.equal(stateVersion(stamped), 4)
   assert.equal(stateVersion(validState({ ledger: [{ ...cmd, ok: false, exit: 1, tail: 'x' }] })), 3)
   const r = parseJson('state', json({ ...validState({ ledger: [cmd] }), schemaVersion: 3 }))
   assert.ok(r.ok, JSON.stringify(r))
-  assert.equal(r.value.schemaVersion, 4)
+  assert.equal(r.value.schemaVersion, 5)
   assert.ok(parseJson('state', json({ ...stamped, schemaVersion: 4 })).ok)
+  const planned = validState({ ledger: stamped.ledger, plan: [{ text: 'Write the parser', done: true }] })
+  assert.equal(stateVersion(planned), 5)
+  assert.ok(parseJson('state', json({ ...planned, schemaVersion: 5 })).ok)
+  assert.equal(check('state', validState({ plan: [{ text: '', done: false }] })).ok, false)
   assert.equal(check('state', validState({ ledger: [{ ...cmd, tree: '' }] })).ok, false)
 })
 

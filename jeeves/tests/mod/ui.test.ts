@@ -154,7 +154,7 @@ test('ST-14.2: /jeeves alone after a failed handover offers retry, and not once 
   expect(used.split('\n').at(-1)).toBe('Try: /jeeves help')
 })
 
-test('ST-14.5: an auto task\'s status entry is empty until within 15 points of the threshold (24% of 40 empty, 25% shown)', { options: { autoStart: 'on' } }, async ($, on) => {
+test('ST-14.5: an auto task\'s status entry says only "on" until within 15 points of the threshold (24% of 40 "on", 25% shown)', { options: { autoStart: 'on' } }, async ($, on) => {
   const h = memHost(on)
   bottom(on)
   fakeGit(h)
@@ -163,11 +163,12 @@ test('ST-14.5: an auto task\'s status entry is empty until within 15 points of t
   await submit($, PROMPT)
   expect(stateOf(h, taskDirs(h)[0]!).origin).toBe('auto')
   for (const p of [10, 24]) await measure($, p)
-  expect(h.status.filter(s => s !== undefined)).toEqual([])
+  expect(h.status.filter(s => s !== undefined && s !== 'on')).toEqual([])
+  expect(h.status.at(-1)).toBe('on')
   await measure($, 25)
   expect(h.status.at(-1)).toBe('25%/40%')
   await measure($, 12)
-  expect(h.status.at(-1)).toBe(undefined)
+  expect(h.status.at(-1)).toBe('on')
 })
 
 test('ST-14.5: an explicit task\'s status entry shows from the start', ROW, async ($, on) => {

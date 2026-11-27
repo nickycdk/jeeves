@@ -3,13 +3,16 @@
 import type { Item, Narrative } from './handover/parse.ts'
 import { GOAL } from './handover/template.ts'
 import { ORIGINAL_SHOWN, revFile, type ChangeKind, type TaskView } from './task.ts'
+import { planList, planText } from './plan.ts'
+import type { PlanStep } from './types.ts'
 
 const FILES_SHOWN = 50
 const bullets = (xs: readonly string[], none: string) => (xs.length ? xs.map(x => `- ${x}`) : [`- ${none}`])
 const items = (xs: readonly Item[]) => xs.map(i => `- ${i.text}`)
 
 /** `classic.SessionStart` additionalContext (ADR-003 channel): the task as the user wrote it, its DoD, and the latest handover. */
-export function freshContext(p: { taskId: string; session: number; view: TaskView; handover: { file: string; text: string } | null }): string {
+export function freshContext(p: { taskId: string; session: number; view: TaskView; handover: { file: string; text: string } | null; plan?: readonly PlanStep[] }): string {
+  const plan = planList(p.plan)
   return [
     `Jeeves managed task ${p.taskId}, session ${p.session}. Jeeves cleared the previous conversation to free context; below is what carries over. The previous transcript is gone on purpose.`,
     '',
@@ -22,6 +25,7 @@ export function freshContext(p: { taskId: string; session: number; view: TaskVie
     '## Verification commands (run them with your own Bash tool; Jeeves never runs them)',
     ...bullets(p.view.checks.map(c => `\`${c}\``), '(none set)'),
     '',
+    ...(plan ? [`## Plan (${planText(p.plan)}; [x] = done, keep these step numbers)`, ...plan, ''] : []),
     ...(p.handover ? [`## Latest validated handover (${p.handover.file})`, p.handover.text] : ['## No handover yet', 'No handover was validated for this task yet: work out where it stands from the repository.']),
   ].join('\n')
 }

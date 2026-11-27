@@ -138,9 +138,10 @@ def main():
             'zero keystrokes after setup': r['keystrokes_after_setup'] == [],
             'no permission dialog': dialog is None,
             'no step committed twice': all(v <= 1 for v in step_commits.values()),
-            'status entry seen (Jeeves N%/T%)': bool(re.search(r'Jeeves(\d+|\?)%?/[\d.?]+%', re.sub(r'\s', '', c.plain()))),
+            # Claude Code 2.1.332 draws the entry without our "Jeeves " prefix and the lines as "jeeves:" (live run, 2026-11-27).
+            'status entry seen (Jeeves N%/T%)': bool(re.search(r'(?:Jeeves)?(\d+|\?)%/[\d.?]+%', re.sub(r'\s', '', c.plain()))),
             # Since ST-14.3 the line names the goal: "handover validated (goal: …), starting fresh".
-            'transition lines seen': re.search(r'Jeeves:handovervalidated(\(goal:.{0,600}?\))?,startingfresh', re.sub(r'\s', '', c.plain())) is not None,
+            'transition lines seen': re.search(r'(?i)jeeves:handovervalidated(\(goal:.{0,600}?\))?,startingfresh', re.sub(r'\s', '', c.plain())) is not None,
             **({'loaded as the installed plugin (jeeves@jeeves, no --plugin-dir)': os.path.exists(debug) and 'jeeves@jeeves' in open(debug, errors='replace').read()} if a.installed else {}),
         }
     r.update(checks=checks, step_commits=step_commits, step_files_touched=touched, git_log=log, sessions=sessions,

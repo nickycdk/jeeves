@@ -313,7 +313,7 @@ test('ST-6.2: an API failure during a handover pauses without counting as a fail
   assert.match(toast?.type === 'TOAST' ? toast.text : '', /resets at 2026-11-07 14:00 UTC/)
 })
 
-test('rows 24-25: MONITORING/CONTINUING + COMPLETE block -> COMPLETED with evidence; missing -> one block, then NEEDS_REVIEW(DOD_UNMET)', () => {
+test('rows 24-25: MONITORING/CONTINUING + COMPLETE block -> COMPLETED with evidence; missing -> one block, then a toast and the task keeps running', () => {
   const ran: State['ledger'] = [{ kind: 'edit', path: '/r/a.js', at: AT, agent: null }, { kind: 'cmd', command: 'npm test', ok: true, exit: 0, at: AT, agent: null }]
   for (const status of ['MONITORING', 'CONTINUING'] as const) {
     const ok = run(st(status, { ledger: ran, rotationCount: 2, sessionSequence: 3, ...(status === 'CONTINUING' ? { rotation: rot({ step: 'CONTINUED' }) } : {}) }), { type: 'COMPLETE_BLOCK', commands: ['npm test'], blockers: [] })
@@ -328,19 +328,24 @@ test('rows 24-25: MONITORING/CONTINUING + COMPLETE block -> COMPLETED with evide
   const b = ask.effects.find(e => e.type === 'BLOCK_STOP')
   assert.deepEqual(b?.type === 'BLOCK_STOP' && [b.kind, b.errors], ['completion-missing', ['`npm test`: never run (run it exactly as written)']])
   const no = run(ask.state, { type: 'COMPLETE_BLOCK', commands: ['npm test'], blockers: [] })
-  assert.deepEqual([no.state.status, no.state.reason], ['NEEDS_REVIEW', 'DOD_UNMET'])
-  assert.ok(!types(no.effects).includes('BLOCK_STOP'))
+  assert.deepEqual([no.state.status, no.state.reason], ['MONITORING', null])
+  assert.deepEqual(types(no.effects), ['LOG_EVENT', 'TOAST'])
 })
 
-test('ST-5.2: no verification commands -> NEEDS_REVIEW at once; /jeeves done confirms as a distinct user event; blockers never pass', () => {
+test('ST-5.2: no verification commands -> a toast, the task keeps running; /jeeves done confirms as a distinct user event; blockers never pass', () => {
   const none = run(st('MONITORING'), { type: 'COMPLETE_BLOCK', commands: [], blockers: [] })
-  assert.deepEqual([none.state.status, none.state.reason], ['NEEDS_REVIEW', 'DOD_UNMET'])
+  assert.deepEqual([none.state.status, none.state.reason], ['MONITORING', null])
+  assert.deepEqual(types(none.effects), ['LOG_EVENT', 'TOAST'])
   const done = run(none.state, { type: 'DONE_CMD', sessionId: 'sess-z' })
   assert.deepEqual([done.state.status, done.state.activeSessionId], ['COMPLETED', 'sess-z'])
   const e = done.effects.find(x => x.type === 'LOG_EVENT')
-  assert.ok(e?.type === 'LOG_EVENT' && e.from === 'NEEDS_REVIEW' && e.detail.includes('approved by the user'))
+  assert.ok(e?.type === 'LOG_EVENT' && e.from === 'MONITORING' && e.detail.includes('approved by the user'))
   assert.ok(types(done.effects).includes('RELEASE_LOCK'))
-  assert.ok(run(st('MONITORING'), { type: 'DONE_CMD', sessionId: 'a' }).ignored)
+  // A task stopped as DOD_UNMET by an older Jeeves, a paused one and a requested rotation confirm too; a handover in flight does not.
+  for (const x of [st('NEEDS_REVIEW', { reason: 'DOD_UNMET' }), st('PAUSED', { reason: 'USER_PAUSE' }), st('ROTATION_REQUESTED', { rotation: rot() })]) {
+    assert.equal(run(x, { type: 'DONE_CMD', sessionId: 'a' }).state.status, 'COMPLETED', x.status)
+  }
+  assert.ok(run(st('HANDOVER_GENERATING', { rotation: rot({ step: 'HANDOVER_REQUESTED' }) }), { type: 'DONE_CMD', sessionId: 'a' }).ignored)
   assert.ok(run(st('NEEDS_REVIEW', { reason: 'HANDOVER_INVALID' }), { type: 'DONE_CMD', sessionId: 'a' }).ignored)
   const ran: State['ledger'] = [{ kind: 'cmd', command: 'npm test', ok: true, exit: 0, at: AT, agent: null }]
   const blocked = run(st('MONITORING', { ledger: ran }), { type: 'COMPLETE_BLOCK', commands: ['npm test'], blockers: ['the API is down'] })
@@ -353,6 +358,11 @@ test('ST-5.2: a requested rotation that asked nothing yet gives way to a passing
     const o = run(st(status, { ledger: ran }), { type: 'COMPLETE_BLOCK', commands: ['npm test'], blockers: [] })
     assert.deepEqual([o.state.status, o.state.rotation], ['COMPLETED', null], status)
   }
+  // An unproven claim keeps the rotation: the handover still happens at the threshold.
+  const claimed = run(st('ROTATION_REQUESTED', { rotation: rot() }), { type: 'COMPLETE_BLOCK', commands: [], blockers: [] })
+  assert.deepEqual([claimed.state.status, claimed.state.rotation?.rotationId], ['ROTATION_REQUESTED', rot().rotationId])
+  const watched = run(run(st('MONITORING'), { type: 'COMPLETE_BLOCK', commands: [], blockers: [] }).state, measure(50))
+  assert.equal(watched.state.status, 'ROTATION_REQUESTED')
   for (const status of ['HANDOVER_GENERATING', 'ROTATING', 'PAUSED'] as const) assert.ok(run(st(status, { ledger: ran }), { type: 'COMPLETE_BLOCK', commands: ['npm test'], blockers: [] }).ignored, status)
   const c = st('COMPLETED', { reason: 'COMPLETED' })
   for (const i of [measure(90), { type: 'ROTATE_CMD' }, { type: 'COMPACTED' }, { type: 'IDLE' }] as const) {

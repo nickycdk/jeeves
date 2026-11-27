@@ -1,7 +1,7 @@
 // Runtime guards and migrations for every persisted contract (02 §6). Hand-written: no runtime deps (ADR-008).
 import {
-  AUTO_SCHEMA_VERSION, DEFAULTS_CHECKS_MAX, DEFAULTS_SCHEMA_VERSION, LEDGER_COMMAND_MAX, LEDGER_MAX, LEDGER_TAIL_MAX, MODES, ON_OFF, ORIGINS, REASON_CODES, ROTATION_STATES, ROTATION_STEPS,
-  SCHEMA_VERSION, STATE_SCHEMA_VERSION, STATUSES, TRIGGERS, type AutoFile, type CommandEntry, type Config, type EditEntry, type EventLine, type LockOwner, type ProjectDefaults, type ProjectRecord, type SessionRecord, type State,
+  AUTO_SCHEMA_VERSION, DEFAULTS_CHECKS_MAX, DEFAULTS_SCHEMA_VERSION, LEDGER_COMMAND_MAX, LEDGER_MAX, LEDGER_TAIL_MAX, MODES, ON_OFF, ORIGINS, PLAN_MAX, PLAN_STEP_MAX, REASON_CODES, ROTATION_STATES, ROTATION_STEPS,
+  SCHEMA_VERSION, STATE_SCHEMA_VERSION, STATUSES, TRIGGERS, type AutoFile, type CommandEntry, type Config, type EditEntry, type EventLine, type LockOwner, type PlanStep, type ProjectDefaults, type ProjectRecord, type SessionRecord, type State,
 } from './types.ts'
 import { COMMIT_RE } from './git.ts'
 import { HANDOVER_REF_RE } from './handover/render.ts'
@@ -95,7 +95,7 @@ const stateShape = obj<State>({
   rotation: nullable(rotation),
   lastValidatedHandover: nullable(handoverRef), rotationCount: int(0), consecutiveFailures: int(0),
   thresholdPercent: int(20, 90), maxRotations: { optional: int(1, 100) }, lastContext: nullable(contextReading), armedFired: bool,
-  warnedSessionId: nullable(str()), heldPrompts: arr(str({ max: 100_000 }), 50), completionAsked: { optional: bool }, graceTurns: { optional: int(0, 3) }, laterCapped: { optional: bool }, preUpgrade: { optional: bool },
+  warnedSessionId: nullable(str()), heldPrompts: arr(str({ max: 100_000 }), 50), completionAsked: { optional: bool }, plan: { optional: arr(obj<PlanStep>({ text: str({ nonEmpty: true, max: PLAN_STEP_MAX }), done: bool }), PLAN_MAX) }, graceTurns: { optional: int(0, 3) }, laterCapped: { optional: bool }, preUpgrade: { optional: bool },
   pendingChanges: { optional: arr(obj<NonNullable<State['pendingChanges']>[number]>({ kind: oneOf(['dod', 'check']), text: str({ nonEmpty: true, max: 100_000 }) }), 20) }, pauseRequested: bool, taskStartHead: nullable(commitHash),
   lastErrorCode: reason, ledger: arr(ledgerEntry, LEDGER_MAX), updatedAt: iso,
 })
@@ -142,6 +142,7 @@ export const MIGRATIONS: { [K in Kind]: Migration[] } = {
     old => ({ ...old, origin: 'explicit', preUpgrade: true }), // v1 → v2 (v0.3): every v0.2 task was started by /jeeves on, with six-heading handovers
     old => old, // v2 → v3: only adds the optional ledger `tail`
     old => old, // v3 → v4: only adds the optional ledger `tree`
+    old => old, // v4 → v5: only adds the optional `plan`
   ],
   config: [], defaults: [old => old], // v1 → v2 (v0.3): only adds the optional autoStart
   project: [], session: [], lock: [], event: [], auto: [],
@@ -150,11 +151,11 @@ export const MIGRATIONS: { [K in Kind]: Migration[] } = {
 /** The version a project `config.json` is written with: v2 only while `autoStart` or `maxRotations` is set, so a v0.2 build keeps the project's threshold and checks after a downgrade. */
 export const defaultsVersion = (d: ProjectDefaults) => (d.autoStart === undefined && d.maxRotations === undefined ? 1 : DEFAULTS_SCHEMA_VERSION)
 
-/** The version a `state.json` is written with: the lowest one its ledger needs (v4 for a `tree`, v3 for a `tail`, else v2), so an older
- *  build refuses only such a file, as too new. Nearly every task in a git repository holds a stamp, so most files are v4. */
+/** The version a `state.json` is written with: the lowest one its fields need (v5 for a `plan`, v4 for a `tree`, v3 for a `tail`, else v2),
+ *  so an older build refuses only such a file, as too new. Jeeves asks every task for a plan, so most files are v5 after the first answer. */
 export const stateVersion = (s: State) => {
   const cmds = s.ledger.filter(e => e.kind === 'cmd')
-  return cmds.some(e => e.tree !== undefined) ? 4 : cmds.some(e => e.tail !== undefined) ? 3 : 2
+  return s.plan !== undefined ? 5 : cmds.some(e => e.tree !== undefined) ? 4 : cmds.some(e => e.tail !== undefined) ? 3 : 2
 }
 
 /** Validate an already-current value. */

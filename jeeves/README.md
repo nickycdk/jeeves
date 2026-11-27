@@ -2,7 +2,7 @@
 
 Claude Code has a context limit. Your momentum shouldn't. Jeeves is your friendly butler for long Claude Code tasks: when the context starts to fill up, he saves a verified handover, starts a fresh conversation in the same terminal and carries on with the task there. You keep building.
 
-**Status: public beta 0.3.8 (see the [CHANGELOG](https://github.com/nickycdk/jeeves/blob/main/jeeves/CHANGELOG.md)).** It works on Claude Code 2.1.319 and later on macOS; see [Compatibility](https://github.com/nickycdk/jeeves/blob/main/jeeves/docs/compatibility.md).
+**Status: public beta 0.4.0 (see the [CHANGELOG](https://github.com/nickycdk/jeeves/blob/main/jeeves/CHANGELOG.md)).** It works on Claude Code 2.1.319 and later on macOS; see [Compatibility](https://github.com/nickycdk/jeeves/blob/main/jeeves/docs/compatibility.md).
 
 ## The problem
 
@@ -44,7 +44,9 @@ The same in Terminal, iTerm, Cursor's or VS Code's integrated terminal: Jeeves l
 
 ## What you see
 
-While a task is on, Jeeves keeps one entry under the prompt: `jeeves: 34%/40%` (context used / threshold) while it watches, or the current step in words (`jeeves: writing handover`, `jeeves: Paused by you. /jeeves resume`). In an auto-started task the entry stays empty until the context is within 15 points of the threshold (from 25% with a 40% threshold); `/jeeves` shows the full picture at any time. Your own status line is not changed. Each step of a handover adds one dim line to the transcript; Claude does not see these lines. Errors also show as a short notice.
+While a task is on, Jeeves keeps one entry under the prompt: `jeeves: 34%/40%` (context used / threshold) while it watches, or the current step in words (`jeeves: writing handover`, `jeeves: Paused by you. /jeeves resume`). In an auto-started task the entry reads just `jeeves: on` until the context is within 15 points of the threshold (from 25% with a 40% threshold), so you can see Jeeves is watching without numbers in every session. When Claude has written a plan, the entry adds `3/7 tasks done` (see below); `/jeeves` shows the full picture at any time. Your own status line is not changed. Each step of a handover adds one dim line to the transcript; Claude does not see these lines. Errors also show as a short notice.
+
+At the start of a task Jeeves asks Claude to write its plan in a `JEEVES-PLAN` block (one step is fine for a small task), and to report finished steps with `<<<JEEVES-PROGRESS done=1,2>>>`. Jeeves keeps the list with the task, so it carries over handovers: the fresh conversation gets it with the finished steps marked, and the count goes on. The status entry, `/jeeves status` and the completion summary show `3/7 tasks done`. The count is Claude's own report, shown for you to follow; it never decides whether the task is done (that stays with your checks or `/jeeves done`). A task with a plan saves `state.json` as v5, which 0.3.8 and older refuse as too new.
 
 When a task is done, the transcript and the notification say what it took: `jeeves: task completed in 3h 20m: 6 handovers, 14 commits, 2/2 checks passed.`, and a second line with the context cleared and the cost, when known. The time is wall time from the task's start. If the fresh conversation after a handover starts with little room under the threshold, Jeeves says so once per task and names a threshold that gives more.
 
@@ -98,7 +100,7 @@ All are `/jeeves <command>`. The ones you will use most:
 | `pause` / `resume` | No handover until `resume`. Kept across restarts. |
 | `rotate` | Hand over now, at the next safe stop. |
 | `check <cmd>` | Add a verification command (stored as text, never run by Jeeves). |
-| `done` | Confirm by hand a task Claude says is done but Jeeves could not prove. |
+| `done` | Confirm by hand a task Claude says is done but Jeeves could not prove. Until then Jeeves keeps watching. |
 
 The rest (`later`, `threshold`, `limit`, `defaults`, `auto`, `task`, `dod`, `retry`, `continue`, `recover`, `history`, `handover`, `stats`, `purge`, `help`) are in [Commands](https://github.com/nickycdk/jeeves/blob/main/jeeves/docs/commands.md). `/jeeves help` lists them all, the everyday ones first.
 

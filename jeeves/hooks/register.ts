@@ -8,7 +8,7 @@ import { upgradeCheck } from '../src/adapter/auto.ts'
 import { autoNotice, carryOver, carryUndecided, decideAtStart, forget, hint, startAuto } from '../src/adapter/eligible.ts'
 import { isAutoRow } from '../src/core/autostart.ts'
 import { bgNotified, bgStarted, markStopSkipped, runtime, type Options, type Runtime } from '../src/adapter/runtime.ts'
-import { captureFirstPrompt, checkStamp, compacted, completionRow, heartbeat, managedNow, holdPrompt, measure, nudgeIfWaiting, onFreshSession, onStop, onTurnComplete, taskSection, turnBoundary, onUserClear, recordTool, releaseOnExit, stopFailure, userTyped, why } from '../src/adapter/task.ts'
+import { captureFirstPrompt, checkStamp, compacted, completionRow, onAnswer, heartbeat, managedNow, holdPrompt, measure, nudgeIfWaiting, onFreshSession, onStop, onTurnComplete, taskSection, turnBoundary, onUserClear, recordTool, releaseOnExit, stopFailure, userTyped, why } from '../src/adapter/task.ts'
 import { HEARTBEAT_MS } from '../src/core/lock.ts'
 import { ARGUMENT_HINT, HELD_TEXT, MSG, offStatus } from '../src/adapter/ui.ts'
 import type { EnginePort, FsPort } from '../src/adapter/ports.ts'
@@ -238,6 +238,12 @@ export const register: Register = (on, options) => {
     void quietly($, opts, 'ledger', async rt => { await recordTool(rt, out, stamp.tree); if (e.agentId === undefined) await sendRow(rt) })
     return r
   }).catch(($, e, next) => next(e))
+  // The plan and its ticks, from every main-loop response as it ends (not only the turn's last one).
+  on('turn.step', async function* ($, e, next) {
+    const r = yield* next(e)
+    if (e.agentId === undefined && /JEEVES-(PLAN|PROGRESS)/i.test(r.answer)) void quietly($, opts, 'plan', rt => onAnswer(rt, r.answer))
+    return r
+  })
   on('turn.start', async ($, e, next) => {
     if (e.agentId === undefined) {
       turnOpen = true

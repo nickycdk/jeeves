@@ -1,5 +1,6 @@
 // ST-11.4 (FR-11, R-15): `/jeeves stats` figures from the task files. Pure. Says "context cleared", never "tokens
 // saved" (claims policy, 08 §7); an unknown cost stays unknown, never 0.
+import { planText } from './plan.ts'
 import type { EventLine, ReasonCode, SessionRecord, State } from './types.ts'
 
 export type TaskFiles = { state: State; sessions: SessionRecord[]; events: EventLine[] }
@@ -85,6 +86,7 @@ export function completionSummary(c: CompletionInput): string[] {
   const parts = [
     n ? `${n} handover${n === 1 ? '' : 's'}` : 'no handovers',
     ...(c.commits === null ? [] : [`${c.commits} commit${c.commits === 1 ? '' : 's'}`]),
+    ...(planText(c.state.plan) ? [planText(c.state.plan)!] : []),
     c.how === 'checks' ? `${c.checks}/${c.checks} checks passed` : c.checks ? 'confirmed by you' : 'no checks set, confirmed by you',
   ]
   const lines = [`Jeeves: task completed${start ? ` in ${duration(c.now - Date.parse(start))}` : ''}: ${parts.join(', ')}.`]

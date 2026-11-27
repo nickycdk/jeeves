@@ -2,6 +2,7 @@
 // "Done" text alone never completes: only a block, and only when every verification command ran with exit 0 after
 // the last edit, with the files unchanged since, and no blocker is open. Pure.
 import { ledgerCommand } from './evidence.ts'
+import { PLAN_CLOSE, PLAN_OPEN } from './plan.ts'
 import type { CommandEntry, LedgerEntry } from './types.ts'
 
 export const COMPLETE_OPEN = '<<<JEEVES-COMPLETE v1'
@@ -80,9 +81,15 @@ function changedSince(commands: readonly string[], ledger: readonly LedgerEntry[
   return 'files changed since it passed (not through Edit/Write)'
 }
 
-/** The system-prompt section that tells Claude how to finish a managed task (ST-5.2). Deterministic. */
-export function completionInstruction(taskId: string, commands: readonly string[]): string {
+/** The system-prompt section that tells Claude how to finish a managed task (ST-5.2). Deterministic.
+ *  `planned`: Jeeves holds a plan already. Only that flag goes in, never the ticks: a section that changed with every
+ *  step would make the prompt cache read the whole conversation again; a fresh conversation gets the list in its context. */
+export function completionInstruction(taskId: string, commands: readonly string[], planned = false): string {
   return [
+    planned
+      ? `Jeeves holds the plan for this task (your ${PLAN_OPEN} block, or the list in the task context after a handover). Keep its step numbers. If the plan changes, write the whole plan again in a new ${PLAN_OPEN} block; steps with the same text keep their done mark.`
+      : `Before you start on the task, write its plan once as one numbered list, 1 to N, one line per step and no sub-items (a single step is fine for a small task):\n${PLAN_OPEN}\n1. <step>\n2. <step>\n${PLAN_CLOSE}`,
+    'As soon as you finish a step, write <<<JEEVES-PROGRESS done=<step number>>>> in your text before your next tool call, for example <<<JEEVES-PROGRESS done=2>>>; several at once: done=2,3.',
     `Jeeves manages this task (${taskId}) across fresh conversations. Saying "done" does not finish it.`,
     'Only when the whole task is done, end your final message with exactly this block:',
     `${COMPLETE_OPEN} task=${taskId}`,

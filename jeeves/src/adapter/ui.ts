@@ -1,4 +1,5 @@
 // User-facing strings (FR-14, NFR-08): plain ASCII, text labels, <= 40 columns, <= 8 lines for status.
+import { planText } from '../core/plan.ts'
 import type { Probe } from '../core/probe.ts'
 import { recoverable } from '../core/machine.ts'
 import { DEFAULT_CONFIG, INERT, type EventLine, type ReasonCode, type State, type Status } from '../core/types.ts'
@@ -51,9 +52,10 @@ const QUIET_POINTS = 15
  *  The text after `Jeeves: ` fits 40 columns; Claude Code shows the plugin's name instead of ours (hooks/register.ts). */
 export function statusLine(s: State, threshold: number | string): string | undefined {
   if (s.status === 'DISABLED') return undefined
-  const mode = s.mode === 'assisted' ? ' assisted' : ''
-  // ST-14.5 (spec §6.3): an auto task's entry stays empty until the context is within 15 points of the threshold.
-  if (s.status === 'MONITORING' && s.origin === 'auto' && !((s.lastContext?.percent ?? -1) >= Number(threshold) - QUIET_POINTS)) return undefined
+  const mode = (s.mode === 'assisted' ? ' assisted' : '') + (planText(s.plan) ? `, ${planText(s.plan)}` : '')
+  // ST-14.5 (spec §6.3): an auto task shows only that it is on until the context is within 15 points of the threshold,
+  // so a user can always see Jeeves watches without numbers in every session.
+  if (s.status === 'MONITORING' && s.origin === 'auto' && !((s.lastContext?.percent ?? -1) >= Number(threshold) - QUIET_POINTS)) return fit(`Jeeves on${mode}`)
   if (s.status === 'MONITORING') return fit(`Jeeves ${pctText(s.lastContext?.percent)}/${threshold}%${mode}`)
   return `Jeeves: ${fit(s.reason && INERT.includes(s.status) ? reasonLine(s) : STATE_WORD[s.status])}`
 }
@@ -145,6 +147,7 @@ export function statusText(v: StatusView): string {
         : v.thresholdOverride ? [`TEST OVERRIDE (task setting ${s.thresholdPercent}%)`] : []),
       `Rotations: ${s.rotationCount}/${s.maxRotations ?? DEFAULT_CONFIG.maxRotationsPerTask}  Session: ${s.sessionSequence}`,
       ...(s.reason && INERT.includes(s.status) ? [reasonLine(s)] : []),
+      ...(planText(s.plan) ? [`Plan: ${planText(s.plan)}`] : []),
       `Last: ${s.lastValidatedHandover ? s.lastValidatedHandover.split('#')[0]!.replace(/^history\//, '') : 'no handover yet'}`,
     )
   }
@@ -153,7 +156,7 @@ export function statusText(v: StatusView): string {
   else lines.push(`State folder: ${v.stateRootError ? 'error' : 'unset'}`, ...(v.stateRootError ? [v.stateRootError] : []))
   lines.push(commandsLine(v))
   // At most 8 lines: the least useful give way first, so the reason, the commands and any warning always show.
-  for (const prefix of ['Path: ', 'Last: ', 'Rotations: ', 'Waiting for', 'TEST OVERRIDE']) {
+  for (const prefix of ['Path: ', 'Last: ', 'Plan: ', 'Rotations: ', 'Waiting for', 'TEST OVERRIDE']) {
     for (let i; lines.length > 8 && (i = lines.findIndex(l => l.startsWith(prefix))) >= 0;) lines.splice(i, 1)
   }
   // Still too long (test settings stacked on warnings): keep the commands line, the last.
@@ -273,7 +276,7 @@ export const MSG = {
   retryWatching: 'Watching again in this session, without a handover here. The next fresh session rotates as usual. A higher /jeeves threshold or a shorter task avoids another loop.',
   retryUsedUp: (n: number) => `No retry: ${n} handovers in a row failed, the limit. /jeeves off ends the task (files kept).`,
   nothingToRetry: '/jeeves retry works only after a handover failed its checks, or after a fresh conversation started too full.',
-  nothingToConfirm: 'Nothing waits for /jeeves done: only a task stopped as DOD_UNMET can be confirmed by hand.',
+  nothingToConfirm: 'Nothing to mark done: no running or paused task here, or a handover is in progress.',
   confirmedDone: (taskId: string) => `Task ${taskId} marked done by you (recorded as your decision, not verified by checks).`,
   nothingToContinue: 'No handover is waiting for /jeeves continue. /jeeves status shows the task.',
   continueNeedsFresh: 'Run /clear first: /jeeves continue works only in a fresh conversation, so the old one is not mixed in.',
